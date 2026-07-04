@@ -1,12 +1,13 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { CalendarDays, BookOpen, Sparkles, GraduationCap } from 'lucide-react';
+import { CalendarDays, BookOpen, Sparkles, GraduationCap, BarChart3 } from 'lucide-react';
 
 const navItems = [
   { to: '/', label: 'Today', icon: CalendarDays },
   { to: '/classes', label: 'Classes', icon: BookOpen },
   { to: '/assistant', label: 'AI', icon: Sparkles },
   { to: '/planner', label: 'Planner', icon: GraduationCap },
+  { to: '/analytics', label: 'Stats', icon: BarChart3 },
 ];
 
 export default function BottomNav() {

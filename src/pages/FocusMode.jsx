@@ -1,26 +1,50 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { X, Music, Volume2, Timer, Coffee } from 'lucide-react';
-import PomodoroTimer from '@/components/PomodoroTimer';
+import { X, Music, Play, Pause, Square, Brain, Coffee, Check, BarChart3, Loader2 } from 'lucide-react';
+import MusicPlayer from '@/components/MusicPlayer';
 
-const tracks = [
-  { title: 'Bach — Cello Suite No. 1', composer: 'Bach', videoId: '1prweTlAqV4' },
-  { title: 'Chopin — Nocturne Op. 9 No. 2', composer: 'Chopin', videoId: 't28PhBSqsZo' },
-  { title: 'Debussy — Clair de Lune', composer: 'Debussy', videoId: 'ZIsQP4wOJ9c' },
-  { title: 'Mozart — Piano Concerto No. 21', composer: 'Mozart', videoId: 'tDQt5q9N7Cs' },
-  { title: 'Beethoven — Moonlight Sonata', composer: 'Beethoven', videoId: '4Tr0otuiQuU' },
-];
+const GOAL_MINUTES = 90;
 
 export default function FocusMode() {
   const { sessionId } = useParams();
   const navigate = useNavigate();
+
+  const [mode, setMode] = useState('pomodoro');
+  const [phase, setPhase] = useState('idle');
+  const [studySeconds, setStudySeconds] = useState(0);
+  const [intervalSecondsLeft, setIntervalSecondsLeft] = useState(0);
+  const [pomodoroPhase, setPomodoroPhase] = useState('study');
+  const [cycles, setCycles] = useState(0);
+  const [studyMinutes, setStudyMinutes] = useState(25);
+  const [breakMinutes, setBreakMinutes] = useState(5);
+  const [awaitingConfirm, setAwaitingConfirm] = useState(false);
+  const [showMusic, setShowMusic] = useState(false);
   const [session, setSession] = useState(null);
   const [cls, setCls] = useState(null);
-  const [mode, setMode] = useState('pomodoro'); // pomodoro | simple
-  const [showMusic, setShowMusic] = useState(false);
-  const [activeTrack, setActiveTrack] = useState(0);
+  const [saving, setSaving] = useState(false);
 
+  // Refs for timer tick (avoid stale closures)
+  const phaseRef = useRef('idle');
+  const studySecondsRef = useRef(0);
+  const intervalLeftRef = useRef(0);
+  const modeRef = useRef('pomodoro');
+  const awaitingConfirmRef = useRef(false);
+  const studyMinutesRef = useRef(25);
+  const breakMinutesRef = useRef(5);
+
+  useEffect(() => { phaseRef.current = phase; }, [phase]);
+  useEffect(() => { studySecondsRef.current = studySeconds; }, [studySeconds]);
+  useEffect(() => { intervalLeftRef.current = intervalSecondsLeft; }, [intervalSecondsLeft]);
+  useEffect(() => { modeRef.current = mode; }, [mode]);
+  useEffect(() => { awaitingConfirmRef.current = awaitingConfirm; }, [awaitingConfirm]);
+  useEffect(() => { studyMinutesRef.current = studyMinutes; }, [studyMinutes]);
+  useEffect(() => { breakMinutesRef.current = breakMinutes; }, [breakMinutes]);
+
+  const goalSeconds = GOAL_MINUTES * 60;
+  const goalProgress = Math.min(studySeconds / goalSeconds, 1);
+
+  // Load session
   useEffect(() => {
     if (sessionId) {
       base44.entities.StudySession.get(sessionId).then(s => {
@@ -30,164 +54,392 @@ export default function FocusMode() {
     }
   }, [sessionId]);
 
-  const endSession = async () => {
-    if (session && session.status === 'scheduled') {
-      try {
-        await base44.entities.StudySession.update(session.id, { status: 'completed' });
-      } catch (e) { console.error(e); }
+  const speak = useCallback((text) => {
+    window.dispatchEvent(new CustomEvent('cedar-speak', { detail: { text } }));
+  }, []);
+
+  const askVoice = useCallback((question) => {
+    return new Promise((resolve) => {
+      window.dispatchEvent(new CustomEvent('cedar-voice-prompt', {
+        detail: { question, onResponse: (response) => resolve(response) },
+      }));
+      setTimeout(() => resolve('timeout'), 15000);
+    });
+  }, []);
+
+  // Timer tick
+  useEffect(() => {
+    if (phase !== 'studying' && phase !== 'break') return;
+
+    const interval = setInterval(() => {
+      if (awaitingConfirmRef.current) return;
+
+      if (phaseRef.current === 'studying') {
+        const newStudySeconds = studySecondsRef.current + 1;
+        studySecondsRef.current = newStudySeconds;
+        setStudySeconds(newStudySeconds);
+
+        // Check goal completion
+        if (newStudySeconds >= goalSeconds) {
+          setPhase('complete');
+          speak('Congratulations! You have completed 90 minutes of study time. Great work today.');
+          return;
+        }
+
+        // Check pomodoro interval end
+        if (modeRef.current === 'pomodoro') {
+          const newIntervalLeft = intervalLeftRef.current - 1;
+          intervalLeftRef.current = newIntervalLeft;
+          setIntervalSecondsLeft(newIntervalLeft);
+
+          if (newIntervalLeft <= 0) {
+            awaitingConfirmRef.current = true;
+            setAwaitingConfirm(true);
+            setPhase('ended');
+          }
+        }
+      } else if (phaseRef.current === 'break' && modeRef.current === 'pomodoro') {
+        const newIntervalLeft = intervalLeftRef.current - 1;
+        intervalLeftRef.current = newIntervalLeft;
+        setIntervalSecondsLeft(newIntervalLeft);
+
+        if (newIntervalLeft <= 0) {
+          setPomodoroPhase('study');
+          setPhase('studying');
+          const secs = studyMinutesRef.current * 60;
+          intervalLeftRef.current = secs;
+          setIntervalSecondsLeft(secs);
+          setCycles(c => c + 1);
+          speak('Break is over. Starting your next study interval.');
+        }
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [phase, goalSeconds, speak]);
+
+  // Handle awaiting confirmation (pomodoro interval end)
+  useEffect(() => {
+    if (!awaitingConfirm || phase !== 'ended') return;
+
+    let cancelled = false;
+    (async () => {
+      speak(`You just completed a ${studyMinutes} minute study interval. Do you want to take a break or keep going?`);
+      const response = await askVoice('break or keep going');
+      if (cancelled) return;
+
+      setAwaitingConfirm(false);
+      awaitingConfirmRef.current = false;
+
+      if (response.includes('break')) {
+        setPomodoroPhase('break');
+        setPhase('break');
+        const secs = breakMinutes * 60;
+        intervalLeftRef.current = secs;
+        setIntervalSecondsLeft(secs);
+        speak(`Taking a ${breakMinutes} minute break. Enjoy.`);
+      } else {
+        setPomodoroPhase('study');
+        setPhase('studying');
+        const secs = studyMinutes * 60;
+        intervalLeftRef.current = secs;
+        setIntervalSecondsLeft(secs);
+        setCycles(c => c + 1);
+        speak('Alright, keeping going. You have got this.');
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [awaitingConfirm, phase, studyMinutes, breakMinutes, speak, askVoice]);
+
+  const startStudying = () => {
+    if (mode === 'pomodoro') {
+      setPomodoroPhase('study');
+      const secs = studyMinutes * 60;
+      intervalLeftRef.current = secs;
+      setIntervalSecondsLeft(secs);
     }
+    setPhase('studying');
+    speak(mode === 'pomodoro' ? `Starting a ${studyMinutes} minute study interval.` : 'Starting your study session.');
+  };
+
+  const pause = () => {
+    setPhase('paused');
+    speak('Timer paused.');
+  };
+
+  const resume = () => {
+    setPhase('studying');
+  };
+
+  // Switch mode — preserves accumulated study time
+  const handleModeChange = (newMode) => {
+    if (mode === newMode) return;
+
+    // If on break in pomodoro and switching to simple, resume studying
+    if (phase === 'break') {
+      setPhase('studying');
+    }
+
+    // If switching to pomodoro while studying/paused, start a fresh interval
+    if (newMode === 'pomodoro' && (phase === 'studying' || phase === 'paused')) {
+      setPomodoroPhase('study');
+      const secs = studyMinutes * 60;
+      intervalLeftRef.current = secs;
+      setIntervalSecondsLeft(secs);
+    }
+
+    setMode(newMode);
+  };
+
+  // Stop & save to analytics
+  const handleStop = async () => {
+    if (studySeconds < 1) {
+      navigate(session ? '/planner' : '/');
+      return;
+    }
+    setSaving(true);
+    try {
+      await base44.entities.StudyRecord.create({
+        duration_seconds: studySeconds,
+        date: new Date().toISOString().split('T')[0],
+        class_id: session?.class_id || null,
+        mode,
+        cycles_completed: cycles,
+        goal_minutes: GOAL_MINUTES,
+      });
+      if (session && session.status === 'scheduled') {
+        await base44.entities.StudySession.update(session.id, { status: 'completed' });
+      }
+      navigate('/analytics');
+    } catch (e) {
+      navigate(session ? '/planner' : '/');
+    }
+    setSaving(false);
+  };
+
+  // Cancel without saving
+  const handleCancel = () => {
     navigate(session ? '/planner' : '/');
   };
 
+  // Voice commands
+  useEffect(() => {
+    const handler = (e) => {
+      const { action } = e.detail;
+      if (action === 'start' && phaseRef.current === 'idle') startStudying();
+      else if (action === 'pause' && phaseRef.current === 'studying') pause();
+      else if (action === 'resume' && phaseRef.current === 'paused') resume();
+      else if (action === 'break' && phaseRef.current === 'studying' && modeRef.current === 'pomodoro') {
+        const secs = breakMinutesRef.current * 60;
+        setPomodoroPhase('break');
+        setPhase('break');
+        intervalLeftRef.current = secs;
+        setIntervalSecondsLeft(secs);
+        speak('Taking a break now.');
+      }
+      else if (action === 'end') handleStop();
+    };
+    window.addEventListener('cedar-pomodoro', handler);
+    return () => window.removeEventListener('cedar-pomodoro', handler);
+  });
+
+  const formatTime = (s) => {
+    const m = Math.floor(Math.max(0, s) / 60);
+    const sec = Math.max(0, s) % 60;
+    return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+  };
+
+  // Timer ring calculations
+  const intervalTotal = (pomodoroPhase === 'break' ? breakMinutes : studyMinutes) * 60;
+  const intervalProgress = intervalTotal > 0 ? 1 - Math.max(0, intervalSecondsLeft) / intervalTotal : 0;
+  const ringProgress = mode === 'pomodoro' ? intervalProgress : goalProgress;
+  const ringColor = phase === 'break' ? '#10B981' : phase === 'complete' ? '#F59E0B' : 'hsl(var(--primary))';
+  const displayTime = mode === 'pomodoro' ? formatTime(intervalSecondsLeft) : formatTime(studySeconds);
+
+  const phaseLabels = {
+    idle: 'Ready to Study',
+    studying: mode === 'pomodoro' ? (pomodoroPhase === 'break' ? 'On Break' : 'Studying') : 'Studying',
+    paused: 'Paused',
+    break: 'On Break',
+    ended: 'Interval Complete',
+    complete: 'Goal Complete!',
+  };
+
+  const showModeToggle = phase === 'idle' || phase === 'studying' || phase === 'paused';
+  const showControls = phase !== 'ended';
+
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6 animate-fade-in relative">
-      <button onClick={() => navigate(session ? '/planner' : '/')}
-        className="absolute top-6 left-6 w-10 h-10 rounded-lg border border-border bg-card flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
+      <button onClick={handleCancel}
+        className="absolute top-6 left-6 w-10 h-10 rounded-lg border border-border bg-card flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors z-10">
         <X className="w-5 h-5" />
       </button>
 
-      <div className="absolute top-6 right-6">
+      <div className="absolute top-6 right-6 z-10">
         <button onClick={() => setShowMusic(!showMusic)}
           className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${showMusic ? 'bg-primary text-primary-foreground border-primary' : 'bg-card border-border text-muted-foreground hover:text-foreground'}`}>
           <Music className="w-4 h-4" /> Music
         </button>
       </div>
 
-      {cls && (
-        <p className="text-sm text-muted-foreground mb-1">{cls.name}</p>
-      )}
+      {cls && <p className="text-sm text-muted-foreground mb-1">{cls.name}</p>}
       <p className="text-xs text-muted-foreground uppercase tracking-wide mb-6">
         {session ? 'Study Session' : 'Focus Session'}
       </p>
 
       {/* Mode toggle */}
-      <div className="flex gap-1 mb-8 bg-muted rounded-lg p-1">
-        <button onClick={() => setMode('pomodoro')}
-          className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${mode === 'pomodoro' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'}`}>
-          Pomodoro
-        </button>
-        <button onClick={() => setMode('simple')}
-          className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${mode === 'simple' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'}`}>
-          Simple Timer
-        </button>
-      </div>
-
-      {mode === 'pomodoro' ? (
-        <PomodoroTimer onSessionEnd={endSession} />
-      ) : (
-        <SimpleTimer session={session} onEnd={endSession} />
-      )}
-
-      {/* Music player */}
-      {showMusic && (
-        <div className="fixed bottom-6 right-6 w-80 max-w-[calc(100vw-3rem)] rounded-2xl border border-border bg-card p-4 shadow-xl animate-fade-in z-50">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <Volume2 className="w-4 h-4 text-primary" />
-              <h3 className="text-sm font-semibold">Classical Music</h3>
-            </div>
-            <button onClick={() => setShowMusic(false)} className="text-muted-foreground hover:text-foreground">
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-          <div className="flex gap-1.5 flex-wrap mb-3">
-            {tracks.map((t, i) => (
-              <button key={i} onClick={() => setActiveTrack(i)}
-                className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${activeTrack === i ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
-                {t.composer}
-              </button>
-            ))}
-          </div>
-          <p className="text-xs text-muted-foreground mb-2">{tracks[activeTrack].title}</p>
-          <iframe
-            key={tracks[activeTrack].videoId}
-            className="w-full rounded-lg"
-            height="80"
-            src={`https://www.youtube.com/embed/${tracks[activeTrack].videoId}?autoplay=1&controls=1`}
-            title={tracks[activeTrack].title}
-            frameBorder="0"
-            allow="autoplay; encrypted-media"
-          />
+      {showModeToggle && (
+        <div className="flex gap-1 mb-8 bg-muted rounded-lg p-1">
+          <button onClick={() => handleModeChange('pomodoro')}
+            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${mode === 'pomodoro' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'}`}>
+            Pomodoro
+          </button>
+          <button onClick={() => handleModeChange('simple')}
+            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${mode === 'simple' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'}`}>
+            Simple Timer
+          </button>
         </div>
       )}
-    </div>
-  );
-}
 
-function SimpleTimer({ session, onEnd }) {
-  const [seconds, setSeconds] = useState(0);
-  const [running, setRunning] = useState(false);
-  const [targetMinutes, setTargetMinutes] = useState(session?.duration_minutes || 25);
+      {/* Goal progress bar */}
+      <div className="w-full max-w-xs mb-8">
+        <div className="flex justify-between text-xs text-muted-foreground mb-1.5">
+          <span className="font-medium">{Math.floor(studySeconds / 60)} min studied</span>
+          <span>{GOAL_MINUTES} min goal</span>
+        </div>
+        <div className="h-2.5 bg-muted rounded-full overflow-hidden">
+          <div className="h-full bg-primary rounded-full transition-all duration-1000"
+            style={{ width: `${goalProgress * 100}%` }} />
+        </div>
+        {cycles > 0 && (
+          <p className="text-[10px] text-muted-foreground mt-1 text-center">{cycles} cycle{cycles !== 1 ? 's' : ''} completed</p>
+        )}
+      </div>
 
-  useEffect(() => {
-    if (session?.duration_minutes) setTargetMinutes(session.duration_minutes);
-  }, [session]);
-
-  useEffect(() => {
-    if (running) {
-      const interval = setInterval(() => setSeconds(s => s + 1), 1000);
-      return () => clearInterval(interval);
-    }
-  }, [running]);
-
-  const targetSeconds = targetMinutes * 60;
-  const progress = Math.min(seconds / targetSeconds, 1);
-  const remaining = Math.max(0, targetSeconds - seconds);
-
-  const formatTime = (s) => {
-    const m = Math.floor(s / 60);
-    const sec = s % 60;
-    return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
-  };
-
-  return (
-    <div className="flex flex-col items-center">
+      {/* Timer ring */}
       <div className="relative w-64 h-64 mb-6">
         <svg className="w-full h-full -rotate-90" viewBox="0 0 200 200">
           <circle cx="100" cy="100" r="90" fill="none" stroke="hsl(var(--muted))" strokeWidth="6" />
-          <circle cx="100" cy="100" r="90" fill="none" stroke="hsl(var(--primary))" strokeWidth="6"
+          <circle cx="100" cy="100" r="90" fill="none" stroke={ringColor} strokeWidth="6"
             strokeLinecap="round" strokeDasharray={2 * Math.PI * 90}
-            strokeDashoffset={2 * Math.PI * 90 * (1 - progress)}
+            strokeDashoffset={2 * Math.PI * 90 * (1 - ringProgress)}
             style={{ transition: 'stroke-dashoffset 1s linear' }} />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <p className="font-heading text-4xl font-bold tabular-nums">
-            {formatTime(running || seconds > 0 ? seconds : targetSeconds)}
-          </p>
-          <p className="text-xs text-muted-foreground mt-2">
-            {seconds >= targetSeconds ? 'Complete!' : `${Math.floor(remaining / 60)}m ${remaining % 60}s left`}
-          </p>
+          <p className="font-heading text-4xl font-bold tabular-nums text-foreground">{displayTime}</p>
+          <p className="text-xs text-muted-foreground mt-1">{phaseLabels[phase] || ''}</p>
         </div>
       </div>
 
-      <div className="flex items-center gap-3 mb-8">
-        {!running ? (
-          <button onClick={() => setRunning(true)}
-            className="w-14 h-14 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 shadow-lg">
-            <Timer className="w-6 h-6" />
-          </button>
-        ) : (
-          <button onClick={() => setRunning(false)}
-            className="w-14 h-14 rounded-full bg-card border-2 border-primary text-primary flex items-center justify-center">
-            <Coffee className="w-6 h-6" />
-          </button>
-        )}
-        <button onClick={onEnd}
-          className="w-14 h-14 rounded-full bg-destructive/10 text-destructive border-2 border-destructive/30 flex items-center justify-center hover:bg-destructive/20">
-          <X className="w-5 h-5" />
-        </button>
-      </div>
-
-      {seconds === 0 && !running && (
-        <div className="flex gap-2">
-          {[15, 25, 45, 60].map(m => (
-            <button key={m} onClick={() => { setTargetMinutes(m); setSeconds(0); }}
-              className={`px-4 py-2 rounded-lg text-sm font-medium ${targetMinutes === m ? 'bg-primary text-primary-foreground' : 'bg-card border border-border text-muted-foreground'}`}>
-              {m}m
+      {/* Timer controls */}
+      {showControls && (
+        <div className="flex items-center gap-3 mb-4">
+          {phase === 'idle' && (
+            <button onClick={startStudying}
+              className="w-14 h-14 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 shadow-lg transition-colors">
+              <Play className="w-6 h-6 ml-0.5" fill="currentColor" />
             </button>
-          ))}
+          )}
+          {phase === 'studying' && (
+            <button onClick={pause}
+              className="w-14 h-14 rounded-full bg-card border-2 border-primary text-primary flex items-center justify-center hover:bg-primary/10 transition-colors">
+              <Pause className="w-6 h-6" fill="currentColor" />
+            </button>
+          )}
+          {phase === 'paused' && (
+            <button onClick={resume}
+              className="w-14 h-14 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 shadow-lg transition-colors">
+              <Play className="w-6 h-6 ml-0.5" fill="currentColor" />
+            </button>
+          )}
+          {(phase === 'studying' || phase === 'paused' || phase === 'break' || phase === 'complete') && (
+            <button onClick={handleStop} disabled={saving}
+              className="w-14 h-14 rounded-full bg-destructive/10 text-destructive border-2 border-destructive/30 flex items-center justify-center hover:bg-destructive/20 transition-colors disabled:opacity-50">
+              {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Square className="w-5 h-5" fill="currentColor" />}
+            </button>
+          )}
         </div>
       )}
+
+      {/* Stop & Save text button */}
+      {(phase !== 'idle' || studySeconds > 0) && phase !== 'ended' && (
+        <button onClick={handleStop} disabled={saving}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-destructive/10 text-destructive border border-destructive/30 text-sm font-medium hover:bg-destructive/20 disabled:opacity-50 mb-4">
+          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <BarChart3 className="w-4 h-4" />}
+          Stop & Save to Analytics
+        </button>
+      )}
+
+      {/* Interval settings - only when idle and pomodoro */}
+      {phase === 'idle' && mode === 'pomodoro' && (
+        <div className="flex gap-4 text-sm">
+          <label className="flex items-center gap-2">
+            <span className="text-muted-foreground">Study</span>
+            <select value={studyMinutes} onChange={e => setStudyMinutes(Number(e.target.value))}
+              className="px-2 py-1 rounded-lg border border-input bg-card text-sm">
+              {[15, 20, 25, 30, 45, 50].map(m => <option key={m} value={m}>{m}m</option>)}
+            </select>
+          </label>
+          <label className="flex items-center gap-2">
+            <span className="text-muted-foreground">Break</span>
+            <select value={breakMinutes} onChange={e => setBreakMinutes(Number(e.target.value))}
+              className="px-2 py-1 rounded-lg border border-input bg-card text-sm">
+              {[3, 5, 10, 15].map(m => <option key={m} value={m}>{m}m</option>)}
+            </select>
+          </label>
+        </div>
+      )}
+
+      {/* Complete state */}
+      {phase === 'complete' && (
+        <p className="text-sm text-muted-foreground text-center max-w-xs mb-4">
+          🎉 You reached your 90-minute study goal! Tap stop to save your session.
+        </p>
+      )}
+
+      {/* Awaiting confirm modal */}
+      {awaitingConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 glass">
+          <div className="bg-card rounded-2xl border border-border p-8 max-w-sm text-center animate-fade-in mx-4">
+            <div className="w-14 h-14 rounded-full bg-amber-500/10 flex items-center justify-center mx-auto mb-4">
+              <Check className="w-7 h-7 text-amber-600" />
+            </div>
+            <h3 className="font-heading text-lg font-semibold mb-2">Study Interval Complete</h3>
+            <p className="text-sm text-muted-foreground mb-6">Say "break" to take a break, or "keep going" to continue studying.</p>
+            <div className="flex gap-2">
+              <button onClick={() => {
+                setAwaitingConfirm(false);
+                awaitingConfirmRef.current = false;
+                setPomodoroPhase('break');
+                setPhase('break');
+                const secs = breakMinutes * 60;
+                intervalLeftRef.current = secs;
+                setIntervalSecondsLeft(secs);
+                speak(`Taking a ${breakMinutes} minute break.`);
+              }} className="flex-1 px-4 py-2.5 rounded-lg bg-emerald-500/10 text-emerald-600 border border-emerald-500/30 text-sm font-medium hover:bg-emerald-500/20">
+                Take Break
+              </button>
+              <button onClick={() => {
+                setAwaitingConfirm(false);
+                awaitingConfirmRef.current = false;
+                setPomodoroPhase('study');
+                setPhase('studying');
+                const secs = studyMinutes * 60;
+                intervalLeftRef.current = secs;
+                setIntervalSecondsLeft(secs);
+                setCycles(c => c + 1);
+                speak('Keeping going. You have got this.');
+              }} className="flex-1 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90">
+                Keep Going
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Music player */}
+      {showMusic && <MusicPlayer onClose={() => setShowMusic(false)} />}
     </div>
   );
 }

@@ -17,6 +17,7 @@ import SettingsPage from './pages/Settings';
 import SemesterSetup from './pages/SemesterSetup';
 import FocusMode from './pages/FocusMode';
 import StudyTools from './pages/StudyTools';
+import Analytics from './pages/Analytics';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -57,6 +58,7 @@ const AuthenticatedApp = () => {
         <Route path="/focus/:sessionId" element={<FocusMode />} />
         <Route path="/study-tools" element={<StudyTools />} />
         <Route path="/study-tools/:classId" element={<StudyTools />} />
+        <Route path="/analytics" element={<Analytics />} />
         </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>

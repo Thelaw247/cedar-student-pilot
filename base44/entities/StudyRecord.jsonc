@@ -1,0 +1,39 @@
+{
+  "name": "StudyRecord",
+  "type": "object",
+  "properties": {
+    "duration_seconds": {
+      "type": "number",
+      "title": "Duration (seconds)"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "title": "Date"
+    },
+    "class_id": {
+      "type": "string",
+      "title": "Class ID"
+    },
+    "mode": {
+      "type": "string",
+      "enum": [
+        "pomodoro",
+        "simple"
+      ],
+      "title": "Mode"
+    },
+    "cycles_completed": {
+      "type": "number",
+      "title": "Cycles Completed"
+    },
+    "goal_minutes": {
+      "type": "number",
+      "title": "Goal Minutes"
+    }
+  },
+  "required": [
+    "duration_seconds",
+    "date"
+  ]
+}
