@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
-import { GraduationCap, Calendar, Clock, Check, X, Loader2, ChevronRight, Headphones, Plus } from 'lucide-react';
+import { GraduationCap, Calendar, Clock, Check, X, Loader2, ChevronRight, Headphones, Plus, CalendarClock } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import AddStudySessionModal from '@/components/AddStudySessionModal';
+import RebookSessionModal from '@/components/RebookSessionModal';
 
 const priorityColors = {
   high: 'bg-rose-500/10 text-rose-600 border-rose-500/20',
@@ -22,6 +23,7 @@ export default function StudyPlanner() {
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAddSession, setShowAddSession] = useState(false);
+  const [rebookSession, setRebookSession] = useState(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -146,10 +148,16 @@ export default function StudyPlanner() {
                     </div>
                   </div>
                   {s.status === 'scheduled' && (
-                    <Link to={`/focus/${s.id}`}
-                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border text-xs font-medium text-foreground hover:bg-primary/5 hover:border-primary/30 transition-colors flex-shrink-0">
-                      <Headphones className="w-3.5 h-3.5" /> Focus
-                    </Link>
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      <button onClick={() => setRebookSession(s)}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-2 rounded-lg border border-border text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+                        <CalendarClock className="w-3.5 h-3.5" /> Rebook
+                      </button>
+                      <Link to={`/focus/${s.id}`}
+                        className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border text-xs font-medium text-foreground hover:bg-primary/5 hover:border-primary/30 transition-colors">
+                        <Headphones className="w-3.5 h-3.5" /> Focus
+                      </Link>
+                    </div>
                   )}
                 </div>
               </div>
@@ -158,6 +166,14 @@ export default function StudyPlanner() {
         </div>
       )}
       {showAddSession && <AddStudySessionModal classes={classes} onClose={() => { setShowAddSession(false); loadData(); }} />}
+      {rebookSession && (
+        <RebookSessionModal
+          session={rebookSession}
+          className={classMap[rebookSession.class_id]?.name}
+          onClose={() => setRebookSession(null)}
+          onRebooked={loadData}
+        />
+      )}
     </div>
   );
 }

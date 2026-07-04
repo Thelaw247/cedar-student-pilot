@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { GraduationCap, BookOpen, AlertCircle, AlertTriangle, Loader2, RefreshCw, Plus } from 'lucide-react';
+import { GraduationCap, BookOpen, AlertCircle, AlertTriangle, Plus, CalendarClock } from 'lucide-react';
 import UpNextCard from '@/components/UpNextCard';
+import RebookSessionModal from '@/components/RebookSessionModal';
 
 function formatTime(timeStr) {
   if (!timeStr) return '';
@@ -32,7 +33,7 @@ export default function TodayIntelligenceCard({
   onRecalculateComplete,
   onAddStudyBlock,
 }) {
-  const [recalculating, setRecalculating] = useState(false);
+  const [rebookSession, setRebookSession] = useState(null);
   const today = getTodayString();
   const now = new Date();
   const nowMin = now.getHours() * 60 + now.getMinutes();
@@ -69,19 +70,6 @@ export default function TodayIntelligenceCard({
   useEffect(() => {
     onExamWeekChange?.(isExamWeek);
   }, [isExamWeek, onExamWeekChange]);
-
-  const handleRecalculate = async () => {
-    setRecalculating(true);
-    try {
-      for (const session of behindSessions) {
-        await base44.functions.invoke('rebookStudySession', { session_id: session.id });
-      }
-      onRecalculateComplete?.();
-    } catch (e) {
-      console.error(e);
-    }
-    setRecalculating(false);
-  };
 
   return (
     <div className="mb-4 space-y-3">
@@ -201,13 +189,19 @@ export default function TodayIntelligenceCard({
               {behindSessions.length} missed session{behindSessions.length !== 1 ? 's' : ''} to reschedule
             </p>
           </div>
-          <button onClick={handleRecalculate} disabled={recalculating}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-600 text-white text-xs font-medium hover:bg-rose-700 disabled:opacity-50 flex-shrink-0">
-            {recalculating
-              ? <><Loader2 className="w-3 h-3 animate-spin" /> Recalculating</>
-              : <><RefreshCw className="w-3 h-3" /> Recalculate</>}
+          <button onClick={() => setRebookSession(behindSessions[0])}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-600 text-white text-xs font-medium hover:bg-rose-700 flex-shrink-0">
+            <CalendarClock className="w-3 h-3" /> Rebook
           </button>
         </div>
+      )}
+
+      {rebookSession && (
+        <RebookSessionModal
+          session={rebookSession}
+          onClose={() => setRebookSession(null)}
+          onRebooked={onRecalculateComplete}
+        />
       )}
     </div>
   );

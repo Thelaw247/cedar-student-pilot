@@ -49,14 +49,41 @@ Respond with ONLY a JSON object: {"new_date": "YYYY-MM-DD", "new_time": "HH:MM",
       },
     });
 
-    // Update the session with the new time
+    // Validate the AI's date/time before saving
+    const todayStr = today.toISOString().split('T')[0];
+    let newDate = result.new_date;
+    let newTime = result.new_time;
+
+    // Check date format (YYYY-MM-DD) and validity
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    let isValid = dateRegex.test(newDate);
+    if (isValid) {
+      const parsed = new Date(newDate + 'T00:00:00');
+      if (isNaN(parsed.getTime())) isValid = false;
+      if (newDate < todayStr) isValid = false; // must be today or future
+    }
+
+    // Check time format (HH:MM)
+    const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
+    let timeValid = timeRegex.test(newTime);
+
+    // Fallback: tomorrow at 19:00 if AI returned invalid values
+    if (!isValid) {
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      newDate = tomorrow.toISOString().split('T')[0];
+    }
+    if (!timeValid) {
+      newTime = '19:00';
+    }
+
     await base44.entities.StudySession.update(session_id, {
-      scheduled_date: result.new_date,
-      scheduled_time: result.new_time,
+      scheduled_date: newDate,
+      scheduled_time: newTime,
       status: 'scheduled',
     });
 
-    return Response.json({ success: true, new_date: result.new_date, new_time: result.new_time, reason: result.reason });
+    return Response.json({ success: true, new_date: newDate, new_time: newTime, reason: result.reason });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
