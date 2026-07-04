@@ -40,34 +40,6 @@ export default function Home() {
   const [showAddExamOrStudy, setShowAddExamOrStudy] = useState(false);
   const { toast, showUndo, handleUndo, dismiss } = useUndo();
 
-  const handleDeleteClass = useCallback(async (classData) => {
-    // Snapshot for undo before deletion
-    const snapshot = { ...classData };
-    try {
-      await base44.entities.Class.delete(classData.id);
-      showUndo(`"${classData.name}" deleted`, async () => {
-        // Undo: recreate the class
-        const { id, created_date, updated_date, created_by_id, ...rest } = snapshot;
-        await base44.entities.Class.create(rest);
-        loadData();
-      });
-      loadData();
-    } catch (e) { console.error(e); }
-  }, [showUndo, loadData]);
-
-  const handleDeleteEvent = useCallback(async (eventId, eventData) => {
-    const snapshot = { ...eventData };
-    try {
-      await base44.entities.CalendarEvent.delete(eventId);
-      showUndo('Event deleted', async () => {
-        const { id, created_date, updated_date, created_by_id, ...rest } = snapshot;
-        await base44.entities.CalendarEvent.create(rest);
-        loadData();
-      });
-      loadData();
-    } catch (e) { console.error(e); }
-  }, [showUndo, loadData]);
-
   // Keyboard shortcuts: N = new event
   useKeyboardShortcuts({
     onNewEvent: () => setShowAddEvent(true),
@@ -100,6 +72,32 @@ export default function Home() {
   }, []);
 
   useEffect(() => { loadData(); }, [loadData]);
+
+  const handleDeleteClass = useCallback(async (classData) => {
+    const snapshot = { ...classData };
+    try {
+      await base44.entities.Class.delete(classData.id);
+      showUndo(`"${classData.name}" deleted`, async () => {
+        const { id, created_date, updated_date, created_by_id, ...rest } = snapshot;
+        await base44.entities.Class.create(rest);
+        loadData();
+      });
+      loadData();
+    } catch (e) { console.error(e); }
+  }, [showUndo, loadData]);
+
+  const handleDeleteEvent = useCallback(async (eventId, eventData) => {
+    const snapshot = { ...eventData };
+    try {
+      await base44.entities.CalendarEvent.delete(eventId);
+      showUndo('Event deleted', async () => {
+        const { id, created_date, updated_date, created_by_id, ...rest } = snapshot;
+        await base44.entities.CalendarEvent.create(rest);
+        loadData();
+      });
+      loadData();
+    } catch (e) { console.error(e); }
+  }, [showUndo, loadData]);
 
   // Refetch when sync completes after reconnection
   useEffect(() => {
