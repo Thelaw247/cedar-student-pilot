@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { ChevronLeft, Plus, GraduationCap, Clock, MapPin, Mic, FileText, Loader2, Calendar, AlertCircle, Brain, Headphones } from 'lucide-react';
+import { ChevronLeft, Plus, GraduationCap, Clock, MapPin, Mic, FileText, Loader2, Calendar, AlertCircle, Brain, Headphones, Pencil } from 'lucide-react';
+import EditClassModal from '@/components/EditClassModal';
+import LectureItem from '@/components/LectureItem';
 
 export default function ClassDetail() {
   const { classId } = useParams();
@@ -10,6 +12,7 @@ export default function ClassDetail() {
   const [assignments, setAssignments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState('lectures');
+  const [showEdit, setShowEdit] = useState(false);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -50,6 +53,10 @@ export default function ClassDetail() {
             {cls.days_of_week && <span>{cls.days_of_week.join(', ')}</span>}
           </div>
         </div>
+        <button onClick={() => setShowEdit(true)}
+          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors flex-shrink-0">
+          <Pencil className="w-3.5 h-3.5" /> Edit
+        </button>
       </div>
 
       {/* Tabs */}
@@ -70,6 +77,10 @@ export default function ClassDetail() {
       )}
       {tab === 'study' && (
         <StudyTab classId={classId} cls={cls} lectures={lectures} />
+      )}
+
+      {showEdit && (
+        <EditClassModal classData={cls} semesterId={cls.semester_id} onClose={() => { setShowEdit(false); loadData(); }} />
       )}
     </div>
   );
@@ -96,21 +107,7 @@ function LectureTab({ lectures, classId, cls, onUpdate }) {
       ) : (
         <div className="space-y-2">
           {lectures.map(l => (
-            <Link key={l.id} to={`/lectures/${l.id}`}
-              className="flex items-center gap-3 rounded-xl border border-border bg-card p-4 hover:shadow-md transition-all group">
-              <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${l.is_missed ? 'bg-muted' : 'bg-primary/10'}`}>
-                {l.is_missed ? <AlertCircle className="w-5 h-5 text-muted-foreground" /> : <FileText className="w-5 h-5 text-primary" />}
-              </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="text-sm font-medium text-foreground truncate">{l.ai_title || `Lecture — ${l.date}`}</h3>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                  <Calendar className="w-3 h-3" /> {l.date}
-                  {l.duration_seconds > 0 && <span>• {Math.floor(l.duration_seconds / 60)} min</span>}
-                  {l.status === 'processing' && <span className="text-amber-600">• Processing...</span>}
-                  {l.is_ai_estimated && <span className="text-amber-600">• AI Estimated</span>}
-                </div>
-              </div>
-            </Link>
+            <LectureItem key={l.id} lecture={l} defaultInstructor={cls?.instructor} onUpdate={onUpdate} />
           ))}
         </div>
       )}

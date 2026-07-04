@@ -1,30 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { Plus, Clock, MapPin, GraduationCap, Sparkles, ChevronRight, Sun, Moon } from 'lucide-react';
+import { Plus, Sun, Moon, GraduationCap, Clock, MapPin, ChevronRight } from 'lucide-react';
 import Timeline from '@/components/Timeline';
-
-const eventTypeConfig = {
-  class: { icon: GraduationCap, bg: 'bg-primary/10', text: 'text-primary', border: 'border-primary/20' },
-  study: { icon: Sparkles, bg: 'bg-amber-500/10', text: 'text-amber-600', border: 'border-amber-500/20' },
-  work: { icon: Clock, bg: 'bg-purple-500/10', text: 'text-purple-600', border: 'border-purple-500/20' },
-  custom: { icon: Plus, bg: 'bg-blue-500/10', text: 'text-blue-600', border: 'border-blue-500/20' },
-  appointment: { icon: Clock, bg: 'bg-emerald-500/10', text: 'text-emerald-600', border: 'border-emerald-500/20' },
-  reminder: { icon: Clock, bg: 'bg-rose-500/10', text: 'text-rose-600', border: 'border-rose-500/20' },
-};
-
-function formatTime(timeStr) {
-  if (!timeStr) return '';
-  const [h, m] = timeStr.split(':');
-  const hour = parseInt(h);
-  const ampm = hour >= 12 ? 'PM' : 'AM';
-  const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
-  return `${displayHour}:${m} ${ampm}`;
-}
+import WeeklyCalendar from '@/components/WeeklyCalendar';
+import EditClassModal from '@/components/EditClassModal';
 
 function getTodayString() {
-  const today = new Date();
-  return today.toISOString().split('T')[0];
+  return new Date().toISOString().split('T')[0];
 }
 
 function getDayOfWeek() {
@@ -33,11 +16,14 @@ function getDayOfWeek() {
 }
 
 export default function Home() {
+  const [tab, setTab] = useState('today');
   const [classes, setClasses] = useState([]);
   const [events, setEvents] = useState([]);
   const [activeSemester, setActiveSemester] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showAddEvent, setShowAddEvent] = useState(false);
+  const [showAddClass, setShowAddClass] = useState(false);
+  const [editClass, setEditClass] = useState(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -60,7 +46,6 @@ export default function Home() {
   useEffect(() => { loadData(); }, [loadData]);
 
   const todayClasses = classes.filter(c => {
-    const dayMap = { Sun: 'Sun', Mon: 'Mon', Tue: 'Tue', Wed: 'Wed', Thu: 'Thu', Fri: 'Fri', Sat: 'Sat' };
     return (c.days_of_week || []).some(d => d === getDayOfWeek());
   });
 
@@ -115,50 +100,90 @@ export default function Home() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 lg:py-10 animate-fade-in">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <p className="text-xs text-muted-foreground font-medium tracking-wide uppercase">
-            {new Date().toLocaleDateString('en-US', { weekday: 'long' })}
-          </p>
-          <h1 className="font-heading text-2xl sm:text-3xl font-bold text-foreground mt-0.5">
-            {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}
-          </h1>
+      {/* Tab bar */}
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex gap-1 border-b border-border">
+          <button onClick={() => setTab('today')}
+            className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${tab === 'today' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>
+            Today
+          </button>
+          <button onClick={() => setTab('classes')}
+            className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${tab === 'classes' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>
+            Classes
+          </button>
         </div>
         <ThemeToggle />
       </div>
 
-      {/* Summary card */}
-      <div className="grid grid-cols-3 gap-3 mb-8">
-        <div className="rounded-xl border border-border bg-card p-4">
-          <p className="text-2xl font-bold text-foreground font-heading">{todayClasses.length}</p>
-          <p className="text-xs text-muted-foreground mt-0.5">Classes Today</p>
+      {/* Today tab */}
+      {tab === 'today' && (
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <p className="text-xs text-muted-foreground font-medium tracking-wide uppercase">
+                {new Date().toLocaleDateString('en-US', { weekday: 'long' })}
+              </p>
+              <h2 className="font-heading text-xl sm:text-2xl font-bold text-foreground">
+                {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}
+              </h2>
+            </div>
+            <button onClick={() => setShowAddEvent(true)}
+              className="inline-flex items-center gap-1.5 bg-primary text-primary-foreground px-3 py-2 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors">
+              <Plus className="w-4 h-4" /> Add Event
+            </button>
+          </div>
+          <Timeline items={allItems} onAddEvent={() => setShowAddEvent(true)} />
         </div>
-        <div className="rounded-xl border border-border bg-card p-4">
-          <p className="text-2xl font-bold text-foreground font-heading">{classes.length}</p>
-          <p className="text-xs text-muted-foreground mt-0.5">Total Courses</p>
+      )}
+
+      {/* Classes tab */}
+      {tab === 'classes' && (
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-heading text-lg font-semibold text-foreground">Weekly Schedule</h2>
+            <button onClick={() => setShowAddClass(true)}
+              className="inline-flex items-center gap-1.5 bg-primary text-primary-foreground px-3 py-2 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors">
+              <Plus className="w-4 h-4" /> Add Class
+            </button>
+          </div>
+
+          <WeeklyCalendar classes={classes} onEditClass={(c) => setEditClass(c)} />
+
+          {/* Class list */}
+          <div className="mt-6 space-y-2">
+            {classes.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-border p-8 text-center">
+                <GraduationCap className="w-8 h-8 text-muted-foreground mx-auto mb-3" strokeWidth={1.5} />
+                <p className="text-sm text-muted-foreground">No classes yet.</p>
+              </div>
+            ) : (
+              classes.map(c => (
+                <button key={c.id} onClick={() => setEditClass(c)}
+                  className="w-full flex items-center gap-3 rounded-xl border border-border bg-card p-4 hover:shadow-md transition-all text-left">
+                  <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
+                    style={{ backgroundColor: (c.color || '#3B82F6') + '20', color: c.color || '#3B82F6' }}>
+                    <GraduationCap className="w-5 h-5" strokeWidth={1.5} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-sm font-medium text-foreground truncate">{c.name}</h3>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                      {c.instructor && <span>{c.instructor}</span>}
+                      {c.room && <span className="flex items-center gap-0.5"><MapPin className="w-3 h-3" />{c.room}</span>}
+                      {c.start_time && <span className="flex items-center gap-0.5"><Clock className="w-3 h-3" />{c.start_time}</span>}
+                    </div>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                </button>
+              ))
+            )}
+          </div>
         </div>
-        <div className="rounded-xl border border-border bg-card p-4">
-          <p className="text-2xl font-bold text-foreground font-heading">{events.filter(e => e.type !== 'class').length}</p>
-          <p className="text-xs text-muted-foreground mt-0.5">Events</p>
-        </div>
-      </div>
+      )}
 
-      {/* Timeline */}
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="font-heading text-lg font-semibold text-foreground">Today's Timeline</h2>
-        <button
-          onClick={() => setShowAddEvent(true)}
-          className="inline-flex items-center gap-1.5 text-sm text-primary font-medium hover:underline"
-        >
-          <Plus className="w-4 h-4" />
-          Add Event
-        </button>
-      </div>
-
-      <Timeline items={allItems} onAddEvent={() => setShowAddEvent(true)} />
-
+      {/* Modals */}
       {showAddEvent && <AddEventModal onClose={() => { setShowAddEvent(false); loadData(); }} />}
+      {showAddClass && <EditClassModal semesterId={activeSemester.id} onClose={() => { setShowAddClass(false); loadData(); }} />}
+      {editClass && <EditClassModal classData={editClass} semesterId={activeSemester.id} onClose={() => { setEditClass(null); loadData(); }} />}
     </div>
   );
 }
@@ -196,10 +221,7 @@ function AddEventModal({ onClose }) {
     if (!form.title || !form.start_time) return;
     setSaving(true);
     try {
-      await base44.entities.CalendarEvent.create({
-        ...form,
-        color: eventTypeConfig[form.type]?.bg ? '#3B82F6' : '#3B82F6',
-      });
+      await base44.entities.CalendarEvent.create({ ...form, color: '#3B82F6' });
       onClose();
     } catch (e) { console.error(e); }
     setSaving(false);
@@ -210,14 +232,9 @@ function AddEventModal({ onClose }) {
       <div className="bg-card w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl border border-border p-6 animate-fade-in" onClick={e => e.stopPropagation()}>
         <h3 className="font-heading text-lg font-semibold mb-4">Add Event</h3>
         <form onSubmit={handleSubmit} className="space-y-3">
-          <input
-            type="text"
-            placeholder="Event title"
-            value={form.title}
+          <input type="text" placeholder="Event title" value={form.title}
             onChange={e => setForm({ ...form, title: e.target.value })}
-            className="w-full px-3 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
-            autoFocus
-          />
+            className="w-full px-3 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40" autoFocus />
           <div className="grid grid-cols-2 gap-3">
             <input type="time" value={form.start_time} onChange={e => setForm({ ...form, start_time: e.target.value })}
               className="px-3 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40" />
@@ -235,8 +252,8 @@ function AddEventModal({ onClose }) {
           <textarea placeholder="Notes (optional)" value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })}
             className="w-full px-3 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 resize-none" rows={2} />
           <div className="flex gap-2 pt-2">
-            <button type="button" onClick={onClose} className="flex-1 px-4 py-2.5 rounded-lg border border-border text-sm font-medium text-muted-foreground hover:bg-muted transition-colors">Cancel</button>
-            <button type="submit" disabled={saving || !form.title} className="flex-1 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50">
+            <button type="button" onClick={onClose} className="flex-1 px-4 py-2.5 rounded-lg border border-border text-sm font-medium text-muted-foreground hover:bg-muted">Cancel</button>
+            <button type="submit" disabled={saving || !form.title} className="flex-1 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50">
               {saving ? 'Adding...' : 'Add Event'}
             </button>
           </div>

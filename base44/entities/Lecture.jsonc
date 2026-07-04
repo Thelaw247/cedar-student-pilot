@@ -91,6 +91,15 @@
       "default": false,
       "title": "Is AI Estimated"
     },
+    "actual_instructor": {
+      "type": "string",
+      "title": "Actual Instructor"
+    },
+    "instructor_confirmed": {
+      "type": "boolean",
+      "default": false,
+      "title": "Instructor Confirmed"
+    },
     "status": {
       "type": "string",
       "enum": [
