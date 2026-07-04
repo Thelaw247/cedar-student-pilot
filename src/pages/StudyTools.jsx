@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { Brain, Loader2, Sparkles, Layers, FileQuestion, ClipboardList, FileText, ChevronLeft } from 'lucide-react';
+import { Brain, Loader2, Sparkles, Layers, FileQuestion, ClipboardList, FileText, ChevronLeft, CalendarDays, CalendarRange, BookOpen } from 'lucide-react';
 import FlashcardViewer from '@/components/FlashcardViewer';
 import QuizViewer from '@/components/QuizViewer';
 
@@ -14,6 +14,7 @@ const materialTypes = [
 
 export default function StudyTools() {
   const { classId } = useParams();
+  const navigate = useNavigate();
   const [classes, setClasses] = useState([]);
   const [selectedClass, setSelectedClass] = useState(classId || '');
   const [lectures, setLectures] = useState([]);
@@ -23,6 +24,7 @@ export default function StudyTools() {
   const [existingFlashcards, setExistingFlashcards] = useState([]);
   const [existingQuestions, setExistingQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showLecturePicker, setShowLecturePicker] = useState(false);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -91,6 +93,61 @@ export default function StudyTools() {
       <div className="mb-6">
         <h1 className="font-heading text-2xl sm:text-3xl font-bold">Study Tools</h1>
         <p className="text-muted-foreground text-sm mt-0.5">Generate AI flashcards, quizzes, and practice tests from your lectures</p>
+      </div>
+
+      {/* Lecture-based review section */}
+      <div className="mb-8">
+        <h2 className="font-heading text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-3">Review from Lectures</h2>
+        <p className="text-xs text-muted-foreground mb-3">Review questions follow the exact teaching flow — from what the professor covered first to last.</p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <Link to="/lecture-review/today"
+            className="rounded-xl border border-border bg-card p-4 hover:shadow-2 hover:-translate-y-0.5 transition-all duration-micro group">
+            <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center mb-3">
+              <CalendarDays className="w-5 h-5 text-blue-600" />
+            </div>
+            <h3 className="text-sm font-medium text-foreground">Review Today's Lectures</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">Go through every lecture from today in teaching order</p>
+          </Link>
+          <Link to="/lecture-review/week"
+            className="rounded-xl border border-border bg-card p-4 hover:shadow-2 hover:-translate-y-0.5 transition-all duration-micro group">
+            <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center mb-3">
+              <CalendarRange className="w-5 h-5 text-purple-600" />
+            </div>
+            <h3 className="text-sm font-medium text-foreground">Review This Week</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">All lectures from the past 7 days in chronological flow</p>
+          </Link>
+          <button
+            onClick={() => {
+              if (!selectedClass) { alert('Select a class first.'); return; }
+              if (lectures.length === 0) { alert('No lectures available for this class.'); return; }
+              setShowLecturePicker(!showLecturePicker);
+            }}
+            className="text-left rounded-xl border border-border bg-card p-4 hover:shadow-2 hover:-translate-y-0.5 transition-all duration-micro group w-full">
+            <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center mb-3">
+              <BookOpen className="w-5 h-5 text-emerald-600" />
+            </div>
+            <h3 className="text-sm font-medium text-foreground">Review by Lecture</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">Pick a specific lecture to review</p>
+          </button>
+        </div>
+
+        {/* Lecture picker */}
+        {showLecturePicker && lectures.length > 0 && (
+          <div className="rounded-xl border border-border bg-card p-4 mb-4 animate-fade-in">
+            <h3 className="text-sm font-medium text-foreground mb-3">Select a lecture to review:</h3>
+            <div className="space-y-2 max-h-60 overflow-y-auto">
+              {lectures.map(l => (
+                <button
+                  key={l.id}
+                  onClick={() => navigate(`/lecture-review/lecture/${l.id}`)}
+                  className="w-full text-left px-3 py-2.5 rounded-lg border border-border hover:border-primary/30 hover:bg-muted/50 transition-colors">
+                  <p className="text-sm font-medium text-foreground truncate">{l.ai_title || `Lecture — ${l.date}`}</p>
+                  <p className="text-xs text-muted-foreground">{l.date}</p>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Class selector */}

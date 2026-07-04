@@ -13,6 +13,7 @@ import RiskIndicatorCard from '@/components/RiskIndicatorCard';
 import AddExamOrStudyModal from '@/components/AddExamOrStudyModal';
 import DailyProgressRing from '@/components/DailyProgressRing';
 import FloatingActionButton from '@/components/FloatingActionButton';
+import AutoPrintPrompt from '@/components/AutoPrintPrompt';
 
 function getTodayString() {
   const d = new Date();
@@ -219,6 +220,9 @@ export default function Home() {
               </p>
             </div>
           </div>
+
+          {/* Auto-print prompt for today's transcripts */}
+          <AutoPrintPrompt />
 
           {/* Daily progress ring — "Am I on track?" */}
           <DailyProgressRing

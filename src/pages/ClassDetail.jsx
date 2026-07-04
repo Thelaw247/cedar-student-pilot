@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { ChevronLeft, Plus, GraduationCap, Clock, MapPin, Mic, FileText, Loader2, Calendar, AlertCircle, Brain, Headphones, Pencil, AlertTriangle } from 'lucide-react';
+import { ChevronLeft, Plus, GraduationCap, Clock, MapPin, Mic, FileText, Loader2, Calendar, AlertCircle, Brain, Headphones, Pencil, AlertTriangle, Search, X } from 'lucide-react';
 import EditClassModal from '@/components/EditClassModal';
 import LectureItem from '@/components/LectureItem';
 import ExamPredictionCard from '@/components/ExamPredictionCard';
@@ -93,6 +93,25 @@ export default function ClassDetail() {
 
 function LectureTab({ lectures, classId, cls, onUpdate }) {
   const [showRecord, setShowRecord] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const filteredLectures = (() => {
+    if (!searchQuery.trim()) return lectures;
+    const q = searchQuery.toLowerCase();
+    return lectures.filter(l => {
+      const fields = [
+        l.ai_title || '',
+        l.ai_summary || '',
+        l.transcript || '',
+        (l.ai_concepts || []).join(' '),
+        (l.ai_vocabulary || []).join(' '),
+        l.date || '',
+      ];
+      return fields.some(f => f.toLowerCase().includes(q));
+    });
+  })();
+
+  const hasContent = lectures.some(l => l.transcript || l.ai_summary);
 
   return (
     <div>
@@ -103,15 +122,44 @@ function LectureTab({ lectures, classId, cls, onUpdate }) {
         </button>
       </div>
 
+      {/* Search within class lectures */}
+      {lectures.length > 0 && (
+        <div className="relative mb-4">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            placeholder="Search within lectures (topics, transcripts, keywords)..."
+            className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+          />
+          {searchQuery && (
+            <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+              <X className="w-4 h-4" />
+            </button>
+          )}
+          {searchQuery && (
+            <p className="text-xs text-muted-foreground mt-1.5 px-1">
+              {filteredLectures.length} match{filteredLectures.length !== 1 ? 'es' : ''} for "{searchQuery}"
+            </p>
+          )}
+        </div>
+      )}
+
       {lectures.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border p-12 text-center">
           <Mic className="w-8 h-8 text-muted-foreground mx-auto mb-3" strokeWidth={1.5} />
           <p className="text-sm text-muted-foreground">No lectures recorded yet.</p>
           <button onClick={() => setShowRecord(true)} className="text-sm text-primary font-medium mt-2 hover:underline">Record your first lecture</button>
         </div>
+      ) : filteredLectures.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-border p-8 text-center">
+          <Search className="w-6 h-6 text-muted-foreground mx-auto mb-2" strokeWidth={1.5} />
+          <p className="text-sm text-muted-foreground">No lectures match "{searchQuery}"</p>
+        </div>
       ) : (
         <div className="space-y-2">
-          {lectures.map(l => (
+          {filteredLectures.map(l => (
             <LectureItem key={l.id} lecture={l} defaultInstructor={cls?.instructor} onUpdate={onUpdate} />
           ))}
         </div>

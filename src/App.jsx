@@ -18,6 +18,7 @@ import SemesterSetup from './pages/SemesterSetup';
 import FocusMode from './pages/FocusMode';
 import StudyTools from './pages/StudyTools';
 import Analytics from './pages/Analytics';
+import LectureReview from './pages/LectureReview';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -59,6 +60,9 @@ const AuthenticatedApp = () => {
         <Route path="/study-tools" element={<StudyTools />} />
         <Route path="/study-tools/:classId" element={<StudyTools />} />
         <Route path="/analytics" element={<Analytics />} />
+        <Route path="/lecture-review" element={<LectureReview />} />
+        <Route path="/lecture-review/:scope" element={<LectureReview />} />
+        <Route path="/lecture-review/lecture/:lectureId" element={<LectureReview />} />
         </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>

@@ -5,6 +5,7 @@ import { fetchWithCache } from '@/hooks/useEntityData';
 import { cacheGet, cacheSet, invalidateEntity } from '@/lib/cache';
 import { enqueueOperation } from '@/lib/syncQueue';
 import { ChevronLeft, FileText, Clock, AlertCircle, Loader2, Tag, BookOpen, ListChecks, Lightbulb, Sparkles, Headphones, CloudOff } from 'lucide-react';
+import TranscriptActions from '@/components/TranscriptActions';
 
 export default function LectureDetail() {
   const { lectureId } = useParams();
@@ -202,7 +203,7 @@ export default function LectureDetail() {
 
       {/* Transcript */}
       {lecture.transcript && (
-        <Section icon={FileText} title="Transcript">
+        <Section icon={FileText} title="Transcript" actions={<TranscriptActions lecture={lecture} />}>
           <div className="max-h-64 overflow-y-auto pr-2">
             <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">{lecture.transcript}</p>
           </div>
@@ -228,12 +229,15 @@ export default function LectureDetail() {
   );
 }
 
-function Section({ icon: Icon, title, children }) {
+function Section({ icon: Icon, title, children, actions }) {
   return (
     <div className="rounded-xl border border-border bg-card p-4 mb-4">
-      <div className="flex items-center gap-2 mb-3">
-        <Icon className="w-4 h-4 text-primary" strokeWidth={2} />
-        <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+      <div className="flex items-center justify-between gap-2 mb-3">
+        <div className="flex items-center gap-2">
+          <Icon className="w-4 h-4 text-primary" strokeWidth={2} />
+          <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+        </div>
+        {actions}
       </div>
       {children}
     </div>
