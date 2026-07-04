@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
+import { fetchWithCache } from '@/hooks/useEntityData';
 import { Plus, Sun, Moon, GraduationCap, Clock, MapPin, ChevronRight } from 'lucide-react';
 import Timeline from '@/components/Timeline';
 import WeeklyCalendar from '@/components/WeeklyCalendar';
@@ -37,17 +38,17 @@ export default function Home() {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const semesters = await base44.entities.Semester.filter({ is_active: true });
+      const semesters = await fetchWithCache('Semester', 'filter', [{ is_active: true }]);
       if (semesters.length > 0) setActiveSemester(semesters[0]);
       const today = getTodayString();
 
       const [allClasses, todayEvents, allAssignments, allSessions] = await Promise.all([
         semesters.length > 0
-          ? base44.entities.Class.filter({ semester_id: semesters[0].id })
+          ? fetchWithCache('Class', 'filter', [{ semester_id: semesters[0].id }])
           : Promise.resolve([]),
-        base44.entities.CalendarEvent.filter({ date: today }),
-        base44.entities.Assignment.list(),
-        base44.entities.StudySession.list(),
+        fetchWithCache('CalendarEvent', 'filter', [{ date: today }]),
+        fetchWithCache('Assignment', 'list', []),
+        fetchWithCache('StudySession', 'list', []),
       ]);
 
       setClasses(allClasses);
@@ -61,6 +62,13 @@ export default function Home() {
   }, []);
 
   useEffect(() => { loadData(); }, [loadData]);
+
+  // Refetch when sync completes after reconnection
+  useEffect(() => {
+    const handler = () => loadData();
+    window.addEventListener('cedar-data-changed', handler);
+    return () => window.removeEventListener('cedar-data-changed', handler);
+  }, [loadData]);
 
   useEffect(() => {
     const interval = setInterval(() => setCurrentTime(new Date()), 1000);

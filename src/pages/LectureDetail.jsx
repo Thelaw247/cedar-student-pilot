@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { ChevronLeft, FileText, Clock, AlertCircle, Loader2, Tag, BookOpen, ListChecks, Lightbulb, Sparkles, Headphones } from 'lucide-react';
+import { fetchWithCache } from '@/hooks/useEntityData';
+import { cacheGet, cacheSet, invalidateEntity } from '@/lib/cache';
+import { enqueueOperation } from '@/lib/syncQueue';
+import { ChevronLeft, FileText, Clock, AlertCircle, Loader2, Tag, BookOpen, ListChecks, Lightbulb, Sparkles, Headphones, CloudOff } from 'lucide-react';
 
 export default function LectureDetail() {
   const { lectureId } = useParams();
@@ -15,13 +18,22 @@ export default function LectureDetail() {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const lec = await base44.entities.Lecture.get(lectureId);
-      setLecture(lec);
-      if (lec.class_id) {
-        const c = await base44.entities.Class.get(lec.class_id);
+      // Try cache first for instant load, then fetch fresh
+      const cachedLec = cacheGet('Lecture', 'get', [lectureId]);
+      if (cachedLec) setLecture(cachedLec);
+
+      const lec = navigator.onLine
+        ? await base44.entities.Lecture.get(lectureId)
+        : cachedLec;
+      if (lec) {
+        setLecture(lec);
+        cacheSet('Lecture', 'get', [lectureId], lec);
+      }
+      if (lec?.class_id) {
+        const c = await fetchWithCache('Class', 'get', [lec.class_id]);
         setCls(c);
       }
-      const notes = await base44.entities.Note.filter({ lecture_id: lectureId });
+      const notes = await fetchWithCache('Note', 'filter', [{ lecture_id: lectureId }]);
       if (notes.length > 0) {
         setNote(notes[0].content || '');
         setNoteId(notes[0].id);
@@ -32,16 +44,44 @@ export default function LectureDetail() {
 
   useEffect(() => { loadData(); }, [loadData]);
 
+  // Refetch when sync completes after reconnection
+  useEffect(() => {
+    const handler = () => loadData();
+    window.addEventListener('cedar-data-changed', handler);
+    return () => window.removeEventListener('cedar-data-changed', handler);
+  }, [loadData]);
+
   const saveNote = async () => {
     setSavingNote(true);
     try {
+      if (!navigator.onLine) {
+        // Queue the note save for later sync
+        if (noteId) {
+          enqueueOperation({ entity: 'Note', operation: 'update', args: [noteId, { content: note }] });
+        } else {
+          enqueueOperation({ entity: 'Note', operation: 'create', args: [{ lecture_id: lectureId, class_id: lecture?.class_id, content: note }] });
+        }
+        // Optimistically update local cache
+        invalidateEntity('Note');
+        setSavingNote(false);
+        return;
+      }
       if (noteId) {
         await base44.entities.Note.update(noteId, { content: note });
+        invalidateEntity('Note');
       } else {
         const n = await base44.entities.Note.create({ lecture_id: lectureId, class_id: lecture?.class_id, content: note });
         setNoteId(n.id);
+        invalidateEntity('Note');
       }
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      // If network fails mid-save, queue for retry
+      if (e?.message?.includes('network') || e?.message?.includes('fetch') || !navigator.onLine) {
+        enqueueOperation({ entity: 'Note', operation: noteId ? 'update' : 'create', args: noteId ? [noteId, { content: note }] : [{ lecture_id: lectureId, class_id: lecture?.class_id, content: note }] });
+        invalidateEntity('Note');
+      }
+      console.error(e);
+    }
     setSavingNote(false);
   };
 
@@ -179,8 +219,9 @@ export default function LectureDetail() {
           rows={5}
         />
         <button onClick={saveNote} disabled={savingNote}
-          className="mt-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50">
+          className="mt-2 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50">
           {savingNote ? 'Saving...' : 'Save Notes'}
+          {!navigator.onLine && !savingNote && <CloudOff className="w-3.5 h-3.5" />}
         </button>
       </Section>
     </div>
