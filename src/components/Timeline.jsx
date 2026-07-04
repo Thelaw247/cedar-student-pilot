@@ -4,11 +4,11 @@ import { MapPin, GraduationCap, Clock, Sparkles, Plus, Briefcase, Calendar, Aler
 
 const eventTypeConfig = {
   class: { icon: GraduationCap, text: 'text-primary' },
-  study: { icon: Sparkles, text: 'text-amber-600' },
-  work: { icon: Briefcase, text: 'text-purple-600' },
-  custom: { icon: Calendar, text: 'text-blue-600' },
+  study: { icon: Sparkles, text: 'text-purple-600' },
+  work: { icon: Briefcase, text: 'text-emerald-600' },
+  custom: { icon: Calendar, text: 'text-emerald-600' },
   appointment: { icon: Clock, text: 'text-emerald-600' },
-  reminder: { icon: Clock, text: 'text-rose-600' },
+  reminder: { icon: Clock, text: 'text-gray-500' },
 };
 
 function parseTime(timeStr) {
@@ -26,11 +26,12 @@ function formatTime(timeStr) {
 }
 
 function getPriorityColor(item) {
-  if (item.type === 'study') return '#EF4444';
-  if (item.type === 'class') return item.color || '#3B82F6';
+  if (item.type === 'exam') return '#EF4444';
+  if (item.type === 'study') return '#8B5CF6';
+  if (item.type === 'class') return item.color || '#2D5BFF';
   if (['custom', 'appointment', 'work'].includes(item.type)) return '#10B981';
   if (item.type === 'reminder') return '#9CA3AF';
-  return item.color || '#3B82F6';
+  return item.color || '#2D5BFF';
 }
 
 function findConflicts(items) {
@@ -148,7 +149,7 @@ export default function Timeline({ items, onAddEvent }) {
         const color = getPriorityColor(item);
         const isConflicting = conflictingIds.has(item.id);
 
-        const blockClass = `absolute rounded-lg border bg-card shadow-sm hover:shadow-md transition-all overflow-hidden z-10 ${isConflicting ? 'border-rose-500/50 ring-1 ring-rose-500/30' : 'border-border'} ${item.dimmed ? 'opacity-40 grayscale' : ''}`;
+        const blockClass = `absolute rounded-lg border bg-card timeline-shadow transition-all overflow-hidden z-10 ${isConflicting ? 'border-rose-500/50 ring-1 ring-rose-500/30' : 'border-border'} ${item.dimmed ? 'opacity-40 grayscale' : ''}`;
         const blockStyle = {
           top: top + 1,
           height,
