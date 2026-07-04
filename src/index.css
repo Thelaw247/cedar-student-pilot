@@ -24,7 +24,27 @@
     --border: 220 26% 90%;
     --input: 220 26% 90%;
     --ring: 224 100% 59%;
+
+    /* Design system — semantic radii */
     --radius: 0.75rem;
+    --radius-button: 0.75rem;
+    --radius-card: 1.125rem;
+    --radius-input: 0.875rem;
+    --radius-modal: 1.5rem;
+    --radius-notification: 1rem;
+
+    /* Design system — shadow levels */
+    --shadow-0: none;
+    --shadow-1: 0 1px 3px 0 rgb(0 0 0 / 0.04), 0 1px 2px -1px rgb(0 0 0 / 0.04);
+    --shadow-2: 0 4px 12px -2px rgb(0 0 0 / 0.08), 0 2px 6px -2px rgb(0 0 0 / 0.05);
+    --shadow-3: 0 20px 48px -12px rgb(0 0 0 / 0.18), 0 8px 16px -8px rgb(0 0 0 / 0.08);
+
+    /* Design system — motion durations */
+    --duration-micro: 150ms;
+    --duration-standard: 250ms;
+    --duration-modal: 300ms;
+    --duration-page: 400ms;
+
     --font-heading: 'Inter', ui-sans-serif, system-ui, sans-serif;
     --font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
     --font-display: 'Inter', ui-sans-serif, system-ui, sans-serif;
@@ -51,6 +71,11 @@
     --border: 0 0% 15%;
     --input: 0 0% 15%;
     --ring: 224 100% 65%;
+
+    --shadow-0: none;
+    --shadow-1: 0 1px 3px 0 rgb(0 0 0 / 0.2);
+    --shadow-2: 0 4px 12px -2px rgb(0 0 0 / 0.3);
+    --shadow-3: 0 20px 48px -12px rgb(0 0 0 / 0.5);
   }
 }
 
@@ -69,20 +94,25 @@
 }
 
 @layer utilities {
-  .timeline-shadow {
-    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.04), 0 1px 2px -1px rgb(0 0 0 / 0.04);
-  }
-  .timeline-shadow:hover {
-    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.06), 0 2px 4px -2px rgb(0 0 0 / 0.04);
-  }
+  .shadow-1 { box-shadow: var(--shadow-1); }
+  .shadow-2 { box-shadow: var(--shadow-2); }
+  .shadow-3 { box-shadow: var(--shadow-3); }
+  .timeline-shadow { box-shadow: var(--shadow-1); }
+  .timeline-shadow:hover { box-shadow: var(--shadow-2); }
+  .radius-card { border-radius: var(--radius-card); }
+  .radius-modal { border-radius: var(--radius-modal); }
+  .radius-button { border-radius: var(--radius-button); }
+  .radius-input { border-radius: var(--radius-input); }
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
-  .scrollbar-hide::-webkit-scrollbar {
-    display: none;
-  }
-  .glass {
-    backdrop-filter: blur(12px);
+  .scrollbar-hide::-webkit-scrollbar { display: none; }
+  .glass { backdrop-filter: blur(12px); }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 }

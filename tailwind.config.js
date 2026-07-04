@@ -7,7 +7,24 @@ module.exports = {
       borderRadius: {
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
-        sm: 'calc(var(--radius) - 4px)'
+        sm: 'calc(var(--radius) - 4px)',
+        button: 'var(--radius-button)',
+        card: 'var(--radius-card)',
+        input: 'var(--radius-input)',
+        modal: 'var(--radius-modal)',
+        notification: 'var(--radius-notification)'
+      },
+      boxShadow: {
+        '0': 'var(--shadow-0)',
+        '1': 'var(--shadow-1)',
+        '2': 'var(--shadow-2)',
+        '3': 'var(--shadow-3)'
+      },
+      transitionDuration: {
+        micro: 'var(--duration-micro)',
+        standard: 'var(--duration-standard)',
+        modal: 'var(--duration-modal)',
+        page: 'var(--duration-page)'
       },
       colors: {
         background: 'hsl(var(--background))',

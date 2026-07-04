@@ -5,6 +5,7 @@ import BottomNav from './BottomNav';
 import VoiceAgent from './VoiceAgent';
 import StudySessionNotifier from './StudySessionNotifier';
 import OfflineIndicator from './OfflineIndicator';
+import CommandPalette from './CommandPalette';
 
 export default function Layout() {
   const [isDark, setIsDark] = useState(false);
@@ -31,6 +32,7 @@ export default function Layout() {
       <VoiceAgent />
       <StudySessionNotifier />
       <OfflineIndicator />
+      <CommandPalette />
     </div>
   );
 }
