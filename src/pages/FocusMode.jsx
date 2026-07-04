@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { X, Music, Play, Pause, Square, Brain, Coffee, Check, BarChart3, Loader2 } from 'lucide-react';
+import { X, Music, Play, Pause, Square, Brain, Coffee, Check, BarChart3, Loader2, MessageCircle } from 'lucide-react';
 import MusicPlayer from '@/components/MusicPlayer';
+import AIStudyChat from '@/components/AIStudyChat';
+import SessionReview from '@/components/SessionReview';
 
 const GOAL_MINUTES = 90;
 
@@ -23,6 +25,10 @@ export default function FocusMode() {
   const [session, setSession] = useState(null);
   const [cls, setCls] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [showChat, setShowChat] = useState(false);
+  const [aiInteractions, setAiInteractions] = useState([]);
+  const [showReview, setShowReview] = useState(false);
+  const [savedRecordId, setSavedRecordId] = useState(null);
 
   // Refs for timer tick (avoid stale closures)
   const phaseRef = useRef('idle');
@@ -192,7 +198,7 @@ export default function FocusMode() {
     setMode(newMode);
   };
 
-  // Stop & save to analytics
+  // Stop & save to analytics — offers review
   const handleStop = async () => {
     if (studySeconds < 1) {
       navigate(session ? '/planner' : '/');
@@ -200,7 +206,7 @@ export default function FocusMode() {
     }
     setSaving(true);
     try {
-      await base44.entities.StudyRecord.create({
+      const record = await base44.entities.StudyRecord.create({
         duration_seconds: studySeconds,
         date: new Date().toISOString().split('T')[0],
         class_id: session?.class_id || null,
@@ -208,10 +214,11 @@ export default function FocusMode() {
         cycles_completed: cycles,
         goal_minutes: GOAL_MINUTES,
       });
+      setSavedRecordId(record.id);
       if (session && session.status === 'scheduled') {
         await base44.entities.StudySession.update(session.id, { status: 'completed' });
       }
-      navigate('/analytics');
+      setPhase('review_prompt');
     } catch (e) {
       setSaving(false);
       alert('Could not save your session. Please try again.');
@@ -439,8 +446,68 @@ export default function FocusMode() {
         </div>
       )}
 
+      {/* AI Study Chat toggle */}
+      {phase !== 'idle' && phase !== 'review_prompt' && (
+        <button onClick={() => setShowChat(!showChat)}
+          className={`fixed bottom-4 right-4 z-30 w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-colors ${
+            showChat ? 'bg-primary text-primary-foreground' : 'bg-card border border-border text-muted-foreground hover:text-foreground'
+          }`}>
+          <MessageCircle className="w-5 h-5" />
+          {aiInteractions.length > 0 && (
+            <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-amber-500 text-white text-[10px] font-bold flex items-center justify-center">
+              {aiInteractions.length}
+            </span>
+          )}
+        </button>
+      )}
+
+      {/* AI Study Chat */}
+      {showChat && phase !== 'review_prompt' && (
+        <AIStudyChat
+          classId={session?.class_id}
+          className={cls?.name}
+          onInteractionsChange={setAiInteractions}
+        />
+      )}
+
       {/* Music player */}
       {showMusic && <MusicPlayer onClose={() => setShowMusic(false)} />}
+
+      {/* Review prompt after stopping */}
+      {phase === 'review_prompt' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 glass">
+          <div className="bg-card rounded-2xl border border-border p-8 max-w-sm text-center animate-fade-in mx-4">
+            <div className="w-14 h-14 rounded-full bg-emerald-500/10 flex items-center justify-center mx-auto mb-4">
+              <Check className="w-7 h-7 text-emerald-600" />
+            </div>
+            <h3 className="font-heading text-lg font-semibold mb-2">Session Saved!</h3>
+            <p className="text-sm text-muted-foreground mb-6">
+              {Math.floor(studySeconds / 60)} minutes studied. Would you like to do a quick review to test your knowledge?
+            </p>
+            <div className="space-y-2">
+              <button onClick={() => setShowReview(true)}
+                className="w-full py-3 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 flex items-center justify-center gap-2">
+                <Brain className="w-4 h-4" /> Start Review Session
+              </button>
+              <button onClick={() => navigate('/analytics')}
+                className="w-full py-2.5 text-sm text-muted-foreground hover:text-foreground">
+                Skip — Go to Analytics
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Full review flow */}
+      {showReview && (
+        <SessionReview
+          classId={session?.class_id || cls?.id}
+          className={cls?.name}
+          studyRecordId={savedRecordId}
+          aiInteractions={aiInteractions}
+          onClose={() => navigate('/analytics')}
+        />
+      )}
     </div>
   );
 }

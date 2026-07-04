@@ -1,18 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { Clock, TrendingUp, Calendar, Brain, BarChart3, Headphones, Loader2, GraduationCap } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, RadialBarChart, RadialBar } from 'recharts';
+import { Clock, TrendingUp, Calendar, Brain, BarChart3, Headphones, Loader2, GraduationCap, Target, BookOpen, AlertCircle, Award } from 'lucide-react';
+import KnowledgeCoverageSection from '@/components/KnowledgeCoverageSection';
 
 export default function Analytics() {
   const [records, setRecords] = useState([]);
+  const [reviews, setReviews] = useState([]);
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     (async () => {
       try {
-        const recs = await base44.entities.StudyRecord.list('-date', 200);
+        const [recs, revs] = await Promise.all([
+          base44.entities.StudyRecord.list('-date', 200),
+          base44.entities.StudySessionReview.list('-created_date', 100),
+        ]);
         setRecords(recs);
+        setReviews(revs);
         const semesters = await base44.entities.Semester.filter({ is_active: true });
         if (semesters.length > 0) {
           const cls = await base44.entities.Class.filter({ semester_id: semesters[0].id });
@@ -26,10 +32,10 @@ export default function Analytics() {
   const classMap = Object.fromEntries(classes.map(c => [c.id, c]));
 
   // Calculate totals
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = new Date().toLocaleDateString('en-CA');
   const weekAgo = new Date();
   weekAgo.setDate(weekAgo.getDate() - 7);
-  const weekAgoStr = weekAgo.toISOString().split('T')[0];
+  const weekAgoStr = weekAgo.toLocaleDateString('en-CA');
 
   const todaySeconds = records.filter(r => r.date === todayStr).reduce((s, r) => s + r.duration_seconds, 0);
   const weekSeconds = records.filter(r => r.date >= weekAgoStr).reduce((s, r) => s + r.duration_seconds, 0);
@@ -40,7 +46,7 @@ export default function Analytics() {
   for (let i = 6; i >= 0; i--) {
     const d = new Date();
     d.setDate(d.getDate() - i);
-    const dateStr = d.toISOString().split('T')[0];
+    const dateStr = d.toLocaleDateString('en-CA');
     const seconds = records.filter(r => r.date === dateStr).reduce((s, r) => s + r.duration_seconds, 0);
     days.push({
       day: d.toLocaleDateString('en-US', { weekday: 'short' }),
@@ -57,13 +63,30 @@ export default function Analytics() {
     for (let i = 0; i < sortedDates.length; i++) {
       const expected = new Date();
       expected.setDate(today.getDate() - i);
-      if (sortedDates[i] === expected.toISOString().split('T')[0]) streak++;
+      if (sortedDates[i] === expected.toLocaleDateString('en-CA')) streak++;
       else break;
     }
   }
 
   // Goal achievements
   const goalMet = records.filter(r => r.duration_seconds >= (r.goal_minutes || 90) * 60).length;
+
+  // Review-based analytics
+  const latestReviews = reviews.slice(0, 50);
+  const avgProficiency = latestReviews.length > 0
+    ? Math.round(latestReviews.reduce((s, r) => s + (r.proficiency_score || 0), 0) / latestReviews.length)
+    : 0;
+  const avgInDepth = latestReviews.length > 0
+    ? Math.round(latestReviews.reduce((s, r) => s + (r.in_depth_score || 0), 0) / latestReviews.length)
+    : 0;
+  const latestCoverage = latestReviews.length > 0 ? (latestReviews[0].coverage_percentage || 0) : 0;
+
+  // Overall knowledge growth data (cumulative coverage over reviews)
+  const growthData = [...latestReviews].reverse().map((r, idx) => ({
+    session: idx + 1,
+    coverage: r.coverage_percentage || 0,
+    proficiency: r.proficiency_score || 0,
+  }));
 
   const formatDuration = (seconds) => {
     const h = Math.floor(seconds / 3600);
@@ -81,11 +104,11 @@ export default function Analytics() {
     );
   }
 
-  if (records.length === 0) {
+  if (records.length === 0 && reviews.length === 0) {
     return (
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 lg:py-10 animate-fade-in">
         <h1 className="font-heading text-xl sm:text-2xl font-bold mb-2">Analytics</h1>
-        <p className="text-sm text-muted-foreground mb-8">Track your study time and progress.</p>
+        <p className="text-sm text-muted-foreground mb-8">Track your study time, knowledge coverage, and proficiency.</p>
         <div className="rounded-xl border border-dashed border-border p-12 text-center">
           <BarChart3 className="w-10 h-10 text-muted-foreground mx-auto mb-3" strokeWidth={1.5} />
           <p className="text-sm text-muted-foreground mb-1">No study sessions recorded yet.</p>
@@ -98,10 +121,10 @@ export default function Analytics() {
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 lg:py-10 animate-fade-in">
       <h1 className="font-heading text-xl sm:text-2xl font-bold mb-2">Analytics</h1>
-      <p className="text-sm text-muted-foreground mb-8">Track your study time and progress.</p>
+      <p className="text-sm text-muted-foreground mb-8">Track your study time, knowledge coverage, and proficiency.</p>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-3 gap-3 mb-8">
+      <div className="grid grid-cols-3 gap-3 mb-6">
         <StatCard icon={Clock} label="Today" value={formatDuration(todaySeconds)} color="text-primary" />
         <StatCard icon={TrendingUp} label="This Week" value={formatDuration(weekSeconds)} color="text-emerald-600" />
         <StatCard icon={BarChart3} label="All Time" value={formatDuration(totalSeconds)} color="text-amber-600" />
@@ -125,9 +148,50 @@ export default function Analytics() {
         </div>
       </div>
 
+      {/* Knowledge & Proficiency Section */}
+      {reviews.length > 0 && (
+        <>
+          <div className="flex items-center gap-2 mb-3 mt-8">
+            <Brain className="w-4 h-4 text-primary" />
+            <h2 className="font-heading text-sm font-semibold text-muted-foreground uppercase tracking-wide">Knowledge & Proficiency</h2>
+          </div>
+
+          {/* Score cards */}
+          <div className="grid grid-cols-3 gap-3 mb-4">
+            <ScoreRingCard icon={Target} label="Proficiency" value={avgProficiency} color="#3B82F6" />
+            <ScoreRingCard icon={BookOpen} label="Course Coverage" value={latestCoverage} color="#10B981" />
+            <ScoreRingCard icon={Award} label="In-Depth" value={avgInDepth} color="#F59E0B" />
+          </div>
+
+          {/* Knowledge growth chart */}
+          {growthData.length > 1 && (
+            <div className="rounded-xl border border-border bg-card p-5 mb-4">
+              <h3 className="text-sm font-semibold mb-1">Knowledge Growth Over Sessions</h3>
+              <p className="text-xs text-muted-foreground mb-4">Coverage and proficiency across review sessions</p>
+              <ResponsiveContainer width="100%" height={160}>
+                <BarChart data={growthData}>
+                  <XAxis dataKey="session" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
+                  <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
+                  <Tooltip
+                    contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px', fontSize: '12px' }}
+                    formatter={(v, name) => [`${v}%`, name === 'coverage' ? 'Coverage' : 'Proficiency']}
+                    labelFormatter={(l) => `Session ${l}`}
+                  />
+                  <Bar dataKey="coverage" fill="#10B981" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="proficiency" fill="#3B82F6" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+
+          {/* Per-class knowledge coverage */}
+          <KnowledgeCoverageSection classes={classes} />
+        </>
+      )}
+
       {/* Weekly chart */}
-      <div className="rounded-xl border border-border bg-card p-5 mb-8">
-        <h3 className="text-sm font-semibold mb-4">Last 7 Days</h3>
+      <div className="rounded-xl border border-border bg-card p-5 mb-8 mt-8">
+        <h3 className="text-sm font-semibold mb-4">Last 7 Days Study Time</h3>
         <ResponsiveContainer width="100%" height={180}>
           <BarChart data={days}>
             <XAxis dataKey="day" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
@@ -145,9 +209,37 @@ export default function Analytics() {
         </ResponsiveContainer>
       </div>
 
+      {/* Recent review sessions */}
+      {reviews.length > 0 && (
+        <div className="mb-8">
+          <h3 className="text-sm font-semibold mb-3">Review Sessions</h3>
+          <div className="space-y-2">
+            {reviews.slice(0, 10).map(r => (
+              <div key={r.id} className="rounded-xl border border-border bg-card p-3 flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <Brain className="w-4 h-4 text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">
+                    {classMap[r.class_id]?.name || 'Review Session'}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {r.review_questions?.length || 0} questions • {r.ai_interactions?.length || 0} AI interactions
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-bold tabular-nums">{r.overall_score || 0}%</p>
+                  <p className="text-[10px] text-muted-foreground">overall</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Recent sessions */}
       <div>
-        <h3 className="text-sm font-semibold mb-3">Recent Sessions</h3>
+        <h3 className="text-sm font-semibold mb-3">Recent Study Sessions</h3>
         <div className="space-y-2">
           {records.slice(0, 15).map(r => (
             <div key={r.id} className="rounded-xl border border-border bg-card p-3 flex items-center gap-3">
@@ -179,6 +271,26 @@ function StatCard({ icon: Icon, label, value, color }) {
       <Icon className={`w-4 h-4 mb-2 ${color}`} />
       <p className="text-xs text-muted-foreground">{label}</p>
       <p className="font-heading text-lg font-bold">{value}</p>
+    </div>
+  );
+}
+
+function ScoreRingCard({ icon: Icon, label, value, color }) {
+  const data = [{ name: label, value: value, fill: color }];
+  return (
+    <div className="rounded-xl border border-border bg-card p-4 flex flex-col items-center">
+      <Icon className="w-4 h-4 mb-2" style={{ color }} />
+      <div className="relative w-20 h-20">
+        <ResponsiveContainer width="100%" height="100%">
+          <RadialBarChart innerRadius="70%" outerRadius="100%" data={data} startAngle={90} endAngle={-270}>
+            <RadialBar background dataKey="value" cornerRadius={6} />
+          </RadialBarChart>
+        </ResponsiveContainer>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span className="font-heading text-lg font-bold" style={{ color }}>{value}%</span>
+        </div>
+      </div>
+      <p className="text-xs text-muted-foreground mt-1">{label}</p>
     </div>
   );
 }

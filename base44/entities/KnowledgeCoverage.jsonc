@@ -1,0 +1,46 @@
+{
+  "name": "KnowledgeCoverage",
+  "type": "object",
+  "properties": {
+    "class_id": {
+      "type": "string",
+      "title": "Class ID"
+    },
+    "lecture_id": {
+      "type": "string",
+      "title": "Lecture ID"
+    },
+    "concepts_seen": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "title": "Concepts Seen"
+    },
+    "concepts_mastered": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "title": "Concepts Mastered"
+    },
+    "proficiency": {
+      "type": "number",
+      "default": 0,
+      "title": "Proficiency (0-100)"
+    },
+    "sessions_reviewed": {
+      "type": "number",
+      "default": 0,
+      "title": "Sessions Reviewed"
+    },
+    "last_reviewed_date": {
+      "type": "string",
+      "format": "date",
+      "title": "Last Reviewed Date"
+    }
+  },
+  "required": [
+    "class_id"
+  ]
+}

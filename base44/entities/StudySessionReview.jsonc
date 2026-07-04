@@ -1,0 +1,108 @@
+{
+  "name": "StudySessionReview",
+  "type": "object",
+  "properties": {
+    "study_record_id": {
+      "type": "string",
+      "title": "Study Record ID"
+    },
+    "class_id": {
+      "type": "string",
+      "title": "Class ID"
+    },
+    "lecture_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "title": "Lectures Covered"
+    },
+    "ai_interactions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "question": {
+            "type": "string"
+          },
+          "answer": {
+            "type": "string"
+          }
+        }
+      },
+      "title": "AI Interactions"
+    },
+    "review_questions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "multiple_choice",
+              "short_answer",
+              "one_word"
+            ]
+          },
+          "question": {
+            "type": "string"
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "correct_answer": {
+            "type": "string"
+          },
+          "user_answer": {
+            "type": "string"
+          },
+          "is_correct": {
+            "type": "boolean"
+          }
+        }
+      },
+      "title": "Review Questions"
+    },
+    "self_assessment": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "topic": {
+            "type": "string"
+          },
+          "covered": {
+            "type": "boolean"
+          },
+          "proficiency": {
+            "type": "number"
+          }
+        }
+      },
+      "title": "Self Assessment"
+    },
+    "proficiency_score": {
+      "type": "number",
+      "title": "Proficiency Score (0-100)"
+    },
+    "coverage_percentage": {
+      "type": "number",
+      "title": "Coverage Percentage (0-100)"
+    },
+    "in_depth_score": {
+      "type": "number",
+      "title": "In-Depth Score (0-100)"
+    },
+    "overall_score": {
+      "type": "number",
+      "title": "Overall Score (0-100)"
+    }
+  },
+  "required": [
+    "class_id"
+  ]
+}
