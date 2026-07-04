@@ -1,14 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Sun, Moon, Bell, Sparkles, Clock, Palette, Calendar, Mail, Loader2, Check } from 'lucide-react';
+import { Sun, Moon, Bell, Sparkles, Clock, Palette, Calendar, Loader2, Check, AlertCircle } from 'lucide-react';
+import { getSetting, setSetting } from '@/lib/settings';
 
 export default function Settings() {
   const [isDark, setIsDark] = useState(false);
   const [googleCalConnected, setGoogleCalConnected] = useState(false);
   const [connecting, setConnecting] = useState(false);
+  const [checkingCal, setCheckingCal] = useState(true);
 
   useEffect(() => {
     setIsDark(document.documentElement.classList.contains('dark'));
+    // Check Google Calendar connection status on mount
+    (async () => {
+      try {
+        await base44.connectors.getConnection('googlecalendar');
+        setGoogleCalConnected(true);
+      } catch (e) {
+        setGoogleCalConnected(false);
+      }
+      setCheckingCal(false);
+    })();
   }, []);
 
   const toggleTheme = (dark) => {
@@ -28,6 +40,15 @@ export default function Settings() {
       console.error(e);
     }
     setConnecting(false);
+  };
+
+  const disconnectGoogleCalendar = async () => {
+    try {
+      await base44.connectors.disconnect('googlecalendar');
+      setGoogleCalConnected(false);
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   return (
@@ -59,28 +80,48 @@ export default function Settings() {
 
       <SettingsSection icon={Calendar} title="Google Calendar">
         <p className="text-sm text-muted-foreground mb-3">Sync your Cedar events with Google Calendar for two-way synchronization.</p>
-        <button onClick={connectGoogleCalendar} disabled={connecting}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-border text-sm font-medium hover:bg-muted disabled:opacity-50">
-          {connecting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Calendar className="w-4 h-4" />}
-          {googleCalConnected ? 'Connected' : 'Connect Google Calendar'}
-        </button>
+        {checkingCal ? (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="w-4 h-4 animate-spin" /> Checking connection...
+          </div>
+        ) : googleCalConnected ? (
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-sm text-emerald-600">
+              <Check className="w-4 h-4" /> Connected
+            </div>
+            <button onClick={disconnectGoogleCalendar}
+              className="text-xs text-muted-foreground hover:text-destructive transition-colors">
+              Disconnect
+            </button>
+          </div>
+        ) : (
+          <button onClick={connectGoogleCalendar} disabled={connecting}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-border text-sm font-medium hover:bg-muted disabled:opacity-50">
+            {connecting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Calendar className="w-4 h-4" />}
+            Connect Google Calendar
+          </button>
+        )}
       </SettingsSection>
 
       <SettingsSection icon={Bell} title="Notifications">
-        <Toggle label="Class reminders" description="Get notified before classes start" defaultOn />
-        <Toggle label="Study session reminders" description="Alert before scheduled study blocks" defaultOn />
-        <Toggle label="Assignment deadlines" description="Reminders for upcoming due dates" defaultOn />
+        <Toggle label="Class reminders" description="Get notified before classes start" settingKey="classReminders" />
+        <Toggle label="Study session reminders" description="Alert before scheduled study blocks" settingKey="studySessionReminders" />
+        <Toggle label="Assignment deadlines" description="Reminders for upcoming due dates" settingKey="assignmentDeadlines" />
+        <div className="mt-3 rounded-lg bg-muted/50 p-3 flex items-start gap-2">
+          <AlertCircle className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0 mt-0.5" />
+          <p className="text-[11px] text-muted-foreground">When study session reminders are on, Cedar also sends email fallbacks if you haven't opened the app.</p>
+        </div>
       </SettingsSection>
 
       <SettingsSection icon={Sparkles} title="AI Features">
-        <Toggle label="Auto-generate lecture summaries" description="Process recordings automatically" defaultOn />
-        <Toggle label="Auto-generate study schedules" description="Plan sessions when adding exams" defaultOn />
-        <Toggle label="AI flashcards & quizzes" description="Create study material from lectures" defaultOn />
+        <Toggle label="Auto-generate lecture summaries" description="Process recordings automatically" settingKey="autoGenerateSummaries" />
+        <Toggle label="Auto-generate study schedules" description="Plan sessions when adding exams" settingKey="autoGenerateSchedules" />
+        <Toggle label="AI flashcards & quizzes" description="Create study material from lectures" settingKey="autoFlashcards" />
       </SettingsSection>
 
       <SettingsSection icon={Clock} title="Recording">
-        <Toggle label="High quality audio" description="Larger files, better transcription" defaultOn />
-        <Toggle label="Auto-transcribe" description="Process immediately after recording" defaultOn />
+        <Toggle label="High quality audio" description="Larger files, better transcription" settingKey="highQualityAudio" />
+        <Toggle label="Auto-transcribe" description="Process immediately after recording" settingKey="autoTranscribe" />
       </SettingsSection>
 
       <p className="text-center text-xs text-muted-foreground mt-8 mb-4">Cedar Student Pilot • v1.0</p>
@@ -100,15 +141,20 @@ function SettingsSection({ icon: Icon, title, children }) {
   );
 }
 
-function Toggle({ label, description, defaultOn }) {
-  const [on, setOn] = useState(defaultOn);
+function Toggle({ label, description, settingKey }) {
+  const [on, setOn] = useState(getSetting(settingKey));
+  const toggle = () => {
+    const next = !on;
+    setOn(next);
+    setSetting(settingKey, next);
+  };
   return (
     <div className="flex items-center justify-between py-2">
       <div>
         <p className="text-sm font-medium text-foreground">{label}</p>
         <p className="text-xs text-muted-foreground">{description}</p>
       </div>
-      <button onClick={() => setOn(!on)}
+      <button onClick={toggle}
         className={`relative w-11 h-6 rounded-full transition-colors ${on ? 'bg-primary' : 'bg-muted'}`}>
         <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform ${on ? 'translate-x-5' : ''}`}></span>
       </button>

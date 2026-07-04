@@ -22,12 +22,14 @@ export default function VoiceAgent() {
   const utteranceRef = useRef(null);
   const voicesRef = useRef([]);
   const speakingRef = useRef(false);
+  const listeningRef = useRef(false);
 
   // Keep refs in sync
   useEffect(() => { enabledRef.current = enabled; }, [enabled]);
   useEffect(() => { processingRef.current = processing; }, [processing]);
   useEffect(() => { awakeRef.current = awake; }, [awake]);
   useEffect(() => { speakingRef.current = speaking; }, [speaking]);
+  useEffect(() => { listeningRef.current = listening; }, [listening]);
 
   const speak = useCallback((text) => {
     if (!('speechSynthesis' in window)) return;
@@ -208,9 +210,10 @@ export default function VoiceAgent() {
     let shouldRestart = true;
 
     const startRecognition = () => {
-      if (!enabledRef.current || processingRef.current || speakingRef.current) return;
+      if (!enabledRef.current || processingRef.current || speakingRef.current || listeningRef.current) return;
       try {
         recognition.start();
+        listeningRef.current = true;
         setListening(true);
       } catch (e) {
         // already running — ignore
@@ -254,6 +257,7 @@ export default function VoiceAgent() {
     };
 
     recognition.onend = () => {
+      listeningRef.current = false;
       setListening(false);
       // Restart after a short delay if still enabled, not processing, and not speaking
       if (shouldRestart && enabledRef.current && !processingRef.current && !speakingRef.current) {
@@ -266,7 +270,7 @@ export default function VoiceAgent() {
 
     // Watch for processing state changes to restart recognition when done
     const checkInterval = setInterval(() => {
-      if (enabledRef.current && !processingRef.current && !speakingRef.current && !listening) {
+      if (enabledRef.current && !processingRef.current && !speakingRef.current && !listeningRef.current) {
         startRecognition();
       }
     }, 1000);

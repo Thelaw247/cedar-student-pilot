@@ -14,6 +14,12 @@ export default function AIAssistant() {
   const [loadingConvs, setLoadingConvs] = useState(true);
   const [showSidebar, setShowSidebar] = useState(false);
   const scrollRef = useRef(null);
+  const unsubscribeRef = useRef(null);
+
+  // Cleanup subscription on unmount
+  useEffect(() => {
+    return () => { if (unsubscribeRef.current) unsubscribeRef.current(); };
+  }, []);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -87,18 +93,21 @@ export default function AIAssistant() {
       return;
     }
 
+    // Cleanup any previous subscription
+    if (unsubscribeRef.current) unsubscribeRef.current();
+
     // Subscribe to streaming updates
-    const unsubscribe = base44.agents.subscribeToConversation(convId, (data) => {
+    unsubscribeRef.current = base44.agents.subscribeToConversation(convId, (data) => {
       setMessages(data.messages || []);
       const lastMsg = (data.messages || [])[data.messages?.length - 1];
       if (lastMsg && lastMsg.role === 'assistant' && !lastMsg.tool_calls?.some(tc => ['pending', 'running', 'in_progress'].includes(tc.status))) {
         setLoading(false);
+        if (unsubscribeRef.current) { unsubscribeRef.current(); unsubscribeRef.current = null; }
       }
     });
 
     // Fallback timeout to stop loading
     setTimeout(() => { setLoading(false); }, 30000);
-    return () => unsubscribe();
   };
 
   const deleteConversation = async (convId, e) => {

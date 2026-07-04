@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { Plus, Search, GraduationCap, ChevronRight } from 'lucide-react';
+import LectureSearch from '@/components/LectureSearch';
 
 export default function Classes() {
   const [classes, setClasses] = useState([]);
@@ -61,6 +62,8 @@ export default function Classes() {
           onChange={e => setSearch(e.target.value)}
           className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-primary/40" />
       </div>
+
+      <LectureSearch />
 
       {filtered.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border p-12 text-center">

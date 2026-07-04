@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useNavigate } from 'react-router-dom';
 import { Headphones, RefreshCw, X, Loader2 } from 'lucide-react';
+import { getSetting } from '@/lib/settings';
 
 export default function StudySessionNotifier() {
   const [pendingSession, setPendingSession] = useState(null);
@@ -13,6 +14,7 @@ export default function StudySessionNotifier() {
 
   useEffect(() => {
     const check = async () => {
+      if (!getSetting('studySessionReminders')) return;
       try {
         const today = new Date().toISOString().split('T')[0];
         const sessions = await base44.entities.StudySession.filter({
@@ -52,6 +54,13 @@ export default function StudySessionNotifier() {
     const interval = setInterval(check, 60000);
     return () => clearInterval(interval);
   }, [dismissed]);
+
+  // Re-check when settings change
+  useEffect(() => {
+    const handler = () => { if (!getSetting('studySessionReminders')) setPendingSession(null); };
+    window.addEventListener('cedar-settings-change', handler);
+    return () => window.removeEventListener('cedar-settings-change', handler);
+  }, []);
 
   const classMap = Object.fromEntries(classes.map(c => [c.id, c]));
 

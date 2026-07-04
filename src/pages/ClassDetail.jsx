@@ -4,6 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { ChevronLeft, Plus, GraduationCap, Clock, MapPin, Mic, FileText, Loader2, Calendar, AlertCircle, Brain, Headphones, Pencil } from 'lucide-react';
 import EditClassModal from '@/components/EditClassModal';
 import LectureItem from '@/components/LectureItem';
+import { getSetting } from '@/lib/settings';
 
 export default function ClassDetail() {
   const { classId } = useParams();
@@ -76,7 +77,7 @@ export default function ClassDetail() {
         <AssignmentTab assignments={assignments} classId={classId} onUpdate={loadData} />
       )}
       {tab === 'study' && (
-        <StudyTab classId={classId} cls={cls} lectures={lectures} />
+        <StudyTab classId={classId} cls={cls} lectures={lectures} onUpdate={loadData} />
       )}
 
       {showEdit && (
@@ -288,9 +289,8 @@ function AssignmentTab({ assignments, classId, onUpdate }) {
   );
 }
 
-function StudyTab({ classId, cls, lectures }) {
+function StudyTab({ classId, cls, lectures, onUpdate }) {
   const [missedLoading, setMissedLoading] = useState(false);
-  const navigate = useNavigate ? null : null;
 
   const handleMissedLecture = async () => {
     setMissedLoading(true);
@@ -299,7 +299,7 @@ function StudyTab({ classId, cls, lectures }) {
         class_id: classId,
         date: new Date().toISOString().split('T')[0],
       });
-      window.location.reload();
+      onUpdate();
     } catch (e) {
       alert('Failed to generate missed lecture summary.');
     }
@@ -355,7 +355,9 @@ function AddAssignmentModal({ classId, onClose }) {
     setSaving(true);
     try {
       const assignment = await base44.entities.Assignment.create({ ...form, class_id: classId });
-      await base44.functions.invoke('generateStudySchedule', { assignment_id: assignment.id });
+      if (getSetting('autoGenerateSchedules')) {
+        await base44.functions.invoke('generateStudySchedule', { assignment_id: assignment.id });
+      }
       onClose();
     } catch (e) { console.error(e); }
     setSaving(false);

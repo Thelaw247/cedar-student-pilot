@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
 import { GraduationCap, Calendar, Clock, Check, X, Loader2, ChevronRight, Headphones } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const priorityColors = {
   high: 'bg-rose-500/10 text-rose-600 border-rose-500/20',
@@ -131,10 +132,10 @@ export default function StudyPlanner() {
                     </div>
                   </div>
                   {s.status === 'scheduled' && (
-                    <a href={`/focus/${s.id}`}
+                    <Link to={`/focus/${s.id}`}
                       className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border text-xs font-medium text-foreground hover:bg-primary/5 hover:border-primary/30 transition-colors flex-shrink-0">
                       <Headphones className="w-3.5 h-3.5" /> Focus
-                    </a>
+                    </Link>
                   )}
                 </div>
               </div>

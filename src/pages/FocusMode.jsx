@@ -213,7 +213,8 @@ export default function FocusMode() {
       }
       navigate('/analytics');
     } catch (e) {
-      navigate(session ? '/planner' : '/');
+      setSaving(false);
+      alert('Could not save your session. Please try again.');
     }
     setSaving(false);
   };

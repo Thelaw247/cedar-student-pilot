@@ -42,6 +42,11 @@
       ],
       "default": "scheduled",
       "title": "Status"
+    },
+    "email_notified": {
+      "type": "boolean",
+      "default": false,
+      "title": "Email Notified"
     }
   },
   "required": [
