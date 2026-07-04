@@ -15,6 +15,8 @@ import AIAssistant from './pages/AIAssistant';
 import StudyPlanner from './pages/StudyPlanner';
 import SettingsPage from './pages/Settings';
 import SemesterSetup from './pages/SemesterSetup';
+import FocusMode from './pages/FocusMode';
+import StudyTools from './pages/StudyTools';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -51,7 +53,11 @@ const AuthenticatedApp = () => {
         <Route path="/assistant" element={<AIAssistant />} />
         <Route path="/planner" element={<StudyPlanner />} />
         <Route path="/settings" element={<SettingsPage />} />
-      </Route>
+        <Route path="/focus" element={<FocusMode />} />
+        <Route path="/focus/:sessionId" element={<FocusMode />} />
+        <Route path="/study-tools" element={<StudyTools />} />
+        <Route path="/study-tools/:classId" element={<StudyTools />} />
+        </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );

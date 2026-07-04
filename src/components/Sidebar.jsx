@@ -1,12 +1,13 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { CalendarDays, BookOpen, Sparkles, GraduationCap, Settings, GraduationCap as Logo } from 'lucide-react';
+import { CalendarDays, BookOpen, Sparkles, GraduationCap, Settings, GraduationCap as Logo, Brain } from 'lucide-react';
 
 const navItems = [
   { to: '/', label: 'Today', icon: CalendarDays },
   { to: '/classes', label: 'Classes', icon: BookOpen },
+  { to: '/planner', label: 'Planner', icon: GraduationCap },
+  { to: '/study-tools', label: 'Study Tools', icon: Brain },
   { to: '/assistant', label: 'AI Assistant', icon: Sparkles },
-  { to: '/planner', label: 'Study Planner', icon: GraduationCap },
   { to: '/settings', label: 'Settings', icon: Settings },
 ];
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { ChevronLeft, Plus, GraduationCap, Clock, MapPin, Mic, FileText, Loader2, Calendar, AlertCircle } from 'lucide-react';
+import { ChevronLeft, Plus, GraduationCap, Clock, MapPin, Mic, FileText, Loader2, Calendar, AlertCircle, Brain, Headphones } from 'lucide-react';
 
 export default function ClassDetail() {
   const { classId } = useParams();
@@ -54,10 +54,10 @@ export default function ClassDetail() {
 
       {/* Tabs */}
       <div className="flex gap-1 border-b border-border mb-6">
-        {['lectures', 'assignments'].map(t => (
+        {['lectures', 'assignments', 'study'].map(t => (
           <button key={t} onClick={() => setTab(t)}
             className={`px-4 py-2.5 text-sm font-medium capitalize border-b-2 transition-colors ${tab === t ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>
-            {t}
+            {t === 'study' ? 'Study Tools' : t}
           </button>
         ))}
       </div>
@@ -67,6 +67,9 @@ export default function ClassDetail() {
       )}
       {tab === 'assignments' && (
         <AssignmentTab assignments={assignments} classId={classId} onUpdate={loadData} />
+      )}
+      {tab === 'study' && (
+        <StudyTab classId={classId} cls={cls} lectures={lectures} />
       )}
     </div>
   );
@@ -284,6 +287,64 @@ function AssignmentTab({ assignments, classId, onUpdate }) {
       )}
 
       {showAdd && <AddAssignmentModal classId={classId} onClose={() => { setShowAdd(false); onUpdate(); }} />}
+    </div>
+  );
+}
+
+function StudyTab({ classId, cls, lectures }) {
+  const [missedLoading, setMissedLoading] = useState(false);
+  const navigate = useNavigate ? null : null;
+
+  const handleMissedLecture = async () => {
+    setMissedLoading(true);
+    try {
+      await base44.functions.invoke('generateMissedLectureSummary', {
+        class_id: classId,
+        date: new Date().toISOString().split('T')[0],
+      });
+      window.location.reload();
+    } catch (e) {
+      alert('Failed to generate missed lecture summary.');
+    }
+    setMissedLoading(false);
+  };
+
+  return (
+    <div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+        <Link to={`/study-tools/${classId}`}
+          className="rounded-xl border border-border bg-card p-4 hover:shadow-md transition-all group">
+          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mb-3">
+            <Brain className="w-5 h-5 text-primary" />
+          </div>
+          <h3 className="text-sm font-medium text-foreground">Generate Study Material</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">Flashcards, quizzes, and practice tests from your lectures</p>
+        </Link>
+        <Link to="/focus"
+          className="rounded-xl border border-border bg-card p-4 hover:shadow-md transition-all group">
+          <div className="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center mb-3">
+            <Headphones className="w-5 h-5 text-amber-600" />
+          </div>
+          <h3 className="text-sm font-medium text-foreground">Focus Mode</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">Start a focus session with classical music and a timer</p>
+        </Link>
+      </div>
+
+      <div className="rounded-xl border border-dashed border-border p-5">
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center flex-shrink-0">
+            <AlertCircle className="w-5 h-5 text-amber-600" />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-sm font-medium text-foreground">Missed a Lecture?</h3>
+            <p className="text-xs text-muted-foreground mt-0.5 mb-3">Generate an AI-estimated summary based on previous lectures and course progression.</p>
+            <button onClick={handleMissedLecture} disabled={missedLoading}
+              className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-amber-500/30 bg-amber-500/5 text-sm font-medium text-amber-700 dark:text-amber-500 hover:bg-amber-500/10 disabled:opacity-50">
+              {missedLoading ? <><Loader2 className="w-4 h-4 animate-spin" /> Generating...</> : 'Generate Missed Lecture Summary'}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

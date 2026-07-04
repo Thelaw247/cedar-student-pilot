@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { ChevronLeft, FileText, Clock, AlertCircle, Loader2, Tag, BookOpen, ListChecks, Lightbulb, Sparkles } from 'lucide-react';
+import { ChevronLeft, FileText, Clock, AlertCircle, Loader2, Tag, BookOpen, ListChecks, Lightbulb, Sparkles, Headphones } from 'lucide-react';
 
 export default function LectureDetail() {
   const { lectureId } = useParams();
@@ -50,9 +50,15 @@ export default function LectureDetail() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 lg:py-10 animate-fade-in">
-      <Link to={cls ? `/classes/${cls.id}` : '/classes'} className="text-sm text-muted-foreground hover:text-foreground mb-4 inline-flex items-center gap-1">
-        <ChevronLeft className="w-4 h-4" /> {cls?.name || 'Classes'}
-      </Link>
+      <div className="flex items-center justify-between mb-4">
+        <Link to={cls ? `/classes/${cls.id}` : '/classes'} className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1">
+          <ChevronLeft className="w-4 h-4" /> {cls?.name || 'Classes'}
+        </Link>
+        <Link to="/focus"
+          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border text-xs font-medium text-foreground hover:bg-primary/5 hover:border-primary/30 transition-colors">
+          <Headphones className="w-3.5 h-3.5" /> Focus Mode
+        </Link>
+      </div>
 
       {/* Header */}
       <div className="flex items-start gap-3 mb-6">
