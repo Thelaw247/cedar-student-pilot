@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { fetchWithCache } from '@/hooks/useEntityData';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import { useUndo, UndoToast } from '@/hooks/useUndo';
 import { Plus, Sun, Moon, GraduationCap, Clock, MapPin, ChevronRight, Calendar, AlertCircle } from 'lucide-react';
 import Timeline from '@/components/Timeline';
 import WeeklyCalendar from '@/components/WeeklyCalendar';
@@ -36,6 +38,40 @@ export default function Home() {
   const [examWeek, setExamWeek] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [showAddExamOrStudy, setShowAddExamOrStudy] = useState(false);
+  const { toast, showUndo, handleUndo, dismiss } = useUndo();
+
+  const handleDeleteClass = useCallback(async (classData) => {
+    // Snapshot for undo before deletion
+    const snapshot = { ...classData };
+    try {
+      await base44.entities.Class.delete(classData.id);
+      showUndo(`"${classData.name}" deleted`, async () => {
+        // Undo: recreate the class
+        const { id, created_date, updated_date, created_by_id, ...rest } = snapshot;
+        await base44.entities.Class.create(rest);
+        loadData();
+      });
+      loadData();
+    } catch (e) { console.error(e); }
+  }, [showUndo, loadData]);
+
+  const handleDeleteEvent = useCallback(async (eventId, eventData) => {
+    const snapshot = { ...eventData };
+    try {
+      await base44.entities.CalendarEvent.delete(eventId);
+      showUndo('Event deleted', async () => {
+        const { id, created_date, updated_date, created_by_id, ...rest } = snapshot;
+        await base44.entities.CalendarEvent.create(rest);
+        loadData();
+      });
+      loadData();
+    } catch (e) { console.error(e); }
+  }, [showUndo, loadData]);
+
+  // Keyboard shortcuts: N = new event
+  useKeyboardShortcuts({
+    onNewEvent: () => setShowAddEvent(true),
+  });
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -257,7 +293,10 @@ export default function Home() {
       {showAddEvent && <AddEventModal onClose={() => { setShowAddEvent(false); loadData(); }} />}
       {showAddExamOrStudy && <AddExamOrStudyModal classes={classes} onClose={() => { setShowAddExamOrStudy(false); loadData(); }} />}
       {showAddClass && <EditClassModal semesterId={activeSemester.id} onClose={() => { setShowAddClass(false); loadData(); }} />}
-      {editClass && <EditClassModal classData={editClass} semesterId={activeSemester.id} onClose={() => { setEditClass(null); loadData(); }} />}
+      {editClass && <EditClassModal classData={editClass} semesterId={activeSemester.id} onDeleteClass={handleDeleteClass} onClose={() => { setEditClass(null); loadData(); }} />}
+
+      {/* Undo toast */}
+      <UndoToast toast={toast} onUndo={handleUndo} onDismiss={dismiss} />
 
       {/* Floating action button */}
       <FloatingActionButton actions={[

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import BottomNav from './BottomNav';
@@ -6,6 +6,8 @@ import VoiceAgent from './VoiceAgent';
 import StudySessionNotifier from './StudySessionNotifier';
 import OfflineIndicator from './OfflineIndicator';
 import CommandPalette from './CommandPalette';
+import ShortcutsHelp from './ShortcutsHelp';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 
 export default function Layout() {
   const [isDark, setIsDark] = useState(false);
@@ -20,6 +22,17 @@ export default function Layout() {
     localStorage.setItem('cedar-theme', isDark ? 'dark' : 'light');
   }, [isDark]);
 
+  const [showShortcuts, setShowShortcuts] = useState(false);
+
+  const openCommandPalette = useCallback(() => {
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true }));
+  }, []);
+
+  useKeyboardShortcuts({
+    onSearch: openCommandPalette,
+    onHelp: () => setShowShortcuts(true),
+  });
+
   return (
     <div className="flex min-h-screen bg-background">
       <Sidebar />
@@ -33,6 +46,7 @@ export default function Layout() {
       <StudySessionNotifier />
       <OfflineIndicator />
       <CommandPalette />
+      <ShortcutsHelp open={showShortcuts} onClose={() => setShowShortcuts(false)} />
     </div>
   );
 }

@@ -5,7 +5,7 @@ import { Loader2, Trash2, X } from 'lucide-react';
 const ALL_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EF4444', '#EC4899', '#14B8A6'];
 
-export default function EditClassModal({ classData, semesterId, onClose }) {
+export default function EditClassModal({ classData, semesterId, onDeleteClass, onClose }) {
   const isEdit = !!classData;
   const [form, setForm] = useState({
     name: '',
@@ -68,7 +68,11 @@ export default function EditClassModal({ classData, semesterId, onClose }) {
     if (!isEdit) return;
     setDeleting(true);
     try {
-      await base44.entities.Class.delete(classData.id);
+      if (onDeleteClass) {
+        await onDeleteClass(classData);
+      } else {
+        await base44.entities.Class.delete(classData.id);
+      }
       onClose();
     } catch (e) { console.error(e); }
     setDeleting(false);
