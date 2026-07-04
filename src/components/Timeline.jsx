@@ -25,8 +25,6 @@ function formatTime(timeStr) {
   return `${dh}:${String(m).padStart(2, '0')} ${ampm}`;
 }
 
-const START_HOUR = 7;
-const END_HOUR = 23;
 const HOUR_HEIGHT = 56;
 
 export default function Timeline({ items, onAddEvent }) {
@@ -44,12 +42,26 @@ export default function Timeline({ items, onAddEvent }) {
     );
   }
 
-  const startMin = START_HOUR * 60;
-  const endMin = END_HOUR * 60;
-  const totalHeight = (END_HOUR - START_HOUR) * HOUR_HEIGHT;
+  // Dynamically collapse the range from the first event to the last event
+  const eventTimes = items.map(it => {
+    const s = parseTime(it.time);
+    const e = parseTime(it.endTime) || (s != null ? s + 60 : null);
+    return { s, e };
+  }).filter(t => t.s != null);
+
+  let startMin = 0;
+  let endMin = 24 * 60;
+  if (eventTimes.length > 0) {
+    const earliest = Math.min(...eventTimes.map(t => t.s));
+    const latest = Math.max(...eventTimes.map(t => t.e || t.s + 60));
+    startMin = Math.floor(earliest / 60) * 60;
+    endMin = Math.ceil(latest / 60) * 60;
+  }
+
+  const totalHeight = ((endMin - startMin) / 60) * HOUR_HEIGHT;
 
   const hours = [];
-  for (let h = START_HOUR; h <= END_HOUR; h++) hours.push(h);
+  for (let m = startMin; m <= endMin; m += 60) hours.push(m);
 
   const now = new Date();
   const nowMin = now.getHours() * 60 + now.getMinutes();
@@ -59,8 +71,9 @@ export default function Timeline({ items, onAddEvent }) {
   return (
     <div className="relative" style={{ height: totalHeight }}>
       {/* Hour grid lines + labels */}
-      {hours.map((h, i) => {
-        const top = (h - START_HOUR) * HOUR_HEIGHT;
+      {hours.map((min, i) => {
+        const top = ((min - startMin) / 60) * HOUR_HEIGHT;
+        const h = min / 60;
         const ampm = h >= 12 ? 'PM' : 'AM';
         const dh = h === 0 ? 12 : h > 12 ? h - 12 : h;
         return (
