@@ -173,6 +173,7 @@ export default function Home() {
           </div>
           <TodayIntelligenceCard
             todayClasses={todayClasses}
+            events={events}
             assignments={assignments}
             studySessions={studySessions}
             onExamWeekChange={setExamWeek}

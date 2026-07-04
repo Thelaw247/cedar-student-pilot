@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { GraduationCap, BookOpen, AlertCircle, AlertTriangle, Loader2, RefreshCw, Plus } from 'lucide-react';
+import UpNextCard from '@/components/UpNextCard';
 
 function formatTime(timeStr) {
   if (!timeStr) return '';
@@ -24,6 +25,7 @@ function daysBetween(dateStr) {
 
 export default function TodayIntelligenceCard({
   todayClasses,
+  events,
   assignments,
   studySessions,
   onExamWeekChange,
@@ -86,6 +88,7 @@ export default function TodayIntelligenceCard({
       {/* What Matters Today */}
       <div className="rounded-xl border border-border bg-gradient-to-b from-primary/5 to-transparent p-3 sm:p-4">
         <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-3">What Matters Today</p>
+        <UpNextCard todayClasses={todayClasses} events={events || []} />
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
           {/* Next Class */}
           <Link to={nextClass ? `/classes/${nextClass.id}` : '/classes'}
