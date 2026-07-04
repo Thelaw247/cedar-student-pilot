@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { Play, Pause, Square, Music, X, Brain, Volume2 } from 'lucide-react';
+import { X, Music, Volume2, Timer, Coffee } from 'lucide-react';
+import PomodoroTimer from '@/components/PomodoroTimer';
 
 const tracks = [
   { title: 'Bach — Cello Suite No. 1', composer: 'Bach', videoId: '1prweTlAqV4' },
@@ -14,45 +15,20 @@ const tracks = [
 export default function FocusMode() {
   const { sessionId } = useParams();
   const navigate = useNavigate();
-  const [seconds, setSeconds] = useState(0);
-  const [running, setRunning] = useState(false);
   const [session, setSession] = useState(null);
   const [cls, setCls] = useState(null);
-  const [targetMinutes, setTargetMinutes] = useState(25);
-  const [activeTrack, setActiveTrack] = useState(0);
+  const [mode, setMode] = useState('pomodoro'); // pomodoro | simple
   const [showMusic, setShowMusic] = useState(false);
-  const intervalRef = useRef(null);
+  const [activeTrack, setActiveTrack] = useState(0);
 
   useEffect(() => {
     if (sessionId) {
       base44.entities.StudySession.get(sessionId).then(s => {
         setSession(s);
-        if (s.duration_minutes) setTargetMinutes(s.duration_minutes);
         if (s.class_id) base44.entities.Class.get(s.class_id).then(setCls);
       }).catch(() => {});
     }
   }, [sessionId]);
-
-  useEffect(() => {
-    if (running) {
-      intervalRef.current = setInterval(() => setSeconds(s => s + 1), 1000);
-    } else if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-    }
-    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-  }, [running]);
-
-  const targetSeconds = targetMinutes * 60;
-  const progress = Math.min(seconds / targetSeconds, 1);
-  const remaining = Math.max(0, targetSeconds - seconds);
-
-  const formatTime = (s) => {
-    const h = Math.floor(s / 3600);
-    const m = Math.floor((s % 3600) / 60);
-    const sec = s % 60;
-    if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
-    return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
-  };
 
   const endSession = async () => {
     if (session && session.status === 'scheduled') {
@@ -78,60 +54,28 @@ export default function FocusMode() {
       </div>
 
       {cls && (
-        <p className="text-sm text-muted-foreground mb-2">{cls.name}</p>
+        <p className="text-sm text-muted-foreground mb-1">{cls.name}</p>
       )}
-      <p className="text-xs text-muted-foreground uppercase tracking-wide mb-8">
+      <p className="text-xs text-muted-foreground uppercase tracking-wide mb-6">
         {session ? 'Study Session' : 'Focus Session'}
       </p>
 
-      {/* Timer ring */}
-      <div className="relative w-72 h-72 mb-8">
-        <svg className="w-full h-full -rotate-90" viewBox="0 0 200 200">
-          <circle cx="100" cy="100" r="90" fill="none" stroke="hsl(var(--muted))" strokeWidth="6" />
-          <circle cx="100" cy="100" r="90" fill="none" stroke="hsl(var(--primary))" strokeWidth="6"
-            strokeLinecap="round" strokeDasharray={2 * Math.PI * 90}
-            strokeDashoffset={2 * Math.PI * 90 * (1 - progress)}
-            style={{ transition: 'stroke-dashoffset 1s linear' }} />
-        </svg>
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <p className="font-heading text-5xl font-bold tabular-nums text-foreground">
-            {formatTime(running || seconds > 0 ? seconds : targetSeconds)}
-          </p>
-          <p className="text-xs text-muted-foreground mt-2">
-            {seconds >= targetSeconds ? 'Complete!' : `${Math.floor(remaining / 60)}m ${remaining % 60}s left`}
-          </p>
-        </div>
-      </div>
-
-      {/* Controls */}
-      <div className="flex items-center gap-3 mb-8">
-        {!running ? (
-          <button onClick={() => setRunning(true)}
-            className="w-16 h-16 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 transition-colors shadow-lg">
-            <Play className="w-7 h-7 ml-1" fill="currentColor" />
-          </button>
-        ) : (
-          <button onClick={() => setRunning(false)}
-            className="w-16 h-16 rounded-full bg-card border-2 border-primary text-primary flex items-center justify-center hover:bg-primary/10 transition-colors">
-            <Pause className="w-7 h-7" fill="currentColor" />
-          </button>
-        )}
-        <button onClick={endSession}
-          className="w-16 h-16 rounded-full bg-destructive/10 text-destructive border-2 border-destructive/30 flex items-center justify-center hover:bg-destructive/20 transition-colors">
-          <Square className="w-6 h-6" fill="currentColor" />
+      {/* Mode toggle */}
+      <div className="flex gap-1 mb-8 bg-muted rounded-lg p-1">
+        <button onClick={() => setMode('pomodoro')}
+          className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${mode === 'pomodoro' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'}`}>
+          Pomodoro
+        </button>
+        <button onClick={() => setMode('simple')}
+          className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${mode === 'simple' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'}`}>
+          Simple Timer
         </button>
       </div>
 
-      {/* Duration presets */}
-      {seconds === 0 && !running && (
-        <div className="flex gap-2">
-          {[15, 25, 45, 60].map(m => (
-            <button key={m} onClick={() => { setTargetMinutes(m); setSeconds(0); }}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${targetMinutes === m ? 'bg-primary text-primary-foreground' : 'bg-card border border-border text-muted-foreground hover:text-foreground'}`}>
-              {m}m
-            </button>
-          ))}
-        </div>
+      {mode === 'pomodoro' ? (
+        <PomodoroTimer onSessionEnd={endSession} />
+      ) : (
+        <SimpleTimer session={session} onEnd={endSession} />
       )}
 
       {/* Music player */}
@@ -164,6 +108,84 @@ export default function FocusMode() {
             frameBorder="0"
             allow="autoplay; encrypted-media"
           />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SimpleTimer({ session, onEnd }) {
+  const [seconds, setSeconds] = useState(0);
+  const [running, setRunning] = useState(false);
+  const [targetMinutes, setTargetMinutes] = useState(session?.duration_minutes || 25);
+
+  useEffect(() => {
+    if (session?.duration_minutes) setTargetMinutes(session.duration_minutes);
+  }, [session]);
+
+  useEffect(() => {
+    if (running) {
+      const interval = setInterval(() => setSeconds(s => s + 1), 1000);
+      return () => clearInterval(interval);
+    }
+  }, [running]);
+
+  const targetSeconds = targetMinutes * 60;
+  const progress = Math.min(seconds / targetSeconds, 1);
+  const remaining = Math.max(0, targetSeconds - seconds);
+
+  const formatTime = (s) => {
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+  };
+
+  return (
+    <div className="flex flex-col items-center">
+      <div className="relative w-64 h-64 mb-6">
+        <svg className="w-full h-full -rotate-90" viewBox="0 0 200 200">
+          <circle cx="100" cy="100" r="90" fill="none" stroke="hsl(var(--muted))" strokeWidth="6" />
+          <circle cx="100" cy="100" r="90" fill="none" stroke="hsl(var(--primary))" strokeWidth="6"
+            strokeLinecap="round" strokeDasharray={2 * Math.PI * 90}
+            strokeDashoffset={2 * Math.PI * 90 * (1 - progress)}
+            style={{ transition: 'stroke-dashoffset 1s linear' }} />
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <p className="font-heading text-4xl font-bold tabular-nums">
+            {formatTime(running || seconds > 0 ? seconds : targetSeconds)}
+          </p>
+          <p className="text-xs text-muted-foreground mt-2">
+            {seconds >= targetSeconds ? 'Complete!' : `${Math.floor(remaining / 60)}m ${remaining % 60}s left`}
+          </p>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-3 mb-8">
+        {!running ? (
+          <button onClick={() => setRunning(true)}
+            className="w-14 h-14 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 shadow-lg">
+            <Timer className="w-6 h-6" />
+          </button>
+        ) : (
+          <button onClick={() => setRunning(false)}
+            className="w-14 h-14 rounded-full bg-card border-2 border-primary text-primary flex items-center justify-center">
+            <Coffee className="w-6 h-6" />
+          </button>
+        )}
+        <button onClick={onEnd}
+          className="w-14 h-14 rounded-full bg-destructive/10 text-destructive border-2 border-destructive/30 flex items-center justify-center hover:bg-destructive/20">
+          <X className="w-5 h-5" />
+        </button>
+      </div>
+
+      {seconds === 0 && !running && (
+        <div className="flex gap-2">
+          {[15, 25, 45, 60].map(m => (
+            <button key={m} onClick={() => { setTargetMinutes(m); setSeconds(0); }}
+              className={`px-4 py-2 rounded-lg text-sm font-medium ${targetMinutes === m ? 'bg-primary text-primary-foreground' : 'bg-card border border-border text-muted-foreground'}`}>
+              {m}m
+            </button>
+          ))}
         </div>
       )}
     </div>

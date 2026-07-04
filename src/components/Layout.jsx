@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import BottomNav from './BottomNav';
+import VoiceAgent from './VoiceAgent';
+import StudySessionNotifier from './StudySessionNotifier';
 
 export default function Layout() {
   const [isDark, setIsDark] = useState(false);
@@ -25,6 +27,8 @@ export default function Layout() {
         </main>
         <BottomNav />
       </div>
+      <VoiceAgent />
+      <StudySessionNotifier />
     </div>
   );
 }
