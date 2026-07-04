@@ -118,29 +118,33 @@ export default function Timeline({ items, onAddEvent }) {
       </div>
     )}
     <div className="relative" style={{ height: totalHeight }}>
-      {/* Hour grid lines + labels */}
+      {/* Hour grid lines + labels — z-40 so the now line/dot skips over timestamps */}
       {hours.map((min, i) => {
         const top = ((min - startMin) / 60) * HOUR_HEIGHT;
         const h = min / 60;
         const ampm = h >= 12 ? 'PM' : 'AM';
         const dh = h === 0 ? 12 : h > 12 ? h - 12 : h;
         return (
-          <div key={i} className="absolute left-0 right-0 flex items-start" style={{ top }}>
-            <div className="w-14 flex-shrink-0 pr-2 text-right pt-[-4px]">
-              <span className="text-[10px] font-medium text-muted-foreground tabular-nums">{dh} {ampm}</span>
+          <div key={i} className="absolute left-0 right-0 flex items-start" style={{ top, zIndex: 40 }}>
+            <div className="w-14 flex-shrink-0 pr-2 text-right">
+              <span className="text-[10px] font-medium text-muted-foreground tabular-nums bg-background px-1 leading-tight">{dh} {ampm}</span>
             </div>
             <div className="flex-1 border-t border-border"></div>
           </div>
         );
       })}
 
-      {/* Now indicator */}
+      {/* Now indicator line — z-5 so event blocks (z-10) naturally cover it */}
       {showNow && (
-        <div ref={nowRef} className="absolute left-0 right-0 z-20 flex items-center" style={{ top: nowTop }}>
-          <div className="w-14 flex-shrink-0 pr-2 flex justify-end">
-            <div className="w-2 h-2 rounded-full bg-destructive"></div>
-          </div>
-          <div className="flex-1 border-t-2 border-destructive"></div>
+        <div className="absolute pointer-events-none" style={{ top: nowTop, left: '60px', right: '4px', zIndex: 5 }}>
+          <div className="border-t-2 border-destructive"></div>
+        </div>
+      )}
+
+      {/* Now indicator dot — z-30, always visible above event blocks but below hour labels */}
+      {showNow && (
+        <div ref={nowRef} className="absolute left-0 w-14 flex justify-end pr-2 pointer-events-none" style={{ top: nowTop, zIndex: 30 }}>
+          <div className="w-2 h-2 rounded-full bg-destructive"></div>
         </div>
       )}
 
