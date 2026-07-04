@@ -6,6 +6,7 @@ import Timeline from '@/components/Timeline';
 import WeeklyCalendar from '@/components/WeeklyCalendar';
 import EditClassModal from '@/components/EditClassModal';
 import TodayIntelligenceCard from '@/components/TodayIntelligenceCard';
+import RiskIndicatorCard from '@/components/RiskIndicatorCard';
 import AddExamOrStudyModal from '@/components/AddExamOrStudyModal';
 
 function getTodayString() {
@@ -180,6 +181,7 @@ export default function Home() {
             onRecalculateComplete={loadData}
             onAddStudyBlock={() => setShowAddExamOrStudy(true)}
           />
+          <RiskIndicatorCard />
           <Timeline items={allItems} onAddEvent={() => setShowAddEvent(true)} />
         </div>
       )}

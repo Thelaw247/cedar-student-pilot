@@ -4,6 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { ChevronLeft, Plus, GraduationCap, Clock, MapPin, Mic, FileText, Loader2, Calendar, AlertCircle, Brain, Headphones, Pencil, AlertTriangle } from 'lucide-react';
 import EditClassModal from '@/components/EditClassModal';
 import LectureItem from '@/components/LectureItem';
+import ExamPredictionCard from '@/components/ExamPredictionCard';
 import { getSetting } from '@/lib/settings';
 
 export default function ClassDetail() {
@@ -77,7 +78,10 @@ export default function ClassDetail() {
         <AssignmentTab assignments={assignments} classId={classId} onUpdate={loadData} />
       )}
       {tab === 'study' && (
-        <StudyTab classId={classId} cls={cls} lectures={lectures} onUpdate={loadData} />
+        <div>
+          <ExamPredictionCard classId={classId} />
+          <StudyTab classId={classId} cls={cls} lectures={lectures} onUpdate={loadData} />
+        </div>
       )}
 
       {showEdit && (
