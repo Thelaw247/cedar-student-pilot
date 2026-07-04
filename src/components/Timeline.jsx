@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { MapPin, GraduationCap, Clock, Sparkles, Plus, Briefcase, Calendar, AlertCircle } from 'lucide-react';
 
@@ -54,6 +54,16 @@ function findConflicts(items) {
 const HOUR_HEIGHT = 56;
 
 export default function Timeline({ items, onAddEvent }) {
+  const nowRef = useRef(null);
+
+  useEffect(() => {
+    if (nowRef.current) {
+      const t = setTimeout(() => {
+        nowRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 300);
+      return () => clearTimeout(t);
+    }
+  }, [items]);
   if (!items || items.length === 0) {
     return (
       <div className="rounded-xl border border-dashed border-border p-12 text-center">
@@ -126,7 +136,7 @@ export default function Timeline({ items, onAddEvent }) {
 
       {/* Now indicator */}
       {showNow && (
-        <div className="absolute left-0 right-0 z-20 flex items-center" style={{ top: nowTop }}>
+        <div ref={nowRef} className="absolute left-0 right-0 z-20 flex items-center" style={{ top: nowTop }}>
           <div className="w-14 flex-shrink-0 pr-2 flex justify-end">
             <div className="w-2 h-2 rounded-full bg-destructive"></div>
           </div>

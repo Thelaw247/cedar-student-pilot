@@ -2,13 +2,15 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { fetchWithCache } from '@/hooks/useEntityData';
-import { Plus, Sun, Moon, GraduationCap, Clock, MapPin, ChevronRight } from 'lucide-react';
+import { Plus, Sun, Moon, GraduationCap, Clock, MapPin, ChevronRight, Calendar, AlertCircle } from 'lucide-react';
 import Timeline from '@/components/Timeline';
 import WeeklyCalendar from '@/components/WeeklyCalendar';
 import EditClassModal from '@/components/EditClassModal';
 import TodayIntelligenceCard from '@/components/TodayIntelligenceCard';
 import RiskIndicatorCard from '@/components/RiskIndicatorCard';
 import AddExamOrStudyModal from '@/components/AddExamOrStudyModal';
+import DailyProgressRing from '@/components/DailyProgressRing';
+import FloatingActionButton from '@/components/FloatingActionButton';
 
 function getTodayString() {
   const d = new Date();
@@ -74,6 +76,13 @@ export default function Home() {
     const interval = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(interval);
   }, []);
+
+  const greeting = (() => {
+    const h = currentTime.getHours();
+    if (h < 12) return 'Good morning';
+    if (h < 18) return 'Good afternoon';
+    return 'Good evening';
+  })();
 
   const todayClasses = classes.filter(c => {
     return (c.days_of_week || []).some(d => d === getDayOfWeek());
@@ -163,23 +172,29 @@ export default function Home() {
       {/* Today tab */}
       {tab === 'today' && (
         <div>
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <p className="text-xs text-muted-foreground font-medium tracking-wide uppercase">
-                {new Date().toLocaleDateString('en-US', { weekday: 'long' })}
+          {/* Greeting header */}
+          <div className="mb-5">
+            <h1 className="font-heading text-2xl sm:text-3xl font-bold text-foreground">{greeting}</h1>
+            <div className="flex items-center gap-2 mt-1">
+              <p className="text-sm text-muted-foreground">
+                {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
               </p>
-              <h2 className="font-heading text-xl sm:text-2xl font-bold text-foreground">
-                {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}
-              </h2>
-              <p className="text-sm text-muted-foreground tabular-nums mt-0.5">
+              <span className="text-muted-foreground/40">•</span>
+              <p className="text-sm text-muted-foreground tabular-nums">
                 {currentTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
               </p>
             </div>
-            <button onClick={() => setShowAddEvent(true)}
-              className="inline-flex items-center gap-1.5 bg-primary text-primary-foreground px-3 py-2 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors">
-              <Plus className="w-4 h-4" /> Add Event
-            </button>
           </div>
+
+          {/* Daily progress ring — "Am I on track?" */}
+          <DailyProgressRing
+            classes={todayClasses}
+            events={events}
+            studySessions={studySessions}
+            currentTime={currentTime}
+          />
+
+          {/* Intelligence + alerts — "What should I work on?" + "Is there anything urgent?" */}
           <TodayIntelligenceCard
             todayClasses={todayClasses}
             events={events}
@@ -243,6 +258,13 @@ export default function Home() {
       {showAddExamOrStudy && <AddExamOrStudyModal classes={classes} onClose={() => { setShowAddExamOrStudy(false); loadData(); }} />}
       {showAddClass && <EditClassModal semesterId={activeSemester.id} onClose={() => { setShowAddClass(false); loadData(); }} />}
       {editClass && <EditClassModal classData={editClass} semesterId={activeSemester.id} onClose={() => { setEditClass(null); loadData(); }} />}
+
+      {/* Floating action button */}
+      <FloatingActionButton actions={[
+        { label: 'Add Event', icon: Calendar, onClick: () => setShowAddEvent(true) },
+        { label: 'Add Exam', icon: AlertCircle, onClick: () => setShowAddExamOrStudy(true) },
+        { label: 'Add Class', icon: GraduationCap, onClick: () => setShowAddClass(true) },
+      ]} />
     </div>
   );
 }
