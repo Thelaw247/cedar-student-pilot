@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { Plus, Clock, MapPin, GraduationCap, Sparkles, ChevronRight, Sun, Moon } from 'lucide-react';
+import Timeline from '@/components/Timeline';
 
 const eventTypeConfig = {
   class: { icon: GraduationCap, bg: 'bg-primary/10', text: 'text-primary', border: 'border-primary/20' },
@@ -155,57 +156,7 @@ export default function Home() {
         </button>
       </div>
 
-      {allItems.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border p-12 text-center">
-          <Clock className="w-8 h-8 text-muted-foreground mx-auto mb-3" strokeWidth={1.5} />
-          <p className="text-sm text-muted-foreground">No events scheduled for today.</p>
-          <button onClick={() => setShowAddEvent(true)} className="text-sm text-primary font-medium mt-2 hover:underline">
-            Add your first event
-          </button>
-        </div>
-      ) : (
-        <div className="relative pl-6">
-          <div className="absolute left-2 top-2 bottom-2 w-px bg-border"></div>
-          <div className="space-y-3">
-            {allItems.map((item) => {
-              const config = eventTypeConfig[item.type] || eventTypeConfig.custom;
-              const Icon = config.icon;
-              return (
-                <div key={item.id} className="relative group">
-                  <div className={`absolute -left-[18px] top-4 w-2.5 h-2.5 rounded-full ${item.color || '#3B82F6'}`}
-                       style={{ backgroundColor: item.color || '#3B82F6' }}></div>
-                  <Link
-                    to={item.classId ? `/classes/${item.classId}` : '#'}
-                    className={`block rounded-xl border ${config.border} bg-card p-4 hover:shadow-md transition-all duration-200`}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className={`text-[11px] font-semibold ${config.text} px-1.5 py-0.5 rounded ${config.bg} uppercase tracking-wide`}>
-                            {item.type}
-                          </span>
-                          <span className="text-xs text-muted-foreground">{formatTime(item.time)}{item.endTime ? ` – ${formatTime(item.endTime)}` : ''}</span>
-                        </div>
-                        <h3 className="font-medium text-foreground text-sm">{item.title}</h3>
-                        {item.room && (
-                          <p className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
-                            <MapPin className="w-3 h-3" /> {item.room}
-                            {item.instructor && <span className="ml-1">• {item.instructor}</span>}
-                          </p>
-                        )}
-                        {item.notes && <p className="text-xs text-muted-foreground mt-1">{item.notes}</p>}
-                      </div>
-                      <div className={`w-9 h-9 rounded-lg ${config.bg} flex items-center justify-center flex-shrink-0`}>
-                        <Icon className={`w-4 h-4 ${config.text}`} strokeWidth={2} />
-                      </div>
-                    </div>
-                  </Link>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
+      <Timeline items={allItems} onAddEvent={() => setShowAddEvent(true)} />
 
       {showAddEvent && <AddEventModal onClose={() => { setShowAddEvent(false); loadData(); }} />}
     </div>
