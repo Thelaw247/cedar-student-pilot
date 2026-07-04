@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { MapPin, GraduationCap, Clock, Sparkles, Plus, Briefcase, Calendar } from 'lucide-react';
+import { MapPin, GraduationCap, Clock, Sparkles, Plus, Briefcase, Calendar, AlertCircle } from 'lucide-react';
 
 const eventTypeConfig = {
   class: { icon: GraduationCap, text: 'text-primary' },
@@ -23,6 +23,31 @@ function formatTime(timeStr) {
   const ampm = h >= 12 ? 'PM' : 'AM';
   const dh = h === 0 ? 12 : h > 12 ? h - 12 : h;
   return `${dh}:${String(m).padStart(2, '0')} ${ampm}`;
+}
+
+function getPriorityColor(item) {
+  if (item.type === 'study') return '#EF4444';
+  if (item.type === 'class') return item.color || '#3B82F6';
+  if (['custom', 'appointment', 'work'].includes(item.type)) return '#10B981';
+  if (item.type === 'reminder') return '#9CA3AF';
+  return item.color || '#3B82F6';
+}
+
+function findConflicts(items) {
+  const parsed = items.map(it => {
+    const s = parseTime(it.time);
+    const e = parseTime(it.endTime) || (s != null ? s + 60 : null);
+    return { item: it, s, e };
+  }).filter(p => p.s != null && p.e != null);
+  const conflicts = [];
+  for (let i = 0; i < parsed.length; i++) {
+    for (let j = i + 1; j < parsed.length; j++) {
+      if (parsed[i].s < parsed[j].e && parsed[j].s < parsed[i].e) {
+        conflicts.push([parsed[i].item, parsed[j].item]);
+      }
+    }
+  }
+  return conflicts;
 }
 
 const HOUR_HEIGHT = 56;
@@ -63,12 +88,24 @@ export default function Timeline({ items, onAddEvent }) {
   const hours = [];
   for (let m = startMin; m <= endMin; m += 60) hours.push(m);
 
+  const conflicts = findConflicts(items);
+  const conflictingIds = new Set(conflicts.flat().map(i => i.id));
+
   const now = new Date();
   const nowMin = now.getHours() * 60 + now.getMinutes();
   const nowTop = ((nowMin - startMin) / 60) * HOUR_HEIGHT;
   const showNow = nowMin >= startMin && nowMin <= endMin;
 
   return (
+    <div>
+    {conflicts.length > 0 && (
+      <div className="mb-3 rounded-lg border border-rose-500/30 bg-rose-500/5 p-2.5 flex items-center gap-2">
+        <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0" />
+        <p className="text-xs text-rose-600 font-medium">
+          {conflicts.length} scheduling conflict{conflicts.length !== 1 ? 's' : ''} detected — overlapping events highlighted in red
+        </p>
+      </div>
+    )}
     <div className="relative" style={{ height: totalHeight }}>
       {/* Hour grid lines + labels */}
       {hours.map((min, i) => {
@@ -108,9 +145,10 @@ export default function Timeline({ items, onAddEvent }) {
         const height = Math.max(22, ((clampedEnd - clampedStart) / 60) * HOUR_HEIGHT - 2);
         const config = eventTypeConfig[item.type] || eventTypeConfig.custom;
         const Icon = config.icon;
-        const color = item.color || '#3B82F6';
+        const color = getPriorityColor(item);
+        const isConflicting = conflictingIds.has(item.id);
 
-        const blockClass = `absolute rounded-lg border border-border bg-card shadow-sm hover:shadow-md transition-all overflow-hidden z-10 ${item.dimmed ? 'opacity-40 grayscale' : ''}`;
+        const blockClass = `absolute rounded-lg border bg-card shadow-sm hover:shadow-md transition-all overflow-hidden z-10 ${isConflicting ? 'border-rose-500/50 ring-1 ring-rose-500/30' : 'border-border'} ${item.dimmed ? 'opacity-40 grayscale' : ''}`;
         const blockStyle = {
           top: top + 1,
           height,
@@ -155,6 +193,7 @@ export default function Timeline({ items, onAddEvent }) {
           </div>
         );
       })}
+    </div>
     </div>
   );
 }

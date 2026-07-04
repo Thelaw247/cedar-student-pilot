@@ -10,6 +10,7 @@ const DEFAULTS = {
   highQualityAudio: true,
   autoTranscribe: true,
   reviewTimes: [],
+  learningMode: 'cumulative',
 };
 
 export function getSettings() {

@@ -6,7 +6,11 @@ import MusicPlayer from '@/components/MusicPlayer';
 import AIStudyChat from '@/components/AIStudyChat';
 import SessionReview from '@/components/SessionReview';
 
-const GOAL_MINUTES = 90;
+const STUDY_MODES = {
+  deep: { goal: 90, study: 25, break: 5 },
+  sprint: { goal: 45, study: 15, break: 3 },
+  review: { goal: 30, study: 20, break: 5 },
+};
 
 export default function FocusMode() {
   const { sessionId } = useParams();
@@ -29,6 +33,8 @@ export default function FocusMode() {
   const [aiInteractions, setAiInteractions] = useState([]);
   const [showReview, setShowReview] = useState(false);
   const [savedRecordId, setSavedRecordId] = useState(null);
+  const [studyMode, setStudyMode] = useState('deep');
+  const [showPreReview, setShowPreReview] = useState(false);
 
   // Refs for timer tick (avoid stale closures)
   const phaseRef = useRef('idle');
@@ -47,6 +53,7 @@ export default function FocusMode() {
   useEffect(() => { studyMinutesRef.current = studyMinutes; }, [studyMinutes]);
   useEffect(() => { breakMinutesRef.current = breakMinutes; }, [breakMinutes]);
 
+  const GOAL_MINUTES = STUDY_MODES[studyMode].goal;
   const goalSeconds = GOAL_MINUTES * 60;
   const goalProgress = Math.min(studySeconds / goalSeconds, 1);
 
@@ -88,7 +95,7 @@ export default function FocusMode() {
         // Check goal completion
         if (newStudySeconds >= goalSeconds) {
           setPhase('complete');
-          speak('Congratulations! You have completed 90 minutes of study time. Great work today.');
+          speak(`Congratulations! You have completed ${GOAL_MINUTES} minutes of study time. Great work today.`);
           return;
         }
 
@@ -157,6 +164,13 @@ export default function FocusMode() {
 
     return () => { cancelled = true; };
   }, [awaitingConfirm, phase, studyMinutes, breakMinutes, speak, askVoice]);
+
+  const handleStudyModeChange = (mode) => {
+    if (phase !== 'idle') return;
+    setStudyMode(mode);
+    setStudyMinutes(STUDY_MODES[mode].study);
+    setBreakMinutes(STUDY_MODES[mode].break);
+  };
 
   const startStudying = () => {
     if (mode === 'pomodoro') {
@@ -296,6 +310,18 @@ export default function FocusMode() {
         {session ? 'Study Session' : 'Focus Session'}
       </p>
 
+      {/* Study mode selector */}
+      {phase === 'idle' && (
+        <div className="flex gap-1 mb-6 bg-muted rounded-lg p-1">
+          {Object.entries(STUDY_MODES).map(([key]) => (
+            <button key={key} onClick={() => handleStudyModeChange(key)}
+              className={`flex-1 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${studyMode === key ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'}`}>
+              {key === 'deep' ? 'Deep Study' : key === 'sprint' ? 'Exam Sprint' : 'Lecture Review'}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Mode toggle */}
       {showModeToggle && (
         <div className="flex gap-1 mb-8 bg-muted rounded-lg p-1">
@@ -379,6 +405,14 @@ export default function FocusMode() {
         </button>
       )}
 
+      {/* Lecture review button */}
+      {studyMode === 'review' && phase === 'idle' && session?.class_id && (
+        <button onClick={() => setShowPreReview(true)}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 text-primary border border-primary/30 text-sm font-medium hover:bg-primary/20 transition-colors mb-4">
+          <Brain className="w-4 h-4" /> Review a Lecture Now
+        </button>
+      )}
+
       {/* Interval settings - only when idle and pomodoro */}
       {phase === 'idle' && mode === 'pomodoro' && (
         <div className="flex gap-4 text-sm">
@@ -402,7 +436,7 @@ export default function FocusMode() {
       {/* Complete state */}
       {phase === 'complete' && (
         <p className="text-sm text-muted-foreground text-center max-w-xs mb-4">
-          🎉 You reached your 90-minute study goal! Tap stop to save your session.
+          🎉 You reached your {GOAL_MINUTES}-minute study goal! Tap stop to save your session.
         </p>
       )}
 
@@ -496,6 +530,15 @@ export default function FocusMode() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Pre-session lecture review */}
+      {showPreReview && (
+        <SessionReview
+          classId={session?.class_id || cls?.id}
+          className={cls?.name}
+          onClose={() => setShowPreReview(false)}
+        />
       )}
 
       {/* Full review flow */}

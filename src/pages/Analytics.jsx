@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts';
-import { Clock, TrendingUp, Calendar, Brain, BarChart3, Headphones, Loader2, GraduationCap, Target, BookOpen, AlertCircle, Award } from 'lucide-react';
+import { Clock, TrendingUp, Calendar, Brain, BarChart3, Headphones, Loader2, GraduationCap, Target, BookOpen, AlertCircle, Award, Check, X } from 'lucide-react';
 import KnowledgeCoverageSection from '@/components/KnowledgeCoverageSection';
 
 export default function Analytics() {
   const [records, setRecords] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [classes, setClasses] = useState([]);
+  const [lectures, setLectures] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -23,6 +24,12 @@ export default function Analytics() {
         if (semesters.length > 0) {
           const cls = await base44.entities.Class.filter({ semester_id: semesters[0].id });
           setClasses(cls);
+          const allLectures = [];
+          for (const c of cls) {
+            const lecs = await base44.entities.Lecture.filter({ class_id: c.id });
+            allLectures.push(...lecs);
+          }
+          setLectures(allLectures);
         }
       } catch (e) { console.error(e); }
       setLoading(false);
@@ -30,6 +37,10 @@ export default function Analytics() {
   }, []);
 
   const classMap = Object.fromEntries(classes.map(c => [c.id, c]));
+
+  const attendedLectures = lectures.filter(l => !l.is_missed).length;
+  const missedLectures = lectures.filter(l => l.is_missed).length;
+  const attendanceRate = lectures.length > 0 ? Math.round((attendedLectures / lectures.length) * 100) : 0;
 
   // Calculate totals
   const todayStr = new Date().toLocaleDateString('en-CA');
@@ -147,6 +158,34 @@ export default function Analytics() {
           <p className="font-heading text-2xl font-bold">{goalMet}</p>
         </div>
       </div>
+
+      {/* Lecture Attendance */}
+      {lectures.length > 0 && (
+        <div className="grid grid-cols-3 gap-3 mb-8">
+          <div className="rounded-xl border border-border bg-card p-4">
+            <div className="flex items-center gap-2 mb-1">
+              <GraduationCap className="w-4 h-4 text-primary" />
+              <span className="text-xs font-medium text-muted-foreground">Attendance</span>
+            </div>
+            <p className="font-heading text-2xl font-bold">{attendanceRate}%</p>
+            <p className="text-xs text-muted-foreground">{attendedLectures}/{lectures.length} lectures</p>
+          </div>
+          <div className="rounded-xl border border-border bg-card p-4">
+            <div className="flex items-center gap-2 mb-1">
+              <Check className="w-4 h-4 text-emerald-600" />
+              <span className="text-xs font-medium text-muted-foreground">Attended</span>
+            </div>
+            <p className="font-heading text-2xl font-bold">{attendedLectures}</p>
+          </div>
+          <div className="rounded-xl border border-border bg-card p-4">
+            <div className="flex items-center gap-2 mb-1">
+              <X className="w-4 h-4 text-rose-600" />
+              <span className="text-xs font-medium text-muted-foreground">Missed</span>
+            </div>
+            <p className="font-heading text-2xl font-bold">{missedLectures}</p>
+          </div>
+        </div>
+      )}
 
       {/* Knowledge & Proficiency Section */}
       {reviews.length > 0 && (

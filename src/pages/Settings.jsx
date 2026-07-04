@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Sun, Moon, Bell, Sparkles, Clock, Palette, Calendar, Loader2, Check, AlertCircle, GraduationCap } from 'lucide-react';
+import { Sun, Moon, Bell, Sparkles, Clock, Palette, Calendar, Loader2, Check, AlertCircle, GraduationCap, BookOpen } from 'lucide-react';
 import { getSetting, setSetting } from '@/lib/settings';
 import ReviewScheduleSection from '@/components/ReviewScheduleSection';
+import LearningModeToggle from '@/components/LearningModeToggle';
 
 export default function Settings() {
   const [isDark, setIsDark] = useState(false);
@@ -122,6 +123,10 @@ export default function Settings() {
 
       <SettingsSection icon={GraduationCap} title="Review Schedule">
         <ReviewScheduleSection />
+      </SettingsSection>
+
+      <SettingsSection icon={BookOpen} title="Learning Mode">
+        <LearningModeToggle />
       </SettingsSection>
 
       <SettingsSection icon={Clock} title="Recording">
