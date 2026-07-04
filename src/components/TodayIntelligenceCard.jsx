@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { GraduationCap, BookOpen, AlertCircle, AlertTriangle, Loader2, RefreshCw } from 'lucide-react';
+import { GraduationCap, BookOpen, AlertCircle, AlertTriangle, Loader2, RefreshCw, Plus } from 'lucide-react';
 
 function formatTime(timeStr) {
   if (!timeStr) return '';
@@ -12,7 +12,8 @@ function formatTime(timeStr) {
 }
 
 function getTodayString() {
-  return new Date().toISOString().split('T')[0];
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 function daysBetween(dateStr) {
@@ -27,6 +28,7 @@ export default function TodayIntelligenceCard({
   studySessions,
   onExamWeekChange,
   onRecalculateComplete,
+  onAddStudyBlock,
 }) {
   const [recalculating, setRecalculating] = useState(false);
   const today = getTodayString();
@@ -107,6 +109,11 @@ export default function TodayIntelligenceCard({
                         : ''}
                   </p>
                 </>
+              ) : todayClasses.length > 0 ? (
+                <>
+                  <p className="text-sm font-semibold text-foreground">Classes done</p>
+                  <p className="text-[11px] text-muted-foreground">All finished for today</p>
+                </>
               ) : (
                 <>
                   <p className="text-sm font-semibold text-foreground">No classes today</p>
@@ -117,27 +124,31 @@ export default function TodayIntelligenceCard({
           </Link>
 
           {/* Study Blocks */}
-          <Link to="/planner"
-            className="flex items-center gap-2.5 rounded-lg p-2.5 bg-card border border-border hover:shadow-sm transition-all">
-            <div className="w-9 h-9 rounded-lg bg-amber-500/10 flex items-center justify-center flex-shrink-0">
-              <BookOpen className="w-5 h-5 text-amber-600" strokeWidth={1.5} />
-            </div>
-            <div className="min-w-0 flex-1">
-              {todaySessions.length > 0 ? (
-                <>
-                  <p className="text-sm font-semibold text-foreground">
-                    {todaySessions.length} study block{todaySessions.length !== 1 ? 's' : ''}
-                  </p>
-                  <p className="text-[11px] text-muted-foreground">{totalStudyMinutes} min total</p>
-                </>
-              ) : (
-                <>
-                  <p className="text-sm font-semibold text-foreground">No study blocks</p>
-                  <p className="text-[11px] text-muted-foreground">Add an exam to plan</p>
-                </>
-              )}
-            </div>
-          </Link>
+          {todaySessions.length > 0 ? (
+            <Link to="/planner"
+              className="flex items-center gap-2.5 rounded-lg p-2.5 bg-card border border-border hover:shadow-sm transition-all">
+              <div className="w-9 h-9 rounded-lg bg-amber-500/10 flex items-center justify-center flex-shrink-0">
+                <BookOpen className="w-5 h-5 text-amber-600" strokeWidth={1.5} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-foreground">
+                  {todaySessions.length} study block{todaySessions.length !== 1 ? 's' : ''}
+                </p>
+                <p className="text-[11px] text-muted-foreground">{totalStudyMinutes} min total</p>
+              </div>
+            </Link>
+          ) : (
+            <button onClick={onAddStudyBlock}
+              className="flex items-center gap-2.5 rounded-lg p-2.5 bg-card border border-dashed border-amber-500/30 hover:border-amber-500/50 hover:bg-amber-500/5 transition-all w-full text-left">
+              <div className="w-9 h-9 rounded-lg bg-amber-500/10 flex items-center justify-center flex-shrink-0">
+                <Plus className="w-5 h-5 text-amber-600" strokeWidth={1.5} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-foreground">No study blocks</p>
+                <p className="text-[11px] text-amber-600 font-medium">Tap to add an exam or study block</p>
+              </div>
+            </button>
+          )}
 
           {/* Top Priority */}
           {topPriority && (

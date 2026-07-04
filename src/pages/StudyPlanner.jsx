@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
-import { GraduationCap, Calendar, Clock, Check, X, Loader2, ChevronRight, Headphones } from 'lucide-react';
+import { GraduationCap, Calendar, Clock, Check, X, Loader2, ChevronRight, Headphones, Plus } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import AddStudySessionModal from '@/components/AddStudySessionModal';
 
 const priorityColors = {
   high: 'bg-rose-500/10 text-rose-600 border-rose-500/20',
@@ -20,6 +21,7 @@ export default function StudyPlanner() {
   const [assignments, setAssignments] = useState([]);
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showAddSession, setShowAddSession] = useState(false);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -63,9 +65,15 @@ export default function StudyPlanner() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 lg:py-10 animate-fade-in">
-      <div className="mb-6">
-        <h1 className="font-heading text-2xl sm:text-3xl font-bold">Study Planner</h1>
-        <p className="text-muted-foreground text-sm mt-0.5">AI-generated study sessions across all your courses</p>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="font-heading text-2xl sm:text-3xl font-bold">Study Planner</h1>
+          <p className="text-muted-foreground text-sm mt-0.5">AI-generated study sessions across all your courses</p>
+        </div>
+        <button onClick={() => setShowAddSession(true)}
+          className="inline-flex items-center gap-1.5 bg-primary text-primary-foreground px-3 py-2 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors flex-shrink-0">
+          <Plus className="w-4 h-4" /> Add Session
+        </button>
       </div>
 
       {/* Upcoming assignments */}
@@ -149,6 +157,7 @@ export default function StudyPlanner() {
           })}
         </div>
       )}
+      {showAddSession && <AddStudySessionModal classes={classes} onClose={() => { setShowAddSession(false); loadData(); }} />}
     </div>
   );
 }

@@ -6,9 +6,11 @@ import Timeline from '@/components/Timeline';
 import WeeklyCalendar from '@/components/WeeklyCalendar';
 import EditClassModal from '@/components/EditClassModal';
 import TodayIntelligenceCard from '@/components/TodayIntelligenceCard';
+import AddExamOrStudyModal from '@/components/AddExamOrStudyModal';
 
 function getTodayString() {
-  return new Date().toISOString().split('T')[0];
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 function getDayOfWeek() {
@@ -28,6 +30,8 @@ export default function Home() {
   const [assignments, setAssignments] = useState([]);
   const [studySessions, setStudySessions] = useState([]);
   const [examWeek, setExamWeek] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [showAddExamOrStudy, setShowAddExamOrStudy] = useState(false);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -56,6 +60,11 @@ export default function Home() {
   }, []);
 
   useEffect(() => { loadData(); }, [loadData]);
+
+  useEffect(() => {
+    const interval = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   const todayClasses = classes.filter(c => {
     return (c.days_of_week || []).some(d => d === getDayOfWeek());
@@ -153,6 +162,9 @@ export default function Home() {
               <h2 className="font-heading text-xl sm:text-2xl font-bold text-foreground">
                 {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}
               </h2>
+              <p className="text-sm text-muted-foreground tabular-nums mt-0.5">
+                {currentTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+              </p>
             </div>
             <button onClick={() => setShowAddEvent(true)}
               className="inline-flex items-center gap-1.5 bg-primary text-primary-foreground px-3 py-2 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors">
@@ -165,6 +177,7 @@ export default function Home() {
             studySessions={studySessions}
             onExamWeekChange={setExamWeek}
             onRecalculateComplete={loadData}
+            onAddStudyBlock={() => setShowAddExamOrStudy(true)}
           />
           <Timeline items={allItems} onAddEvent={() => setShowAddEvent(true)} />
         </div>
@@ -216,6 +229,7 @@ export default function Home() {
 
       {/* Modals */}
       {showAddEvent && <AddEventModal onClose={() => { setShowAddEvent(false); loadData(); }} />}
+      {showAddExamOrStudy && <AddExamOrStudyModal classes={classes} onClose={() => { setShowAddExamOrStudy(false); loadData(); }} />}
       {showAddClass && <EditClassModal semesterId={activeSemester.id} onClose={() => { setShowAddClass(false); loadData(); }} />}
       {editClass && <EditClassModal classData={editClass} semesterId={activeSemester.id} onClose={() => { setEditClass(null); loadData(); }} />}
     </div>
