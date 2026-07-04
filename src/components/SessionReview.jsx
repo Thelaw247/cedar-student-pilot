@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Loader2, X, Brain, Check, ChevronRight, Award, TrendingUp, BookOpen, Target } from 'lucide-react';
 
-export default function SessionReview({ classId, className, studyRecordId, aiInteractions, onClose }) {
+export default function SessionReview({ classId, className, lectureId, studyRecordId, aiInteractions, onClose }) {
   const [phase, setPhase] = useState('loading'); // loading -> questions -> self_assessment -> results
   const [questions, setQuestions] = useState([]);
+  const [lectureIds, setLectureIds] = useState([]);
   const [selfAssessmentTopics, setSelfAssessmentTopics] = useState([]);
   const [answers, setAnswers] = useState({});
   const [selfRatings, setSelfRatings] = useState({});
@@ -20,9 +21,12 @@ export default function SessionReview({ classId, className, studyRecordId, aiInt
   const generateReview = async () => {
     setPhase('loading');
     try {
-      const res = await base44.functions.invoke('generateSessionReview', { class_id: classId });
+      const params = { class_id: classId };
+      if (lectureId) params.lecture_ids = [lectureId];
+      const res = await base44.functions.invoke('generateSessionReview', params);
       if (!res.data || res.data.error) throw new Error(res.data?.error || 'Failed to generate');
       setQuestions(res.data.review_questions || []);
+      setLectureIds(res.data.lecture_ids || (lectureId ? [lectureId] : []));
       setSelfAssessmentTopics(res.data.self_assessment_topics || []);
       setPhase(res.data.review_questions?.length > 0 ? 'questions' : 'empty');
     } catch (e) {
@@ -82,7 +86,7 @@ Return JSON: { "is_correct": boolean, "reasoning": string }`,
 
       const res = await base44.functions.invoke('processSessionReview', {
         class_id: classId,
-        lecture_ids: questions.map(q => q.concept).filter(Boolean),
+        lecture_ids: lectureIds,
         review_questions: evaluatedQuestions,
         self_assessment: selfAssessment,
         ai_interactions: aiInteractions || [],
@@ -304,10 +308,13 @@ Return JSON: { "is_correct": boolean, "reasoning": string }`,
           {/* Question type badge */}
           <span className={`text-[10px] font-semibold px-2 py-1 rounded-md uppercase mb-3 inline-block ${
             q.type === 'multiple_choice' ? 'bg-blue-500/10 text-blue-600' :
+            q.type === 'problem' ? 'bg-rose-500/10 text-rose-600' :
             q.type === 'short_answer' ? 'bg-purple-500/10 text-purple-600' :
             'bg-amber-500/10 text-amber-600'
           }`}>
-            {q.type === 'multiple_choice' ? 'Multiple Choice' : q.type === 'short_answer' ? 'Short Answer' : 'One Word'}
+            {q.type === 'multiple_choice' ? 'Multiple Choice' :
+             q.type === 'problem' ? 'Problem' :
+             q.type === 'short_answer' ? 'Short Answer' : 'One Word'}
           </span>
 
           <h3 className="font-heading text-lg sm:text-xl font-semibold mb-6">{q.question}</h3>
@@ -326,6 +333,17 @@ Return JSON: { "is_correct": boolean, "reasoning": string }`,
                 </button>
               ))}
             </div>
+          )}
+
+          {q.type === 'problem' && (
+            <textarea
+              value={answers[currentQuestion] || ''}
+              onChange={e => handleAnswer(currentQuestion, e.target.value)}
+              placeholder="Show your work and enter your final answer..."
+              className="w-full px-4 py-3 rounded-xl border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 resize-none font-mono"
+              rows={6}
+              autoFocus
+            />
           )}
 
           {q.type === 'short_answer' && (

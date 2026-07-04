@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Sun, Moon, Bell, Sparkles, Clock, Palette, Calendar, Loader2, Check, AlertCircle } from 'lucide-react';
+import { Sun, Moon, Bell, Sparkles, Clock, Palette, Calendar, Loader2, Check, AlertCircle, GraduationCap } from 'lucide-react';
 import { getSetting, setSetting } from '@/lib/settings';
+import ReviewScheduleSection from '@/components/ReviewScheduleSection';
 
 export default function Settings() {
   const [isDark, setIsDark] = useState(false);
@@ -117,6 +118,10 @@ export default function Settings() {
         <Toggle label="Auto-generate lecture summaries" description="Process recordings automatically" settingKey="autoGenerateSummaries" />
         <Toggle label="Auto-generate study schedules" description="Plan sessions when adding exams" settingKey="autoGenerateSchedules" />
         <Toggle label="AI flashcards & quizzes" description="Create study material from lectures" settingKey="autoFlashcards" />
+      </SettingsSection>
+
+      <SettingsSection icon={GraduationCap} title="Review Schedule">
+        <ReviewScheduleSection />
       </SettingsSection>
 
       <SettingsSection icon={Clock} title="Recording">

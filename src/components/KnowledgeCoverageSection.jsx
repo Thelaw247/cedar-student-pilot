@@ -1,22 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Loader2, BookOpen, AlertCircle, CheckCircle2, Circle, ChevronRight, ChevronDown } from 'lucide-react';
+import { Loader2, BookOpen, AlertCircle, CheckCircle2, Circle, ChevronRight, ChevronDown, Brain } from 'lucide-react';
+import SessionReview from '@/components/SessionReview';
 
 export default function KnowledgeCoverageSection({ classes }) {
   const [coverage, setCoverage] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedClass, setExpandedClass] = useState(null);
+  const [reviewLecture, setReviewLecture] = useState(null);
+
+  const reloadCoverage = async () => {
+    try {
+      const allCoverage = [];
+      for (const c of classes) {
+        const cov = await base44.entities.KnowledgeCoverage.filter({ class_id: c.id });
+        allCoverage.push(...cov);
+      }
+      setCoverage(allCoverage);
+    } catch (e) { console.error(e); }
+  };
 
   useEffect(() => {
     (async () => {
-      try {
-        const allCoverage = [];
-        for (const c of classes) {
-          const cov = await base44.entities.KnowledgeCoverage.filter({ class_id: c.id });
-          allCoverage.push(...cov);
-        }
-        setCoverage(allCoverage);
-      } catch (e) { console.error(e); }
+      setLoading(true);
+      await reloadCoverage();
       setLoading(false);
     })();
   }, [classes]);
@@ -90,7 +97,15 @@ export default function KnowledgeCoverageSection({ classes }) {
                             <span className="text-[10px] text-muted-foreground">• Reviewed {l.last_reviewed_date}</span>
                           )}
                         </div>
-                        <span className="text-xs font-bold tabular-nums">{lecProf}%</span>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => setReviewLecture({ lecture_id: l.lecture_id, class_id: l.class_id })}
+                            className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-primary/10 text-primary text-[10px] font-medium hover:bg-primary/20 transition-colors"
+                          >
+                            <Brain className="w-3 h-3" /> Review
+                          </button>
+                          <span className="text-xs font-bold tabular-nums">{lecProf}%</span>
+                        </div>
                       </div>
 
                       {/* Concepts */}
@@ -133,6 +148,15 @@ export default function KnowledgeCoverageSection({ classes }) {
           </div>
         );
       })}
+
+      {reviewLecture && (
+        <SessionReview
+          classId={reviewLecture.class_id}
+          lectureId={reviewLecture.lecture_id}
+          className={classes.find(c => c.id === reviewLecture.class_id)?.name}
+          onClose={() => { setReviewLecture(null); reloadCoverage(); }}
+        />
+      )}
     </div>
   );
 }

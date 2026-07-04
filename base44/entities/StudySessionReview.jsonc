@@ -42,7 +42,8 @@
             "enum": [
               "multiple_choice",
               "short_answer",
-              "one_word"
+              "one_word",
+              "problem"
             ]
           },
           "question": {

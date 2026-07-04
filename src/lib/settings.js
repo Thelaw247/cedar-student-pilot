@@ -9,6 +9,7 @@ const DEFAULTS = {
   autoFlashcards: true,
   highQualityAudio: true,
   autoTranscribe: true,
+  reviewTimes: [],
 };
 
 export function getSettings() {

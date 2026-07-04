@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, RadialBarChart, RadialBar } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts';
 import { Clock, TrendingUp, Calendar, Brain, BarChart3, Headphones, Loader2, GraduationCap, Target, BookOpen, AlertCircle, Award } from 'lucide-react';
 import KnowledgeCoverageSection from '@/components/KnowledgeCoverageSection';
 
@@ -276,18 +276,21 @@ function StatCard({ icon: Icon, label, value, color }) {
 }
 
 function ScoreRingCard({ icon: Icon, label, value, color }) {
-  const data = [{ name: label, value: value, fill: color }];
+  const data = [
+    { name: 'Filled', value: value, fill: color },
+    { name: 'Remaining', value: Math.max(0, 100 - value), fill: 'hsl(var(--muted))' },
+  ];
   return (
     <div className="rounded-xl border border-border bg-card p-4 flex flex-col items-center">
       <Icon className="w-4 h-4 mb-2" style={{ color }} />
       <div className="relative w-20 h-20">
         <ResponsiveContainer width="100%" height="100%">
-          <RadialBarChart innerRadius="70%" outerRadius="100%" data={data} startAngle={90} endAngle={-270}>
-            <RadialBar background dataKey="value" cornerRadius={6} />
-          </RadialBarChart>
+          <PieChart>
+            <Pie data={data} dataKey="value" innerRadius="62%" outerRadius="100%" startAngle={90} endAngle={-270} stroke="none" />
+          </PieChart>
         </ResponsiveContainer>
         <div className="absolute inset-0 flex items-center justify-center">
-          <span className="font-heading text-lg font-bold" style={{ color }}>{value}%</span>
+          <span className="font-heading text-xs font-bold" style={{ color }}>{value}%</span>
         </div>
       </div>
       <p className="text-xs text-muted-foreground mt-1">{label}</p>
