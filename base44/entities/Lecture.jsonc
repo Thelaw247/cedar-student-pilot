@@ -1,0 +1,109 @@
+{
+  "name": "Lecture",
+  "type": "object",
+  "properties": {
+    "class_id": {
+      "type": "string",
+      "title": "Class ID"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "title": "Lecture Date"
+    },
+    "recording_url": {
+      "type": "string",
+      "title": "Recording URL"
+    },
+    "duration_seconds": {
+      "type": "number",
+      "title": "Duration (seconds)"
+    },
+    "transcript": {
+      "type": "string",
+      "title": "Transcript"
+    },
+    "ai_title": {
+      "type": "string",
+      "title": "AI Title"
+    },
+    "ai_summary": {
+      "type": "string",
+      "title": "AI Summary"
+    },
+    "ai_concepts": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "title": "Key Concepts"
+    },
+    "ai_vocabulary": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "title": "Vocabulary"
+    },
+    "ai_definitions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "term": {
+            "type": "string"
+          },
+          "definition": {
+            "type": "string"
+          }
+        }
+      },
+      "title": "Definitions"
+    },
+    "ai_formulas": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "title": "Formulas"
+    },
+    "ai_action_items": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "title": "Action Items"
+    },
+    "ai_exam_mentions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "title": "Exam Mentions"
+    },
+    "is_missed": {
+      "type": "boolean",
+      "default": false,
+      "title": "Is Missed"
+    },
+    "is_ai_estimated": {
+      "type": "boolean",
+      "default": false,
+      "title": "Is AI Estimated"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "processing",
+        "complete"
+      ],
+      "default": "pending",
+      "title": "Status"
+    }
+  },
+  "required": [
+    "class_id",
+    "date"
+  ]
+}

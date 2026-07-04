@@ -1,0 +1,51 @@
+{
+  "name": "StudySession",
+  "type": "object",
+  "properties": {
+    "assignment_id": {
+      "type": "string",
+      "title": "Assignment ID"
+    },
+    "class_id": {
+      "type": "string",
+      "title": "Class ID"
+    },
+    "scheduled_date": {
+      "type": "string",
+      "format": "date",
+      "title": "Scheduled Date"
+    },
+    "scheduled_time": {
+      "type": "string",
+      "title": "Scheduled Time"
+    },
+    "duration_minutes": {
+      "type": "number",
+      "title": "Duration (minutes)"
+    },
+    "priority": {
+      "type": "string",
+      "enum": [
+        "high",
+        "medium",
+        "low"
+      ],
+      "default": "medium",
+      "title": "Priority"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "scheduled",
+        "completed",
+        "skipped"
+      ],
+      "default": "scheduled",
+      "title": "Status"
+    }
+  },
+  "required": [
+    "class_id",
+    "scheduled_date"
+  ]
+}

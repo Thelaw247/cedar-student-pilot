@@ -1,0 +1,32 @@
+{
+  "name": "Flashcard",
+  "type": "object",
+  "properties": {
+    "lecture_id": {
+      "type": "string",
+      "title": "Lecture ID"
+    },
+    "class_id": {
+      "type": "string",
+      "title": "Class ID"
+    },
+    "front": {
+      "type": "string",
+      "title": "Front"
+    },
+    "back": {
+      "type": "string",
+      "title": "Back"
+    },
+    "ai_generated": {
+      "type": "boolean",
+      "default": true,
+      "title": "AI Generated"
+    }
+  },
+  "required": [
+    "class_id",
+    "front",
+    "back"
+  ]
+}

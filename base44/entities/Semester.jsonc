@@ -1,0 +1,30 @@
+{
+  "name": "Semester",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "title": "Semester Name"
+    },
+    "start_date": {
+      "type": "string",
+      "format": "date",
+      "title": "Start Date"
+    },
+    "end_date": {
+      "type": "string",
+      "format": "date",
+      "title": "End Date"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": false,
+      "title": "Is Active"
+    }
+  },
+  "required": [
+    "name",
+    "start_date",
+    "end_date"
+  ]
+}

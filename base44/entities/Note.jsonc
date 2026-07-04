@@ -1,0 +1,28 @@
+{
+  "name": "Note",
+  "type": "object",
+  "properties": {
+    "lecture_id": {
+      "type": "string",
+      "title": "Lecture ID"
+    },
+    "class_id": {
+      "type": "string",
+      "title": "Class ID"
+    },
+    "content": {
+      "type": "string",
+      "title": "Content"
+    },
+    "attachments": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "title": "Attachments"
+    }
+  },
+  "required": [
+    "class_id"
+  ]
+}

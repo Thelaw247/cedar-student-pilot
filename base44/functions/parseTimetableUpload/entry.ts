@@ -1,0 +1,53 @@
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+
+Deno.serve(async (req) => {
+  try {
+    const base44 = createClientFromRequest(req);
+    const user = await base44.auth.me();
+    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const body = await req.json();
+    const { file_url } = body;
+    if (!file_url) return Response.json({ error: 'file_url is required' }, { status: 400 });
+
+    const result = await base44.asServiceRole.integrations.Core.InvokeLLM({
+      prompt: `You are an expert at reading university class timetables. Analyze the provided timetable image or document and extract ALL classes/courses shown.
+
+For each class, extract:
+- name: The course name (e.g. "Introduction to Biology")
+- instructor: The professor/instructor name if available
+- room: The classroom or location if available
+- days_of_week: Array of days the class meets (use abbreviations: Mon, Tue, Wed, Thu, Fri, Sat, Sun)
+- start_time: Start time in 24-hour HH:MM format
+- end_time: End time in 24-hour HH:MM format
+
+Return a JSON object with a "classes" array containing all extracted classes. If you cannot read the timetable or it's unclear, return an empty array.
+
+Be thorough — capture every class on the timetable. If days aren't explicitly listed but the class appears to recur, infer standard weekday patterns.`,
+      file_urls: [file_url],
+      response_json_schema: {
+        type: 'object',
+        properties: {
+          classes: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                name: { type: 'string' },
+                instructor: { type: 'string' },
+                room: { type: 'string' },
+                days_of_week: { type: 'array', items: { type: 'string' } },
+                start_time: { type: 'string' },
+                end_time: { type: 'string' }
+              }
+            }
+          }
+        }
+      }
+    });
+
+    return Response.json({ classes: result.classes || [] });
+  } catch (error) {
+    return Response.json({ error: error.message }, { status: 500 });
+  }
+});

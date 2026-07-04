@@ -1,0 +1,48 @@
+{
+  "name": "PracticeQuestion",
+  "type": "object",
+  "properties": {
+    "lecture_id": {
+      "type": "string",
+      "title": "Lecture ID"
+    },
+    "class_id": {
+      "type": "string",
+      "title": "Class ID"
+    },
+    "question": {
+      "type": "string",
+      "title": "Question"
+    },
+    "answer": {
+      "type": "string",
+      "title": "Answer"
+    },
+    "options": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "title": "Options"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "multiple_choice",
+        "short_answer"
+      ],
+      "default": "multiple_choice",
+      "title": "Type"
+    },
+    "ai_generated": {
+      "type": "boolean",
+      "default": true,
+      "title": "AI Generated"
+    }
+  },
+  "required": [
+    "class_id",
+    "question",
+    "answer"
+  ]
+}

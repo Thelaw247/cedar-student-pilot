@@ -1,0 +1,53 @@
+{
+  "name": "Assignment",
+  "type": "object",
+  "properties": {
+    "class_id": {
+      "type": "string",
+      "title": "Class ID"
+    },
+    "title": {
+      "type": "string",
+      "title": "Title"
+    },
+    "due_date": {
+      "type": "string",
+      "format": "date",
+      "title": "Due Date"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "exam",
+        "quiz",
+        "project",
+        "assignment"
+      ],
+      "default": "assignment",
+      "title": "Type"
+    },
+    "coverage_scope": {
+      "type": "string",
+      "enum": [
+        "cumulative",
+        "since_last",
+        "custom"
+      ],
+      "default": "cumulative",
+      "title": "Coverage Scope"
+    },
+    "lecture_range_start": {
+      "type": "string",
+      "title": "Lecture Range Start"
+    },
+    "lecture_range_end": {
+      "type": "string",
+      "title": "Lecture Range End"
+    }
+  },
+  "required": [
+    "class_id",
+    "title",
+    "due_date"
+  ]
+}

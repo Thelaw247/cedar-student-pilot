@@ -1,0 +1,72 @@
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+
+Deno.serve(async (req) => {
+  try {
+    const base44 = createClientFromRequest(req);
+    const user = await base44.auth.me();
+    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const body = await req.json();
+    const { class_id, date } = body;
+    if (!class_id) return Response.json({ error: 'class_id is required' }, { status: 400 });
+
+    // Get class info
+    const cls = await base44.asServiceRole.entities.Class.get(class_id);
+    if (!cls) return Response.json({ error: 'Class not found' }, { status: 404 });
+
+    // Get previous lectures for context
+    const lectures = await base44.asServiceRole.entities.Lecture.filter({ class_id: class_id }, '-date');
+    const previousLectures = lectures.filter(l => l.transcript).slice(0, 5);
+    const previousSummaries = previousLectures.map(l => `${l.date}: ${l.ai_summary || l.transcript?.substring(0, 500) || ''}`).join('\n\n');
+
+    // Generate estimated lecture content
+    const analysis = await base44.asServiceRole.integrations.Core.InvokeLLM({
+      prompt: `You are an AI academic assistant. A student missed a class and wants an AI-estimated summary of what was likely covered.
+
+Class: ${cls.name}
+Instructor: ${cls.instructor || 'Unknown'}
+Date of missed lecture: ${date || 'Today'}
+
+Previous lecture summaries from this class:
+${previousSummaries || 'No previous lectures available.'}
+
+Based on the course progression and previous lecture topics, generate an estimated lecture summary. This should predict what topics were likely covered, continuing from where the previous lectures left off. Generate:
+
+1. A title for the estimated lecture
+2. A summary of likely covered topics
+3. Key concepts that were probably discussed
+4. Suggested vocabulary terms
+5. Suggested action items (review, read, etc.)
+
+IMPORTANT: This is an estimation based on course progression. Be clear that this is AI-estimated content, not actual lecture material.`,
+      response_json_schema: {
+        type: 'object',
+        properties: {
+          title: { type: 'string' },
+          summary: { type: 'string' },
+          concepts: { type: 'array', items: { type: 'string' } },
+          vocabulary: { type: 'array', items: { type: 'string' } },
+          action_items: { type: 'array', items: { type: 'string' } }
+        }
+      }
+    });
+
+    // Create the missed lecture record with AI estimated content
+    const lecture = await base44.asServiceRole.entities.Lecture.create({
+      class_id: class_id,
+      date: date || new Date().toISOString().split('T')[0],
+      is_missed: true,
+      is_ai_estimated: true,
+      status: 'complete',
+      ai_title: analysis.title,
+      ai_summary: analysis.summary,
+      ai_concepts: analysis.concepts || [],
+      ai_vocabulary: analysis.vocabulary || [],
+      ai_action_items: analysis.action_items || [],
+    });
+
+    return Response.json({ lecture_id: lecture.id, status: 'complete' });
+  } catch (error) {
+    return Response.json({ error: error.message }, { status: 500 });
+  }
+});

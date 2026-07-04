@@ -6,7 +6,15 @@ import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ScrollToTop from './components/ScrollToTop';
-// Add page imports here
+import Layout from '@/components/Layout';
+import Home from './pages/Home';
+import Classes from './pages/Classes';
+import ClassDetail from './pages/ClassDetail';
+import LectureDetail from './pages/LectureDetail';
+import AIAssistant from './pages/AIAssistant';
+import StudyPlanner from './pages/StudyPlanner';
+import SettingsPage from './pages/Settings';
+import SemesterSetup from './pages/SemesterSetup';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -34,7 +42,16 @@ const AuthenticatedApp = () => {
   // Render the main app
   return (
     <Routes>
-      {/* Add your page Route elements here */}
+      <Route element={<Layout />}>
+        <Route path="/" element={<Home />} />
+        <Route path="/setup" element={<SemesterSetup />} />
+        <Route path="/classes" element={<Classes />} />
+        <Route path="/classes/:classId" element={<ClassDetail />} />
+        <Route path="/lectures/:lectureId" element={<LectureDetail />} />
+        <Route path="/assistant" element={<AIAssistant />} />
+        <Route path="/planner" element={<StudyPlanner />} />
+        <Route path="/settings" element={<SettingsPage />} />
+      </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );
