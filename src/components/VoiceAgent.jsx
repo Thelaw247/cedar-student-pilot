@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Mic, X, Loader2, Volume2, VolumeX } from 'lucide-react';
+import { Mic, X, Loader2, Volume2 } from 'lucide-react';
 
 const WAKE_WORD = 'cedar';
 
@@ -11,9 +11,18 @@ export default function VoiceAgent() {
   const [processing, setProcessing] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [lastResponse, setLastResponse] = useState('');
+
   const recognitionRef = useRef(null);
   const wakeTimeoutRef = useRef(null);
+  const enabledRef = useRef(false);
+  const processingRef = useRef(false);
   const awakeRef = useRef(false);
+  const conversationRef = useRef(null);
+
+  // Keep refs in sync
+  useEffect(() => { enabledRef.current = enabled; }, [enabled]);
+  useEffect(() => { processingRef.current = processing; }, [processing]);
+  useEffect(() => { awakeRef.current = awake; }, [awake]);
 
   const speak = useCallback((text) => {
     if (!('speechSynthesis' in window)) return;
@@ -24,100 +33,150 @@ export default function VoiceAgent() {
     window.speechSynthesis.speak(utterance);
   }, []);
 
-  const stopListening = useCallback(() => {
-    if (recognitionRef.current) {
-      try { recognitionRef.current.stop(); } catch (e) {}
+  const getOrCreateConversation = useCallback(async () => {
+    if (conversationRef.current) return conversationRef.current;
+    const convs = await base44.agents.listConversations({ agent_name: 'academic_assistant' });
+    let conv = convs.length > 0 ? convs[0] : await base44.agents.createConversation({
+      agent_name: 'academic_assistant',
+      metadata: { name: 'Voice Chat' },
+    });
+    conv = await base44.agents.getConversation(conv.id);
+    conversationRef.current = conv;
+    return conv;
+  }, []);
+
+  const waitForAgentResponse = useCallback(async (conversationId, userMessageText) => {
+    // Poll for the assistant's response — more reliable than subscription for one-shot queries
+    const maxAttempts = 30; // 60 seconds max
+    for (let i = 0; i < maxAttempts; i++) {
+      await new Promise(r => setTimeout(r, 2000));
+      try {
+        const conv = await base44.agents.getConversation(conversationId);
+        const msgs = conv.messages || [];
+        // Find the last assistant message after the user's message
+        let userMsgIndex = -1;
+        for (let j = msgs.length - 1; j >= 0; j--) {
+          if (msgs[j].role === 'user' && msgs[j].content === userMessageText) {
+            userMsgIndex = j;
+            break;
+          }
+        }
+        if (userMsgIndex === -1) continue;
+
+        // Look for an assistant message after the user message
+        for (let j = msgs.length - 1; j > userMsgIndex; j--) {
+          const msg = msgs[j];
+          if (msg.role === 'assistant') {
+            // Check if all tool calls are done
+            const toolCallsPending = msg.tool_calls?.some(tc =>
+              ['pending', 'running', 'in_progress'].includes(tc.status)
+            );
+            if (toolCallsPending) continue;
+            // Has content and is complete
+            if (msg.content && msg.content.trim().length > 0) {
+              return msg.content;
+            }
+          }
+        }
+      } catch (e) {
+        // keep polling
+      }
     }
-    setListening(false);
+    return null;
   }, []);
 
   const handleCommand = useCallback(async (command) => {
-    const cmd = command.toLowerCase().trim();
     setTranscript(command);
     setProcessing(true);
+    processingRef.current = true;
 
-    // Timer/pomodoro commands — dispatch events for PomodoroTimer
+    const cmd = command.toLowerCase().trim();
+
+    // Timer/pomodoro commands
     if (/(start|begin).*(timer|study|pomodoro|session)|start studying/.test(cmd)) {
       window.dispatchEvent(new CustomEvent('cedar-pomodoro', { detail: { action: 'start' } }));
       speak('Starting your study timer now.');
       setProcessing(false);
+      processingRef.current = false;
       return;
     }
     if (/(pause|stop|hold).*(timer|study|pomodoro|session)/.test(cmd)) {
       window.dispatchEvent(new CustomEvent('cedar-pomodoro', { detail: { action: 'pause' } }));
       speak('Pausing your timer.');
       setProcessing(false);
+      processingRef.current = false;
       return;
     }
-    if (/(resume|continue|keep going)/.test(cmd)) {
+    if (/(resume|continue|keep going)/.test(cmd) && !/(break|rest)/.test(cmd)) {
       window.dispatchEvent(new CustomEvent('cedar-pomodoro', { detail: { action: 'resume' } }));
       speak('Resuming your timer.');
       setProcessing(false);
+      processingRef.current = false;
       return;
     }
     if (/(take|start).*(break|rest)/.test(cmd)) {
       window.dispatchEvent(new CustomEvent('cedar-pomodoro', { detail: { action: 'break' } }));
       speak('Taking a break now.');
       setProcessing(false);
+      processingRef.current = false;
       return;
     }
     if (/(end|finish|done|quit).*(session|timer|study)/.test(cmd)) {
       window.dispatchEvent(new CustomEvent('cedar-pomodoro', { detail: { action: 'end' } }));
       speak('Ending your session. Great work.');
       setProcessing(false);
+      processingRef.current = false;
       return;
     }
 
-    // General AI query — send to academic_assistant agent
+    // General AI query
     try {
-      let conv = null;
-      const convs = await base44.agents.listConversations({ agent_name: 'academic_assistant' });
-      if (convs.length > 0) {
-        conv = convs[0];
-      } else {
-        conv = await base44.agents.createConversation({
-          agent_name: 'academic_assistant',
-          metadata: { name: 'Voice Chat' },
-        });
-      }
-      conv = await base44.agents.getConversation(conv.id);
+      const conv = await getOrCreateConversation();
       await base44.agents.addMessage(conv, { role: 'user', content: command });
 
-      // Wait for response via subscription
-      const responseText = await new Promise((resolve) => {
-        let resolved = false;
-        const unsub = base44.agents.subscribeToConversation(conv.id, (data) => {
-          const msgs = data.messages || [];
-          const last = msgs[msgs.length - 1];
-          if (last && last.role === 'assistant' && last.content && !last.tool_calls?.some(tc => ['pending', 'running', 'in_progress'].includes(tc.status))) {
-            if (!resolved) {
-              resolved = true;
-              unsub();
-              resolve(last.content);
-            }
-          }
-        });
-        setTimeout(() => { if (!resolved) { unsub(); resolve(null); } }, 30000);
-      });
+      const responseText = await waitForAgentResponse(conv.id, command);
 
-      const responseClean = responseText ? responseText.replace(/[#*_`]/g, '').substring(0, 500) : 'Sorry, I could not process that.';
-      setLastResponse(responseClean);
-      speak(responseClean);
+      if (responseText) {
+        const cleaned = responseText.replace(/[#*_`]/g, '').substring(0, 500);
+        setLastResponse(cleaned);
+        speak(cleaned);
+      } else {
+        const fallback = 'I could not find an answer in your lectures. Try asking in the AI Assistant chat for more detail.';
+        setLastResponse(fallback);
+        speak(fallback);
+      }
     } catch (e) {
-      speak('Sorry, something went wrong.');
+      const errMsg = 'Sorry, something went wrong connecting to your assistant.';
+      setLastResponse(errMsg);
+      speak(errMsg);
     }
-    setProcessing(false);
-  }, [speak]);
 
-  // Initialize speech recognition
+    setProcessing(false);
+    processingRef.current = false;
+  }, [speak, getOrCreateConversation, waitForAgentResponse]);
+
+  // Initialize speech recognition — only depends on `enabled`
   useEffect(() => {
     if (!enabled) return;
+
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
       alert('Voice recognition is not supported in this browser. Please use Chrome.');
       setEnabled(false);
       return;
     }
+
+    let shouldRestart = true;
+
+    const startRecognition = () => {
+      if (!enabledRef.current || processingRef.current) return;
+      try {
+        recognition.start();
+        setListening(true);
+      } catch (e) {
+        // already running — ignore
+      }
+    };
 
     const recognition = new SpeechRecognition();
     recognition.continuous = false;
@@ -129,7 +188,6 @@ export default function VoiceAgent() {
       setTranscript(text);
 
       if (!awakeRef.current) {
-        // Check for wake word
         if (text.includes(WAKE_WORD)) {
           awakeRef.current = true;
           setAwake(true);
@@ -141,7 +199,6 @@ export default function VoiceAgent() {
           }, 15000);
         }
       } else {
-        // Already awake — treat as command
         awakeRef.current = false;
         setAwake(false);
         clearTimeout(wakeTimeoutRef.current);
@@ -159,53 +216,63 @@ export default function VoiceAgent() {
 
     recognition.onend = () => {
       setListening(false);
-      // Restart if still enabled
-      if (enabled && !processing) {
-        setTimeout(() => {
-          try { recognition.start(); setListening(true); } catch (e) {}
-        }, 200);
+      // Restart after a short delay if still enabled and not processing
+      if (shouldRestart && enabledRef.current && !processingRef.current) {
+        setTimeout(() => startRecognition(), 300);
       }
     };
 
     recognitionRef.current = recognition;
+    startRecognition();
 
-    try { recognition.start(); setListening(true); } catch (e) {}
+    // Watch for processing state changes to restart recognition when done
+    const checkInterval = setInterval(() => {
+      if (enabledRef.current && !processingRef.current && !listening) {
+        startRecognition();
+      }
+    }, 1000);
 
     return () => {
+      shouldRestart = false;
+      clearInterval(checkInterval);
       clearTimeout(wakeTimeoutRef.current);
       try { recognition.stop(); } catch (e) {}
     };
-  }, [enabled, processing, speak, handleCommand]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled]);
 
-  // Listen for voice prompts from PomodoroTimer
+  // Listen for speak events from PomodoroTimer
   useEffect(() => {
-    const handler = (e) => {
-      const { text } = e.detail;
-      speak(text);
-    };
+    const handler = (e) => speak(e.detail.text);
     window.addEventListener('cedar-speak', handler);
     return () => window.removeEventListener('cedar-speak', handler);
   }, [speak]);
 
-  // Handle voice responses for pomodoro confirmations
+  // Handle voice prompts from pomodoro confirmations
   useEffect(() => {
     if (!enabled) return;
     const handler = (e) => {
-      const { question, onResponse } = e.detail;
+      const { onResponse } = e.detail;
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (!SpeechRecognition) return;
+      if (!SpeechRecognition) { onResponse('timeout'); return; }
+
+      // Pause the main recognition temporarily
+      if (recognitionRef.current) {
+        try { recognitionRef.current.stop(); } catch (e) {}
+      }
 
       const rec = new SpeechRecognition();
       rec.continuous = false;
       rec.interimResults = false;
       rec.lang = 'en-US';
+      const timeout = setTimeout(() => { try { rec.stop(); } catch (e) {} onResponse('timeout'); }, 15000);
       rec.onresult = (event) => {
+        clearTimeout(timeout);
         const text = event.results[0][0].transcript.toLowerCase().trim();
         onResponse(text);
       };
-      rec.onerror = () => onResponse('timeout');
-      rec.onend = () => {};
-      try { rec.start(); } catch (e) {}
+      rec.onerror = () => { clearTimeout(timeout); onResponse('timeout'); };
+      try { rec.start(); } catch (e) { clearTimeout(timeout); onResponse('timeout'); }
     };
     window.addEventListener('cedar-voice-prompt', handler);
     return () => window.removeEventListener('cedar-voice-prompt', handler);
@@ -247,7 +314,12 @@ export default function VoiceAgent() {
         </div>
       )}
       <button
-        onClick={() => { setEnabled(false); setAwake(false); awakeRef.current = false; }}
+        onClick={() => {
+          setEnabled(false);
+          setAwake(false);
+          awakeRef.current = false;
+          processingRef.current = false;
+        }}
         className="w-12 h-12 rounded-full bg-destructive text-destructive-foreground shadow-lg flex items-center justify-center hover:bg-destructive/90 transition-colors"
         title="Disable voice agent"
       >
