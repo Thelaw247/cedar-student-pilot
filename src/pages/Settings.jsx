@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Sun, Moon, Bell, Sparkles, Clock, Palette, Calendar, Loader2, Check, AlertCircle, GraduationCap, BookOpen } from 'lucide-react';
+import { Sun, Moon, Bell, Sparkles, Clock, Palette, Calendar, Loader2, Check, AlertCircle, GraduationCap, BookOpen, Shield } from 'lucide-react';
 import { getSetting, setSetting } from '@/lib/settings';
 import ReviewScheduleSection from '@/components/ReviewScheduleSection';
 import LearningModeToggle from '@/components/LearningModeToggle';
+import DataExportSection from '@/components/DataExportSection';
 
 export default function Settings() {
   const [isDark, setIsDark] = useState(false);
@@ -132,6 +133,10 @@ export default function Settings() {
       <SettingsSection icon={Clock} title="Recording">
         <Toggle label="High quality audio" description="Larger files, better transcription" settingKey="highQualityAudio" />
         <Toggle label="Auto-transcribe" description="Process immediately after recording" settingKey="autoTranscribe" />
+      </SettingsSection>
+
+      <SettingsSection icon={Shield} title="Data & Privacy">
+        <DataExportSection />
       </SettingsSection>
 
       <p className="text-center text-xs text-muted-foreground mt-8 mb-4">Cedar Student Pilot • v1.0</p>

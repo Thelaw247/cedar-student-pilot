@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { ChevronLeft, Plus, GraduationCap, Clock, MapPin, Mic, FileText, Loader2, Calendar, AlertCircle, Brain, Headphones, Pencil } from 'lucide-react';
+import { ChevronLeft, Plus, GraduationCap, Clock, MapPin, Mic, FileText, Loader2, Calendar, AlertCircle, Brain, Headphones, Pencil, AlertTriangle } from 'lucide-react';
 import EditClassModal from '@/components/EditClassModal';
 import LectureItem from '@/components/LectureItem';
 import { getSetting } from '@/lib/settings';
@@ -124,14 +124,48 @@ function RecordModal({ classId, onClose }) {
   const [mediaRecorder, setMediaRecorder] = useState(null);
   const [audioChunks, setAudioChunks] = useState([]);
   const [processing, setProcessing] = useState(false);
+  const [recoveryAvailable, setRecoveryAvailable] = useState(null);
+
+  // Crash recovery: check for interrupted recording on mount
+  useEffect(() => {
+    try {
+      const interrupted = localStorage.getItem(`cedar-recording-${classId}`);
+      if (interrupted) {
+        const data = JSON.parse(interrupted);
+        if (data.seconds > 5) {
+          setRecoveryAvailable(data);
+        }
+      }
+    } catch (e) {}
+  }, [classId]);
+
+  const clearRecovery = () => {
+    localStorage.removeItem(`cedar-recording-${classId}`);
+    setRecoveryAvailable(null);
+  };
 
   useEffect(() => {
     let interval;
     if (recording) {
-      interval = setInterval(() => setSeconds(s => s + 1), 1000);
+      interval = setInterval(() => {
+        setSeconds(s => {
+          const next = s + 1;
+          // Auto-save progress every 30 seconds for crash recovery
+          if (next % 30 === 0) {
+            try {
+              localStorage.setItem(`cedar-recording-${classId}`, JSON.stringify({
+                seconds: next,
+                timestamp: Date.now(),
+                classId,
+              }));
+            } catch (e) {}
+          }
+          return next;
+        });
+      }, 1000);
     }
     return () => clearInterval(interval);
-  }, [recording]);
+  }, [recording, classId]);
 
   const startRecording = async () => {
     try {
@@ -142,12 +176,22 @@ function RecordModal({ classId, onClose }) {
       recorder.onstop = () => {
         stream.getTracks().forEach(t => t.stop());
         setAudioChunks(chunks);
+        // Clear recovery data — recording completed successfully
+        localStorage.removeItem(`cedar-recording-${classId}`);
       };
       recorder.start();
       setMediaRecorder(recorder);
       setAudioChunks([]);
       setRecording(true);
       setSeconds(0);
+      // Mark recording as in-progress for crash recovery
+      try {
+        localStorage.setItem(`cedar-recording-${classId}`, JSON.stringify({
+          seconds: 0,
+          timestamp: Date.now(),
+          classId,
+        }));
+      } catch (e) {}
     } catch (e) {
       alert('Could not access microphone. Please grant permission.');
     }
@@ -180,7 +224,7 @@ function RecordModal({ classId, onClose }) {
       });
       onClose();
     } catch (e) {
-      alert('Failed to process recording.');
+      alert('Failed to process recording. Your audio data is preserved — please try again.');
     }
     setProcessing(false);
   };
@@ -194,6 +238,19 @@ function RecordModal({ classId, onClose }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 glass">
       <div className="bg-card rounded-2xl border border-border p-8 max-w-sm w-full mx-4 text-center animate-fade-in">
+        {/* Crash recovery banner */}
+        {recoveryAvailable && !recording && !audioChunks.length && (
+          <div className="mb-6 rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 text-left">
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="text-sm font-medium text-amber-700 dark:text-amber-500">Interrupted Recording Detected</p>
+                <p className="text-xs text-muted-foreground mt-1">A previous recording for this class was interrupted at {formatTime(recoveryAvailable.seconds)}. Unfortunately, audio data could not be recovered, but you can log a missed lecture entry to track attendance.</p>
+                <button onClick={clearRecovery} className="mt-2 text-xs text-primary font-medium hover:underline">Dismiss</button>
+              </div>
+            </div>
+          </div>
+        )}
         {!recording && !audioChunks.length && (
           <>
             <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
