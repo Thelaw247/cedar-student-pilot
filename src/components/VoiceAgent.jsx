@@ -11,6 +11,7 @@ export default function VoiceAgent() {
   const [processing, setProcessing] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [lastResponse, setLastResponse] = useState('');
+  const [speaking, setSpeaking] = useState(false);
 
   const recognitionRef = useRef(null);
   const wakeTimeoutRef = useRef(null);
@@ -18,19 +19,57 @@ export default function VoiceAgent() {
   const processingRef = useRef(false);
   const awakeRef = useRef(false);
   const conversationRef = useRef(null);
+  const utteranceRef = useRef(null);
+  const voicesRef = useRef([]);
+  const speakingRef = useRef(false);
 
   // Keep refs in sync
   useEffect(() => { enabledRef.current = enabled; }, [enabled]);
   useEffect(() => { processingRef.current = processing; }, [processing]);
   useEffect(() => { awakeRef.current = awake; }, [awake]);
+  useEffect(() => { speakingRef.current = speaking; }, [speaking]);
 
   const speak = useCallback((text) => {
     if (!('speechSynthesis' in window)) return;
     window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 1.05;
-    utterance.pitch = 1;
-    window.speechSynthesis.speak(utterance);
+    setSpeaking(false);
+
+    // Small delay to let cancel take effect
+    setTimeout(() => {
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 1.05;
+      utterance.pitch = 1;
+      utterance.volume = 1;
+
+      // Pick a good English voice if available
+      const voices = voicesRef.current;
+      if (voices.length > 0) {
+        const preferred = voices.find(v => v.lang.startsWith('en') && /female|samantha|google|natural/i.test(v.name))
+          || voices.find(v => v.lang.startsWith('en'))
+          || voices[0];
+        if (preferred) utterance.voice = preferred;
+      }
+
+      utterance.onstart = () => setSpeaking(true);
+      utterance.onend = () => setSpeaking(false);
+      utterance.onerror = () => setSpeaking(false);
+
+      // Keep a ref so it doesn't get garbage collected mid-speech
+      utteranceRef.current = utterance;
+      window.speechSynthesis.speak(utterance);
+    }, 100);
+  }, []);
+
+  // Load voices (Chrome loads them asynchronously)
+  useEffect(() => {
+    if (!('speechSynthesis' in window)) return;
+    const loadVoices = () => {
+      const voices = window.speechSynthesis.getVoices();
+      if (voices.length > 0) voicesRef.current = voices;
+    };
+    loadVoices();
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+    return () => { window.speechSynthesis.onvoiceschanged = null; };
   }, []);
 
   const getOrCreateConversation = useCallback(async () => {
@@ -169,7 +208,7 @@ export default function VoiceAgent() {
     let shouldRestart = true;
 
     const startRecognition = () => {
-      if (!enabledRef.current || processingRef.current) return;
+      if (!enabledRef.current || processingRef.current || speakingRef.current) return;
       try {
         recognition.start();
         setListening(true);
@@ -216,8 +255,8 @@ export default function VoiceAgent() {
 
     recognition.onend = () => {
       setListening(false);
-      // Restart after a short delay if still enabled and not processing
-      if (shouldRestart && enabledRef.current && !processingRef.current) {
+      // Restart after a short delay if still enabled, not processing, and not speaking
+      if (shouldRestart && enabledRef.current && !processingRef.current && !speakingRef.current) {
         setTimeout(() => startRecognition(), 300);
       }
     };
@@ -227,7 +266,7 @@ export default function VoiceAgent() {
 
     // Watch for processing state changes to restart recognition when done
     const checkInterval = setInterval(() => {
-      if (enabledRef.current && !processingRef.current && !listening) {
+      if (enabledRef.current && !processingRef.current && !speakingRef.current && !listening) {
         startRecognition();
       }
     }, 1000);
@@ -298,7 +337,13 @@ export default function VoiceAgent() {
           <p className="text-xs text-muted-foreground truncate">{transcript}</p>
         </div>
       )}
-      {!processing && awake && (
+      {speaking && !awake && (
+        <div className="bg-primary text-primary-foreground rounded-full px-3 py-1.5 shadow-lg flex items-center gap-2">
+          <Volume2 className="w-3.5 h-3.5 animate-pulse" />
+          <p className="text-xs font-medium">Speaking...</p>
+        </div>
+      )}
+      {!processing && !speaking && awake && (
         <div className="bg-primary text-primary-foreground rounded-full px-3 py-1.5 shadow-lg">
           <p className="text-xs font-medium">🎤 Listening...</p>
         </div>
