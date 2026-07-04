@@ -266,7 +266,7 @@ export default function Home() {
             ) : (
               classes.map(c => (
                 <button key={c.id} onClick={() => setEditClass(c)}
-                  className="w-full flex items-center gap-3 rounded-xl border border-border bg-card p-4 hover:shadow-md transition-all text-left">
+                  className="w-full flex items-center gap-3 rounded-xl border border-border bg-card p-4 hover:shadow-2 hover:-translate-y-0.5 transition-all duration-micro text-left">
                   <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
                     style={{ backgroundColor: (c.color || '#3B82F6') + '20', color: c.color || '#3B82F6' }}>
                     <GraduationCap className="w-5 h-5" strokeWidth={1.5} />

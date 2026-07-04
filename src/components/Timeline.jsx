@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { MapPin, GraduationCap, Clock, Sparkles, Plus, Briefcase, Calendar, AlertCircle } from 'lucide-react';
+import EmptyTimeSuggestion from '@/components/EmptyTimeSuggestion';
 
 const eventTypeConfig = {
   class: { icon: GraduationCap, text: 'text-primary' },
@@ -92,6 +93,25 @@ export default function Timeline({ items, onAddEvent }) {
   const conflicts = findConflicts(items);
   const conflictingIds = new Set(conflicts.flat().map(i => i.id));
 
+  // Calculate free periods between consecutive events (gaps >= 30 min)
+  const sortedByStart = items
+    .map(it => {
+      const s = parseTime(it.time);
+      const e = parseTime(it.endTime) || (s != null ? s + 60 : null);
+      return { s, e };
+    })
+    .filter(p => p.s != null && p.e != null)
+    .sort((a, b) => a.s - b.s);
+
+  const gaps = [];
+  for (let i = 0; i < sortedByStart.length - 1; i++) {
+    const currentEnd = sortedByStart[i].e;
+    const nextStart = sortedByStart[i + 1].s;
+    if (nextStart - currentEnd >= 30) {
+      gaps.push({ start: currentEnd, end: nextStart, key: `gap-${i}` });
+    }
+  }
+
   const now = new Date();
   const nowMin = now.getHours() * 60 + now.getMinutes();
   const nowTop = ((nowMin - startMin) / 60) * HOUR_HEIGHT;
@@ -138,6 +158,17 @@ export default function Timeline({ items, onAddEvent }) {
         </div>
       )}
 
+      {/* Empty time suggestions — free period cards between events */}
+      {gaps.map(gap => (
+        <EmptyTimeSuggestion
+          key={gap.key}
+          gapStart={gap.start}
+          gapEnd={gap.end}
+          startMin={startMin}
+          hourHeight={HOUR_HEIGHT}
+        />
+      ))}
+
       {/* Event blocks */}
       {items.map((item) => {
         const start = parseTime(item.time);
@@ -153,7 +184,7 @@ export default function Timeline({ items, onAddEvent }) {
         const color = getPriorityColor(item);
         const isConflicting = conflictingIds.has(item.id);
 
-        const blockClass = `absolute rounded-lg border bg-card timeline-shadow transition-all overflow-hidden z-10 ${isConflicting ? 'border-rose-500/50 ring-1 ring-rose-500/30' : 'border-border'} ${item.dimmed ? 'opacity-40 grayscale' : ''}`;
+        const blockClass = `absolute rounded-lg border bg-card timeline-shadow transition-all duration-micro overflow-hidden z-10 hover:shadow-2 hover:-translate-y-0.5 ${isConflicting ? 'border-rose-500/50 ring-1 ring-rose-500/30' : 'border-border'} ${item.dimmed ? 'opacity-40 grayscale' : ''}`;
         const blockStyle = {
           top: top + 1,
           height,
