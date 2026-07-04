@@ -84,6 +84,29 @@ Focus on the most important topics. Higher-priority sessions should cover comple
       status: 'scheduled'
     }));
 
+    // Always add a review session the day before an exam or quiz
+    if (assignment.type === 'exam' || assignment.type === 'quiz') {
+      const reviewDate = new Date(dueDate);
+      reviewDate.setDate(reviewDate.getDate() - 1);
+      const reviewDateStr = reviewDate.toISOString().split('T')[0];
+      const hasReviewDay = sessionsToCreate.some(s => s.scheduled_date === reviewDateStr);
+      if (!hasReviewDay) {
+        sessionsToCreate.push({
+          assignment_id: assignment_id,
+          class_id: assignment.class_id,
+          scheduled_date: reviewDateStr,
+          scheduled_time: '19:00',
+          duration_minutes: 45,
+          priority: 'high',
+          status: 'scheduled',
+          notes: "Light review session \u2014 skim key concepts, don't go in depth."
+        });
+      } else {
+        const existing = sessionsToCreate.find(s => s.scheduled_date === reviewDateStr);
+        existing.notes = "Light review session \u2014 skim key concepts, don't go in depth.";
+      }
+    }
+
     if (sessionsToCreate.length > 0) {
       await base44.asServiceRole.entities.StudySession.bulkCreate(sessionsToCreate);
     }

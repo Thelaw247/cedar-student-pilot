@@ -43,6 +43,10 @@
       "default": "scheduled",
       "title": "Status"
     },
+    "notes": {
+      "type": "string",
+      "title": "Notes"
+    },
     "email_notified": {
       "type": "boolean",
       "default": false,

@@ -123,7 +123,13 @@ export default function StudyPlanner() {
                       <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded border uppercase ${priorityColors[s.priority] || priorityColors.medium}`}>
                         {s.priority}
                       </span>
+                      {s.notes && (
+                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
+                          Review
+                        </span>
+                      )}
                     </div>
+                    {s.notes && <p className="text-xs text-muted-foreground mt-1">{s.notes}</p>}
                     <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
                       <Calendar className="w-3 h-3" /> {s.scheduled_date}
                       {s.scheduled_time && <span>• {s.scheduled_time}</span>}
