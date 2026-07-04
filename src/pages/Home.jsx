@@ -5,6 +5,7 @@ import { Plus, Sun, Moon, GraduationCap, Clock, MapPin, ChevronRight } from 'luc
 import Timeline from '@/components/Timeline';
 import WeeklyCalendar from '@/components/WeeklyCalendar';
 import EditClassModal from '@/components/EditClassModal';
+import TodayIntelligenceCard from '@/components/TodayIntelligenceCard';
 
 function getTodayString() {
   return new Date().toISOString().split('T')[0];
@@ -24,19 +25,30 @@ export default function Home() {
   const [showAddEvent, setShowAddEvent] = useState(false);
   const [showAddClass, setShowAddClass] = useState(false);
   const [editClass, setEditClass] = useState(null);
+  const [assignments, setAssignments] = useState([]);
+  const [studySessions, setStudySessions] = useState([]);
+  const [examWeek, setExamWeek] = useState(false);
 
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
       const semesters = await base44.entities.Semester.filter({ is_active: true });
-      if (semesters.length > 0) {
-        setActiveSemester(semesters[0]);
-        const allClasses = await base44.entities.Class.filter({ semester_id: semesters[0].id });
-        setClasses(allClasses);
-      }
+      if (semesters.length > 0) setActiveSemester(semesters[0]);
       const today = getTodayString();
-      const todayEvents = await base44.entities.CalendarEvent.filter({ date: today });
+
+      const [allClasses, todayEvents, allAssignments, allSessions] = await Promise.all([
+        semesters.length > 0
+          ? base44.entities.Class.filter({ semester_id: semesters[0].id })
+          : Promise.resolve([]),
+        base44.entities.CalendarEvent.filter({ date: today }),
+        base44.entities.Assignment.list(),
+        base44.entities.StudySession.list(),
+      ]);
+
+      setClasses(allClasses);
       setEvents(todayEvents);
+      setAssignments(allAssignments);
+      setStudySessions(allSessions);
     } catch (e) {
       console.error(e);
     }
@@ -70,7 +82,22 @@ export default function Home() {
       notes: e.notes,
       color: e.color,
     })),
-  ].sort((a, b) => (a.time || '99:99').localeCompare(b.time || '99:99'));
+  ].sort((a, b) => {
+    const timeCompare = (a.time || '99:99').localeCompare(b.time || '99:99');
+    if (!examWeek || timeCompare !== 0) return timeCompare;
+    // During exam week, study blocks sort above custom/reminder events at the same time
+    const priority = (item) =>
+      item.type === 'study' ? 0
+        : (item.type === 'custom' || item.type === 'reminder') ? 2
+        : 1;
+    return priority(a) - priority(b);
+  }).map(item => {
+    // Dim low-priority events during exam week
+    if (examWeek && !item.classId && (item.type === 'custom' || item.type === 'reminder')) {
+      return { ...item, dimmed: true };
+    }
+    return item;
+  });
 
   if (loading) {
     return (
@@ -132,6 +159,13 @@ export default function Home() {
               <Plus className="w-4 h-4" /> Add Event
             </button>
           </div>
+          <TodayIntelligenceCard
+            todayClasses={todayClasses}
+            assignments={assignments}
+            studySessions={studySessions}
+            onExamWeekChange={setExamWeek}
+            onRecalculateComplete={loadData}
+          />
           <Timeline items={allItems} onAddEvent={() => setShowAddEvent(true)} />
         </div>
       )}

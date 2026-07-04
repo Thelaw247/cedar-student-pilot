@@ -110,7 +110,7 @@ export default function Timeline({ items, onAddEvent }) {
         const Icon = config.icon;
         const color = item.color || '#3B82F6';
 
-        const blockClass = "absolute rounded-lg border border-border bg-card shadow-sm hover:shadow-md transition-all overflow-hidden z-10";
+        const blockClass = `absolute rounded-lg border border-border bg-card shadow-sm hover:shadow-md transition-all overflow-hidden z-10 ${item.dimmed ? 'opacity-40 grayscale' : ''}`;
         const blockStyle = {
           top: top + 1,
           height,
