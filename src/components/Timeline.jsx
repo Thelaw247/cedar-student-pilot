@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 import { MapPin, GraduationCap, Clock, Sparkles, Plus, Briefcase, Calendar, AlertCircle } from 'lucide-react';
 
@@ -54,16 +54,6 @@ function findConflicts(items) {
 const HOUR_HEIGHT = 56;
 
 export default function Timeline({ items, onAddEvent }) {
-  const nowRef = useRef(null);
-
-  useEffect(() => {
-    if (nowRef.current) {
-      const t = setTimeout(() => {
-        nowRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }, 300);
-      return () => clearTimeout(t);
-    }
-  }, [items]);
   if (!items || items.length === 0) {
     return (
       <div className="rounded-xl border border-dashed border-border p-12 text-center">
@@ -143,7 +133,7 @@ export default function Timeline({ items, onAddEvent }) {
 
       {/* Now indicator dot — z-30, always visible above event blocks but below hour labels */}
       {showNow && (
-        <div ref={nowRef} className="absolute left-0 w-14 flex justify-end pr-2 pointer-events-none" style={{ top: nowTop, zIndex: 30 }}>
+        <div className="absolute left-0 w-14 flex justify-end pr-2 pointer-events-none" style={{ top: nowTop, zIndex: 30 }}>
           <div className="w-2 h-2 rounded-full bg-destructive"></div>
         </div>
       )}
