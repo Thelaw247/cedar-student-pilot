@@ -79,7 +79,15 @@ export default function WeekGroupedLectures({ lectures, coverageMap, allClassLec
           const cov = coverageMap?.[l.id];
           return getDecayState(cov, allClassLectures, l);
         });
-        const aggStateKey = getWorstState(states);
+        let aggStateKey = getWorstState(states);
+        // Only show "Reviewed" when every lecture in the week has been reviewed
+        const allReviewed = group.lectures.every(l => {
+          const cov = coverageMap?.[l.id];
+          return cov && cov.last_reviewed_date;
+        });
+        if (!allReviewed && aggStateKey === 'fresh') {
+          aggStateKey = 'unreviewed';
+        }
         const aggState = DECAY_STATES[aggStateKey];
 
         return (
