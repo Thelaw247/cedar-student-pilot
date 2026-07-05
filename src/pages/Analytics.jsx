@@ -282,8 +282,8 @@ export default function Analytics() {
         <div className="space-y-2">
           {records.slice(0, 15).map(r => (
             <div key={r.id} className="rounded-xl border border-border bg-card p-3 flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                <Headphones className="w-4 h-4 text-primary" />
+              <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${r.study_type === 'in_app' ? 'bg-primary/10' : 'bg-amber-500/10'}`}>
+                {r.study_type === 'in_app' ? <Brain className="w-4 h-4 text-primary" /> : <BookOpen className="w-4 h-4 text-amber-600" />}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate">
@@ -291,9 +291,15 @@ export default function Analytics() {
                 </p>
                 <p className="text-xs text-muted-foreground">
                   {new Date(r.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
-                  {r.mode && ` • ${r.mode === 'pomodoro' ? 'Pomodoro' : 'Simple'}`}
-                  {r.cycles_completed > 0 && ` • ${r.cycles_completed} cycles`}
+                  {r.study_mode && ` • ${r.study_mode === 'deep' ? 'Deep Study' : r.study_mode === 'sprint' ? 'Exam Sprint' : 'Lecture Review'}`}
+                  {r.study_type && ` • ${r.study_type === 'in_app' ? 'In-App' : 'Manual'}`}
                 </p>
+                {r.lectures_covered > 0 && (
+                  <p className="text-[10px] text-muted-foreground mt-0.5">
+                    {r.lectures_covered}/{r.total_lectures || r.lectures_covered} lectures covered
+                    {r.quiz_score != null && ` • Quiz: ${r.quiz_score}%`}
+                  </p>
+                )}
               </div>
               <p className="text-sm font-semibold tabular-nums">{formatDuration(r.duration_seconds)}</p>
             </div>

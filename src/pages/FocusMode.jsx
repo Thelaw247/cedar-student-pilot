@@ -1,11 +1,14 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { X, Music, Play, Pause, Square, Brain, Coffee, Check, BarChart3, Loader2, MessageCircle } from 'lucide-react';
 import MusicPlayer from '@/components/MusicPlayer';
 import AIStudyChat from '@/components/AIStudyChat';
 import SessionReview from '@/components/SessionReview';
 import LecturePickerSheet from '@/components/LecturePickerSheet';
+import StudyModeSelector from '@/components/StudyModeSelector';
+import HandbookReader from '@/components/HandbookReader';
+import ManualStudyGuide from '@/components/ManualStudyGuide';
 
 const STUDY_MODES = {
   deep: { goal: 90, study: 25, break: 5 },
@@ -16,6 +19,9 @@ const STUDY_MODES = {
 export default function FocusMode() {
   const { sessionId } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const lectureIdParam = searchParams.get('lectureId');
+  const classIdParam = searchParams.get('classId');
 
   const [mode, setMode] = useState('pomodoro');
   const [phase, setPhase] = useState('idle');
@@ -38,6 +44,14 @@ export default function FocusMode() {
   const [showPreReview, setShowPreReview] = useState(false);
   const [showLecturePicker, setShowLecturePicker] = useState(false);
   const [selectedLectureIds, setSelectedLectureIds] = useState([]);
+  const [showStudyModeSelector, setShowStudyModeSelector] = useState(false);
+  const [studyType, setStudyType] = useState(null); // 'in_app' | 'manual'
+  const [showHandbook, setShowHandbook] = useState(false);
+  const [showManualGuide, setShowManualGuide] = useState(false);
+  const [examAssignmentId, setExamAssignmentId] = useState(null);
+  const [quizResult, setQuizResult] = useState(null);
+  const [lecturesCovered, setLecturesCovered] = useState(0);
+  const [totalLectures, setTotalLectures] = useState(0);
 
   // Refs for timer tick (avoid stale closures)
   const phaseRef = useRef('idle');
@@ -60,15 +74,23 @@ export default function FocusMode() {
   const goalSeconds = GOAL_MINUTES * 60;
   const goalProgress = Math.min(studySeconds / goalSeconds, 1);
 
-  // Load session
+  // Load session or lecture context
   useEffect(() => {
     if (sessionId) {
       base44.entities.StudySession.get(sessionId).then(s => {
         setSession(s);
         if (s.class_id) base44.entities.Class.get(s.class_id).then(setCls);
       }).catch(() => {});
+    } else if (classIdParam) {
+      base44.entities.Class.get(classIdParam).then(setCls).catch(() => {});
     }
-  }, [sessionId]);
+    if (lectureIdParam) {
+      setSelectedLectureIds([lectureIdParam]);
+      setStudyMode('review');
+      // Auto-show study mode selector after class loads
+      setTimeout(() => setShowStudyModeSelector(true), 300);
+    }
+  }, [sessionId, classIdParam, lectureIdParam]);
 
   const speak = useCallback((text) => {
     window.dispatchEvent(new CustomEvent('cedar-speak', { detail: { text } }));
@@ -230,6 +252,13 @@ export default function FocusMode() {
         mode,
         cycles_completed: cycles,
         goal_minutes: GOAL_MINUTES,
+        study_type: studyType || 'manual',
+        study_mode: studyMode,
+        lectures_covered: lecturesCovered,
+        total_lectures: totalLectures,
+        quiz_score: quizResult?.pct,
+        quiz_questions_count: quizResult?.total,
+        topics_reviewed: selectedLectureIds.length > 0 ? selectedLectureIds : undefined,
       });
       setSavedRecordId(record.id);
       if (session && session.status === 'scheduled') {
@@ -408,11 +437,33 @@ export default function FocusMode() {
         </button>
       )}
 
-      {/* Study inside the app — lecture picker */}
-      {studyMode === 'review' && phase === 'idle' && session?.class_id && (
-        <button onClick={() => setShowLecturePicker(true)}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 text-primary border border-primary/30 text-sm font-medium hover:bg-primary/20 transition-colors mb-4">
-          <Brain className="w-4 h-4" /> Study Inside the App
+      {/* Start studying — choose method */}
+      {phase === 'idle' && (session?.class_id || cls?.id) && (
+        <button
+          onClick={async () => {
+            if (studyMode === 'review' && selectedLectureIds.length === 0) {
+              setShowLecturePicker(true);
+            } else if (studyMode === 'sprint') {
+              // Find next upcoming exam/quiz for this class
+              try {
+                const asgns = await base44.entities.Assignment.filter({ class_id: session?.class_id || cls?.id }, 'due_date');
+                const today = new Date().toISOString().split('T')[0];
+                const nextExam = asgns.find(a => (a.type === 'exam' || a.type === 'quiz') && a.due_date >= today);
+                setExamAssignmentId(nextExam?.id || null);
+                setShowStudyModeSelector(true);
+              } catch (e) {
+                setShowStudyModeSelector(true);
+              }
+            } else {
+              setShowStudyModeSelector(true);
+            }
+          }}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 text-primary border border-primary/30 text-sm font-medium hover:bg-primary/20 transition-colors mb-4"
+        >
+          <Brain className="w-4 h-4" />
+          {studyMode === 'review'
+            ? (selectedLectureIds.length > 0 ? `Study ${selectedLectureIds.length} Lecture${selectedLectureIds.length !== 1 ? 's' : ''}` : 'Select Lectures & Study')
+            : studyMode === 'sprint' ? 'Start Exam Sprint' : 'Start Deep Study'}
         </button>
       )}
 
@@ -552,9 +603,54 @@ export default function FocusMode() {
           onStart={(ids) => {
             setSelectedLectureIds(ids);
             setShowLecturePicker(false);
-            startStudying();
+            setShowStudyModeSelector(true);
           }}
           onClose={() => setShowLecturePicker(false)}
+        />
+      )}
+
+      {/* Study mode selector (in-app vs manual) */}
+      {showStudyModeSelector && (
+        <StudyModeSelector
+          onSelect={(type) => {
+            setStudyType(type);
+            setShowStudyModeSelector(false);
+            if (type === 'in_app') {
+              setShowHandbook(true);
+            } else {
+              setShowManualGuide(true);
+            }
+            startStudying();
+          }}
+          onClose={() => setShowStudyModeSelector(false)}
+        />
+      )}
+
+      {/* Handbook reader (in-app study) */}
+      {showHandbook && (session?.class_id || cls?.id) && (
+        <HandbookReader
+          classId={session?.class_id || cls?.id}
+          lectureIds={selectedLectureIds.length > 0 ? selectedLectureIds : undefined}
+          assignmentId={studyMode === 'sprint' ? examAssignmentId : undefined}
+          studyMode={studyMode}
+          onClose={() => setShowHandbook(false)}
+          onQuizComplete={(result) => {
+            setQuizResult(result);
+            setLecturesCovered(result.lecturesCovered || 0);
+            setTotalLectures(result.totalLectures || 0);
+          }}
+        />
+      )}
+
+      {/* Manual study guide (paper study) */}
+      {showManualGuide && (session?.class_id || cls?.id) && (
+        <ManualStudyGuide
+          classId={session?.class_id || cls?.id}
+          studyMode={studyMode}
+          lectureIds={selectedLectureIds.length > 0 ? selectedLectureIds : undefined}
+          assignmentId={studyMode === 'sprint' ? examAssignmentId : undefined}
+          onClose={() => setShowManualGuide(false)}
+          onLoad={(count) => setTotalLectures(count)}
         />
       )}
 

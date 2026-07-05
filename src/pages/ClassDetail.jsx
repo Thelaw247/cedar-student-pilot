@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { ChevronLeft, Plus, GraduationCap, Clock, MapPin, Mic, FileText, Loader2, Calendar, AlertCircle, Brain, Headphones, Pencil, AlertTriangle, Search, X } from 'lucide-react';
+import { ChevronLeft, Plus, GraduationCap, Clock, MapPin, Mic, FileText, Loader2, Calendar, AlertCircle, Brain, Headphones, Pencil, AlertTriangle, Search, X, BookOpen } from 'lucide-react';
 import EditClassModal from '@/components/EditClassModal';
 import WeekGroupedLectures from '@/components/WeekGroupedLectures';
 import ExamPredictionCard from '@/components/ExamPredictionCard';
+import HandbookReader from '@/components/HandbookReader';
 import { getSetting } from '@/lib/settings';
 
 export default function ClassDetail() {
@@ -67,10 +68,10 @@ export default function ClassDetail() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 border-b border-border mb-6">
-        {['lectures', 'assignments', 'study'].map(t => (
+      <div className="flex gap-1 border-b border-border mb-6 overflow-x-auto scrollbar-hide">
+        {['lectures', 'assignments', 'handbook', 'study'].map(t => (
           <button key={t} onClick={() => setTab(t)}
-            className={`px-4 py-2.5 text-sm font-medium capitalize border-b-2 transition-colors ${tab === t ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>
+            className={`px-4 py-2.5 text-sm font-medium capitalize border-b-2 transition-colors whitespace-nowrap ${tab === t ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>
             {t === 'study' ? 'Study Tools' : t}
           </button>
         ))}
@@ -81,6 +82,9 @@ export default function ClassDetail() {
       )}
       {tab === 'assignments' && (
         <AssignmentTab assignments={assignments} classId={classId} onUpdate={loadData} />
+      )}
+      {tab === 'handbook' && (
+        <HandbookTab cls={cls} lectures={lectures} />
       )}
       {tab === 'study' && (
         <div>
@@ -467,6 +471,58 @@ function StudyTab({ classId, cls, lectures, onUpdate }) {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function HandbookTab({ cls, lectures }) {
+  const [showReader, setShowReader] = useState(false);
+
+  const lecturesWithContent = lectures.filter(l => l.ai_summary || l.transcript || (l.ai_concepts && l.ai_concepts.length > 0));
+
+  return (
+    <div>
+      {/* Handbook preview card */}
+      <div className="rounded-2xl border border-border bg-card overflow-hidden mb-4">
+        <div className="p-6 text-center" style={{ backgroundColor: (cls.color || '#3B82F6') + '08' }}>
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-3"
+            style={{ backgroundColor: (cls.color || '#3B82F6') + '20' }}>
+            <BookOpen className="w-8 h-8" style={{ color: cls.color || '#3B82F6' }} strokeWidth={1.5} />
+          </div>
+          <h2 className="font-heading text-xl font-bold mb-1" style={{ color: cls.color || '#3B82F6' }}>{cls.name}</h2>
+          {cls.instructor && <p className="text-sm text-muted-foreground">by Prof. {cls.instructor}</p>}
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mt-2">Class Handbook</p>
+        </div>
+        <div className="p-4 border-t border-border">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-xs text-muted-foreground">{lecturesWithContent.length} chapter{lecturesWithContent.length !== 1 ? 's' : ''}</p>
+            <button onClick={() => setShowReader(true)} disabled={lecturesWithContent.length === 0}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50">
+              <BookOpen className="w-4 h-4" /> Open Handbook
+            </button>
+          </div>
+          {lecturesWithContent.length === 0 ? (
+            <p className="text-xs text-muted-foreground text-center py-4">No chapters yet. Record and process lectures to generate the handbook.</p>
+          ) : (
+            <div className="space-y-1">
+              {lecturesWithContent.slice(0, 5).map((lec, i) => (
+                <div key={i} className="flex items-center gap-2 text-xs">
+                  <span className="text-muted-foreground tabular-nums w-5">{String(i + 1).padStart(2, '0')}</span>
+                  <span className="text-foreground truncate flex-1">{lec.ai_title || `Lecture — ${lec.date}`}</span>
+                  <span className="text-muted-foreground">{lec.date}</span>
+                </div>
+              ))}
+              {lecturesWithContent.length > 5 && (
+                <p className="text-[10px] text-muted-foreground pl-5">+{lecturesWithContent.length - 5} more chapters...</p>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {showReader && (
+        <HandbookReader classId={cls.id} onClose={() => setShowReader(false)} />
+      )}
     </div>
   );
 }

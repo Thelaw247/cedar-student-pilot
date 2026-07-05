@@ -7,10 +7,11 @@ Deno.serve(async (req) => {
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await req.json();
-    const { lecture_ids, scope, quick_quiz } = body;
+    const { lecture_ids, scope, quick_quiz, question_count } = body;
     // scope: 'today' | 'week' | 'specific'
     // If lecture_ids provided, use those. Otherwise derive from scope.
-    // quick_quiz: if true, generate 5-7 harder questions focused on exam-likely material
+    // quick_quiz: if true, generate harder questions focused on exam-likely material
+    // question_count: optional override for number of questions
 
     let targetLectures = [];
 
@@ -73,7 +74,7 @@ ${transcriptSnippet}`;
     const className = cls?.name || (classIds.length > 1 ? 'multiple classes' : 'this class');
 
     const quickQuizMode = quick_quiz === true;
-    const questionCount = quickQuizMode ? '5-7' : '10';
+    const questionCount = question_count ? String(question_count) : (quickQuizMode ? '5-7' : '10');
     const difficultyInstruction = quickQuizMode
       ? `FOCUS: Generate ONLY the hardest, most exam-likely questions. Prioritize formulas, complex definitions, multi-step concepts, and topics explicitly flagged as exam material. Avoid easy recall questions — these should challenge a student who has already studied.`
       : `Mix question types: multiple choice (4 options), short answer, and one-word answers.`;

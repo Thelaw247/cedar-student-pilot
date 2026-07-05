@@ -30,6 +30,49 @@
     "goal_minutes": {
       "type": "number",
       "title": "Goal Minutes"
+    },
+    "study_type": {
+      "type": "string",
+      "enum": [
+        "in_app",
+        "manual"
+      ],
+      "default": "manual",
+      "title": "Study Type"
+    },
+    "study_mode": {
+      "type": "string",
+      "enum": [
+        "deep",
+        "sprint",
+        "review"
+      ],
+      "title": "Study Mode"
+    },
+    "lectures_covered": {
+      "type": "number",
+      "default": 0,
+      "title": "Lectures Covered"
+    },
+    "total_lectures": {
+      "type": "number",
+      "default": 0,
+      "title": "Total Lectures Available"
+    },
+    "quiz_score": {
+      "type": "number",
+      "title": "Quiz Score (0-100)"
+    },
+    "quiz_questions_count": {
+      "type": "number",
+      "title": "Quiz Question Count"
+    },
+    "topics_reviewed": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "title": "Topics Reviewed"
     }
   },
   "required": [
