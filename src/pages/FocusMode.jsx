@@ -5,6 +5,7 @@ import { X, Music, Play, Pause, Square, Brain, Coffee, Check, BarChart3, Loader2
 import MusicPlayer from '@/components/MusicPlayer';
 import AIStudyChat from '@/components/AIStudyChat';
 import SessionReview from '@/components/SessionReview';
+import LecturePickerSheet from '@/components/LecturePickerSheet';
 
 const STUDY_MODES = {
   deep: { goal: 90, study: 25, break: 5 },
@@ -35,6 +36,8 @@ export default function FocusMode() {
   const [savedRecordId, setSavedRecordId] = useState(null);
   const [studyMode, setStudyMode] = useState('deep');
   const [showPreReview, setShowPreReview] = useState(false);
+  const [showLecturePicker, setShowLecturePicker] = useState(false);
+  const [selectedLectureIds, setSelectedLectureIds] = useState([]);
 
   // Refs for timer tick (avoid stale closures)
   const phaseRef = useRef('idle');
@@ -405,11 +408,11 @@ export default function FocusMode() {
         </button>
       )}
 
-      {/* Lecture review button */}
+      {/* Study inside the app — lecture picker */}
       {studyMode === 'review' && phase === 'idle' && session?.class_id && (
-        <button onClick={() => setShowPreReview(true)}
+        <button onClick={() => setShowLecturePicker(true)}
           className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 text-primary border border-primary/30 text-sm font-medium hover:bg-primary/20 transition-colors mb-4">
-          <Brain className="w-4 h-4" /> Review a Lecture Now
+          <Brain className="w-4 h-4" /> Study Inside the App
         </button>
       )}
 
@@ -541,11 +544,26 @@ export default function FocusMode() {
         />
       )}
 
+      {/* Lecture picker sheet */}
+      {showLecturePicker && (
+        <LecturePickerSheet
+          classId={session?.class_id || cls?.id}
+          cls={cls}
+          onStart={(ids) => {
+            setSelectedLectureIds(ids);
+            setShowLecturePicker(false);
+            startStudying();
+          }}
+          onClose={() => setShowLecturePicker(false)}
+        />
+      )}
+
       {/* Full review flow */}
       {showReview && (
         <SessionReview
           classId={session?.class_id || cls?.id}
           className={cls?.name}
+          lectureIds={selectedLectureIds.length > 0 ? selectedLectureIds : undefined}
           studyRecordId={savedRecordId}
           aiInteractions={aiInteractions}
           onClose={() => navigate('/analytics')}

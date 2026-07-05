@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Loader2, X, Brain, Check, ChevronRight, Award, TrendingUp, BookOpen, Target } from 'lucide-react';
 
-export default function SessionReview({ classId, className, lectureId, studyRecordId, aiInteractions, onClose }) {
+export default function SessionReview({ classId, className, lectureId, lectureIds, studyRecordId, aiInteractions, onClose }) {
   const [phase, setPhase] = useState('loading'); // loading -> questions -> self_assessment -> results
   const [questions, setQuestions] = useState([]);
-  const [lectureIds, setLectureIds] = useState([]);
+  const [resolvedLectureIds, setResolvedLectureIds] = useState([]);
   const [selfAssessmentTopics, setSelfAssessmentTopics] = useState([]);
   const [answers, setAnswers] = useState({});
   const [selfRatings, setSelfRatings] = useState({});
@@ -22,11 +22,12 @@ export default function SessionReview({ classId, className, lectureId, studyReco
     setPhase('loading');
     try {
       const params = { class_id: classId };
-      if (lectureId) params.lecture_ids = [lectureId];
+      if (lectureIds && lectureIds.length > 0) params.lecture_ids = lectureIds;
+      else if (lectureId) params.lecture_ids = [lectureId];
       const res = await base44.functions.invoke('generateSessionReview', params);
       if (!res.data || res.data.error) throw new Error(res.data?.error || 'Failed to generate');
       setQuestions(res.data.review_questions || []);
-      setLectureIds(res.data.lecture_ids || (lectureId ? [lectureId] : []));
+      setResolvedLectureIds(res.data.lecture_ids || (lectureIds?.length > 0 ? lectureIds : (lectureId ? [lectureId] : [])));
       setSelfAssessmentTopics(res.data.self_assessment_topics || []);
       setPhase(res.data.review_questions?.length > 0 ? 'questions' : 'empty');
     } catch (e) {
@@ -86,7 +87,7 @@ Return JSON: { "is_correct": boolean, "reasoning": string }`,
 
       const res = await base44.functions.invoke('processSessionReview', {
         class_id: classId,
-        lecture_ids: lectureIds,
+        lecture_ids: resolvedLectureIds,
         review_questions: evaluatedQuestions,
         self_assessment: selfAssessment,
         ai_interactions: aiInteractions || [],

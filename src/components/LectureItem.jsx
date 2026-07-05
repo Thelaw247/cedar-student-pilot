@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { FileText, AlertCircle, Calendar, Check, UserCheck, ChevronDown, Loader2 } from 'lucide-react';
+import FreshnessBadge from '@/components/FreshnessBadge';
 
-export default function LectureItem({ lecture, defaultInstructor, onUpdate }) {
+export default function LectureItem({ lecture, defaultInstructor, onUpdate, decayState }) {
   const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
   const [instructor, setInstructor] = useState(lecture.actual_instructor || defaultInstructor || '');
@@ -53,6 +54,11 @@ export default function LectureItem({ lecture, defaultInstructor, onUpdate }) {
             {lecture.status === 'processing' && <span className="text-amber-600">• Processing...</span>}
             {lecture.is_ai_estimated && <span className="text-amber-600">• AI Estimated</span>}
           </div>
+          {decayState && (
+            <div className="mt-1.5">
+              <FreshnessBadge decayState={decayState} />
+            </div>
+          )}
         </div>
       </Link>
 

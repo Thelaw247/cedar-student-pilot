@@ -11,6 +11,7 @@ const DEFAULTS = {
   autoTranscribe: true,
   reviewTimes: [],
   learningMode: 'cumulative',
+  conceptDecayRate: 'default',
 };
 
 export function getSettings() {

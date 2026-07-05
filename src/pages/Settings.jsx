@@ -4,6 +4,7 @@ import { Sun, Moon, Bell, Sparkles, Clock, Palette, Calendar, Loader2, Check, Al
 import { getSetting, setSetting } from '@/lib/settings';
 import ReviewScheduleSection from '@/components/ReviewScheduleSection';
 import LearningModeToggle from '@/components/LearningModeToggle';
+import ConceptDecaySettings from '@/components/ConceptDecaySettings';
 import DataExportSection from '@/components/DataExportSection';
 
 export default function Settings() {
@@ -128,6 +129,7 @@ export default function Settings() {
 
       <SettingsSection icon={BookOpen} title="Learning Mode">
         <LearningModeToggle />
+        <ConceptDecaySettings />
       </SettingsSection>
 
       <SettingsSection icon={Clock} title="Recording">

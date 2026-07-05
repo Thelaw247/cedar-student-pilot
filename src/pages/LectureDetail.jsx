@@ -4,8 +4,9 @@ import { base44 } from '@/api/base44Client';
 import { fetchWithCache } from '@/hooks/useEntityData';
 import { cacheGet, cacheSet, invalidateEntity } from '@/lib/cache';
 import { enqueueOperation } from '@/lib/syncQueue';
-import { ChevronLeft, FileText, Clock, AlertCircle, Loader2, Tag, BookOpen, ListChecks, Lightbulb, Sparkles, Headphones, CloudOff } from 'lucide-react';
+import { ChevronLeft, FileText, Clock, AlertCircle, Loader2, Tag, BookOpen, ListChecks, Lightbulb, Sparkles, Headphones, CloudOff, Zap } from 'lucide-react';
 import TranscriptActions from '@/components/TranscriptActions';
+import InLectureQuiz from '@/components/InLectureQuiz';
 
 export default function LectureDetail() {
   const { lectureId } = useParams();
@@ -15,6 +16,7 @@ export default function LectureDetail() {
   const [noteId, setNoteId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [savingNote, setSavingNote] = useState(false);
+  const [showQuiz, setShowQuiz] = useState(false);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -95,10 +97,18 @@ export default function LectureDetail() {
         <Link to={cls ? `/classes/${cls.id}` : '/classes'} className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1">
           <ChevronLeft className="w-4 h-4" /> {cls?.name || 'Classes'}
         </Link>
-        <Link to="/focus"
-          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border text-xs font-medium text-foreground hover:bg-primary/5 hover:border-primary/30 transition-colors">
-          <Headphones className="w-3.5 h-3.5" /> Focus Mode
-        </Link>
+        <div className="flex items-center gap-2">
+          {lecture?.ai_summary && (
+            <button onClick={() => setShowQuiz(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors">
+              <Zap className="w-3.5 h-3.5" /> Quick Quiz
+            </button>
+          )}
+          <Link to="/focus"
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border text-xs font-medium text-foreground hover:bg-primary/5 hover:border-primary/30 transition-colors">
+            <Headphones className="w-3.5 h-3.5" /> Focus Mode
+          </Link>
+        </div>
       </div>
 
       {/* Header */}
@@ -225,6 +235,14 @@ export default function LectureDetail() {
           {!navigator.onLine && !savingNote && <CloudOff className="w-3.5 h-3.5" />}
         </button>
       </Section>
+      {/* In-lecture focus quiz */}
+      {showQuiz && lecture && (
+        <InLectureQuiz
+          lecture={lecture}
+          cls={cls}
+          onClose={() => { setShowQuiz(false); loadData(); }}
+        />
+      )}
     </div>
   );
 }

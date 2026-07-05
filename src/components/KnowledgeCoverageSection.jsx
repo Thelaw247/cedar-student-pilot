@@ -2,9 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Loader2, BookOpen, AlertCircle, CheckCircle2, Circle, ChevronRight, ChevronDown, Brain } from 'lucide-react';
 import SessionReview from '@/components/SessionReview';
+import FreshnessBadge from '@/components/FreshnessBadge';
+import { computeClassProficiency, getDecayState, daysSinceReview, DECAY_STATES } from '@/lib/conceptDecay';
 
 export default function KnowledgeCoverageSection({ classes }) {
   const [coverage, setCoverage] = useState([]);
+  const [lecturesByClass, setLecturesByClass] = useState({});
   const [loading, setLoading] = useState(true);
   const [expandedClass, setExpandedClass] = useState(null);
   const [reviewLecture, setReviewLecture] = useState(null);
@@ -12,11 +15,17 @@ export default function KnowledgeCoverageSection({ classes }) {
   const reloadCoverage = async () => {
     try {
       const allCoverage = [];
+      const lecMap = {};
       for (const c of classes) {
-        const cov = await base44.entities.KnowledgeCoverage.filter({ class_id: c.id });
+        const [cov, lecs] = await Promise.all([
+          base44.entities.KnowledgeCoverage.filter({ class_id: c.id }),
+          base44.entities.Lecture.filter({ class_id: c.id }, 'date'),
+        ]);
         allCoverage.push(...cov);
+        lecMap[c.id] = lecs;
       }
       setCoverage(allCoverage);
+      setLecturesByClass(lecMap);
     } catch (e) { console.error(e); }
   };
 
@@ -56,10 +65,23 @@ export default function KnowledgeCoverageSection({ classes }) {
   return (
     <div className="space-y-2 mb-8">
       {classEntries.map(({ class: cls, lectures }) => {
+        const classLectures = lecturesByClass[cls.id] || [];
+        const lecturesWithCoverage = lectures.map(kc => {
+          const lec = classLectures.find(l => l.id === kc.lecture_id);
+          return { lecture: lec || { id: kc.lecture_id, date: kc.last_reviewed_date || '' }, coverage: kc };
+        });
+        const decayResult = computeClassProficiency(lecturesWithCoverage, classLectures);
+        const proficiency = decayResult.proficiency;
+        const classDecayState = DECAY_STATES[decayResult.decayState] || DECAY_STATES.unreviewed;
+
         const totalSeen = [...new Set(lectures.flatMap(l => l.concepts_seen || []))].length;
         const totalMastered = [...new Set(lectures.flatMap(l => l.concepts_mastered || []))].length;
-        const proficiency = totalSeen > 0 ? Math.round((totalMastered / totalSeen) * 100) : 0;
         const isExpanded = expandedClass === cls.id;
+
+        // Find the most recent review date across all lectures
+        const reviewDates = lectures.map(l => l.last_reviewed_date).filter(Boolean).sort().reverse();
+        const lastReviewDate = reviewDates[0];
+        const daysSince = lastReviewDate ? daysSinceReview(lastReviewDate) : null;
 
         return (
           <div key={cls.id} className="rounded-xl border border-border bg-card overflow-hidden">
@@ -70,11 +92,17 @@ export default function KnowledgeCoverageSection({ classes }) {
               <div className="w-1 h-10 rounded-full" style={{ backgroundColor: cls.color || '#3B82F6' }} />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate">{cls.name}</p>
-                <p className="text-xs text-muted-foreground">{totalMastered}/{totalSeen} concepts mastered</p>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="text-xs text-muted-foreground">{totalMastered}/{totalSeen} concepts</p>
+                  <FreshnessBadge decayState={{ state: decayResult.decayState, ...classDecayState }} />
+                  {daysSince !== null && (
+                    <span className="text-[10px] text-muted-foreground">Last reviewed {daysSince}d ago</span>
+                  )}
+                </div>
               </div>
               <div className="text-right">
                 <p className="text-sm font-bold tabular-nums" style={{ color: cls.color }}>{proficiency}%</p>
-                <p className="text-[10px] text-muted-foreground">proficient</p>
+                <p className="text-[10px] text-muted-foreground">{decayResult.allOverdue ? 'needs review' : 'proficient'}</p>
               </div>
               {isExpanded ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
             </button>
@@ -93,9 +121,18 @@ export default function KnowledgeCoverageSection({ classes }) {
                         <div className="flex items-center gap-2">
                           <div className="w-2 h-2 rounded-full" style={{ backgroundColor: lecProf >= 70 ? '#10B981' : lecProf >= 40 ? '#F59E0B' : '#EF4444' }} />
                           <span className="text-xs font-medium">Lecture Session</span>
-                          {l.last_reviewed_date && (
-                            <span className="text-[10px] text-muted-foreground">• Reviewed {l.last_reviewed_date}</span>
-                          )}
+                          {(() => {
+                            const lecObj = classLectures.find(ll => ll.id === l.lecture_id);
+                            const decay = getDecayState(l, classLectures, lecObj || { id: l.lecture_id, date: l.last_reviewed_date || '' });
+                            return (
+                              <>
+                                <FreshnessBadge decayState={decay} />
+                                {decay.daysSinceReview !== null && (
+                                  <span className="text-[10px] text-muted-foreground">Last reviewed {decay.daysSinceReview}d ago</span>
+                                )}
+                              </>
+                            );
+                          })()}
                         </div>
                         <div className="flex items-center gap-2">
                           <button

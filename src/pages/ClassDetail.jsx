@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { ChevronLeft, Plus, GraduationCap, Clock, MapPin, Mic, FileText, Loader2, Calendar, AlertCircle, Brain, Headphones, Pencil, AlertTriangle, Search, X } from 'lucide-react';
 import EditClassModal from '@/components/EditClassModal';
-import LectureItem from '@/components/LectureItem';
+import WeekGroupedLectures from '@/components/WeekGroupedLectures';
 import ExamPredictionCard from '@/components/ExamPredictionCard';
 import { getSetting } from '@/lib/settings';
 
@@ -12,6 +12,7 @@ export default function ClassDetail() {
   const [cls, setCls] = useState(null);
   const [lectures, setLectures] = useState([]);
   const [assignments, setAssignments] = useState([]);
+  const [coverage, setCoverage] = useState([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState('lectures');
   const [showEdit, setShowEdit] = useState(false);
@@ -21,10 +22,14 @@ export default function ClassDetail() {
     try {
       const c = await base44.entities.Class.get(classId);
       setCls(c);
-      const lecs = await base44.entities.Lecture.filter({ class_id: classId }, '-date');
+      const [lecs, asgns, covs] = await Promise.all([
+        base44.entities.Lecture.filter({ class_id: classId }, '-date'),
+        base44.entities.Assignment.filter({ class_id: classId }, 'due_date'),
+        base44.entities.KnowledgeCoverage.filter({ class_id: classId }),
+      ]);
       setLectures(lecs);
-      const asgns = await base44.entities.Assignment.filter({ class_id: classId }, 'due_date');
       setAssignments(asgns);
+      setCoverage(covs);
     } catch (e) { console.error(e); }
     setLoading(false);
   }, [classId]);
@@ -72,7 +77,7 @@ export default function ClassDetail() {
       </div>
 
       {tab === 'lectures' && (
-        <LectureTab lectures={lectures} classId={classId} cls={cls} onUpdate={loadData} />
+        <LectureTab lectures={lectures} coverage={coverage} classId={classId} cls={cls} onUpdate={loadData} />
       )}
       {tab === 'assignments' && (
         <AssignmentTab assignments={assignments} classId={classId} onUpdate={loadData} />
@@ -91,9 +96,18 @@ export default function ClassDetail() {
   );
 }
 
-function LectureTab({ lectures, classId, cls, onUpdate }) {
+function LectureTab({ lectures, coverage, classId, cls, onUpdate }) {
   const [showRecord, setShowRecord] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Build coverage map: lectureId → coverage record
+  const coverageMap = (() => {
+    const map = {};
+    for (const c of coverage) {
+      if (c.lecture_id) map[c.lecture_id] = c;
+    }
+    return map;
+  })();
 
   const filteredLectures = (() => {
     if (!searchQuery.trim()) return lectures;
@@ -110,8 +124,6 @@ function LectureTab({ lectures, classId, cls, onUpdate }) {
       return fields.some(f => f.toLowerCase().includes(q));
     });
   })();
-
-  const hasContent = lectures.some(l => l.transcript || l.ai_summary);
 
   return (
     <div>
@@ -158,11 +170,15 @@ function LectureTab({ lectures, classId, cls, onUpdate }) {
           <p className="text-sm text-muted-foreground">No lectures match "{searchQuery}"</p>
         </div>
       ) : (
-        <div className="space-y-2">
-          {filteredLectures.map(l => (
-            <LectureItem key={l.id} lecture={l} defaultInstructor={cls?.instructor} onUpdate={onUpdate} />
-          ))}
-        </div>
+        <WeekGroupedLectures
+          lectures={filteredLectures}
+          coverageMap={coverageMap}
+          allClassLectures={lectures}
+          cls={cls}
+          defaultInstructor={cls?.instructor}
+          onUpdate={onUpdate}
+          searchQuery={searchQuery}
+        />
       )}
 
       {showRecord && <RecordModal classId={classId} cls={cls} onClose={() => { setShowRecord(false); onUpdate(); }} />}

@@ -7,9 +7,10 @@ Deno.serve(async (req) => {
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await req.json();
-    const { lecture_ids, scope } = body;
+    const { lecture_ids, scope, quick_quiz } = body;
     // scope: 'today' | 'week' | 'specific'
     // If lecture_ids provided, use those. Otherwise derive from scope.
+    // quick_quiz: if true, generate 5-7 harder questions focused on exam-likely material
 
     let targetLectures = [];
 
@@ -71,19 +72,25 @@ ${transcriptSnippet}`;
 
     const className = cls?.name || (classIds.length > 1 ? 'multiple classes' : 'this class');
 
+    const quickQuizMode = quick_quiz === true;
+    const questionCount = quickQuizMode ? '5-7' : '10';
+    const difficultyInstruction = quickQuizMode
+      ? `FOCUS: Generate ONLY the hardest, most exam-likely questions. Prioritize formulas, complex definitions, multi-step concepts, and topics explicitly flagged as exam material. Avoid easy recall questions — these should challenge a student who has already studied.`
+      : `Mix question types: multiple choice (4 options), short answer, and one-word answers.`;
+
     const result = await base44.asServiceRole.integrations.Core.InvokeLLM({
       prompt: `You are an academic tutor creating a review quiz that follows the EXACT teaching flow the professor used across ${sorted.length} lecture(s) for "${className}".
 
 CRITICAL: The questions MUST follow the chronological order of how topics were taught. Start with what the professor discussed FIRST in the earliest lecture, and progress through to what was discussed LAST in the most recent lecture. This creates a natural review flow that mirrors the actual learning sequence.
 
-Generate 10 review questions that trace the teaching flow:
+Generate ${questionCount} review questions that trace the teaching flow:
 - The first 1-2 questions should cover topics from the BEGINNING of the earliest lecture
 - Middle questions should cover topics in the order they were introduced across lectures
 - The last 1-2 questions should cover topics from the END of the most recent lecture
 
 For each question, include a "lecture_index" (1-based) and "flow_position" ("start", "middle", or "end") indicating where in the teaching flow this topic appeared.
 
-Mix question types: multiple choice (4 options), short answer, and one-word answers.
+${difficultyInstruction}
 
 Also generate a "teaching_flow" array that lists the major topics in the order they were taught across all lectures.
 
