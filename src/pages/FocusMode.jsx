@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { X, Music, Play, Pause, Square, Brain, Coffee, Check, BarChart3, Loader2, MessageCircle } from 'lucide-react';
+import { X, Music, Play, Pause, Square, Brain, Coffee, Check, BarChart3, Loader2, MessageCircle, Clock } from 'lucide-react';
 import MusicPlayer from '@/components/MusicPlayer';
 import AIStudyChat from '@/components/AIStudyChat';
 import SessionReview from '@/components/SessionReview';
@@ -9,6 +9,7 @@ import LecturePickerSheet from '@/components/LecturePickerSheet';
 import StudyModeSelector from '@/components/StudyModeSelector';
 import HandbookReader from '@/components/HandbookReader';
 import ManualStudyGuide from '@/components/ManualStudyGuide';
+import ProjectSessionEndModal from '@/components/ProjectSessionEndModal';
 
 const STUDY_MODES = {
   deep: { goal: 90, study: 25, break: 5 },
@@ -52,6 +53,8 @@ export default function FocusMode() {
   const [quizResult, setQuizResult] = useState(null);
   const [lecturesCovered, setLecturesCovered] = useState(0);
   const [totalLectures, setTotalLectures] = useState(0);
+  const [isProjectSession, setIsProjectSession] = useState(false);
+  const [projectAssignment, setProjectAssignment] = useState(null);
 
   // Refs for timer tick (avoid stale closures)
   const phaseRef = useRef('idle');
@@ -80,6 +83,12 @@ export default function FocusMode() {
       base44.entities.StudySession.get(sessionId).then(s => {
         setSession(s);
         if (s.class_id) base44.entities.Class.get(s.class_id).then(setCls);
+        if (s.session_type === 'project') {
+          setIsProjectSession(true);
+          if (s.assignment_id) {
+            base44.entities.Assignment.get(s.assignment_id).then(setProjectAssignment).catch(() => {});
+          }
+        }
       }).catch(() => {});
     } else if (classIdParam) {
       base44.entities.Class.get(classIdParam).then(setCls).catch(() => {});
@@ -264,7 +273,11 @@ export default function FocusMode() {
       if (session && session.status === 'scheduled') {
         await base44.entities.StudySession.update(session.id, { status: 'completed' });
       }
-      setPhase('review_prompt');
+      if (isProjectSession) {
+        setPhase('project_end');
+      } else {
+        setPhase('review_prompt');
+      }
     } catch (e) {
       setSaving(false);
       alert('Could not save your session. Please try again.');
@@ -342,8 +355,8 @@ export default function FocusMode() {
         {session ? 'Study Session' : 'Focus Session'}
       </p>
 
-      {/* Study mode selector */}
-      {phase === 'idle' && (
+      {/* Study mode selector — hidden for project sessions */}
+      {phase === 'idle' && !isProjectSession && (
         <div className="flex gap-1 mb-6 bg-muted rounded-lg p-1">
           {Object.entries(STUDY_MODES).map(([key]) => (
             <button key={key} onClick={() => handleStudyModeChange(key)}
@@ -353,6 +366,29 @@ export default function FocusMode() {
           ))}
         </div>
       )}
+
+      {/* Project step info — shown for project sessions */}
+      {phase === 'idle' && isProjectSession && projectAssignment && (() => {
+        const stepIdx = session?.roadmap_step_index;
+        const step = (stepIdx !== undefined && stepIdx !== null && stepIdx >= 0 && projectAssignment.roadmap?.[stepIdx]) || null;
+        if (!step) return (
+          <div className="text-center mb-6">
+            <p className="text-sm text-muted-foreground">Additional project work session</p>
+          </div>
+        );
+        return (
+          <div className="text-center mb-6 max-w-sm">
+            <p className="text-[10px] text-primary font-semibold uppercase tracking-widest mb-1">
+              Step {(stepIdx || 0) + 1} of {projectAssignment.roadmap?.length || 0}
+            </p>
+            <h3 className="font-heading text-lg font-semibold mb-1">{step.title}</h3>
+            <p className="text-sm text-muted-foreground mb-2">{step.description}</p>
+            <p className="text-xs text-muted-foreground flex items-center justify-center gap-1">
+              <Clock className="w-3 h-3" /> Est. {step.estimated_minutes || 60} min
+            </p>
+          </div>
+        );
+      })()}
 
       {/* Mode toggle */}
       {showModeToggle && (
@@ -437,8 +473,16 @@ export default function FocusMode() {
         </button>
       )}
 
+      {/* Start working — project session */}
+      {phase === 'idle' && isProjectSession && (
+        <button onClick={startStudying}
+          className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors mb-4">
+          <Play className="w-4 h-4" fill="currentColor" /> Start Working
+        </button>
+      )}
+
       {/* Start studying — choose method */}
-      {phase === 'idle' && (session?.class_id || cls?.id) && (
+      {phase === 'idle' && !isProjectSession && (session?.class_id || cls?.id) && (
         <button
           onClick={async () => {
             if (studyMode === 'review' && selectedLectureIds.length === 0) {
@@ -651,6 +695,14 @@ export default function FocusMode() {
           assignmentId={studyMode === 'sprint' ? examAssignmentId : undefined}
           onClose={() => setShowManualGuide(false)}
           onLoad={(count) => setTotalLectures(count)}
+        />
+      )}
+
+      {/* Project session end — ask if more time needed */}
+      {phase === 'project_end' && (
+        <ProjectSessionEndModal
+          assignmentId={session?.assignment_id}
+          onClose={() => navigate('/planner')}
         />
       )}
 

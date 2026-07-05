@@ -43,6 +43,33 @@
     "lecture_range_end": {
       "type": "string",
       "title": "Lecture Range End"
+    },
+    "description": {
+      "type": "string",
+      "title": "Project Description"
+    },
+    "project_metadata": {
+      "type": "object",
+      "additionalProperties": true,
+      "title": "Project Metadata"
+    },
+    "roadmap": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "estimated_minutes": {
+            "type": "number"
+          }
+        }
+      },
+      "title": "Project Roadmap"
     }
   },
   "required": [

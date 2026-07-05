@@ -51,6 +51,19 @@
       "type": "boolean",
       "default": false,
       "title": "Email Notified"
+    },
+    "session_type": {
+      "type": "string",
+      "enum": [
+        "study",
+        "project"
+      ],
+      "default": "study",
+      "title": "Session Type"
+    },
+    "roadmap_step_index": {
+      "type": "number",
+      "title": "Roadmap Step Index"
     }
   },
   "required": [

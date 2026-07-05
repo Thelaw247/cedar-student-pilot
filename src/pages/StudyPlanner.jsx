@@ -90,7 +90,12 @@ export default function StudyPlanner() {
                 <div key={a.id} className="flex items-center gap-3 rounded-xl border border-border bg-card p-3">
                   <div className="w-1 h-10 rounded-full" style={{ backgroundColor: cls?.color || '#3B82F6' }}></div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-sm font-medium text-foreground truncate">{a.title}</h3>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-sm font-medium text-foreground truncate">{a.title}</h3>
+                      {a.type === 'project' && (
+                        <span className="text-[9px] font-semibold px-1 py-0.5 rounded bg-purple-500/10 text-purple-600 uppercase flex-shrink-0">Project</span>
+                      )}
+                    </div>
                     <p className="text-xs text-muted-foreground">{cls?.name} • Due {a.due_date}</p>
                   </div>
                   <span className={`text-xs font-semibold px-2 py-1 rounded-md ${daysUntil <= 3 ? 'bg-rose-500/10 text-rose-600' : 'bg-muted text-muted-foreground'}`}>
@@ -129,11 +134,17 @@ export default function StudyPlanner() {
                   </button>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="text-sm font-medium text-foreground">{assignment?.title || 'Study Session'}</h3>
+                      <h3 className="text-sm font-medium text-foreground">
+                        {s.session_type === 'project' ? (s.notes || assignment?.title || 'Project Session') : (assignment?.title || 'Study Session')}
+                      </h3>
                       <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded border uppercase ${priorityColors[s.priority] || priorityColors.medium}`}>
                         {s.priority}
                       </span>
-                      {s.notes && (
+                      {s.session_type === 'project' ? (
+                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-600 border border-purple-500/20">
+                          Project
+                        </span>
+                      ) : s.notes && (
                         <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
                           Review
                         </span>

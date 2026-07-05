@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { ChevronLeft, Plus, GraduationCap, Clock, MapPin, Mic, FileText, Loader2, Calendar, AlertCircle, Brain, Headphones, Pencil, AlertTriangle, Search, X, BookOpen } from 'lucide-react';
+import { ChevronLeft, Plus, GraduationCap, Clock, MapPin, Mic, FileText, Loader2, Calendar, AlertCircle, Brain, Headphones, Pencil, AlertTriangle, Search, X, BookOpen, FolderPlus } from 'lucide-react';
 import EditClassModal from '@/components/EditClassModal';
+import ProjectAssignmentModal from '@/components/ProjectAssignmentModal';
 import WeekGroupedLectures from '@/components/WeekGroupedLectures';
 import ExamPredictionCard from '@/components/ExamPredictionCard';
 import HandbookReader from '@/components/HandbookReader';
@@ -81,7 +82,7 @@ export default function ClassDetail() {
         <LectureTab lectures={lectures} coverage={coverage} classId={classId} cls={cls} onUpdate={loadData} />
       )}
       {tab === 'assignments' && (
-        <AssignmentTab assignments={assignments} classId={classId} onUpdate={loadData} />
+        <AssignmentTab assignments={assignments} classId={classId} cls={cls} onUpdate={loadData} />
       )}
       {tab === 'handbook' && (
         <HandbookTab cls={cls} lectures={lectures} />
@@ -373,8 +374,9 @@ function RecordModal({ classId, onClose }) {
   );
 }
 
-function AssignmentTab({ assignments, classId, onUpdate }) {
+function AssignmentTab({ assignments, classId, cls, onUpdate }) {
   const [showAdd, setShowAdd] = useState(false);
+  const [showProject, setShowProject] = useState(false);
 
   const typeColors = {
     exam: 'bg-rose-500/10 text-rose-600',
@@ -387,9 +389,14 @@ function AssignmentTab({ assignments, classId, onUpdate }) {
     <div>
       <div className="flex items-center justify-between mb-4">
         <p className="text-sm text-muted-foreground">{assignments.length} assignment{assignments.length !== 1 ? 's' : ''}</p>
-        <button onClick={() => setShowAdd(true)} className="inline-flex items-center gap-1.5 bg-primary text-primary-foreground px-3 py-2 rounded-lg text-sm font-medium hover:bg-primary/90">
-          <Plus className="w-4 h-4" /> Add
-        </button>
+        <div className="flex gap-2">
+          <button onClick={() => setShowAdd(true)} className="inline-flex items-center gap-1.5 bg-primary text-primary-foreground px-3 py-2 rounded-lg text-sm font-medium hover:bg-primary/90">
+            <Plus className="w-4 h-4" /> Add
+          </button>
+          <button onClick={() => setShowProject(true)} className="inline-flex items-center gap-1.5 border border-border px-3 py-2 rounded-lg text-sm font-medium text-foreground hover:bg-primary/5 hover:border-primary/30 transition-colors">
+            <FolderPlus className="w-4 h-4" /> Project
+          </button>
+        </div>
       </div>
 
       {assignments.length === 0 ? (
@@ -402,9 +409,15 @@ function AssignmentTab({ assignments, classId, onUpdate }) {
           {assignments.map(a => (
             <div key={a.id} className="rounded-xl border border-border bg-card p-4">
               <div className="flex items-start justify-between gap-2">
-                <div>
+                <div className="flex-1 min-w-0">
                   <h3 className="text-sm font-medium text-foreground">{a.title}</h3>
                   <p className="text-xs text-muted-foreground mt-0.5">Due {a.due_date}</p>
+                  {a.type === 'project' && a.description && (
+                    <p className="text-xs text-muted-foreground mt-1.5 line-clamp-2">{a.description}</p>
+                  )}
+                  {a.type === 'project' && a.roadmap && a.roadmap.length > 0 && (
+                    <p className="text-[10px] text-primary mt-1 font-medium">{a.roadmap.length}-step roadmap</p>
+                  )}
                 </div>
                 <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-md uppercase ${typeColors[a.type]}`}>{a.type}</span>
               </div>
@@ -414,6 +427,7 @@ function AssignmentTab({ assignments, classId, onUpdate }) {
       )}
 
       {showAdd && <AddAssignmentModal classId={classId} onClose={() => { setShowAdd(false); onUpdate(); }} />}
+      {showProject && <ProjectAssignmentModal classId={classId} className={cls?.name} onClose={() => { setShowProject(false); onUpdate(); }} />}
     </div>
   );
 }
