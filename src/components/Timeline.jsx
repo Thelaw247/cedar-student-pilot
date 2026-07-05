@@ -166,6 +166,7 @@ export default function Timeline({ items, onAddEvent }) {
           gapEnd={gap.end}
           startMin={startMin}
           hourHeight={HOUR_HEIGHT}
+          nowMin={nowMin}
         />
       ))}
 

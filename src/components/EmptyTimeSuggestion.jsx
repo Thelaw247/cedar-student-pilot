@@ -8,7 +8,10 @@ const SUGGESTIONS = [
   { icon: Sparkles, text: 'Start a study session', link: '/focus', color: 'text-purple-500' },
 ];
 
-export default function EmptyTimeSuggestion({ gapStart, gapEnd, startMin, hourHeight }) {
+export default function EmptyTimeSuggestion({ gapStart, gapEnd, startMin, hourHeight, nowMin }) {
+  // Only show suggestions for time slots that haven't passed yet
+  if (nowMin != null && gapEnd <= nowMin) return null;
+
   const top = ((gapStart - startMin) / 60) * hourHeight;
   const height = ((gapEnd - gapStart) / 60) * hourHeight;
   const gapMinutes = gapEnd - gapStart;
