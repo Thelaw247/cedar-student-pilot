@@ -55,34 +55,31 @@ function findConflicts(items) {
 const HOUR_HEIGHT = 56;
 
 export default function Timeline({ items, onAddEvent }) {
-  if (!items || items.length === 0) {
-    return (
-      <div className="rounded-xl border border-dashed border-border p-12 text-center">
-        <Clock className="w-8 h-8 text-muted-foreground mx-auto mb-3" strokeWidth={1.5} />
-        <p className="text-sm text-muted-foreground">No events scheduled for today.</p>
-        {onAddEvent && (
-          <button onClick={onAddEvent} className="text-sm text-primary font-medium mt-2 hover:underline">
-            Add your first event
-          </button>
-        )}
-      </div>
-    );
-  }
+  const hasEvents = items && items.length > 0;
 
-  // Dynamically collapse the range from the first event to the last event
-  const eventTimes = items.map(it => {
+  // Parse event times
+  const eventTimes = hasEvents ? items.map(it => {
     const s = parseTime(it.time);
     const e = parseTime(it.endTime) || (s != null ? s + 60 : null);
     return { s, e };
-  }).filter(t => t.s != null);
+  }).filter(t => t.s != null) : [];
 
-  let startMin = 0;
-  let endMin = 24 * 60;
+  // Default to a standard day view (8am–10pm); expand if events extend beyond
+  let startMin = 8 * 60;
+  let endMin = 22 * 60;
   if (eventTimes.length > 0) {
     const earliest = Math.min(...eventTimes.map(t => t.s));
     const latest = Math.max(...eventTimes.map(t => t.e || t.s + 60));
-    startMin = Math.floor(earliest / 60) * 60;
-    endMin = Math.ceil(latest / 60) * 60;
+    startMin = Math.min(startMin, Math.floor(earliest / 60) * 60);
+    endMin = Math.max(endMin, Math.ceil(latest / 60) * 60);
+  }
+
+  const now = new Date();
+  const nowMin = now.getHours() * 60 + now.getMinutes();
+
+  // If all events have passed, extend the timeline so there's room to add new events
+  if (nowMin >= endMin) {
+    endMin = Math.min(24 * 60, Math.ceil((nowMin + 180) / 60) * 60);
   }
 
   const totalHeight = ((endMin - startMin) / 60) * HOUR_HEIGHT;
@@ -90,11 +87,11 @@ export default function Timeline({ items, onAddEvent }) {
   const hours = [];
   for (let m = startMin; m <= endMin; m += 60) hours.push(m);
 
-  const conflicts = findConflicts(items);
+  const conflicts = findConflicts(items || []);
   const conflictingIds = new Set(conflicts.flat().map(i => i.id));
 
   // Calculate free periods between consecutive events (gaps >= 30 min)
-  const sortedByStart = items
+  const sortedByStart = (items || [])
     .map(it => {
       const s = parseTime(it.time);
       const e = parseTime(it.endTime) || (s != null ? s + 60 : null);
@@ -112,8 +109,14 @@ export default function Timeline({ items, onAddEvent }) {
     }
   }
 
-  const now = new Date();
-  const nowMin = now.getHours() * 60 + now.getMinutes();
+  // Add trailing free time after the last event
+  if (sortedByStart.length > 0) {
+    const lastEnd = sortedByStart[sortedByStart.length - 1].e;
+    if (endMin - lastEnd >= 30) {
+      gaps.push({ start: lastEnd, end: endMin, key: 'gap-trailing' });
+    }
+  }
+
   const nowTop = ((nowMin - startMin) / 60) * HOUR_HEIGHT;
   const showNow = nowMin >= startMin && nowMin <= endMin;
 
@@ -171,7 +174,7 @@ export default function Timeline({ items, onAddEvent }) {
       ))}
 
       {/* Event blocks */}
-      {items.map((item) => {
+      {(items || []).map((item) => {
         const start = parseTime(item.time);
         const end = parseTime(item.endTime) || (start != null ? start + 60 : null);
         if (start == null) return null;
@@ -230,6 +233,21 @@ export default function Timeline({ items, onAddEvent }) {
           </div>
         );
       })}
+
+      {/* No events prompt */}
+      {!hasEvents && (
+        <div className="absolute top-0 bottom-0 flex items-center justify-center" style={{ left: '60px', right: '4px' }}>
+          <div className="text-center">
+            <Clock className="w-8 h-8 text-muted-foreground mx-auto mb-2" strokeWidth={1.5} />
+            <p className="text-sm text-muted-foreground mb-1">No events scheduled for today.</p>
+            {onAddEvent && (
+              <button onClick={onAddEvent} className="text-sm text-primary font-medium hover:underline">
+                Add your first event
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </div>
     </div>
   );
