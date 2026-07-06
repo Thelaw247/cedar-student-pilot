@@ -134,28 +134,42 @@ export default function StudyPlanner() {
                   </button>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="text-sm font-medium text-foreground">
+                      <h3 className="text-base font-semibold text-foreground">
                         {s.session_type === 'project' ? (s.notes || assignment?.title || 'Project Session') : (assignment?.title || 'Study Session')}
                       </h3>
-                      <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded border uppercase ${priorityColors[s.priority] || priorityColors.medium}`}>
+                      <span className={`text-[11px] font-semibold px-2 py-0.5 rounded border uppercase ${priorityColors[s.priority] || priorityColors.medium}`}>
                         {s.priority}
                       </span>
                       {s.session_type === 'project' ? (
-                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-600 border border-purple-500/20">
+                        <span className="text-[11px] font-medium px-2 py-0.5 rounded bg-purple-500/10 text-purple-600 border border-purple-500/20">
                           Project
                         </span>
                       ) : s.notes && (
-                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
+                        <span className="text-[11px] font-medium px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
                           Review
                         </span>
                       )}
                     </div>
-                    {s.notes && <p className="text-xs text-muted-foreground mt-1">{s.notes}</p>}
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-                      <Calendar className="w-3 h-3" /> {s.scheduled_date}
-                      {s.scheduled_time && <span>• {s.scheduled_time}</span>}
-                      {s.duration_minutes && <span>• {s.duration_minutes} min</span>}
-                      {cls && <span>• {cls.name}</span>}
+                    {s.notes && <p className="text-sm text-muted-foreground mt-1.5">{s.notes}</p>}
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground mt-2">
+                      {cls && (
+                        <span className="inline-flex items-center gap-1 font-medium text-foreground/80">
+                          <GraduationCap className="w-3.5 h-3.5" /> {cls.name}
+                        </span>
+                      )}
+                      <span className="inline-flex items-center gap-1">
+                        <Calendar className="w-3.5 h-3.5" /> {s.scheduled_date}
+                      </span>
+                      {s.scheduled_time && (
+                        <span className="inline-flex items-center gap-1">
+                          <Clock className="w-3.5 h-3.5" /> {s.scheduled_time}
+                        </span>
+                      )}
+                      {s.duration_minutes && (
+                        <span className="inline-flex items-center gap-1">
+                          <Headphones className="w-3.5 h-3.5" /> {s.duration_minutes} min
+                        </span>
+                      )}
                     </div>
                   </div>
                   {s.status === 'scheduled' && (
