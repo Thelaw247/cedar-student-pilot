@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import BottomNav from './BottomNav';
-import VoiceAgent from './VoiceAgent';
+import FloatingChat from './FloatingChat';
 import StudySessionNotifier from './StudySessionNotifier';
 import OfflineIndicator from './OfflineIndicator';
 import CommandPalette from './CommandPalette';
@@ -42,7 +42,7 @@ export default function Layout() {
         </main>
         <BottomNav />
       </div>
-      <VoiceAgent />
+      <FloatingChat />
       <StudySessionNotifier />
       <OfflineIndicator />
       <CommandPalette />

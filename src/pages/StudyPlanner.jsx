@@ -151,23 +151,21 @@ export default function StudyPlanner() {
                       )}
                     </div>
                     {s.notes && <p className="text-sm text-muted-foreground mt-1.5">{s.notes}</p>}
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground mt-2">
-                      {cls && (
-                        <span className="inline-flex items-center gap-1 font-medium text-foreground/80">
-                          <GraduationCap className="w-3.5 h-3.5" /> {cls.name}
-                        </span>
-                      )}
-                      <span className="inline-flex items-center gap-1">
-                        <Calendar className="w-3.5 h-3.5" /> {s.scheduled_date}
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm text-muted-foreground mt-2">
+                      <span className="inline-flex items-center gap-1.5">
+                        <GraduationCap className="w-3.5 h-3.5 flex-shrink-0" /> {cls?.name || '—'}
+                      </span>
+                      <span className="inline-flex items-center gap-1.5">
+                        <Calendar className="w-3.5 h-3.5 flex-shrink-0" /> {s.scheduled_date}
                       </span>
                       {s.scheduled_time && (
-                        <span className="inline-flex items-center gap-1">
-                          <Clock className="w-3.5 h-3.5" /> {s.scheduled_time}
+                        <span className="inline-flex items-center gap-1.5">
+                          <Clock className="w-3.5 h-3.5 flex-shrink-0" /> {s.scheduled_time}
                         </span>
                       )}
                       {s.duration_minutes && (
-                        <span className="inline-flex items-center gap-1">
-                          <Headphones className="w-3.5 h-3.5" /> {s.duration_minutes} min
+                        <span className="inline-flex items-center gap-1.5">
+                          <Headphones className="w-3.5 h-3.5 flex-shrink-0" /> {s.duration_minutes} min
                         </span>
                       )}
                     </div>

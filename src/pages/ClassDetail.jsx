@@ -117,6 +117,7 @@ function LectureTab({ lectures, coverage, classId, cls, onUpdate }) {
   const filteredLectures = (() => {
     if (!searchQuery.trim()) return lectures;
     const q = searchQuery.toLowerCase();
+    const instructor = cls?.instructor || '';
     return lectures.filter(l => {
       const fields = [
         l.ai_title || '',
@@ -125,6 +126,8 @@ function LectureTab({ lectures, coverage, classId, cls, onUpdate }) {
         (l.ai_concepts || []).join(' '),
         (l.ai_vocabulary || []).join(' '),
         l.date || '',
+        l.actual_instructor || '',
+        instructor,
       ];
       return fields.some(f => f.toLowerCase().includes(q));
     });
@@ -147,7 +150,7 @@ function LectureTab({ lectures, coverage, classId, cls, onUpdate }) {
             type="text"
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            placeholder="Search within lectures (topics, transcripts, keywords)..."
+            placeholder="Search lectures, topics, transcripts, instructors..."
             className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
           />
           {searchQuery && (
