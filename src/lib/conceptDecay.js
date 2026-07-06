@@ -14,7 +14,7 @@ export const DECAY_STATES = {
   unreviewed: { label: 'Unreviewed', color: '#9CA3AF', bgClass: 'bg-gray-500/10', textClass: 'text-gray-500' },
 };
 
-const STATE_RANKS = { fresh: 0, fading: 1, stale: 2, overdue: 3, unreviewed: 0 };
+const STATE_RANKS = { fresh: 0, fading: 1, stale: 2, overdue: 3, unreviewed: 4 };
 
 export function getDecayPreset() {
   const rate = getSetting('conceptDecayRate') || 'default';
@@ -113,7 +113,7 @@ export function computeClassProficiency(lecturesWithCoverage, allClassLectures) 
   }
 
   const proficiency = totalWeight > 0 ? Math.round(totalProficiency / totalWeight) : 0;
-  const stateKeys = ['fresh', 'fading', 'stale', 'overdue'];
+  const stateKeys = ['fresh', 'fading', 'stale', 'overdue', 'unreviewed'];
   const worstState = stateKeys[worstRank] || 'fresh';
 
   return {
@@ -132,6 +132,6 @@ export function getWorstState(states) {
   for (const s of states) {
     worstRank = Math.max(worstRank, STATE_RANKS[s?.state] || 0);
   }
-  const keys = ['fresh', 'fading', 'stale', 'overdue'];
+  const keys = ['fresh', 'fading', 'stale', 'overdue', 'unreviewed'];
   return keys[worstRank] || 'fresh';
 }

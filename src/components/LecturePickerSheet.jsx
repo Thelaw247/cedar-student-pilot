@@ -83,7 +83,7 @@ export default function LecturePickerSheet({ classId, cls, onStart, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/30 glass" onClick={onClose}>
+    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/30 glass" onClick={onClose}>
       <div
         className="bg-card w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl border border-border animate-fade-in max-h-[85vh] flex flex-col"
         onClick={e => e.stopPropagation()}
