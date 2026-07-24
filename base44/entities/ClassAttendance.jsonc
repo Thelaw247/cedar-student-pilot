@@ -1,0 +1,29 @@
+{
+  "name": "ClassAttendance",
+  "type": "object",
+  "properties": {
+    "class_id": {
+      "type": "string",
+      "title": "Class ID"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "title": "Session Date"
+    },
+    "attended": {
+      "type": "boolean",
+      "default": false,
+      "title": "Attended"
+    },
+    "confirmed_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Confirmed At"
+    }
+  },
+  "required": [
+    "class_id",
+    "date"
+  ]
+}

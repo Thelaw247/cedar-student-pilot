@@ -14,6 +14,7 @@ import AddExamOrStudyModal from '@/components/AddExamOrStudyModal';
 import DailyProgressRing from '@/components/DailyProgressRing';
 import FloatingActionButton from '@/components/FloatingActionButton';
 import AutoPrintPrompt from '@/components/AutoPrintPrompt';
+import AttendancePrompt from '@/components/AttendancePrompt';
 
 function getTodayString() {
   const d = new Date();
@@ -223,6 +224,9 @@ export default function Home() {
 
           {/* Auto-print prompt for today's transcripts */}
           <AutoPrintPrompt />
+
+          {/* Attendance check for missed check-ins */}
+          <AttendancePrompt />
 
           {/* Daily progress ring — "Am I on track?" */}
           <DailyProgressRing
