@@ -7,11 +7,53 @@ Deno.serve(async (req) => {
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await req.json();
-    const { lecture_ids, scope, quick_quiz, question_count } = body;
+    const { lecture_ids, scope, quick_quiz, question_count, grade_answers } = body;
     // scope: 'today' | 'week' | 'specific'
     // If lecture_ids provided, use those. Otherwise derive from scope.
     // quick_quiz: if true, generate harder questions focused on exam-likely material
     // question_count: optional override for number of questions
+    // grade_answers: if present, run concept-based grading instead of generating.
+
+    // ---- Grading mode -------------------------------------------------------
+    // The frontend sends the short-answer questions the student wrote free text
+    // for, plus their responses. We judge each on whether it demonstrates grasp
+    // of the underlying concept — NOT on how closely the wording matches — and
+    // return a short note on what was missed. Batched into ONE call for speed.
+    if (grade_answers && Array.isArray(grade_answers) && grade_answers.length > 0) {
+      const items = grade_answers.map((g, i) => `Item ${i + 1}:
+Question: ${g.question}
+Model answer (the key idea): ${g.correct_answer || '(none provided)'}
+Student's answer: ${g.student_answer || '(blank)'}`).join('\n\n');
+
+      const grading = await base44.asServiceRole.integrations.Core.InvokeLLM({
+        prompt: `You are grading short-answer responses on a university review quiz. Judge each answer ONLY on whether the student demonstrates a correct grasp of the underlying concept. Do NOT require the wording to match the model answer — paraphrases, different examples, and informal phrasing are fully acceptable as long as the core understanding is right. Mark wrong only when the concept is missing, misunderstood, or materially incorrect. A blank or off-topic answer is incorrect.
+
+For each item return:
+- "correct": true or false (did they grasp the concept?)
+- "feedback": one short sentence — if correct, affirm what they got; if incorrect, say specifically what they missed or misunderstood (not just "wrong").
+
+${items}
+
+Return JSON: { "results": [ { "correct": boolean, "feedback": string }, ... ] } in the SAME order as the items.`,
+        response_json_schema: {
+          type: 'object',
+          properties: {
+            results: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  correct: { type: 'boolean' },
+                  feedback: { type: 'string' },
+                },
+              },
+            },
+          },
+        },
+      });
+      return Response.json({ results: grading.results || [] });
+    }
+    // ---- End grading mode ---------------------------------------------------
 
     let targetLectures = [];
 
