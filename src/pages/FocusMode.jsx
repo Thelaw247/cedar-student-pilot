@@ -44,7 +44,6 @@ export default function FocusMode() {
   const [savedRecordId, setSavedRecordId] = useState(null);
   const [studyMode, setStudyMode] = useState('deep');
   const [showPreReview, setShowPreReview] = useState(false);
-  const [showLecturePicker, setShowLecturePicker] = useState(false);
   const [selectedLectureIds, setSelectedLectureIds] = useState([]);
   const [showStudyModeSelector, setShowStudyModeSelector] = useState(false);
   const [showWizard, setShowWizard] = useState(false);
@@ -203,16 +202,6 @@ export default function FocusMode() {
     return () => { cancelled = true; };
   }, [awaitingConfirm, phase, studyMinutes, breakMinutes, speak, askVoice]);
 
-  const handleStudyModeChange = (mode) => {
-    if (phase !== 'idle') return;
-    setStudyMode(mode);
-    setStudyMinutes(STUDY_MODES[mode].study);
-    setBreakMinutes(STUDY_MODES[mode].break);
-  };
-
-  // Applies the guided-wizard result and starts the session. Derives the timer
-  // presets from the chosen goal (deep/sprint/review) so the user never has to
-  // set interval lengths by hand, then opens the matching study surface.
   const handleWizardComplete = ({ classId: gClassId, studyMode: gMode, studyType: gType, lectureIds, examAssignmentId: exId }) => {
     const preset = STUDY_MODES[gMode] || STUDY_MODES.deep;
     // Ensure downstream surfaces (handbook / manual guide) have a class to work
