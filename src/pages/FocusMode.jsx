@@ -504,34 +504,16 @@ export default function FocusMode() {
         </button>
       )}
 
-      {/* Start studying — choose method */}
-      {phase === 'idle' && !isProjectSession && (session?.class_id || cls?.id) && (
+      {/* Start a focus session — opens the guided wizard which asks a couple of
+          plain questions and sets everything up. */}
+      {phase === 'idle' && !isProjectSession && (
         <button
-          onClick={async () => {
-            if (studyMode === 'review' && selectedLectureIds.length === 0) {
-              setShowLecturePicker(true);
-            } else if (studyMode === 'sprint') {
-              // Find next upcoming exam/quiz for this class
-              try {
-                const asgns = await base44.entities.Assignment.filter({ class_id: session?.class_id || cls?.id }, 'due_date');
-                const today = new Date().toISOString().split('T')[0];
-                const nextExam = asgns.find(a => (a.type === 'exam' || a.type === 'quiz') && a.due_date >= today);
-                setExamAssignmentId(nextExam?.id || null);
-                setShowStudyModeSelector(true);
-              } catch (e) {
-                setShowStudyModeSelector(true);
-              }
-            } else {
-              setShowStudyModeSelector(true);
-            }
-          }}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 text-primary border border-primary/30 text-sm font-medium hover:bg-primary/20 transition-colors mb-4"
+          onClick={() => setShowWizard(true)}
+          className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors mb-4"
         >
-          <Brain className="w-4 h-4" />
-          {studyMode === 'review'
-            ? (selectedLectureIds.length > 0 ? `Study ${selectedLectureIds.length} Lecture${selectedLectureIds.length !== 1 ? 's' : ''}` : 'Select Lectures & Study')
-            : studyMode === 'sprint' ? 'Start Exam Sprint' : 'Start Deep Study'}
+          <Brain className="w-4 h-4" /> Start Focus Session
         </button>
+      )}
       )}
 
       {/* Interval settings - only when idle and pomodoro */}
