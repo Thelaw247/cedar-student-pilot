@@ -412,7 +412,7 @@ function RecordModal({ classId, onClose }) {
             <button onClick={stopRecording} className="w-full py-3 rounded-xl bg-destructive text-destructive-foreground text-sm font-medium hover:bg-destructive/90">Stop Recording</button>
           </>
         )}
-        {!recording && audioChunks.length > 0 && (
+        {!recording && audioChunks.length > 0 && !saveError && (
           <>
             {processing ? (
               <>
@@ -428,7 +428,7 @@ function RecordModal({ classId, onClose }) {
                 <h3 className="font-heading text-lg font-semibold mb-1">Recording Complete</h3>
                 <p className="text-sm text-muted-foreground mb-6">{formatTime(seconds)} of audio captured</p>
                 <div className="flex gap-2">
-                  <button onClick={() => { setAudioChunks([]); setSeconds(0); }} className="flex-1 py-3 rounded-xl border border-border text-sm font-medium text-muted-foreground hover:bg-muted">Discard</button>
+                  <button onClick={async () => { await clearRecording(classId); setAudioChunks([]); setSeconds(0); }} className="flex-1 py-3 rounded-xl border border-border text-sm font-medium text-muted-foreground hover:bg-muted">Discard</button>
                   <button onClick={saveAndProcess} className="flex-1 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90">Save & Process</button>
                 </div>
               </>
