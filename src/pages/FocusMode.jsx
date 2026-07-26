@@ -650,41 +650,20 @@ export default function FocusMode() {
         />
       )}
 
-      {/* Lecture picker sheet */}
-      {showLecturePicker && (
-        <LecturePickerSheet
-          classId={session?.class_id || cls?.id}
-          cls={cls}
-          onStart={(ids) => {
-            setSelectedLectureIds(ids);
-            setShowLecturePicker(false);
-            setShowStudyModeSelector(true);
-          }}
-          onClose={() => setShowLecturePicker(false)}
-        />
-      )}
-
-      {/* Study mode selector (in-app vs manual) */}
-      {showStudyModeSelector && (
-        <StudyModeSelector
-          onSelect={(type) => {
-            setStudyType(type);
-            setShowStudyModeSelector(false);
-            if (type === 'in_app') {
-              setShowHandbook(true);
-            } else {
-              setShowManualGuide(true);
-            }
-            startStudying();
-          }}
-          onClose={() => setShowStudyModeSelector(false)}
+      {/* Guided focus-session setup */}
+      {showWizard && (
+        <FocusSessionWizard
+          initialClassId={session?.class_id || cls?.id || null}
+          initialLectureIds={selectedLectureIds}
+          onComplete={handleWizardComplete}
+          onCancel={() => setShowWizard(false)}
         />
       )}
 
       {/* Handbook reader (in-app study) */}
-      {showHandbook && (session?.class_id || cls?.id) && (
+      {showHandbook && (session?.class_id || cls?.id || wizardClassId) && (
         <HandbookReader
-          classId={session?.class_id || cls?.id}
+          classId={session?.class_id || cls?.id || wizardClassId}
           lectureIds={selectedLectureIds.length > 0 ? selectedLectureIds : undefined}
           assignmentId={studyMode === 'sprint' ? examAssignmentId : undefined}
           studyMode={studyMode}
@@ -698,9 +677,9 @@ export default function FocusMode() {
       )}
 
       {/* Manual study guide (paper study) */}
-      {showManualGuide && (session?.class_id || cls?.id) && (
+      {showManualGuide && (session?.class_id || cls?.id || wizardClassId) && (
         <ManualStudyGuide
-          classId={session?.class_id || cls?.id}
+          classId={session?.class_id || cls?.id || wizardClassId}
           studyMode={studyMode}
           lectureIds={selectedLectureIds.length > 0 ? selectedLectureIds : undefined}
           assignmentId={studyMode === 'sprint' ? examAssignmentId : undefined}
