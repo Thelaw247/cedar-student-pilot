@@ -5,9 +5,19 @@ import { Loader2, Trash2, X } from 'lucide-react';
 const ALL_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EF4444', '#EC4899', '#14B8A6'];
 
+const dayIndex = (d) => ALL_DAYS.indexOf(d);
+const sortByDay = (arr) => [...arr].sort((a, b) => dayIndex(a.day) - dayIndex(b.day));
+
+// Decide which mode a class opens in: per-day when it has a meetings[] list,
+// otherwise the simpler same-time-each-day mode.
+function initialMode(classData) {
+  return classData?.meetings && classData.meetings.length > 0 ? 'perday' : 'same';
+}
+
 export default function EditClassModal({ classData, semesterId, onDeleteClass, onClose }) {
   const isEdit = !!classData;
-  const [form, setForm] = useState({
+
+  const buildForm = (data) => ({
     name: '',
     instructor: '',
     room: '',
@@ -17,29 +27,24 @@ export default function EditClassModal({ classData, semesterId, onDeleteClass, o
     class_start_date: '',
     class_end_date: '',
     color: '#3B82F6',
-    ...classData,
+    meetings: [],
+    ...data,
   });
+
+  const [form, setForm] = useState(buildForm(classData));
+  const [scheduleMode, setScheduleMode] = useState(initialMode(classData));
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (classData) {
-      setForm({
-        name: '',
-        instructor: '',
-        room: '',
-        days_of_week: [],
-        start_time: '',
-        end_time: '',
-        class_start_date: '',
-        class_end_date: '',
-        color: '#3B82F6',
-        ...classData,
-      });
+      setForm(buildForm(classData));
+      setScheduleMode(initialMode(classData));
     }
   }, [classData]);
 
-  const toggleDay = (day) => {
+  // ---- Same-time mode: simple day multi-select ----
+  const toggleDaySame = (day) => {
     setForm(prev => ({
       ...prev,
       days_of_week: prev.days_of_week.includes(day)
@@ -48,12 +53,84 @@ export default function EditClassModal({ classData, semesterId, onDeleteClass, o
     }));
   };
 
+  // ---- Per-day mode: each selected day carries its own times ----
+  const meetingDays = (form.meetings || []).map(m => m.day);
+
+  const toggleDayPerDay = (day) => {
+    setForm(prev => {
+      const exists = (prev.meetings || []).some(m => m.day === day);
+      if (exists) {
+        return { ...prev, meetings: prev.meetings.filter(m => m.day !== day) };
+      }
+      // Seed a new day with the last-used times as a convenient default.
+      const seedStart = prev.start_time || '09:00';
+      const seedEnd = prev.end_time || '10:00';
+      return { ...prev, meetings: [...(prev.meetings || []), { day, start_time: seedStart, end_time: seedEnd }] };
+    });
+  };
+
+  const updateMeetingTime = (day, field, value) => {
+    setForm(prev => ({
+      ...prev,
+      meetings: prev.meetings.map(m => m.day === day ? { ...m, [field]: value } : m),
+    }));
+  };
+
+  // Switching modes carries the schedule across so nothing is lost.
+  const switchMode = (mode) => {
+    if (mode === scheduleMode) return;
+    if (mode === 'perday') {
+      // Seed per-day rows from the currently selected days + shared time.
+      setForm(prev => {
+        if ((prev.meetings || []).length > 0) return prev;
+        const s = prev.start_time || '09:00';
+        const e = prev.end_time || '10:00';
+        const seeded = (prev.days_of_week || []).map(day => ({ day, start_time: s, end_time: e }));
+        return { ...prev, meetings: seeded };
+      });
+    } else {
+      // Collapse per-day rows back to a single shared time (uses the earliest).
+      setForm(prev => {
+        const sorted = [...(prev.meetings || [])].sort((a, b) => (a.start_time || '99').localeCompare(b.start_time || '99'));
+        const first = sorted[0];
+        return {
+          ...prev,
+          days_of_week: (prev.meetings || []).map(m => m.day),
+          start_time: prev.start_time || first?.start_time || '',
+          end_time: prev.end_time || first?.end_time || '',
+        };
+      });
+    }
+    setScheduleMode(mode);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.name) return;
     setSaving(true);
     try {
-      const payload = { ...form, semester_id: semesterId };
+      let payload;
+      if (scheduleMode === 'perday') {
+        const meetings = sortByDay((form.meetings || []).filter(m => m.day));
+        const earliest = [...meetings].sort((a, b) => (a.start_time || '99').localeCompare(b.start_time || '99'))[0];
+        payload = {
+          ...form,
+          semester_id: semesterId,
+          meetings,
+          // Mirror to legacy fields so day-based filters and summary displays
+          // keep working; the meetings[] list is the source of truth for times.
+          days_of_week: meetings.map(m => m.day),
+          start_time: earliest?.start_time || '',
+          end_time: earliest?.end_time || '',
+        };
+      } else {
+        payload = {
+          ...form,
+          semester_id: semesterId,
+          // Clear any per-day data so the reading layer uses the shared time.
+          meetings: [],
+        };
+      }
       if (isEdit) {
         await base44.entities.Class.update(classData.id, payload);
       } else {
@@ -98,38 +175,83 @@ export default function EditClassModal({ classData, semesterId, onDeleteClass, o
             onChange={e => setForm({ ...form, room: e.target.value })}
             className="w-full px-3 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40" />
 
-          {/* Days of week */}
+          {/* Schedule mode toggle */}
           <div>
-            <p className="text-xs font-medium text-muted-foreground mb-1.5">Days</p>
-            <div className="flex gap-1.5 flex-wrap">
-              {ALL_DAYS.map(d => (
-                <button key={d} type="button" onClick={() => toggleDay(d)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                    (form.days_of_week || []).includes(d)
-                      ? 'bg-primary text-primary-foreground'
-                      : 'border border-border text-muted-foreground hover:text-foreground'
-                  }`}>
-                  {d}
-                </button>
-              ))}
+            <p className="text-xs font-medium text-muted-foreground mb-1.5">Schedule</p>
+            <div className="flex gap-1 bg-muted rounded-lg p-1">
+              <button type="button" onClick={() => switchMode('same')}
+                className={`flex-1 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${scheduleMode === 'same' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'}`}>
+                Same time each day
+              </button>
+              <button type="button" onClick={() => switchMode('perday')}
+                className={`flex-1 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${scheduleMode === 'perday' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'}`}>
+                Different times per day
+              </button>
             </div>
           </div>
 
-          {/* Times */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <p className="text-xs font-medium text-muted-foreground mb-1.5">Start time</p>
-              <input type="time" value={form.start_time || ''}
-                onChange={e => setForm({ ...form, start_time: e.target.value })}
-                className="w-full px-3 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40" />
-            </div>
-            <div>
-              <p className="text-xs font-medium text-muted-foreground mb-1.5">End time</p>
-              <input type="time" value={form.end_time || ''}
-                onChange={e => setForm({ ...form, end_time: e.target.value })}
-                className="w-full px-3 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40" />
+          {/* Days */}
+          <div>
+            <p className="text-xs font-medium text-muted-foreground mb-1.5">Days</p>
+            <div className="flex gap-1.5 flex-wrap">
+              {ALL_DAYS.map(d => {
+                const active = scheduleMode === 'perday' ? meetingDays.includes(d) : (form.days_of_week || []).includes(d);
+                return (
+                  <button key={d} type="button" onClick={() => scheduleMode === 'perday' ? toggleDayPerDay(d) : toggleDaySame(d)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                      active ? 'bg-primary text-primary-foreground' : 'border border-border text-muted-foreground hover:text-foreground'
+                    }`}>
+                    {d}
+                  </button>
+                );
+              })}
             </div>
           </div>
+
+          {/* Times — shared (same mode) */}
+          {scheduleMode === 'same' && (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-1.5">Start time</p>
+                <input type="time" value={form.start_time || ''}
+                  onChange={e => setForm({ ...form, start_time: e.target.value })}
+                  className="w-full px-3 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40" />
+              </div>
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-1.5">End time</p>
+                <input type="time" value={form.end_time || ''}
+                  onChange={e => setForm({ ...form, end_time: e.target.value })}
+                  className="w-full px-3 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40" />
+              </div>
+            </div>
+          )}
+
+          {/* Times — per day (perday mode) */}
+          {scheduleMode === 'perday' && (
+            <div>
+              <p className="text-xs font-medium text-muted-foreground mb-1.5">Times for each day</p>
+              {meetingDays.length === 0 ? (
+                <p className="text-xs text-muted-foreground rounded-lg border border-dashed border-border p-3">
+                  Select the days above, then set each day&rsquo;s time here.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {sortByDay(form.meetings || []).map(m => (
+                    <div key={m.day} className="flex items-center gap-2">
+                      <span className="w-10 text-xs font-medium text-foreground flex-shrink-0">{m.day}</span>
+                      <input type="time" value={m.start_time || ''}
+                        onChange={e => updateMeetingTime(m.day, 'start_time', e.target.value)}
+                        className="flex-1 px-2.5 py-2 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40" />
+                      <span className="text-xs text-muted-foreground">to</span>
+                      <input type="time" value={m.end_time || ''}
+                        onChange={e => updateMeetingTime(m.day, 'end_time', e.target.value)}
+                        className="flex-1 px-2.5 py-2 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40" />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Dates */}
           <div className="grid grid-cols-2 gap-3">
