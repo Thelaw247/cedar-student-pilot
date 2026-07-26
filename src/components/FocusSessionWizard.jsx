@@ -27,10 +27,15 @@ import LecturePickerSheet from '@/components/LecturePickerSheet';
  */
 export default function FocusSessionWizard({ initialClassId = null, initialLectureIds = [], onComplete, onCancel }) {
   // Steps: 'class' → 'goal' → ('lectures' | 'exam' | skip) → 'method'
-  const [step, setStep] = useState(initialClassId ? 'goal' : 'class');
+  // If we were opened straight from a lecture (lectures pre-seeded), the goal is
+  // already known (review those lectures) — skip ahead to the method question.
+  const seededFromLecture = initialClassId && initialLectureIds.length > 0;
+  const [step, setStep] = useState(
+    seededFromLecture ? 'method' : (initialClassId ? 'goal' : 'class')
+  );
   const [classId, setClassId] = useState(initialClassId);
   const [cls, setCls] = useState(null);
-  const [goal, setGoal] = useState(null);            // 'review' | 'sprint' | 'deep'
+  const [goal, setGoal] = useState(seededFromLecture ? 'review' : null); // 'review' | 'sprint' | 'deep'
   const [lectureIds, setLectureIds] = useState(initialLectureIds);
   const [examAssignmentId, setExamAssignmentId] = useState(null);
 
