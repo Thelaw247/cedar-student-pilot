@@ -95,7 +95,7 @@ export default function InLectureQuiz({ lecture, cls, onClose }) {
   useEffect(() => {
     if (loading || showResult || error || questions.length === 0) return;
     if (timeLeft <= 0) {
-      setShowResult(true);
+      finishQuiz();
       return;
     }
     const timer = setTimeout(() => setTimeLeft(t => t - 1), 1000);
@@ -116,8 +116,7 @@ export default function InLectureQuiz({ lecture, cls, onClose }) {
           const concept = q.concept || 'General';
           if (!conceptResults[concept]) conceptResults[concept] = { correct: 0, total: 0 };
           conceptResults[concept].total++;
-          const ans = answers[i];
-          if (ans && ans.trim().toLowerCase() === (q.correct_answer || '').trim().toLowerCase()) {
+          if (isCorrect(q, i)) {
             conceptResults[concept].correct++;
           }
         });
@@ -198,11 +197,7 @@ export default function InLectureQuiz({ lecture, cls, onClose }) {
 
   const current = questions[currentIdx];
   const isLast = currentIdx === questions.length - 1;
-  const score = questions.filter((q, i) => {
-    const ans = answers[i];
-    if (!ans) return false;
-    return ans.trim().toLowerCase() === (q.correct_answer || '').trim().toLowerCase();
-  }).length;
+  const score = questions.filter((q, i) => isCorrect(q, i)).length;
 
   // Per-concept breakdown
   const conceptBreakdown = {};
@@ -210,8 +205,7 @@ export default function InLectureQuiz({ lecture, cls, onClose }) {
     const concept = q.concept || 'General';
     if (!conceptBreakdown[concept]) conceptBreakdown[concept] = { correct: 0, total: 0 };
     conceptBreakdown[concept].total++;
-    const ans = answers[i];
-    if (ans && ans.trim().toLowerCase() === (q.correct_answer || '').trim().toLowerCase()) {
+    if (isCorrect(q, i)) {
       conceptBreakdown[concept].correct++;
     }
   });
