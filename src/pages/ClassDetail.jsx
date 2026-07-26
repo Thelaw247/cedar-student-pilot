@@ -339,6 +339,18 @@ function RecordModal({ classId, onClose }) {
         lecture_id: lecture.id,
         audio_url: file_url,
       });
+      // Save any notes typed during the lecture as a separate Note record tied
+      // to this lecture. Kept distinct from the transcript, and the handbook
+      // already surfaces per-lecture notes alongside it.
+      if (liveNotes.trim()) {
+        try {
+          await base44.entities.Note.create({
+            lecture_id: lecture.id,
+            class_id: classId,
+            content: liveNotes.trim(),
+          });
+        } catch (e) { /* non-fatal: the recording itself is safely saved */ }
+      }
       // Uploaded and handed off successfully — the durable copy is no longer
       // needed, so clear it and move on to offer spaced reviews.
       await clearRecording(classId);
