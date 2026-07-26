@@ -298,7 +298,7 @@ export default function InLectureQuiz({ lecture, cls, onClose }) {
         <h3 className="font-heading text-lg font-semibold mb-6">{current.question}</h3>
 
         {/* Answer input */}
-        {current.type === 'multiple_choice' && current.options?.length > 0 ? (
+        {((current.type === 'multiple_choice' || current.type === 'true_false') && current.options?.length > 0) ? (
           <div className="space-y-2 mb-6">
             {current.options.map((opt, i) => {
               const selected = answers[currentIdx] === opt;
