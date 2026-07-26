@@ -89,8 +89,50 @@ Deno.serve(async (req) => {
         exam_mentions: lec.ai_exam_mentions || [],
         notes: notesByLecture[lec.id] || '',
         transcript_excerpt: (lec.transcript || '').substring(0, 2000),
+        ai_expansion: '',
       };
     });
+
+    // Minimal AI gap-filling: only for chapters that are clearly under-covered,
+    // and capped so a large handbook doesn't fan out into many LLM calls. The
+    // result is stored in its OWN field (ai_expansion) and never merged into
+    // the summary or transcript, so the UI can label it as AI-added and the
+    // professor's actual words stay cleanly separated.
+    const MAX_EXPANSIONS = 6;
+    // A chapter looks thin when there's little captured content to work from.
+    const isThin = (ch) => {
+      const transcriptLen = (ch.transcript_excerpt || '').length;
+      const conceptCount = (ch.concepts || []).length + (ch.definitions || []).length;
+      return transcriptLen < 800 || conceptCount <= 2;
+    };
+    const thinChapters = chapters.filter(isThin).slice(0, MAX_EXPANSIONS);
+    for (const ch of thinChapters) {
+      try {
+        const expandResult = await base44.asServiceRole.integrations.Core.InvokeLLM({
+          prompt: `You are helping a university student study "${cls?.name || 'a class'}". Below is what was captured from one lecture. Parts of it look thinly covered — either the recording was short or some topics were only mentioned in passing.
+
+Your job: briefly fill in ONLY the clear gaps in the topics that were ALREADY introduced in this lecture. This is supplementary context to make the student's notes usable — not a rewrite.
+
+Strict rules:
+- Only expand on concepts, terms, or topics that already appear below. Do NOT introduce new topics the lecture didn't touch.
+- Keep it short: at most 2-3 tight paragraphs, or a few bullet-style sentences. Fill gaps, don't pad.
+- Write it as neutral, standard explanation. Do NOT imitate or invent the professor's wording or claim the professor said something they didn't.
+- If the material below is already adequately covered and needs no filling in, return an empty string.
+
+Lecture title: ${ch.title}
+Summary: ${ch.summary || '(none)'}
+Concepts: ${(ch.concepts || []).join(', ') || '(none)'}
+Definitions: ${(ch.definitions || []).map(d => d.term).join(', ') || '(none)'}
+Transcript excerpt: ${ch.transcript_excerpt || '(none)'}
+
+Return ONLY the supplementary explanation text (or an empty string if none is needed). No preamble.`,
+        });
+        const expansion = typeof expandResult === 'string' ? expandResult : (expandResult.text || '');
+        if (expansion && expansion.trim().length > 0) {
+          ch.ai_expansion = expansion.trim();
+        }
+      } catch (e) { /* non-fatal: a chapter simply gets no expansion */ }
+    }
 
     // Build table of contents from lecture titles
     const table_of_contents = chapters.map(ch => ({
