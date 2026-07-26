@@ -13,6 +13,37 @@ export default function LectureReview() {
   const [currentIdx, setCurrentIdx] = useState(0);
   const [answers, setAnswers] = useState({});
   const [showResult, setShowResult] = useState(false);
+  const [grades, setGrades] = useState({});
+  const [grading, setGrading] = useState(false);
+
+  const isFreeText = (q) => q.type === 'short_answer' || q.type === 'one_word';
+  const choiceCorrect = (q, ans) => !!ans && ans.trim().toLowerCase() === (q.correct_answer || '').trim().toLowerCase();
+  const isCorrect = (q, i) => isFreeText(q) ? grades[i]?.correct === true : choiceCorrect(q, answers[i]);
+
+  const finishReview = async (qs) => {
+    const freeTextItems = [];
+    qs.forEach((q, i) => {
+      if (isFreeText(q)) freeTextItems.push({ index: i, question: q.question, correct_answer: q.correct_answer, student_answer: answers[i] || '' });
+    });
+    if (freeTextItems.length > 0) {
+      setGrading(true);
+      try {
+        const res = await base44.functions.invoke('generateLectureReview', {
+          grade_answers: freeTextItems.map(({ question, correct_answer, student_answer }) => ({ question, correct_answer, student_answer })),
+        });
+        const out = res.data?.results || [];
+        const mapped = {};
+        freeTextItems.forEach((item, k) => { if (out[k]) mapped[item.index] = out[k]; });
+        setGrades(mapped);
+      } catch (e) {
+        const mapped = {};
+        freeTextItems.forEach((item) => { mapped[item.index] = { correct: false, feedback: 'Could not auto-grade — compare your answer with the model answer below.' }; });
+        setGrades(mapped);
+      }
+      setGrading(false);
+    }
+    setShowResult(true);
+  };
 
   useEffect(() => {
     const run = async () => {
@@ -67,11 +98,7 @@ export default function LectureReview() {
   const current = questions[currentIdx];
   const isLast = currentIdx === questions.length - 1;
 
-  const score = questions.filter((q, i) => {
-    const ans = answers[i];
-    if (!ans) return false;
-    return ans.trim().toLowerCase() === (q.correct_answer || '').trim().toLowerCase();
-  }).length;
+  const score = questions.filter((q, i) => isCorrect(q, i)).length;
 
   // Results screen
   if (showResult) {
@@ -107,7 +134,8 @@ export default function LectureReview() {
         <div className="space-y-3 mb-6">
           {questions.map((q, i) => {
             const ans = answers[i];
-            const correct = ans?.trim().toLowerCase() === (q.correct_answer || '').trim().toLowerCase();
+            const correct = isCorrect(q, i);
+            const freeText = isFreeText(q);
             return (
               <div key={i} className={`rounded-xl border p-4 ${correct ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-rose-500/30 bg-rose-500/5'}`}>
                 <div className="flex items-start gap-2">
@@ -115,7 +143,12 @@ export default function LectureReview() {
                   <div className="flex-1">
                     <p className="text-sm font-medium text-foreground mb-1">{q.question}</p>
                     <p className="text-xs text-muted-foreground">Your answer: <span className={correct ? 'text-emerald-600 font-medium' : 'text-rose-600 font-medium'}>{ans || '—'}</span></p>
-                    {!correct && <p className="text-xs text-emerald-600 mt-0.5">Correct: {q.correct_answer}</p>}
+                    {(!correct || freeText) && q.correct_answer && (
+                      <p className="text-xs text-emerald-600 mt-0.5">{freeText ? 'Model answer' : 'Correct'}: {q.correct_answer}</p>
+                    )}
+                    {freeText && grades[i]?.feedback && (
+                      <p className="text-xs text-foreground/70 mt-1 italic">{grades[i].feedback}</p>
+                    )}
                   </div>
                 </div>
               </div>
