@@ -209,6 +209,35 @@ export default function FocusMode() {
     setBreakMinutes(STUDY_MODES[mode].break);
   };
 
+  // Applies the guided-wizard result and starts the session. Derives the timer
+  // presets from the chosen goal (deep/sprint/review) so the user never has to
+  // set interval lengths by hand, then opens the matching study surface.
+  const handleWizardComplete = ({ studyMode: gMode, studyType: gType, lectureIds, examAssignmentId: exId }) => {
+    const preset = STUDY_MODES[gMode] || STUDY_MODES.deep;
+    setStudyMode(gMode);
+    setStudyMinutes(preset.study);
+    setBreakMinutes(preset.break);
+    studyMinutesRef.current = preset.study;
+    breakMinutesRef.current = preset.break;
+    setStudyType(gType);
+    setSelectedLectureIds(lectureIds || []);
+    setExamAssignmentId(exId || null);
+    setShowWizard(false);
+
+    if (gType === 'in_app') setShowHandbook(true);
+    else setShowManualGuide(true);
+
+    // Kick off the timer with the freshly derived interval length.
+    if (mode === 'pomodoro') {
+      setPomodoroPhase('study');
+      const secs = preset.study * 60;
+      intervalLeftRef.current = secs;
+      setIntervalSecondsLeft(secs);
+    }
+    setPhase('studying');
+    speak(mode === 'pomodoro' ? `Starting a ${preset.study} minute study interval.` : 'Starting your study session.');
+  };
+
   const startStudying = () => {
     if (mode === 'pomodoro') {
       setPomodoroPhase('study');
