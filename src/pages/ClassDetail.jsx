@@ -198,6 +198,7 @@ function LectureTab({ lectures, coverage, classId, cls, onUpdate }) {
 
 function RecordModal({ classId, onClose }) {
   const [recording, setRecording] = useState(false);
+  const [paused, setPaused] = useState(false);
   const [seconds, setSeconds] = useState(0);
   const [mediaRecorder, setMediaRecorder] = useState(null);
   const [audioChunks, setAudioChunks] = useState([]);
@@ -206,6 +207,7 @@ function RecordModal({ classId, onClose }) {
   const [reviewLectureId, setReviewLectureId] = useState(null);
   const [recoveredBlob, setRecoveredBlob] = useState(null);
   const [saveError, setSaveError] = useState(false);
+  const [liveNotes, setLiveNotes] = useState('');
 
   // Live refs for the recorder callbacks (avoid stale closures on chunks/seconds).
   const chunksRef = useRef([]);
@@ -234,7 +236,8 @@ function RecordModal({ classId, onClose }) {
 
   useEffect(() => {
     let interval;
-    if (recording) {
+    // Only tick while actively recording (not while paused).
+    if (recording && !paused) {
       interval = setInterval(() => {
         setSeconds(s => {
           const next = s + 1;
@@ -244,7 +247,7 @@ function RecordModal({ classId, onClose }) {
       }, 1000);
     }
     return () => clearInterval(interval);
-  }, [recording]);
+  }, [recording, paused]);
 
   const startRecording = async () => {
     try {
@@ -275,6 +278,7 @@ function RecordModal({ classId, onClose }) {
       setRecoveredBlob(null);
       setRecoveryAvailable(null);
       setRecording(true);
+      setPaused(false);
       setSeconds(0);
       secondsRef.current = 0;
     } catch (e) {
@@ -282,12 +286,30 @@ function RecordModal({ classId, onClose }) {
     }
   };
 
+  // Pause / resume without finalizing the recording. MediaRecorder keeps the
+  // captured audio; we just stop the clock and the mic from accumulating.
+  const togglePause = () => {
+    if (!mediaRecorder) return;
+    if (paused) {
+      try { mediaRecorder.resume(); } catch (e) {}
+      setPaused(false);
+    } else {
+      // Flush what we have so the durable copy is current at the pause point.
+      try { mediaRecorder.requestData(); } catch (e) {}
+      try { mediaRecorder.pause(); } catch (e) {}
+      setPaused(true);
+    }
+  };
+
   const stopRecording = async () => {
     if (mediaRecorder) {
+      // If paused, resume briefly so stop() flushes cleanly on all browsers.
+      if (paused) { try { mediaRecorder.resume(); } catch (e) {} }
       // Ask for any buffered audio before stopping so the last slice isn't lost.
       try { mediaRecorder.requestData(); } catch (e) {}
       mediaRecorder.stop();
       setRecording(false);
+      setPaused(false);
     }
   };
 
