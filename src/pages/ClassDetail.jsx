@@ -350,20 +350,47 @@ function RecordModal({ classId, onClose }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 glass">
       <div className="bg-card rounded-2xl border border-border p-8 max-w-sm w-full mx-4 text-center animate-fade-in">
-        {/* Crash recovery banner */}
-        {recoveryAvailable && !recording && !audioChunks.length && (
+        {/* Crash recovery banner — real audio was recovered from IndexedDB */}
+        {recoveryAvailable && recoveredBlob && !recording && !audioChunks.length && !saveError && (
           <div className="mb-6 rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 text-left">
             <div className="flex items-start gap-2">
               <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
-              <div>
-                <p className="text-sm font-medium text-amber-700 dark:text-amber-500">Interrupted Recording Detected</p>
-                <p className="text-xs text-muted-foreground mt-1">A previous recording for this class was interrupted at {formatTime(recoveryAvailable.seconds)}. Unfortunately, audio data could not be recovered, but you can log a missed lecture entry to track attendance.</p>
-                <button onClick={clearRecovery} className="mt-2 text-xs text-primary font-medium hover:underline">Dismiss</button>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-amber-700 dark:text-amber-500">Unsaved recording found</p>
+                <p className="text-xs text-muted-foreground mt-1">A recording for this class (about {formatTime(recoveryAvailable.seconds)}) didn’t finish saving last time. The audio is safe — you can save it now.</p>
+                <div className="flex gap-2 mt-3">
+                  <button onClick={saveAndProcess}
+                    className="flex-1 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90">
+                    Recover &amp; save
+                  </button>
+                  <button onClick={clearRecovery}
+                    className="py-2 px-3 rounded-lg border border-border text-xs font-medium text-muted-foreground hover:bg-muted">
+                    Discard
+                  </button>
+                </div>
               </div>
             </div>
           </div>
         )}
-        {!recording && !audioChunks.length && (
+
+        {/* Save failed — audio is preserved, offer a retry */}
+        {saveError && (
+          <div className="mb-6 rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 text-left">
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-amber-700 dark:text-amber-500">Couldn’t save the recording</p>
+                <p className="text-xs text-muted-foreground mt-1">Your audio is safely stored on this device — nothing was lost. Check your connection and try again. It’ll still be here if you close and come back.</p>
+                <button onClick={saveAndProcess} disabled={processing}
+                  className="mt-3 w-full py-2 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-2">
+                  {processing ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Trying again…</> : 'Try again'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {!recording && !audioChunks.length && !recoveredBlob && !saveError && (
           <>
             <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
               <Mic className="w-8 h-8 text-primary" />
