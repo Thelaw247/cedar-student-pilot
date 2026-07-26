@@ -292,8 +292,16 @@ function RecordModal({ classId, onClose }) {
 
   const saveAndProcess = async () => {
     setProcessing(true);
+    setSaveError(false);
     try {
-      const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+      // Work from whichever copy we have: freshly recorded chunks, or a blob
+      // recovered from a previous interrupted/failed session.
+      const audioBlob = recoveredBlob || new Blob(audioChunks, { type: 'audio/webm' });
+      const durationSeconds = seconds || recoveryAvailable?.seconds || 0;
+      // Make sure a durable copy exists before we attempt the upload, so a
+      // failure (or a tab close) mid-upload never loses the audio.
+      await saveRecording(classId, audioBlob, { seconds: durationSeconds, timestamp: Date.now() });
+
       const audioFile = new File([audioBlob], `lecture-${Date.now()}.webm`, { type: 'audio/webm' });
       const { file_url } = await base44.integrations.Core.UploadFile({ file: audioFile });
       const today = new Date().toISOString().split('T')[0];
@@ -301,20 +309,22 @@ function RecordModal({ classId, onClose }) {
         class_id: classId,
         date: today,
         recording_url: file_url,
-        duration_seconds: seconds,
+        duration_seconds: durationSeconds,
         status: 'processing',
       });
       await base44.functions.invoke('processLectureRecording', {
         lecture_id: lecture.id,
         audio_url: file_url,
       });
-      // Instead of closing straight away, offer to schedule spaced reviews for
-      // the lecture that was just captured — the point where intent is highest.
+      // Uploaded and handed off successfully — the durable copy is no longer
+      // needed, so clear it and move on to offer spaced reviews.
+      await clearRecording(classId);
       setProcessing(false);
       setReviewLectureId(lecture.id);
       return;
     } catch (e) {
-      alert('Failed to process recording. Your audio data is preserved — please try again.');
+      // Keep the durable copy so the user can retry — even after a reload.
+      setSaveError(true);
     }
     setProcessing(false);
   };
