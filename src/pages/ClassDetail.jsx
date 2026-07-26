@@ -203,23 +203,32 @@ function RecordModal({ classId, onClose }) {
   const [processing, setProcessing] = useState(false);
   const [recoveryAvailable, setRecoveryAvailable] = useState(null);
   const [reviewLectureId, setReviewLectureId] = useState(null);
+  const [recoveredBlob, setRecoveredBlob] = useState(null);
+  const [saveError, setSaveError] = useState(false);
 
-  // Crash recovery: check for interrupted recording on mount
+  // Live refs for the recorder callbacks (avoid stale closures on chunks/seconds).
+  const chunksRef = useRef([]);
+  const secondsRef = useRef(0);
+
+  // Crash recovery: on mount, look for a durably-persisted recording with REAL
+  // audio (IndexedDB), not just leftover metadata. If found, we can recover the
+  // actual audio rather than only logging a missed lecture.
   useEffect(() => {
-    try {
-      const interrupted = localStorage.getItem(`cedar-recording-${classId}`);
-      if (interrupted) {
-        const data = JSON.parse(interrupted);
-        if (data.seconds > 5) {
-          setRecoveryAvailable(data);
-        }
+    let cancelled = false;
+    (async () => {
+      const rec = await getRecording(classId);
+      if (!cancelled && rec) {
+        setRecoveryAvailable({ seconds: rec.seconds || 0, timestamp: rec.timestamp });
+        setRecoveredBlob(rec.blob);
       }
-    } catch (e) {}
+    })();
+    return () => { cancelled = true; };
   }, [classId]);
 
-  const clearRecovery = () => {
-    localStorage.removeItem(`cedar-recording-${classId}`);
+  const clearRecovery = async () => {
+    await clearRecording(classId);
     setRecoveryAvailable(null);
+    setRecoveredBlob(null);
   };
 
   useEffect(() => {
@@ -228,22 +237,13 @@ function RecordModal({ classId, onClose }) {
       interval = setInterval(() => {
         setSeconds(s => {
           const next = s + 1;
-          // Auto-save progress every 30 seconds for crash recovery
-          if (next % 30 === 0) {
-            try {
-              localStorage.setItem(`cedar-recording-${classId}`, JSON.stringify({
-                seconds: next,
-                timestamp: Date.now(),
-                classId,
-              }));
-            } catch (e) {}
-          }
+          secondsRef.current = next;
           return next;
         });
       }, 1000);
     }
     return () => clearInterval(interval);
-  }, [recording, classId]);
+  }, [recording]);
 
   const startRecording = async () => {
     try {
