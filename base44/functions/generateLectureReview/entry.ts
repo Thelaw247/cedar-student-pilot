@@ -87,7 +87,7 @@ ${transcriptSnippet}`;
 - Include a few "true_false" questions (these should be a real claim to judge; options are exactly ["True", "False"] and correct_answer is "True" or "False").
 - Include AT MOST 1-2 "short_answer" questions total, and only where a written explanation genuinely tests understanding better than a choice would. If nothing warrants it, use none.
 - Avoid "one_word" unless a term truly has a single unambiguous answer.
-For every question, set correct_answer to the ideal/model answer. For short_answer, correct_answer should be a concise model answer capturing the key idea a correct response must convey.`;`;`
+For every question, set correct_answer to the ideal/model answer. For short_answer, correct_answer should be a concise model answer capturing the key idea a correct response must convey.`;
 
     const result = await base44.asServiceRole.integrations.Core.InvokeLLM({
       prompt: `You are an academic tutor creating a review quiz that follows the EXACT teaching flow the professor used across ${sorted.length} lecture(s) for "${className}".
