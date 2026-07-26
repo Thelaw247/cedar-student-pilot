@@ -48,6 +48,7 @@ export default function FocusMode() {
   const [selectedLectureIds, setSelectedLectureIds] = useState([]);
   const [showStudyModeSelector, setShowStudyModeSelector] = useState(false);
   const [showWizard, setShowWizard] = useState(false);
+  const [wizardClassId, setWizardClassId] = useState(null); // class chosen inside the wizard when none preloaded
   const [studyType, setStudyType] = useState(null); // 'in_app' | 'manual'
   const [showHandbook, setShowHandbook] = useState(false);
   const [showManualGuide, setShowManualGuide] = useState(false);
@@ -217,6 +218,7 @@ export default function FocusMode() {
     // Ensure downstream surfaces (handbook / manual guide) have a class to work
     // with when the wizard picked one that wasn't preloaded.
     if (gClassId && !cls) {
+      setWizardClassId(gClassId);
       base44.entities.Class.get(gClassId).then(setCls).catch(() => {});
     }
     setStudyMode(gMode);
