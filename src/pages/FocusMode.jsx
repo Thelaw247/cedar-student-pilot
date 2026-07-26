@@ -514,7 +514,6 @@ export default function FocusMode() {
           <Brain className="w-4 h-4" /> Start Focus Session
         </button>
       )}
-      )}
 
       {/* Interval settings - only when idle and pomodoro */}
       {phase === 'idle' && mode === 'pomodoro' && (
