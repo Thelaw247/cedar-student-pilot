@@ -15,7 +15,7 @@ import DailyProgressRing from '@/components/DailyProgressRing';
 import FloatingActionButton from '@/components/FloatingActionButton';
 import AutoPrintPrompt from '@/components/AutoPrintPrompt';
 import AttendancePrompt from '@/components/AttendancePrompt';
-import { classMeetsOnDay, getClassTimesForDay, dayLabelFromDate } from '@/lib/classSchedule';
+import { classMeetsOnDay, getClassTimesForDay } from '@/lib/classSchedule';
 
 function getTodayString() {
   const d = new Date();
