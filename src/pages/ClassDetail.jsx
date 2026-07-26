@@ -75,7 +75,7 @@ export default function ClassDetail() {
         {['lectures', 'assignments', 'handbook', 'study'].map(t => (
           <button key={t} onClick={() => setTab(t)}
             className={`px-4 py-2.5 text-sm font-medium capitalize border-b-2 transition-colors whitespace-nowrap ${tab === t ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>
-            {t === 'study' ? 'Study Tools' : t}
+            {t === 'study' ? 'Practice' : t}
           </button>
         ))}
       </div>
