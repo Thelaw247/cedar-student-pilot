@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { ChevronLeft, Plus, GraduationCap, Clock, MapPin, Mic, FileText, Loader2, Calendar, AlertCircle, Brain, Headphones, Pencil, AlertTriangle, Search, X, BookOpen, FolderPlus } from 'lucide-react';
+import { ChevronLeft, Plus, GraduationCap, Clock, MapPin, Mic, FileText, Loader2, Calendar, AlertCircle, Brain, Headphones, Pencil, AlertTriangle, Search, X, BookOpen, FolderPlus, Pause, Play } from 'lucide-react';
 import EditClassModal from '@/components/EditClassModal';
 import ProjectAssignmentModal from '@/components/ProjectAssignmentModal';
 import WeekGroupedLectures from '@/components/WeekGroupedLectures';
@@ -437,13 +437,38 @@ function RecordModal({ classId, onClose }) {
         )}
         {recording && (
           <>
-            <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-4 relative">
-              <span className="absolute inset-0 rounded-full bg-destructive/20 animate-ping"></span>
-              <Mic className="w-8 h-8 text-destructive relative" />
+            <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 relative ${paused ? 'bg-muted' : 'bg-destructive/10'}`}>
+              {!paused && <span className="absolute inset-0 rounded-full bg-destructive/20 animate-ping"></span>}
+              <Mic className={`w-8 h-8 relative ${paused ? 'text-muted-foreground' : 'text-destructive'}`} />
             </div>
             <p className="font-heading text-3xl font-bold tabular-nums mb-1">{formatTime(seconds)}</p>
-            <p className="text-sm text-muted-foreground mb-6">Recording in progress...</p>
-            <button onClick={stopRecording} className="w-full py-3 rounded-xl bg-destructive text-destructive-foreground text-sm font-medium hover:bg-destructive/90">Stop Recording</button>
+            <p className="text-sm text-muted-foreground mb-5">{paused ? 'Paused' : 'Recording in progress…'}</p>
+
+            <div className="flex gap-2 mb-5">
+              <button onClick={togglePause}
+                className="flex-1 py-3 rounded-xl border border-border text-sm font-medium text-foreground hover:bg-muted flex items-center justify-center gap-2">
+                {paused ? <><Play className="w-4 h-4" fill="currentColor" /> Resume</> : <><Pause className="w-4 h-4" fill="currentColor" /> Pause</>}
+              </button>
+              <button onClick={stopRecording}
+                className="flex-1 py-3 rounded-xl bg-destructive text-destructive-foreground text-sm font-medium hover:bg-destructive/90">
+                Stop
+              </button>
+            </div>
+
+            {/* Live notes — jot cues while the lecture runs. Saved as a separate
+                note on the lecture (shown alongside the transcript later). */}
+            <div className="text-left">
+              <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5 mb-1.5">
+                <Pencil className="w-3 h-3" /> Your notes &amp; cues
+              </label>
+              <textarea
+                value={liveNotes}
+                onChange={e => setLiveNotes(e.target.value)}
+                placeholder="Jot down anything the prof emphasizes, questions to revisit, page numbers… saved with this lecture."
+                className="w-full px-3 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 resize-none"
+                rows={4}
+              />
+            </div>
           </>
         )}
         {!recording && audioChunks.length > 0 && !saveError && (
