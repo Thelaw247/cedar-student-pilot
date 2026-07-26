@@ -5,8 +5,6 @@ import { X, Music, Play, Pause, Square, Brain, Coffee, Check, BarChart3, Loader2
 import MusicPlayer from '@/components/MusicPlayer';
 import AIStudyChat from '@/components/AIStudyChat';
 import SessionReview from '@/components/SessionReview';
-import LecturePickerSheet from '@/components/LecturePickerSheet';
-import StudyModeSelector from '@/components/StudyModeSelector';
 import FocusSessionWizard from '@/components/FocusSessionWizard';
 import HandbookReader from '@/components/HandbookReader';
 import ManualStudyGuide from '@/components/ManualStudyGuide';
@@ -45,7 +43,6 @@ export default function FocusMode() {
   const [studyMode, setStudyMode] = useState('deep');
   const [showPreReview, setShowPreReview] = useState(false);
   const [selectedLectureIds, setSelectedLectureIds] = useState([]);
-  const [showStudyModeSelector, setShowStudyModeSelector] = useState(false);
   const [showWizard, setShowWizard] = useState(false);
   const [wizardClassId, setWizardClassId] = useState(null); // class chosen inside the wizard when none preloaded
   const [studyType, setStudyType] = useState(null); // 'in_app' | 'manual'
