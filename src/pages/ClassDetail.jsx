@@ -249,27 +249,33 @@ function RecordModal({ classId, onClose }) {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const recorder = new MediaRecorder(stream);
-      const chunks = [];
-      recorder.ondataavailable = e => chunks.push(e.data);
+      chunksRef.current = [];
+      // Fires roughly every 15s because of the timeslice below. Each event we
+      // append the new slice and flush the whole recording-so-far to IndexedDB,
+      // so a crash loses at most ~15s, and the persisted copy is valid audio.
+      recorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) {
+          chunksRef.current.push(e.data);
+          const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
+          saveRecording(classId, blob, { seconds: secondsRef.current, timestamp: Date.now() });
+        }
+      };
       recorder.onstop = () => {
         stream.getTracks().forEach(t => t.stop());
-        setAudioChunks(chunks);
-        // Clear recovery data — recording completed successfully
-        localStorage.removeItem(`cedar-recording-${classId}`);
+        setAudioChunks([...chunksRef.current]);
+        // Final flush so the durable copy matches exactly what we captured.
+        const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
+        saveRecording(classId, blob, { seconds: secondsRef.current, timestamp: Date.now() });
       };
-      recorder.start();
+      // Timeslice = periodic ondataavailable → periodic durable flush.
+      recorder.start(15000);
       setMediaRecorder(recorder);
       setAudioChunks([]);
+      setRecoveredBlob(null);
+      setRecoveryAvailable(null);
       setRecording(true);
       setSeconds(0);
-      // Mark recording as in-progress for crash recovery
-      try {
-        localStorage.setItem(`cedar-recording-${classId}`, JSON.stringify({
-          seconds: 0,
-          timestamp: Date.now(),
-          classId,
-        }));
-      } catch (e) {}
+      secondsRef.current = 0;
     } catch (e) {
       alert('Could not access microphone. Please grant permission.');
     }
@@ -277,6 +283,8 @@ function RecordModal({ classId, onClose }) {
 
   const stopRecording = async () => {
     if (mediaRecorder) {
+      // Ask for any buffered audio before stopping so the last slice isn't lost.
+      try { mediaRecorder.requestData(); } catch (e) {}
       mediaRecorder.stop();
       setRecording(false);
     }
