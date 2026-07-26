@@ -98,8 +98,9 @@ export default function FocusMode() {
     if (lectureIdParam) {
       setSelectedLectureIds([lectureIdParam]);
       setStudyMode('review');
-      // Auto-show study mode selector after class loads
-      setTimeout(() => setShowStudyModeSelector(true), 300);
+      // Opened from a lecture — jump straight into the guided setup, pre-seeded
+      // with this lecture and a review goal.
+      setTimeout(() => setShowWizard(true), 300);
     }
   }, [sessionId, classIdParam, lectureIdParam]);
 
