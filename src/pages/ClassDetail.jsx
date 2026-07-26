@@ -7,6 +7,7 @@ import ProjectAssignmentModal from '@/components/ProjectAssignmentModal';
 import WeekGroupedLectures from '@/components/WeekGroupedLectures';
 import ExamPredictionCard from '@/components/ExamPredictionCard';
 import HandbookReader from '@/components/HandbookReader';
+import PostRecordingReviewPrompt from '@/components/PostRecordingReviewPrompt';
 import { getSetting } from '@/lib/settings';
 
 export default function ClassDetail() {
@@ -201,6 +202,7 @@ function RecordModal({ classId, onClose }) {
   const [audioChunks, setAudioChunks] = useState([]);
   const [processing, setProcessing] = useState(false);
   const [recoveryAvailable, setRecoveryAvailable] = useState(null);
+  const [reviewLectureId, setReviewLectureId] = useState(null);
 
   // Crash recovery: check for interrupted recording on mount
   useEffect(() => {
@@ -298,7 +300,11 @@ function RecordModal({ classId, onClose }) {
         lecture_id: lecture.id,
         audio_url: file_url,
       });
-      onClose();
+      // Instead of closing straight away, offer to schedule spaced reviews for
+      // the lecture that was just captured — the point where intent is highest.
+      setProcessing(false);
+      setReviewLectureId(lecture.id);
+      return;
     } catch (e) {
       alert('Failed to process recording. Your audio data is preserved — please try again.');
     }
@@ -310,6 +316,17 @@ function RecordModal({ classId, onClose }) {
     const sec = s % 60;
     return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
   };
+
+  // After processing, show the review-scheduling prompt in place of the modal.
+  if (reviewLectureId) {
+    return (
+      <PostRecordingReviewPrompt
+        classId={classId}
+        lectureId={reviewLectureId}
+        onDone={onClose}
+      />
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 glass">
