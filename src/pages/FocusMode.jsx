@@ -358,7 +358,7 @@ export default function FocusMode() {
     complete: 'Goal Complete!',
   };
 
-  const showModeToggle = phase === 'idle' || phase === 'studying' || phase === 'paused';
+  const showModeToggle = phase === 'studying' || phase === 'paused';
   const showControls = phase !== 'ended';
 
   return (
@@ -453,7 +453,7 @@ export default function FocusMode() {
       {/* Timer controls */}
       {showControls && (
         <div className="flex items-center gap-3 mb-4">
-          {phase === 'idle' && (
+          {phase === 'idle' && isProjectSession && (
             <button onClick={startStudying}
               className="w-14 h-14 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 shadow-lg transition-colors">
               <Play className="w-6 h-6 ml-0.5" fill="currentColor" />
@@ -508,8 +508,8 @@ export default function FocusMode() {
         </button>
       )}
 
-      {/* Interval settings - only when idle and pomodoro */}
-      {phase === 'idle' && mode === 'pomodoro' && (
+      {/* Interval settings - available while a pomodoro session is running */}
+      {(phase === 'studying' || phase === 'paused') && mode === 'pomodoro' && (
         <div className="flex gap-4 text-sm">
           <label className="flex items-center gap-2">
             <span className="text-muted-foreground">Study</span>
