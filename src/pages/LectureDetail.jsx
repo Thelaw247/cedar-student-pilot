@@ -106,7 +106,7 @@ export default function LectureDetail() {
           )}
           <Link to={`/focus?lectureId=${lectureId}&classId=${lecture?.class_id || ''}`}
             className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border text-xs font-medium text-foreground hover:bg-primary/5 hover:border-primary/30 transition-colors">
-            <Headphones className="w-3.5 h-3.5" /> Focus Mode
+            <Headphones className="w-3.5 h-3.5" /> Study this lecture
           </Link>
         </div>
       </div>
