@@ -212,8 +212,13 @@ export default function FocusMode() {
   // Applies the guided-wizard result and starts the session. Derives the timer
   // presets from the chosen goal (deep/sprint/review) so the user never has to
   // set interval lengths by hand, then opens the matching study surface.
-  const handleWizardComplete = ({ studyMode: gMode, studyType: gType, lectureIds, examAssignmentId: exId }) => {
+  const handleWizardComplete = ({ classId: gClassId, studyMode: gMode, studyType: gType, lectureIds, examAssignmentId: exId }) => {
     const preset = STUDY_MODES[gMode] || STUDY_MODES.deep;
+    // Ensure downstream surfaces (handbook / manual guide) have a class to work
+    // with when the wizard picked one that wasn't preloaded.
+    if (gClassId && !cls) {
+      base44.entities.Class.get(gClassId).then(setCls).catch(() => {});
+    }
     setStudyMode(gMode);
     setStudyMinutes(preset.study);
     setBreakMinutes(preset.break);
