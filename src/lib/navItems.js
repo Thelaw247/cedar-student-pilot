@@ -18,7 +18,7 @@ export const NAV_ITEMS = [
   { to: '/classes',     label: 'Classes',  icon: BookOpen,     primary: true },
   { to: '/planner',     label: 'Planner',  icon: GraduationCap, primary: true },
   { to: '/analytics',   label: 'Analytics', icon: BarChart3,   primary: true },
-  { to: '/study-tools', label: 'Study Tools', icon: Brain,     primary: false },
+  { to: '/study-tools', label: 'Practice', icon: Brain,     primary: false },
   { to: '/assistant',   label: 'AI Assistant', icon: Sparkles, primary: false },
   { to: '/settings',    label: 'Settings', icon: Settings,     primary: false },
 ];
