@@ -245,6 +245,39 @@ export default function InLectureQuiz({ lecture, cls, onClose }) {
             </div>
           </div>
 
+          {/* Answer-by-answer review — your answer next to the model answer */}
+          <div className="space-y-3 mb-6">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Your Answers</p>
+            {questions.map((q, i) => {
+              const correct = isCorrect(q, i);
+              const yourAns = answers[i];
+              const freeText = isFreeText(q);
+              return (
+                <div key={i} className={`rounded-xl border p-3 text-left ${correct ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-rose-500/30 bg-rose-500/5'}`}>
+                  <div className="flex items-start gap-2">
+                    {correct
+                      ? <Check className="w-4 h-4 text-emerald-600 mt-0.5 flex-shrink-0" />
+                      : <X className="w-4 h-4 text-rose-600 mt-0.5 flex-shrink-0" />}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground mb-1.5">{q.question}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Your answer: <span className={correct ? 'text-emerald-600 font-medium' : 'text-rose-600 font-medium'}>{yourAns || '— (blank)'}</span>
+                      </p>
+                      {(!correct || freeText) && q.correct_answer && (
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {freeText ? 'Model answer' : 'Correct answer'}: <span className="text-emerald-600 font-medium">{q.correct_answer}</span>
+                        </p>
+                      )}
+                      {freeText && grades[i]?.feedback && (
+                        <p className="text-xs text-foreground/70 mt-1 italic">{grades[i].feedback}</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
           <div className="flex gap-2">
             <button onClick={onClose} className="flex-1 py-3 rounded-xl border border-border text-sm font-medium text-muted-foreground hover:bg-muted">
               Done — Back to Lecture
