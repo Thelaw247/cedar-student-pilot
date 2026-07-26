@@ -15,6 +15,60 @@ export default function InLectureQuiz({ lecture, cls, onClose }) {
   const [showResult, setShowResult] = useState(false);
   const [coverageWritten, setCoverageWritten] = useState(false);
   const [error, setError] = useState(null);
+  const [grades, setGrades] = useState({});   // index -> { correct, feedback } for short answers
+  const [grading, setGrading] = useState(false);
+
+  // A question needs AI concept-grading only when it's free-text (short answer
+  // or one-word); multiple choice and true/false are exact-match locally.
+  const isFreeText = (q) => q.type === 'short_answer' || q.type === 'one_word';
+
+  // Objective correctness for choice-type questions (exact match).
+  const choiceCorrect = (q, ans) =>
+    !!ans && ans.trim().toLowerCase() === (q.correct_answer || '').trim().toLowerCase();
+
+  // Unified correctness: AI grade for free-text, exact match otherwise.
+  const isCorrect = (q, i) => {
+    if (isFreeText(q)) return grades[i]?.correct === true;
+    return choiceCorrect(q, answers[i]);
+  };
+
+  // Run concept-based grading for the free-text answers, then show results.
+  const finishQuiz = async () => {
+    const freeTextItems = [];
+    questions.forEach((q, i) => {
+      if (isFreeText(q)) {
+        freeTextItems.push({
+          index: i,
+          question: q.question,
+          correct_answer: q.correct_answer,
+          student_answer: answers[i] || '',
+        });
+      }
+    });
+
+    if (freeTextItems.length > 0) {
+      setGrading(true);
+      try {
+        const res = await base44.functions.invoke('generateLectureReview', {
+          grade_answers: freeTextItems.map(({ question, correct_answer, student_answer }) => ({ question, correct_answer, student_answer })),
+        });
+        const out = res.data?.results || [];
+        const mapped = {};
+        freeTextItems.forEach((item, k) => {
+          if (out[k]) mapped[item.index] = out[k];
+        });
+        setGrades(mapped);
+      } catch (e) {
+        // If grading fails, fall back to marking free-text as needs-review
+        // rather than silently wrong.
+        const mapped = {};
+        freeTextItems.forEach((item) => { mapped[item.index] = { correct: false, feedback: 'Could not auto-grade — compare your answer with the model answer below.' }; });
+        setGrades(mapped);
+      }
+      setGrading(false);
+    }
+    setShowResult(true);
+  };
 
   // Generate quiz on mount
   useEffect(() => {
