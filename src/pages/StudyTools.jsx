@@ -91,8 +91,8 @@ export default function StudyTools() {
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 lg:py-10 animate-fade-in">
       <div className="mb-6">
-        <h1 className="font-heading text-2xl sm:text-3xl font-bold">Study Tools</h1>
-        <p className="text-muted-foreground text-sm mt-0.5">Generate AI flashcards, quizzes, and practice tests from your lectures</p>
+        <h1 className="font-heading text-2xl sm:text-3xl font-bold">Practice</h1>
+        <p className="text-muted-foreground text-sm mt-0.5">Turn your lectures into flashcards, quizzes, and practice tests</p>
       </div>
 
       {/* Lecture-based review section */}
