@@ -199,7 +199,7 @@ export default function LectureReview() {
       <div className="rounded-xl border border-border bg-card p-5 mb-4">
         <p className="text-sm font-medium text-foreground mb-4">{current.question}</p>
 
-        {current.type === 'multiple_choice' && current.options?.length > 0 ? (
+        {((current.type === 'multiple_choice' || current.type === 'true_false') && current.options?.length > 0) ? (
           <div className="space-y-2">
             {current.options.map((opt, i) => {
               const selected = answers[currentIdx] === opt;
@@ -236,10 +236,10 @@ export default function LectureReview() {
         )}
         {isLast ? (
           <button
-            onClick={() => setShowResult(true)}
-            disabled={!answers[currentIdx]}
+            onClick={() => finishReview(questions)}
+            disabled={!answers[currentIdx] || grading}
             className="flex-1 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-2">
-            <Check className="w-4 h-4" /> Finish Review
+            {grading ? <><Loader2 className="w-4 h-4 animate-spin" /> Grading…</> : <><Check className="w-4 h-4" /> Finish Review</>}
           </button>
         ) : (
           <button
