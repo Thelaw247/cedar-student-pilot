@@ -121,23 +121,29 @@ export default function Home() {
     return 'Good evening';
   })();
 
-  const todayClasses = classes.filter(c => classMeetsOnDay(c, getDayOfWeek()));
+  // Classes meeting today, each enriched with TODAY's actual times (so per-day
+  // classes report the correct slot, not their summary time). Downstream
+  // consumers (progress ring, intelligence card, timeline) read start_time/
+  // end_time and now get the right day's values.
+  const todayClasses = classes
+    .filter(c => classMeetsOnDay(c, getDayOfWeek()))
+    .map(c => {
+      const t = getClassTimesForDay(c, getDayOfWeek()) || {};
+      return { ...c, start_time: t.start_time || c.start_time, end_time: t.end_time || c.end_time };
+    });
 
   const allItems = [
-    ...todayClasses.map(c => {
-      const t = getClassTimesForDay(c, getDayOfWeek()) || {};
-      return {
-        id: c.id,
-        title: c.name,
-        time: t.start_time || c.start_time,
-        endTime: t.end_time || c.end_time,
-        type: 'class',
-        room: c.room,
-        instructor: c.instructor,
-        color: c.color,
-        classId: c.id,
-      };
-    }),
+    ...todayClasses.map(c => ({
+      id: c.id,
+      title: c.name,
+      time: c.start_time,
+      endTime: c.end_time,
+      type: 'class',
+      room: c.room,
+      instructor: c.instructor,
+      color: c.color,
+      classId: c.id,
+    })),
     ...events.map(e => ({
       id: e.id,
       title: e.title,
