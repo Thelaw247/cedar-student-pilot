@@ -531,7 +531,7 @@ function StudyTab({ classId, cls, lectures, onUpdate }) {
           <div className="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center mb-3">
             <Headphones className="w-5 h-5 text-amber-600" />
           </div>
-          <h3 className="text-sm font-medium text-foreground">Focus Mode</h3>
+          <h3 className="text-sm font-medium text-foreground">Focus session</h3>
           <p className="text-xs text-muted-foreground mt-0.5">Start a focus session with classical music and a timer</p>
         </Link>
       </div>
