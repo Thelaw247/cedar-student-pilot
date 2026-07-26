@@ -639,7 +639,7 @@ export default function FocusMode() {
       {/* Guided focus-session setup */}
       {showWizard && (
         <FocusSessionWizard
-          initialClassId={session?.class_id || cls?.id || null}
+          initialClassId={session?.class_id || cls?.id || classIdParam || null}
           initialLectureIds={selectedLectureIds}
           onComplete={handleWizardComplete}
           onCancel={() => setShowWizard(false)}
