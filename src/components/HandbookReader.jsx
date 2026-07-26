@@ -256,6 +256,17 @@ export default function HandbookReader({ classId, lectureIds, assignmentId, stud
             </div>
           )}
 
+          {chapter.ai_expansion && (
+            <div className="mb-5 rounded-lg border border-dashed border-primary/40 bg-primary/5 p-3">
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <Brain className="w-3.5 h-3.5 text-primary" />
+                <span className="text-[10px] font-semibold text-primary uppercase tracking-widest">Added by AI to fill gaps</span>
+              </div>
+              <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">{chapter.ai_expansion}</p>
+              <p className="text-[10px] text-muted-foreground mt-2 italic">Supplementary context — not your professor's words. Double-check against the lecture.</p>
+            </div>
+          )}
+
           {chapter.concepts?.length > 0 && (
             <ChapterSection title="Key Concepts">
               <div className="flex flex-wrap gap-2">
