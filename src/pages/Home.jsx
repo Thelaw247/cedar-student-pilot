@@ -15,6 +15,7 @@ import DailyProgressRing from '@/components/DailyProgressRing';
 import FloatingActionButton from '@/components/FloatingActionButton';
 import AutoPrintPrompt from '@/components/AutoPrintPrompt';
 import AttendancePrompt from '@/components/AttendancePrompt';
+import { classMeetsOnDay, getClassTimesForDay, dayLabelFromDate } from '@/lib/classSchedule';
 
 function getTodayString() {
   const d = new Date();
@@ -120,22 +121,23 @@ export default function Home() {
     return 'Good evening';
   })();
 
-  const todayClasses = classes.filter(c => {
-    return (c.days_of_week || []).some(d => d === getDayOfWeek());
-  });
+  const todayClasses = classes.filter(c => classMeetsOnDay(c, getDayOfWeek()));
 
   const allItems = [
-    ...todayClasses.map(c => ({
-      id: c.id,
-      title: c.name,
-      time: c.start_time,
-      endTime: c.end_time,
-      type: 'class',
-      room: c.room,
-      instructor: c.instructor,
-      color: c.color,
-      classId: c.id,
-    })),
+    ...todayClasses.map(c => {
+      const t = getClassTimesForDay(c, getDayOfWeek()) || {};
+      return {
+        id: c.id,
+        title: c.name,
+        time: t.start_time || c.start_time,
+        endTime: t.end_time || c.end_time,
+        type: 'class',
+        room: c.room,
+        instructor: c.instructor,
+        color: c.color,
+        classId: c.id,
+      };
+    }),
     ...events.map(e => ({
       id: e.id,
       title: e.title,
