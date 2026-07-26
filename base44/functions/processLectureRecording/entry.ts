@@ -26,18 +26,22 @@ Deno.serve(async (req) => {
 
     if (rawTranscript.length <= CHUNK_SIZE) {
       const cleanResult = await base44.asServiceRole.integrations.Core.InvokeLLM({
-        prompt: `You are a professional transcript editor for university lecture recordings. Clean up this raw speech-to-text transcript.
+        prompt: `You are a professional transcript editor for university lecture recordings. Your job is to clean up raw speech-to-text WITHOUT flattening the professor's voice. The value of this transcript is that it preserves how THIS professor actually explained things — their characteristic phrases, their emphasis, the cues a student will recognize later. Stay faithful to their wording.
 
-Rules:
-1. Remove filler words ("um", "uh", "er", "like", "you know") unless they change meaning
-2. Remove murmurs, stutters, and false starts (e.g. "I think th- I think that...")
-3. Remove noise artifacts, garbled words, and nonsensical fragments
-4. Remove repeated phrases caused by stuttering or audio glitches
-5. Fix obvious transcription errors (homophones, misheard words) using context
-6. Preserve the speaker's original meaning, tone, and technical vocabulary
-7. Do NOT summarize or shorten — keep ALL substantive content
-8. Add paragraph breaks at natural topic transitions
-9. Keep it as close to a readable lecture document as possible
+DO fix (never compromise on these):
+1. Punctuation, capitalization, and sentence boundaries
+2. Spelling and obvious speech-to-text errors (homophones, misheard technical terms) using context — no misspelled words in the output
+3. Genuine transcription garble: nonsensical fragments, noise artifacts, and words the recognizer clearly got wrong
+4. Stutter-type repetition and false starts ONLY when they are disfluencies, e.g. "I think th- I think that" becomes "I think that"
+5. Add paragraph breaks at natural topic transitions
+
+DO NOT do (this is what preserves the professor's voice):
+1. Do NOT summarize, paraphrase, or shorten — keep the professor's actual words and sentence structure
+2. Do NOT remove a phrase just because the professor repeats it across the lecture. Deliberate repetition ("again, the key idea here is...", "remember...", "this is important...") is exactly what helps recall — keep every instance
+3. Do NOT strip verbal cues and discourse markers that carry the professor's style ("so", "now", "okay so", "right", "the thing to notice is"). Keep them where they reflect how the professor actually talks. Only drop pure meaningless filler ("um", "uh", "er") 
+4. Do NOT standardize the professor's phrasing into generic textbook language — if they said "this guy blows up" about a term going to infinity, keep their words
+
+The goal: read it back and it should sound like the professor talking, cleanly punctuated and correctly spelled — not like a summary of what they said.
 
 Raw transcript:
 ${rawTranscript}
@@ -54,17 +58,20 @@ Return ONLY the cleaned transcript text, nothing else. No preamble, no explanati
       const cleanedChunks = [];
       for (const chunk of chunks) {
         const cleanResult = await base44.asServiceRole.integrations.Core.InvokeLLM({
-          prompt: `You are a professional transcript editor for university lecture recordings. Clean up this raw speech-to-text transcript chunk.
+          prompt: `You are a professional transcript editor for university lecture recordings. Clean up this raw speech-to-text chunk WITHOUT flattening the professor's voice — preserve how THIS professor actually explained things (their characteristic phrases, emphasis, and cues), because that is what helps a student recall the lecture.
 
-Rules:
-1. Remove filler words ("um", "uh", "er", "like", "you know") unless they change meaning
-2. Remove murmurs, stutters, and false starts
-3. Remove noise artifacts, garbled words, and nonsensical fragments
-4. Remove repeated phrases caused by stuttering or audio glitches
-5. Fix obvious transcription errors using context
-6. Preserve the speaker's original meaning, tone, and technical vocabulary
-7. Do NOT summarize or shorten — keep ALL substantive content
-8. Add paragraph breaks at natural topic transitions
+DO fix (never compromise on these):
+1. Punctuation, capitalization, and sentence boundaries
+2. Spelling and obvious speech-to-text errors (homophones, misheard technical terms) using context — no misspelled words
+3. Genuine transcription garble: nonsensical fragments and noise artifacts
+4. Stutter-type repetition and false starts ONLY when they are disfluencies ("I think th- I think that" -> "I think that")
+5. Add paragraph breaks at natural topic transitions
+
+DO NOT do:
+1. Do NOT summarize, paraphrase, or shorten — keep the professor's actual words and sentence structure
+2. Do NOT remove deliberate repetition ("again...", "remember...", "this is important...") — keep every instance; it aids recall
+3. Do NOT strip discourse markers that carry the professor's style ("so", "now", "okay so", "right") — only drop pure filler ("um", "uh", "er")
+4. Do NOT standardize their phrasing into generic textbook language
 
 Raw transcript chunk:
 ${chunk}
