@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { ChevronLeft, Plus, GraduationCap, Clock, MapPin, Mic, FileText, Loader2, Calendar, AlertCircle, Brain, Headphones, Pencil, AlertTriangle, Search, X, BookOpen, FolderPlus } from 'lucide-react';
@@ -8,6 +8,7 @@ import WeekGroupedLectures from '@/components/WeekGroupedLectures';
 import ExamPredictionCard from '@/components/ExamPredictionCard';
 import HandbookReader from '@/components/HandbookReader';
 import PostRecordingReviewPrompt from '@/components/PostRecordingReviewPrompt';
+import { saveRecording, getRecording, clearRecording } from '@/lib/recordingStore';
 import { getSetting } from '@/lib/settings';
 
 export default function ClassDetail() {
