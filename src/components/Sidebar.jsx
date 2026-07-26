@@ -1,16 +1,7 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { CalendarDays, BookOpen, Sparkles, GraduationCap, Settings, GraduationCap as Logo, Brain, BarChart3 } from 'lucide-react';
-
-const navItems = [
-  { to: '/', label: 'Today', icon: CalendarDays },
-  { to: '/classes', label: 'Classes', icon: BookOpen },
-  { to: '/planner', label: 'Planner', icon: GraduationCap },
-  { to: '/study-tools', label: 'Study Tools', icon: Brain },
-  { to: '/analytics', label: 'Analytics', icon: BarChart3 },
-  { to: '/assistant', label: 'AI Assistant', icon: Sparkles },
-  { to: '/settings', label: 'Settings', icon: Settings },
-];
+import { GraduationCap as Logo } from 'lucide-react';
+import { NAV_ITEMS } from '@/lib/navItems';
 
 export default function Sidebar() {
   return (
@@ -25,7 +16,7 @@ export default function Sidebar() {
         </div>
       </div>
       <nav className="flex flex-col gap-1 px-3 mt-2 flex-1">
-        {navItems.map((item) => (
+        {NAV_ITEMS.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}
