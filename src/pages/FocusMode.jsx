@@ -387,17 +387,8 @@ export default function FocusMode() {
         {session ? 'Study Session' : 'Focus Session'}
       </p>
 
-      {/* Study mode selector — hidden for project sessions */}
-      {phase === 'idle' && !isProjectSession && (
-        <div className="flex gap-1 mb-6 bg-muted rounded-lg p-1">
-          {Object.entries(STUDY_MODES).map(([key]) => (
-            <button key={key} onClick={() => handleStudyModeChange(key)}
-              className={`flex-1 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${studyMode === key ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'}`}>
-              {key === 'deep' ? 'Deep Study' : key === 'sprint' ? 'Exam Sprint' : 'Lecture Review'}
-            </button>
-          ))}
-        </div>
-      )}
+      {/* The deep/sprint/review selection now lives in the guided wizard,
+          launched from the Start button below. */}
 
       {/* Project step info — shown for project sessions */}
       {phase === 'idle' && isProjectSession && projectAssignment && (() => {
