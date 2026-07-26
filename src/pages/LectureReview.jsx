@@ -47,7 +47,7 @@ export default function LectureReview() {
     return (
       <div className="max-w-2xl mx-auto px-4 py-10 text-center">
         <p className="text-sm text-destructive">{data.error}</p>
-        <Link to="/study-tools" className="text-sm text-primary font-medium mt-2 inline-block hover:underline">Back to Study Tools</Link>
+        <Link to="/study-tools" className="text-sm text-primary font-medium mt-2 inline-block hover:underline">Back to Practice</Link>
       </div>
     );
   }
@@ -57,7 +57,7 @@ export default function LectureReview() {
       <div className="max-w-2xl mx-auto px-4 py-10 text-center">
         <ListChecks className="w-10 h-10 text-muted-foreground mx-auto mb-3" strokeWidth={1.5} />
         <p className="text-sm text-muted-foreground">{data?.message || 'No lecture content available for review yet.'}</p>
-        <Link to="/study-tools" className="text-sm text-primary font-medium mt-2 inline-block hover:underline">Back to Study Tools</Link>
+        <Link to="/study-tools" className="text-sm text-primary font-medium mt-2 inline-block hover:underline">Back to Practice</Link>
       </div>
     );
   }
