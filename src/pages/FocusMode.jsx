@@ -7,6 +7,7 @@ import AIStudyChat from '@/components/AIStudyChat';
 import SessionReview from '@/components/SessionReview';
 import LecturePickerSheet from '@/components/LecturePickerSheet';
 import StudyModeSelector from '@/components/StudyModeSelector';
+import FocusSessionWizard from '@/components/FocusSessionWizard';
 import HandbookReader from '@/components/HandbookReader';
 import ManualStudyGuide from '@/components/ManualStudyGuide';
 import ProjectSessionEndModal from '@/components/ProjectSessionEndModal';
@@ -46,6 +47,7 @@ export default function FocusMode() {
   const [showLecturePicker, setShowLecturePicker] = useState(false);
   const [selectedLectureIds, setSelectedLectureIds] = useState([]);
   const [showStudyModeSelector, setShowStudyModeSelector] = useState(false);
+  const [showWizard, setShowWizard] = useState(false);
   const [studyType, setStudyType] = useState(null); // 'in_app' | 'manual'
   const [showHandbook, setShowHandbook] = useState(false);
   const [showManualGuide, setShowManualGuide] = useState(false);
