@@ -337,11 +337,11 @@ export default function InLectureQuiz({ lecture, cls, onClose }) {
           )}
           {isLast ? (
             <button
-              onClick={() => setShowResult(true)}
-              disabled={!answers[currentIdx]}
+              onClick={finishQuiz}
+              disabled={!answers[currentIdx] || grading}
               className="flex-1 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-1.5"
             >
-              <Check className="w-4 h-4" /> Finish Quiz
+              {grading ? <><Loader2 className="w-4 h-4 animate-spin" /> Grading…</> : <><Check className="w-4 h-4" /> Finish Quiz</>}
             </button>
           ) : (
             <button
