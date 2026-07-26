@@ -103,6 +103,8 @@ For each question, include a "lecture_index" (1-based) and "flow_position" ("sta
 
 ${difficultyInstruction}
 
+${typeMixInstruction}
+
 Also generate a "teaching_flow" array that lists the major topics in the order they were taught across all lectures.
 
 LECTURE CONTENT (in chronological teaching order):
@@ -119,7 +121,7 @@ Return a JSON object with:
             items: {
               type: 'object',
               properties: {
-                type: { type: 'string', enum: ['multiple_choice', 'short_answer', 'one_word'] },
+                type: { type: 'string', enum: ['multiple_choice', 'true_false', 'short_answer', 'one_word'] },
                 question: { type: 'string' },
                 options: { type: 'array', items: { type: 'string' } },
                 correct_answer: { type: 'string' },
