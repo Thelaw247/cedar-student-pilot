@@ -577,7 +577,7 @@ function StudyTab({ classId, cls, lectures, onUpdate }) {
   return (
     <div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-        <Link to={`/study-tools/${classId}`}
+        <Link to={`/planner`}
           className="rounded-xl border border-border bg-card p-4 hover:shadow-md transition-all group">
           <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mb-3">
             <Brain className="w-5 h-5 text-primary" />
