@@ -166,6 +166,10 @@ export default function Classes() {
         </div>
       )}
 
+      {/* Lecture content matches for the same query (searches transcripts,
+          summaries, and concepts) — one search box covers everything. */}
+      <LectureSearch query={search} />
+
       {/* Add / edit use the shared modal (with same-time vs per-day scheduling) */}
       {showAdd && activeSemester && (
         <EditClassModal semesterId={activeSemester.id} onClose={() => { setShowAdd(false); loadData(); }} />
