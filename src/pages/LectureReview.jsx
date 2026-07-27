@@ -69,7 +69,7 @@ export default function LectureReview() {
       setLoading(false);
     };
     run();
-  }, [scope, lectureId]);
+  }, [scope, lectureId, searchParams.get('ids')]);
 
   if (loading) {
     return (
