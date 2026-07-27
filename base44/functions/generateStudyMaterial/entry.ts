@@ -7,14 +7,20 @@ Deno.serve(async (req) => {
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await req.json();
-    const { class_id, material_type, lecture_range_start, lecture_range_end } = body;
+    const { class_id, material_type, lecture_range_start, lecture_range_end, lecture_ids } = body;
     if (!class_id || !material_type) return Response.json({ error: 'class_id and material_type are required' }, { status: 400 });
 
     // Get lectures for the class
     let lectures = await base44.asServiceRole.entities.Lecture.filter({ class_id: class_id }, 'date');
-    
-    // Apply lecture range if specified
-    if (lecture_range_start && lecture_range_end) {
+
+    // Scope selection, in priority order:
+    // 1. explicit lecture_ids[] (arbitrary subset chosen via checkboxes)
+    // 2. a contiguous range (lecture_range_start..lecture_range_end)
+    // 3. otherwise the whole class.
+    if (Array.isArray(lecture_ids) && lecture_ids.length > 0) {
+      const idSet = new Set(lecture_ids);
+      lectures = lectures.filter(l => idSet.has(l.id));
+    } else if (lecture_range_start && lecture_range_end) {
       const startIdx = lectures.findIndex(l => l.id === lecture_range_start);
       const endIdx = lectures.findIndex(l => l.id === lecture_range_end);
       if (startIdx >= 0 && endIdx >= 0) {
@@ -69,10 +75,12 @@ Return the appropriate JSON structure.`,
       }
     });
 
-    // Save generated materials to database
+    // If exactly one lecture is in scope, tag saved materials to it so they
+    // show up on that lecture too. Otherwise leave lecture_id null (class-wide).
+    const scopedLectureId = lectures.length === 1 ? lectures[0].id : null;
     if (material_type === 'flashcards' && material.flashcards) {
       const flashcards = material.flashcards.map(fc => ({
-        lecture_id: null,
+        lecture_id: scopedLectureId,
         class_id: class_id,
         front: fc.front,
         back: fc.back,
@@ -83,7 +91,7 @@ Return the appropriate JSON structure.`,
 
     if ((material_type === 'quiz' || material_type === 'practice_test') && material.questions) {
       const questions = material.questions.map(q => ({
-        lecture_id: null,
+        lecture_id: scopedLectureId,
         class_id: class_id,
         question: q.question,
         answer: q.answer,
