@@ -81,6 +81,7 @@ export default function Classes() {
     c.name?.toLowerCase().includes(search.toLowerCase()) ||
     c.instructor?.toLowerCase().includes(search.toLowerCase())
   );
+  const searching = search.trim().length > 0;
 
   if (loading) {
     return (
@@ -122,11 +123,15 @@ export default function Classes() {
       )}
 
       {filtered.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border p-12 text-center">
-          <GraduationCap className="w-8 h-8 text-muted-foreground mx-auto mb-3" strokeWidth={1.5} />
-          <p className="text-sm text-muted-foreground">{search ? 'No classes match.' : 'No classes yet. Add your first class or upload a timetable.'}</p>
-          {!search && <Link to="/setup" className="text-sm text-primary font-medium mt-2 inline-block hover:underline">Set up semester</Link>}
-        </div>
+        searching ? (
+          <p className="text-sm text-muted-foreground py-2 px-1">No classes match.</p>
+        ) : (
+          <div className="rounded-xl border border-dashed border-border p-12 text-center">
+            <GraduationCap className="w-8 h-8 text-muted-foreground mx-auto mb-3" strokeWidth={1.5} />
+            <p className="text-sm text-muted-foreground">No classes yet. Add your first class or upload a timetable.</p>
+            <Link to="/setup" className="text-sm text-primary font-medium mt-2 inline-block hover:underline">Set up semester</Link>
+          </div>
+        )
       ) : (
         <div className="grid gap-3">
           {filtered.map(c => (
