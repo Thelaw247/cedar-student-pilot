@@ -4,6 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { Loader2, Sparkles, Layers, FileQuestion, ClipboardList, FileText } from 'lucide-react';
 import FlashcardViewer from '@/components/FlashcardViewer';
 import QuizViewer from '@/components/QuizViewer';
+import LectureScopePicker, { resolveScopeIds } from '@/components/LectureScopePicker';
 
 const materialTypes = [
   { id: 'flashcards', label: 'Flashcards', icon: Layers, description: 'Flip cards with key terms and definitions' },
@@ -21,11 +22,12 @@ const materialTypes = [
  * Props:
  *   initialClassId — preselect a class (optional)
  */
-export default function PracticePanel({ initialClassId = '' }) {
+export default function PracticePanel({ initialClassId = '', initialLectureIds = null }) {
   const navigate = useNavigate();
   const [classes, setClasses] = useState([]);
   const [selectedClass, setSelectedClass] = useState(initialClassId || '');
   const [lectures, setLectures] = useState([]);
+  const [scopeIds, setScopeIds] = useState(initialLectureIds && initialLectureIds.length ? initialLectureIds : []);
   const [selectedType, setSelectedType] = useState('flashcards');
   const [generating, setGenerating] = useState(false);
   const [result, setResult] = useState(null);
@@ -60,6 +62,7 @@ export default function PracticePanel({ initialClassId = '' }) {
   const loadClassData = async (id) => {
     setSelectedClass(id);
     setResult(null);
+    setScopeIds([]); // reset scope to whole class when switching class
     if (id) {
       const lecs = await base44.entities.Lecture.filter({ class_id: id }, 'date');
       setLectures(lecs);
@@ -72,12 +75,15 @@ export default function PracticePanel({ initialClassId = '' }) {
 
   const generate = async () => {
     if (!selectedClass) return;
+    const ids = resolveScopeIds(scopeIds, lectures);
+    if (ids === null) { setResult({ error: 'Select at least one lecture (or choose Select all).' }); return; }
     setGenerating(true);
     setResult(null);
     try {
       const response = await base44.functions.invoke('generateStudyMaterial', {
         class_id: selectedClass,
         material_type: selectedType,
+        lecture_ids: ids, // [] = whole class; otherwise the chosen subset
       });
       setResult(response.data);
       const fc = await base44.entities.Flashcard.filter({ class_id: selectedClass });
@@ -108,6 +114,14 @@ export default function PracticePanel({ initialClassId = '' }) {
           <p className="text-xs text-muted-foreground mt-1.5">{lectures.length} lectures available as source material</p>
         )}
       </div>
+
+      {/* Lecture scope — which lectures the tools apply to */}
+      {selectedClass && lectures.length > 0 && (
+        <div className="mb-6">
+          <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Study which lectures?</label>
+          <LectureScopePicker lectures={lectures} selectedIds={scopeIds} onChange={setScopeIds} />
+        </div>
+      )}
 
       {/* Material type selector */}
       <div className="grid grid-cols-2 gap-3 mb-6">
