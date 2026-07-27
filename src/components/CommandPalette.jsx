@@ -64,7 +64,7 @@ export default function CommandPalette({ classes, lectures, assignments, onAskAI
     { label: 'Ask AI anything...', icon: Sparkles, run: () => { navigate('/assistant'); setOpen(false); } },
     { label: 'Start Recording', icon: Mic, run: () => { onStartRecording?.(); setOpen(false); } },
     { label: 'Go to Calendar', icon: Calendar, run: () => { navigate('/'); setOpen(false); } },
-    { label: 'Study Planner', icon: BookOpen, run: () => { navigate('/planner'); setOpen(false); } },
+    { label: 'Study', icon: BookOpen, run: () => { navigate('/planner'); setOpen(false); } },
     { label: 'Analytics', icon: Clock, run: () => { navigate('/analytics'); setOpen(false); } },
   ];
 
