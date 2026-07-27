@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
 import { GraduationCap, Calendar, Clock, Check, X, Headphones, Plus, CalendarClock } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import AddExamOrStudyModal from '@/components/AddExamOrStudyModal';
 import RebookSessionModal from '@/components/RebookSessionModal';
 import PracticePanel from '@/components/PracticePanel';
@@ -16,7 +16,13 @@ const priorityColors = {
 const statusIcons = { scheduled: Clock, completed: Check, skipped: X };
 
 export default function StudyPlanner() {
-  const [tab, setTab] = useState('plan'); // 'plan' | 'practice'
+  const [searchParams] = useSearchParams();
+  // Deep-link support: /planner?tab=practice&classId=X&ids=a,b,c
+  const initialTab = searchParams.get('tab') === 'practice' ? 'practice' : 'plan';
+  const deepClassId = searchParams.get('classId') || '';
+  const deepLectureIds = (searchParams.get('ids') || '').split(',').map(s => s.trim()).filter(Boolean);
+
+  const [tab, setTab] = useState(initialTab);
   const [sessions, setSessions] = useState([]);
   const [assignments, setAssignments] = useState([]);
   const [classes, setClasses] = useState([]);
@@ -93,13 +99,13 @@ export default function StudyPlanner() {
       {loading ? (
         <div className="flex items-center justify-center py-20"><div className="w-8 h-8 border-3 border-muted border-t-primary rounded-full animate-spin"></div></div>
       ) : tab === 'practice' ? (
-        <PracticePanel />
+        <PracticePanel initialClassId={deepClassId} initialLectureIds={deepLectureIds.length ? deepLectureIds : null} />
       ) : (
         <div>
           {/* Review from lectures */}
           <div className="mb-8">
             <h2 className="font-heading text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Review from Lectures</h2>
-            <ReviewFromLectures />
+            <ReviewFromLectures initialClassId={deepClassId} initialLectureIds={deepLectureIds.length ? deepLectureIds : null} />
           </div>
 
           {/* Upcoming deadlines */}
