@@ -1,7 +1,7 @@
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -16,7 +16,6 @@ import StudyPlanner from './pages/StudyPlanner';
 import SettingsPage from './pages/Settings';
 import SemesterSetup from './pages/SemesterSetup';
 import FocusMode from './pages/FocusMode';
-import StudyTools from './pages/StudyTools';
 import Analytics from './pages/Analytics';
 import LectureReview from './pages/LectureReview';
 
@@ -57,9 +56,11 @@ const AuthenticatedApp = () => {
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/focus" element={<FocusMode />} />
         <Route path="/focus/:sessionId" element={<FocusMode />} />
-        <Route path="/study-tools" element={<StudyTools />} />
-        <Route path="/study-tools/:classId" element={<StudyTools />} />
+        {/* Study Tools merged into the Study tab (/planner); redirect old links. */}
+        <Route path="/study-tools" element={<Navigate to="/planner" replace />} />
+        <Route path="/study-tools/:classId" element={<Navigate to="/planner" replace />} />
         <Route path="/analytics" element={<Analytics />} />
+        {/* Lecture review is the review runner launched from the Study tab. */}
         <Route path="/lecture-review" element={<LectureReview />} />
         <Route path="/lecture-review/:scope" element={<LectureReview />} />
         <Route path="/lecture-review/lecture/:lectureId" element={<LectureReview />} />
