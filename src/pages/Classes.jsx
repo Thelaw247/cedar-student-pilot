@@ -110,19 +110,21 @@ export default function Classes() {
         </div>
       )}
 
-      <div className="relative mb-6">
+      <div className="relative mb-4">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <input type="text" placeholder="Search classes or instructors..." value={search}
+        <input type="text" placeholder="Search classes, instructors, and lectures…" value={search}
           onChange={e => setSearch(e.target.value)}
           className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-primary/40" />
       </div>
 
-      <LectureSearch />
+      {searching && (
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-1 mb-2">Classes</p>
+      )}
 
       {filtered.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border p-12 text-center">
           <GraduationCap className="w-8 h-8 text-muted-foreground mx-auto mb-3" strokeWidth={1.5} />
-          <p className="text-sm text-muted-foreground">{search ? 'No classes found.' : 'No classes yet. Add your first class or upload a timetable.'}</p>
+          <p className="text-sm text-muted-foreground">{search ? 'No classes match.' : 'No classes yet. Add your first class or upload a timetable.'}</p>
           {!search && <Link to="/setup" className="text-sm text-primary font-medium mt-2 inline-block hover:underline">Set up semester</Link>}
         </div>
       ) : (
