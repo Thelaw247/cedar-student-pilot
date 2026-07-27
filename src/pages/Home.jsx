@@ -4,7 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { fetchWithCache } from '@/hooks/useEntityData';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useUndo, UndoToast } from '@/hooks/useUndo';
-import { Plus, Sun, Moon, GraduationCap, Clock, MapPin, Calendar, AlertCircle, ChevronLeft, ChevronRight, Briefcase, BookOpen, Repeat } from 'lucide-react';
+import { Plus, Sun, Moon, GraduationCap, Calendar, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import Timeline from '@/components/Timeline';
 import TodayIntelligenceCard from '@/components/TodayIntelligenceCard';
 import RiskIndicatorCard from '@/components/RiskIndicatorCard';
