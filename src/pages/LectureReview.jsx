@@ -78,7 +78,7 @@ export default function LectureReview() {
     return (
       <div className="max-w-2xl mx-auto px-4 py-10 text-center">
         <p className="text-sm text-destructive">{data.error}</p>
-        <Link to="/study-tools" className="text-sm text-primary font-medium mt-2 inline-block hover:underline">Back to Practice</Link>
+        <Link to="/planner" className="text-sm text-primary font-medium mt-2 inline-block hover:underline">Back to Study</Link>
       </div>
     );
   }
@@ -88,7 +88,7 @@ export default function LectureReview() {
       <div className="max-w-2xl mx-auto px-4 py-10 text-center">
         <ListChecks className="w-10 h-10 text-muted-foreground mx-auto mb-3" strokeWidth={1.5} />
         <p className="text-sm text-muted-foreground">{data?.message || 'No lecture content available for review yet.'}</p>
-        <Link to="/study-tools" className="text-sm text-primary font-medium mt-2 inline-block hover:underline">Back to Practice</Link>
+        <Link to="/planner" className="text-sm text-primary font-medium mt-2 inline-block hover:underline">Back to Study</Link>
       </div>
     );
   }
@@ -161,7 +161,7 @@ export default function LectureReview() {
             className="flex-1 py-3 rounded-xl border border-border text-sm font-medium text-muted-foreground hover:bg-muted flex items-center justify-center gap-2">
             <RotateCcw className="w-4 h-4" /> Retry
           </button>
-          <Link to="/study-tools" className="flex-1 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 flex items-center justify-center gap-2">
+          <Link to="/planner" className="flex-1 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 flex items-center justify-center gap-2">
             Done
           </Link>
         </div>
@@ -172,7 +172,7 @@ export default function LectureReview() {
   // Question screen
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 lg:py-10 animate-fade-in">
-      <Link to="/study-tools" className="text-sm text-muted-foreground hover:text-foreground mb-4 inline-flex items-center gap-1">
+      <Link to="/planner" className="text-sm text-muted-foreground hover:text-foreground mb-4 inline-flex items-center gap-1">
         <ChevronLeft className="w-4 h-4" /> Back
       </Link>
 
