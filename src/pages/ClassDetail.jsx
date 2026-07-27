@@ -576,14 +576,22 @@ function StudyTab({ classId, cls, lectures, onUpdate }) {
 
   return (
     <div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-        <Link to={`/planner`}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+        <Link to={`/planner?tab=practice&classId=${classId}`}
           className="rounded-xl border border-border bg-card p-4 hover:shadow-md transition-all group">
           <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mb-3">
             <Brain className="w-5 h-5 text-primary" />
           </div>
-          <h3 className="text-sm font-medium text-foreground">Generate Study Material</h3>
-          <p className="text-xs text-muted-foreground mt-0.5">Flashcards, quizzes, and practice tests from your lectures</p>
+          <h3 className="text-sm font-medium text-foreground">Practice</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">Flashcards, quizzes, and practice tests for this class</p>
+        </Link>
+        <Link to={`/planner?tab=plan&classId=${classId}`}
+          className="rounded-xl border border-border bg-card p-4 hover:shadow-md transition-all group">
+          <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center mb-3">
+            <BookOpen className="w-5 h-5 text-emerald-600" />
+          </div>
+          <h3 className="text-sm font-medium text-foreground">Plan &amp; review</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">Review lectures, set a test, and plan study sessions</p>
         </Link>
         <Link to="/focus"
           className="rounded-xl border border-border bg-card p-4 hover:shadow-md transition-all group">
@@ -591,7 +599,7 @@ function StudyTab({ classId, cls, lectures, onUpdate }) {
             <Headphones className="w-5 h-5 text-amber-600" />
           </div>
           <h3 className="text-sm font-medium text-foreground">Focus session</h3>
-          <p className="text-xs text-muted-foreground mt-0.5">Start a focus session with classical music and a timer</p>
+          <p className="text-xs text-muted-foreground mt-0.5">Classical music and a timer</p>
         </Link>
       </div>
 
