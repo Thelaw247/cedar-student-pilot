@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { ChevronLeft, Loader2, Check, X, ListChecks, ArrowRight, RotateCcw } from 'lucide-react';
 
 export default function LectureReview() {
   const params = useParams();
+  const [searchParams] = useSearchParams();
   const scope = params.scope || 'today';
   const lectureId = params.lectureId;
+  // An arbitrary set of lectures can be passed as ?ids=a,b,c (from the scope
+  // picker). Takes precedence over scope/single-lecture.
+  const idsParam = (searchParams.get('ids') || '').split(',').map(s => s.trim()).filter(Boolean);
 
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
@@ -50,7 +54,9 @@ export default function LectureReview() {
       setLoading(true);
       try {
         let payload = {};
-        if (lectureId) {
+        if (idsParam.length > 0) {
+          payload = { lecture_ids: idsParam };
+        } else if (lectureId) {
           payload = { lecture_ids: [lectureId] };
         } else {
           payload = { scope };
