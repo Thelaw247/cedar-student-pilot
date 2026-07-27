@@ -21,13 +21,6 @@ export default function LectureScopePicker({ lectures = [], selectedIds = [], on
 
   const allSelected = selectedIds.length === 0 || selectedIds.length === lectures.length;
 
-  const toggleAll = () => {
-    // Selecting all is represented as an empty list (= whole class).
-    if (allSelected) onChange(lectures.map(l => l.id)); // switch to explicit none-yet? No: select none
-    else onChange([]);
-  };
-
-  // Clearer explicit handlers:
   const selectAll = () => onChange([]);            // empty = whole class
   const clearAll = () => onChange(['__none__']);   // sentinel: explicitly nothing selected
 
