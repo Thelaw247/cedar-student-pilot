@@ -97,16 +97,24 @@ export default function LectureDetail() {
         <Link to={cls ? `/classes/${cls.id}` : '/classes'} className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1">
           <ChevronLeft className="w-4 h-4" /> {cls?.name || 'Classes'}
         </Link>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap justify-end">
           {lecture?.ai_summary && (
             <button onClick={() => setShowQuiz(true)}
               className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors">
               <Zap className="w-3.5 h-3.5" /> Quick Quiz
             </button>
           )}
+          <Link to={`/lecture-review?ids=${lectureId}`}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border text-xs font-medium text-foreground hover:bg-primary/5 hover:border-primary/30 transition-colors">
+            <ListChecks className="w-3.5 h-3.5" /> Review
+          </Link>
+          <Link to={`/planner?tab=practice&classId=${lecture?.class_id || ''}&ids=${lectureId}`}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border text-xs font-medium text-foreground hover:bg-primary/5 hover:border-primary/30 transition-colors">
+            <BookOpen className="w-3.5 h-3.5" /> Practice
+          </Link>
           <Link to={`/focus?lectureId=${lectureId}&classId=${lecture?.class_id || ''}`}
             className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border text-xs font-medium text-foreground hover:bg-primary/5 hover:border-primary/30 transition-colors">
-            <Headphones className="w-3.5 h-3.5" /> Study this lecture
+            <Headphones className="w-3.5 h-3.5" /> Focus
           </Link>
         </div>
       </div>
