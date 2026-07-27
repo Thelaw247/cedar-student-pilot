@@ -176,26 +176,27 @@ export default function StudyPlanner() {
                           )}
                         </div>
                         {s.notes && <p className="text-sm text-muted-foreground mt-1.5">{s.notes}</p>}
-                        <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm text-muted-foreground mt-2">
-                          <span className="inline-flex items-center gap-1.5"><GraduationCap className="w-3.5 h-3.5 flex-shrink-0" /> {cls?.name || '—'}</span>
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm text-muted-foreground mt-2">
+                          <span className="inline-flex items-center gap-1.5 min-w-0"><GraduationCap className="w-3.5 h-3.5 flex-shrink-0" /> <span className="truncate">{cls?.name || '—'}</span></span>
                           <span className="inline-flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5 flex-shrink-0" /> {s.scheduled_date}</span>
                           {s.scheduled_time && <span className="inline-flex items-center gap-1.5"><Clock className="w-3.5 h-3.5 flex-shrink-0" /> {s.scheduled_time}</span>}
                           {s.duration_minutes && <span className="inline-flex items-center gap-1.5"><Headphones className="w-3.5 h-3.5 flex-shrink-0" /> {s.duration_minutes} min</span>}
                         </div>
                       </div>
-                      {s.status === 'scheduled' && (
-                        <div className="flex items-center gap-1.5 flex-shrink-0">
-                          <button onClick={() => setRebookSession(s)}
-                            className="inline-flex items-center gap-1.5 px-2.5 py-2 rounded-lg border border-border text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
-                            <CalendarClock className="w-3.5 h-3.5" /> Rebook
-                          </button>
-                          <Link to={`/focus/${s.id}`}
-                            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border text-xs font-medium text-foreground hover:bg-primary/5 hover:border-primary/30 transition-colors">
-                            <Headphones className="w-3.5 h-3.5" /> Focus
-                          </Link>
-                        </div>
-                      )}
                     </div>
+
+                    {s.status === 'scheduled' && (
+                      <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border/60">
+                        <button onClick={() => setRebookSession(s)}
+                          className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-border text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+                          <CalendarClock className="w-3.5 h-3.5" /> Rebook
+                        </button>
+                        <Link to={`/focus/${s.id}`}
+                          className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-border text-xs font-medium text-foreground hover:bg-primary/5 hover:border-primary/30 transition-colors">
+                          <Headphones className="w-3.5 h-3.5" /> Focus
+                        </Link>
+                      </div>
+                    )}
                   </div>
                 );
               })}
