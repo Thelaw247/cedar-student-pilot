@@ -82,21 +82,24 @@ export default function Analytics() {
   // Goal achievements
   const goalMet = records.filter(r => r.duration_seconds >= (r.goal_minutes || 90) * 60).length;
 
-  // Review-based analytics
+  // Review-based analytics. Scores are meant to be 0-100; clamp defensively so
+  // a bad/out-of-range record can never render an impossible value (e.g. a ring
+  // showing 100% while individual reviews read 67 and 15).
+  const clampPct = (n) => Math.max(0, Math.min(100, Math.round(Number(n) || 0)));
   const latestReviews = reviews.slice(0, 50);
   const avgProficiency = latestReviews.length > 0
-    ? Math.round(latestReviews.reduce((s, r) => s + (r.proficiency_score || 0), 0) / latestReviews.length)
+    ? clampPct(latestReviews.reduce((s, r) => s + clampPct(r.proficiency_score), 0) / latestReviews.length)
     : 0;
   const avgInDepth = latestReviews.length > 0
-    ? Math.round(latestReviews.reduce((s, r) => s + (r.in_depth_score || 0), 0) / latestReviews.length)
+    ? clampPct(latestReviews.reduce((s, r) => s + clampPct(r.in_depth_score), 0) / latestReviews.length)
     : 0;
-  const latestCoverage = latestReviews.length > 0 ? (latestReviews[0].coverage_percentage || 0) : 0;
+  const latestCoverage = latestReviews.length > 0 ? clampPct(latestReviews[0].coverage_percentage) : 0;
 
   // Overall knowledge growth data (cumulative coverage over reviews)
   const growthData = [...latestReviews].reverse().map((r, idx) => ({
     session: idx + 1,
-    coverage: r.coverage_percentage || 0,
-    proficiency: r.proficiency_score || 0,
+    coverage: clampPct(r.coverage_percentage),
+    proficiency: clampPct(r.proficiency_score),
   }));
 
   const formatDuration = (seconds) => {
@@ -267,7 +270,7 @@ export default function Analytics() {
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm font-bold tabular-nums">{r.overall_score || 0}%</p>
+                  <p className="text-sm font-bold tabular-nums">{clampPct(r.overall_score)}%</p>
                   <p className="text-[10px] text-muted-foreground">overall</p>
                 </div>
               </div>
