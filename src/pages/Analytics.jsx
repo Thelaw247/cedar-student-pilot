@@ -324,9 +324,10 @@ function StatCard({ icon: Icon, label, value, color }) {
 }
 
 function ScoreRingCard({ icon: Icon, label, value, color }) {
+  const pct = Math.max(0, Math.min(100, Math.round(Number(value) || 0)));
   const data = [
-    { name: 'Filled', value: value, fill: color },
-    { name: 'Remaining', value: Math.max(0, 100 - value), fill: 'hsl(var(--muted))' },
+    { name: 'Filled', value: pct, fill: color },
+    { name: 'Remaining', value: 100 - pct, fill: 'hsl(var(--muted))' },
   ];
   return (
     <div className="rounded-xl border border-border bg-card p-4 flex flex-col items-center">
@@ -338,7 +339,7 @@ function ScoreRingCard({ icon: Icon, label, value, color }) {
           </PieChart>
         </ResponsiveContainer>
         <div className="absolute inset-0 flex items-center justify-center">
-          <span className="font-heading text-xs font-bold" style={{ color }}>{value}%</span>
+          <span className="font-heading text-xs font-bold" style={{ color }}>{pct}%</span>
         </div>
       </div>
       <p className="text-xs text-muted-foreground mt-1">{label}</p>
