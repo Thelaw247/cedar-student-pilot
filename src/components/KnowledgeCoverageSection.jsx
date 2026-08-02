@@ -126,6 +126,11 @@ export default function KnowledgeCoverageSection({ classes }) {
                             const decay = getDecayState(l, classLectures, lecObj || { id: l.lecture_id, date: l.last_reviewed_date || '' });
                             return (
                               <>
+                                {lecObj?.is_ai_estimated && (
+                                  <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-md bg-amber-500/10 text-amber-600 border border-amber-500/20">
+                                    <AlertCircle className="w-2.5 h-2.5" /> AI Estimated
+                                  </span>
+                                )}
                                 <FreshnessBadge decayState={decay} />
                                 {decay.daysSinceReview !== null && (
                                   <span className="text-[10px] text-muted-foreground">Last reviewed {decay.daysSinceReview}d ago</span>
