@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { ChevronLeft, Plus, GraduationCap, Clock, MapPin, Mic, FileText, Loader2, Calendar, AlertCircle, Brain, Headphones, Pencil, AlertTriangle, Search, X, BookOpen, FolderPlus, Pause, Play } from 'lucide-react';
+import { ChevronLeft, Plus, GraduationCap, Clock, MapPin, Mic, FileText, Loader2, Calendar, AlertCircle, Brain, Headphones, Pencil, AlertTriangle, Search, X, BookOpen, FolderPlus, Pause, Play, Shield, Mail, Check } from 'lucide-react';
 import EditClassModal from '@/components/EditClassModal';
 import ProjectAssignmentModal from '@/components/ProjectAssignmentModal';
 import WeekGroupedLectures from '@/components/WeekGroupedLectures';
@@ -196,7 +196,7 @@ function LectureTab({ lectures, coverage, classId, cls, onUpdate }) {
   );
 }
 
-function RecordModal({ classId, onClose }) {
+function RecordModal({ classId, cls, onClose }) {
   const [recording, setRecording] = useState(false);
   const [paused, setPaused] = useState(false);
   const [seconds, setSeconds] = useState(0);
@@ -208,6 +208,46 @@ function RecordModal({ classId, onClose }) {
   const [recoveredBlob, setRecoveredBlob] = useState(null);
   const [saveError, setSaveError] = useState(false);
   const [liveNotes, setLiveNotes] = useState('');
+
+  // Recording-consent gate. Every Canadian university policy requires a student
+  // to have the instructor's permission before recording a lecture. We hold a
+  // one-time, per-class attestation on the Class record so the student confirms
+  // this once per course, not every session. `consentConfirmed` starts true if
+  // the class already has consent on file.
+  const [consentConfirmed, setConsentConfirmed] = useState(!!cls?.recording_consent_confirmed);
+  const [consentChecked, setConsentChecked] = useState(false);
+  const [savingConsent, setSavingConsent] = useState(false);
+
+  const confirmConsent = async () => {
+    setSavingConsent(true);
+    try {
+      // Persist the attestation with a dated timestamp so there's a record the
+      // student confirmed permission for this specific class.
+      await base44.entities.Class.update(classId, {
+        recording_consent_confirmed: true,
+        recording_consent_date: new Date().toISOString().split('T')[0],
+      });
+      setConsentConfirmed(true);
+    } catch (e) {
+      // Non-fatal: allow the session to proceed even if the flag didn't persist,
+      // since the student has still actively attested here.
+      setConsentConfirmed(true);
+    }
+    setSavingConsent(false);
+  };
+
+  const emailInstructorForPermission = () => {
+    const className = cls?.name || 'your class';
+    const subject = encodeURIComponent(`Permission to record lectures — ${className}`);
+    const body = encodeURIComponent(
+      `Hi Professor ${cls?.instructor || ''},\n\n` +
+      `I'd like to ask for your permission to make audio recordings of your ${className} lectures for my own personal study use only. ` +
+      `The recordings would stay private to me and would not be shared with anyone else or posted anywhere.\n\n` +
+      `Please let me know if that's alright with you, or if you have any conditions I should follow.\n\n` +
+      `Thank you very much,\n`
+    );
+    window.location.href = `mailto:?subject=${subject}&body=${body}`;
+  };
 
   // Live refs for the recorder callbacks (avoid stale closures on chunks/seconds).
   const chunksRef = useRef([]);
@@ -424,13 +464,63 @@ function RecordModal({ classId, onClose }) {
           </div>
         )}
 
-        {!recording && !audioChunks.length && !recoveredBlob && !saveError && (
+        {/* Consent gate — shown once per class before the first recording.
+            Recordings are private to this student and are never shared, but
+            university policy still requires the instructor's permission to
+            record at all, so we confirm that up front. */}
+        {!recording && !audioChunks.length && !recoveredBlob && !saveError && !consentConfirmed && (
+          <>
+            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+              <Shield className="w-8 h-8 text-primary" />
+            </div>
+            <h3 className="font-heading text-lg font-semibold mb-1">Before you record</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Most instructors are glad to allow it, but recording a lecture needs their permission first. Your recordings stay private to you — they’re never shared with classmates or anyone else.
+            </p>
+
+            <button
+              onClick={() => setConsentChecked(v => !v)}
+              className={`w-full flex items-start gap-3 p-3 rounded-xl border text-left transition-colors mb-3 ${consentChecked ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/40'}`}
+            >
+              <span className={`mt-0.5 w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0 border transition-colors ${consentChecked ? 'bg-primary border-primary text-primary-foreground' : 'border-input'}`}>
+                {consentChecked && <Check className="w-3.5 h-3.5" strokeWidth={3} />}
+              </span>
+              <span className="text-sm text-foreground">
+                I have my instructor’s permission to record {cls?.name ? <span className="font-medium">{cls.name}</span> : 'this class'}, and I’ll keep the recording for my own study use only.
+              </span>
+            </button>
+
+            <button
+              onClick={confirmConsent}
+              disabled={!consentChecked || savingConsent}
+              className="w-full py-3 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {savingConsent ? <><Loader2 className="w-4 h-4 animate-spin" /> Confirming…</> : 'Confirm & continue'}
+            </button>
+
+            <button
+              onClick={emailInstructorForPermission}
+              className="mt-2 w-full py-2.5 rounded-xl border border-border text-sm font-medium text-foreground hover:bg-muted flex items-center justify-center gap-2"
+            >
+              <Mail className="w-4 h-4" /> Email my instructor to ask
+            </button>
+
+            <button onClick={onClose} className="mt-2 text-sm text-muted-foreground hover:text-foreground">Cancel</button>
+          </>
+        )}
+
+        {!recording && !audioChunks.length && !recoveredBlob && !saveError && consentConfirmed && (
           <>
             <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
               <Mic className="w-8 h-8 text-primary" />
             </div>
             <h3 className="font-heading text-lg font-semibold mb-1">Record Lecture</h3>
-            <p className="text-sm text-muted-foreground mb-6">Tap to start recording. AI will transcribe and summarize automatically.</p>
+            <p className="text-sm text-muted-foreground mb-2">Tap to start recording. AI will transcribe and summarize automatically.</p>
+            {cls?.recording_consent_date && (
+              <p className="text-[11px] text-muted-foreground mb-6 inline-flex items-center gap-1">
+                <Shield className="w-3 h-3 text-emerald-600" /> Permission confirmed for this class
+              </p>
+            )}
             <button onClick={startRecording} className="w-full py-3 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90">Start Recording</button>
             <button onClick={onClose} className="mt-2 text-sm text-muted-foreground hover:text-foreground">Cancel</button>
           </>
