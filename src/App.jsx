@@ -14,6 +14,7 @@ import LectureDetail from './pages/LectureDetail';
 import AIAssistant from './pages/AIAssistant';
 import StudyPlanner from './pages/StudyPlanner';
 import SettingsPage from './pages/Settings';
+import PrivacyPolicy from './pages/PrivacyPolicy';
 import SemesterSetup from './pages/SemesterSetup';
 import FocusMode from './pages/FocusMode';
 import Analytics from './pages/Analytics';
@@ -54,6 +55,7 @@ const AuthenticatedApp = () => {
         <Route path="/assistant" element={<AIAssistant />} />
         <Route path="/planner" element={<StudyPlanner />} />
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/focus" element={<FocusMode />} />
         <Route path="/focus/:sessionId" element={<FocusMode />} />
         {/* Study Tools merged into the Study tab (/planner); redirect old links. */}
