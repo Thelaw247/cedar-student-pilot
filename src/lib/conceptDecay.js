@@ -107,7 +107,11 @@ export function computeClassProficiency(lecturesWithCoverage, allClassLectures) 
     const baseProf = seen.length > 0 ? (mastered.length / seen.length) * 100 : 0;
 
     const decayFactors = { fresh: 1.0, fading: 0.85, stale: 0.6, overdue: 0.3, unreviewed: 0.5 };
-    const effectiveProf = baseProf * (decayFactors[decay.state] || 0.5);
+    // AI-estimated lectures were never actually recorded — their concepts are a
+    // prediction, not confirmed material. Count them at half strength so an
+    // estimated lecture can't inflate real mastery of a class.
+    const aiEstimatedFactor = lecture?.is_ai_estimated ? 0.5 : 1.0;
+    const effectiveProf = baseProf * (decayFactors[decay.state] || 0.5) * aiEstimatedFactor;
 
     totalProficiency += effectiveProf * weight;
   }
