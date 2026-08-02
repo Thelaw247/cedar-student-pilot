@@ -47,6 +47,18 @@
       "type": "string",
       "format": "date",
       "title": "Class End Date"
+    },
+    "recording_consent_confirmed": {
+      "type": "boolean",
+      "default": false,
+      "title": "Recording Consent Confirmed",
+      "description": "Whether the student has confirmed they have the instructor's permission to record this class."
+    },
+    "recording_consent_date": {
+      "type": "string",
+      "format": "date",
+      "title": "Recording Consent Date",
+      "description": "The date the student confirmed recording permission for this class (attestation timestamp)."
     }
   },
   "required": [
