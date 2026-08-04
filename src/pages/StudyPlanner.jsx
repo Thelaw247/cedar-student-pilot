@@ -29,6 +29,8 @@ export default function StudyPlanner() {
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
   const [rebookSession, setRebookSession] = useState(null);
+  // Tracks which assignment+action is resolving, e.g. "abc123:completed".
+  const [resolvingKey, setResolvingKey] = useState(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -62,11 +64,32 @@ export default function StudyPlanner() {
     } catch (e) { console.error(e); }
   };
 
+  // Resolve a past-due assignment and clear its still-scheduled study sessions
+  // (handled server-side). Then reload so the deadline and its sessions update.
+  const resolveAssignment = async (assignmentId, action) => {
+    setResolvingKey(assignmentId + ':' + action);
+    try {
+      await base44.functions.invoke('resolveAssignment', { assignment_id: assignmentId, action });
+      await loadData();
+    } catch (e) {
+      alert('Could not update the assignment. Please try again.');
+    }
+    setResolvingKey(null);
+  };
+
   const classMap = Object.fromEntries(classes.map(c => [c.id, c]));
   const assignmentMap = Object.fromEntries(assignments.map(a => [a.id, a]));
 
   const upcoming = sessions.filter(s => s.status === 'scheduled');
   const completed = sessions.filter(s => s.status === 'completed');
+
+  const todayStr = new Date().toISOString().split('T')[0];
+  const statusOf = (a) => a.status || 'active';
+  // "Upcoming Deadlines" shows only assignments that are still active — resolved
+  // (completed/archived) ones drop off. Sort soonest-first.
+  const deadlineAssignments = assignments
+    .filter(a => statusOf(a) === 'active')
+    .sort((a, b) => (a.due_date || '').localeCompare(b.due_date || ''));
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 lg:py-10 animate-fade-in">
@@ -109,28 +132,51 @@ export default function StudyPlanner() {
           </div>
 
           {/* Upcoming deadlines */}
-          {assignments.length > 0 && (
+          {deadlineAssignments.length > 0 && (
             <div className="mb-8">
               <h2 className="font-heading text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Upcoming Deadlines</h2>
               <div className="space-y-2">
-                {assignments.sort((a, b) => (a.due_date || '').localeCompare(b.due_date || '')).map(a => {
+                {deadlineAssignments.map(a => {
                   const cls = classMap[a.class_id];
-                  const daysUntil = a.due_date ? Math.ceil((new Date(a.due_date) - new Date()) / (1000 * 60 * 60 * 24)) : 0;
+                  const daysUntil = a.due_date ? Math.ceil((new Date(a.due_date + 'T00:00:00') - new Date(todayStr + 'T00:00:00')) / (1000 * 60 * 60 * 24)) : 0;
+                  const pastDue = !!a.due_date && a.due_date < todayStr;
+                  const busy = resolvingKey !== null;
                   return (
-                    <div key={a.id} className="flex items-center gap-3 rounded-xl border border-border bg-card p-3">
-                      <div className="w-1 h-10 rounded-full" style={{ backgroundColor: cls?.color || '#3B82F6' }}></div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <h3 className="text-sm font-medium text-foreground truncate">{a.title}</h3>
-                          {a.type === 'project' && (
-                            <span className="text-[9px] font-semibold px-1 py-0.5 rounded bg-purple-500/10 text-purple-600 uppercase flex-shrink-0">Project</span>
-                          )}
+                    <div key={a.id} className={`rounded-xl border bg-card p-3 ${pastDue ? 'border-amber-500/40' : 'border-border'}`}>
+                      <div className="flex items-center gap-3">
+                        <div className="w-1 h-10 rounded-full" style={{ backgroundColor: cls?.color || '#3B82F6' }}></div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h3 className="text-sm font-medium text-foreground truncate">{a.title}</h3>
+                            {a.type === 'project' && (
+                              <span className="text-[9px] font-semibold px-1 py-0.5 rounded bg-purple-500/10 text-purple-600 uppercase flex-shrink-0">Project</span>
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground">{cls?.name} • Due {a.due_date}</p>
                         </div>
-                        <p className="text-xs text-muted-foreground">{cls?.name} • Due {a.due_date}</p>
+                        <span className={`text-xs font-semibold px-2 py-1 rounded-md flex-shrink-0 ${pastDue ? 'bg-amber-500/10 text-amber-600' : daysUntil <= 3 ? 'bg-rose-500/10 text-rose-600' : 'bg-muted text-muted-foreground'}`}>
+                          {pastDue ? 'Past due' : daysUntil <= 0 ? 'Today' : `${daysUntil}d`}
+                        </span>
                       </div>
-                      <span className={`text-xs font-semibold px-2 py-1 rounded-md ${daysUntil <= 3 ? 'bg-rose-500/10 text-rose-600' : 'bg-muted text-muted-foreground'}`}>
-                        {daysUntil <= 0 ? 'Today' : `${daysUntil}d`}
-                      </span>
+
+                      {/* Past-due prompt — resolve and clear the sessions made for it */}
+                      {pastDue && (
+                        <div className="mt-3 pt-3 border-t border-amber-500/20">
+                          <p className="text-[11px] text-muted-foreground mb-2">
+                            This deadline has passed. Resolving it also clears the study sessions still scheduled for it.
+                          </p>
+                          <div className="flex gap-2">
+                            <button onClick={() => resolveAssignment(a.id, 'completed')} disabled={busy}
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-700 dark:text-emerald-500 text-xs font-medium hover:bg-emerald-500/20 disabled:opacity-50">
+                              {resolvingKey === a.id + ':completed' ? <span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" /> : <Check className="w-3.5 h-3.5" />} Mark done
+                            </button>
+                            <button onClick={() => resolveAssignment(a.id, 'archived')} disabled={busy}
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-border text-muted-foreground text-xs font-medium hover:bg-muted disabled:opacity-50">
+                              {resolvingKey === a.id + ':archived' ? <span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" /> : <X className="w-3.5 h-3.5" />} Dismiss
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
