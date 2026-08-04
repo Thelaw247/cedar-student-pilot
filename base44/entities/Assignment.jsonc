@@ -26,6 +26,17 @@
       "default": "assignment",
       "title": "Type"
     },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "completed",
+        "archived"
+      ],
+      "default": "active",
+      "title": "Status",
+      "description": "Lifecycle of the assignment. 'active' is open/upcoming; 'completed' means the test/assignment is done; 'archived' hides a past item the student no longer needs. Resolving to completed/archived clears its leftover scheduled study sessions."
+    },
     "coverage_scope": {
       "type": "string",
       "enum": [
