@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { AlertTriangle, Loader2, Flame, TrendingDown, BookX, CalendarClock, ChevronRight } from 'lucide-react';
 
@@ -16,7 +17,20 @@ const severityColors = {
   low: 'border-blue-500/30 bg-blue-500/5 text-blue-600',
 };
 
+// Each risk routes to the existing tool that resolves it — no new screens.
+// missed_lectures → Classes (each class's study tools generate missed-lecture
+// summaries); the planner handles scheduling, rescheduling, and review.
+const riskActions = {
+  missed_lectures: { label: 'View classes', to: '/classes' },
+  low_engagement: { label: 'Plan a study session', to: '/planner?tab=plan' },
+  no_study_planned: { label: 'Generate study plan', to: '/planner?tab=plan' },
+  low_proficiency: { label: 'Review weak topics', to: '/planner?tab=practice' },
+  behind_schedule: { label: 'Reschedule my plan', to: '/planner?tab=plan' },
+};
+const fallbackAction = { label: 'Open study planner', to: '/planner' };
+
 export default function RiskIndicatorCard() {
+  const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -44,6 +58,7 @@ export default function RiskIndicatorCard() {
       {data.risks.slice(0, 3).map((risk, i) => {
         const Icon = riskIcons[risk.type] || AlertTriangle;
         const colorClass = severityColors[risk.severity] || severityColors.medium;
+        const action = riskActions[risk.type] || fallbackAction;
         return (
           <div key={i} className={`rounded-xl border p-3 ${colorClass}`}>
             <div className="flex items-start gap-2.5">
@@ -53,7 +68,12 @@ export default function RiskIndicatorCard() {
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold">{risk.title}</p>
                 <p className="text-[11px] text-muted-foreground mt-0.5">{risk.description}</p>
-                <p className="text-[11px] font-medium mt-1 opacity-80">→ {risk.action}</p>
+                <button
+                  onClick={() => navigate(action.to)}
+                  className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-current/10 hover:bg-current/20 transition-colors"
+                >
+                  {action.label} <ChevronRight className="w-3 h-3" />
+                </button>
               </div>
             </div>
           </div>
@@ -72,6 +92,12 @@ export default function RiskIndicatorCard() {
                 {data.burnout_level === 'high' ? 'High Burnout Risk' : 'Moderate Study Load'}
               </p>
               <p className="text-[11px] text-muted-foreground mt-0.5">{data.burnout_advice}</p>
+              <button
+                onClick={() => navigate('/planner?tab=plan')}
+                className={`mt-2 inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-lg transition-colors ${data.burnout_level === 'high' ? 'text-rose-600 bg-rose-500/10 hover:bg-rose-500/20' : 'text-amber-600 bg-amber-500/10 hover:bg-amber-500/20'}`}
+              >
+                Rebalance my plan <ChevronRight className="w-3 h-3" />
+              </button>
             </div>
           </div>
         </div>
