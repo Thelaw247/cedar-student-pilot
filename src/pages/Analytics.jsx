@@ -36,6 +36,10 @@ export default function Analytics() {
     })();
   }, []);
 
+  // Which class the Knowledge & Proficiency section is scoped to.
+  // null = all classes (aggregate across every review session).
+  const [selectedClassId, setSelectedClassId] = useState(null);
+
   const classMap = Object.fromEntries(classes.map(c => [c.id, c]));
 
   const attendedLectures = lectures.filter(l => !l.is_missed).length;
@@ -86,7 +90,23 @@ export default function Analytics() {
   // a bad/out-of-range record can never render an impossible value (e.g. a ring
   // showing 100% while individual reviews read 67 and 15).
   const clampPct = (n) => Math.max(0, Math.min(100, Math.round(Number(n) || 0)));
-  const latestReviews = reviews.slice(0, 50);
+
+  // Only classes that actually have review data get a filter chip — no point
+  // offering a class whose rings would all read 0%.
+  const classesWithReviews = classes.filter(c => reviews.some(r => r.class_id === c.id));
+
+  // If the selected class no longer has reviews (e.g. data changed), fall back
+  // to the aggregate view rather than showing an empty scoped section.
+  const effectiveClassId = selectedClassId && classesWithReviews.some(c => c.id === selectedClassId)
+    ? selectedClassId
+    : null;
+
+  // Scope the review set to the selected class (or all reviews when aggregate).
+  const scopedReviews = effectiveClassId
+    ? reviews.filter(r => r.class_id === effectiveClassId)
+    : reviews;
+
+  const latestReviews = scopedReviews.slice(0, 50);
   const avgProficiency = latestReviews.length > 0
     ? clampPct(latestReviews.reduce((s, r) => s + clampPct(r.proficiency_score), 0) / latestReviews.length)
     : 0;
@@ -101,6 +121,9 @@ export default function Analytics() {
     coverage: clampPct(r.coverage_percentage),
     proficiency: clampPct(r.proficiency_score),
   }));
+
+  const selectedClass = effectiveClassId ? classMap[effectiveClassId] : null;
+  const scopeLabel = selectedClass ? selectedClass.name : 'All classes';
 
   const formatDuration = (seconds) => {
     const h = Math.floor(seconds / 3600);
@@ -198,32 +221,77 @@ export default function Analytics() {
             <h2 className="font-heading text-sm font-semibold text-muted-foreground uppercase tracking-wide">Knowledge & Proficiency</h2>
           </div>
 
-          {/* Score cards */}
-          <div className="grid grid-cols-3 gap-3 mb-4">
-            <ScoreRingCard icon={Target} label="Proficiency" value={avgProficiency} color="#3B82F6" />
-            <ScoreRingCard icon={BookOpen} label="Course Coverage" value={latestCoverage} color="#10B981" />
-            <ScoreRingCard icon={Award} label="In-Depth" value={avgInDepth} color="#F59E0B" />
-          </div>
-
-          {/* Knowledge growth chart */}
-          {growthData.length > 1 && (
-            <div className="rounded-xl border border-border bg-card p-5 mb-4">
-              <h3 className="text-sm font-semibold mb-1">Knowledge Growth Over Sessions</h3>
-              <p className="text-xs text-muted-foreground mb-4">Coverage and proficiency across review sessions</p>
-              <ResponsiveContainer width="100%" height={160}>
-                <BarChart data={growthData}>
-                  <XAxis dataKey="session" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
-                  <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
-                  <Tooltip
-                    contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px', fontSize: '12px' }}
-                    formatter={(v, name) => [`${v}%`, name === 'coverage' ? 'Coverage' : 'Proficiency']}
-                    labelFormatter={(l) => `Session ${l}`}
-                  />
-                  <Bar dataKey="coverage" fill="#10B981" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="proficiency" fill="#3B82F6" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+          {/* Per-class filter — scope the rings and growth chart to one class,
+              or view the aggregate across every class. Only classes that have
+              review data appear as options. */}
+          {classesWithReviews.length > 0 && (
+            <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide mb-4 pb-1">
+              <button
+                onClick={() => setSelectedClassId(null)}
+                className={`flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                  effectiveClassId === null
+                    ? 'bg-primary text-primary-foreground border-primary'
+                    : 'bg-card text-muted-foreground border-border hover:bg-muted'
+                }`}
+              >
+                All classes
+              </button>
+              {classesWithReviews.map(c => {
+                const active = effectiveClassId === c.id;
+                return (
+                  <button
+                    key={c.id}
+                    onClick={() => setSelectedClassId(c.id)}
+                    className={`flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                      active
+                        ? 'text-primary-foreground border-transparent'
+                        : 'bg-card text-muted-foreground border-border hover:bg-muted'
+                    }`}
+                    style={active ? { backgroundColor: c.color || '#3B82F6' } : undefined}
+                  >
+                    <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: active ? 'rgba(255,255,255,0.9)' : (c.color || '#3B82F6') }} />
+                    {c.name}
+                  </button>
+                );
+              })}
             </div>
+          )}
+
+          {latestReviews.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-border p-8 text-center mb-4">
+              <Brain className="w-6 h-6 text-muted-foreground mx-auto mb-2" strokeWidth={1.5} />
+              <p className="text-sm text-muted-foreground">No review sessions for {scopeLabel} yet.</p>
+            </div>
+          ) : (
+            <>
+              {/* Score cards */}
+              <div className="grid grid-cols-3 gap-3 mb-4">
+                <ScoreRingCard icon={Target} label="Proficiency" value={avgProficiency} color="#3B82F6" />
+                <ScoreRingCard icon={BookOpen} label="Course Coverage" value={latestCoverage} color="#10B981" />
+                <ScoreRingCard icon={Award} label="In-Depth" value={avgInDepth} color="#F59E0B" />
+              </div>
+
+              {/* Knowledge growth chart */}
+              {growthData.length > 1 && (
+                <div className="rounded-xl border border-border bg-card p-5 mb-4">
+                  <h3 className="text-sm font-semibold mb-1">Knowledge Growth Over Sessions</h3>
+                  <p className="text-xs text-muted-foreground mb-4">Coverage and proficiency across review sessions{selectedClass ? ` — ${selectedClass.name}` : ''}</p>
+                  <ResponsiveContainer width="100%" height={160}>
+                    <BarChart data={growthData}>
+                      <XAxis dataKey="session" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
+                      <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
+                      <Tooltip
+                        contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px', fontSize: '12px' }}
+                        formatter={(v, name) => [`${v}%`, name === 'coverage' ? 'Coverage' : 'Proficiency']}
+                        labelFormatter={(l) => `Session ${l}`}
+                      />
+                      <Bar dataKey="coverage" fill="#10B981" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="proficiency" fill="#3B82F6" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </>
           )}
 
           {/* Per-class knowledge coverage */}
