@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { ChevronLeft, Plus, GraduationCap, Clock, MapPin, Mic, FileText, Loader2, Calendar, AlertCircle, Brain, Headphones, Pencil, AlertTriangle, Search, X, BookOpen, FolderPlus, Pause, Play, Shield, Mail, Check } from 'lucide-react';
+import { ChevronLeft, Plus, GraduationCap, Clock, MapPin, Mic, FileText, Loader2, Calendar, AlertCircle, Brain, Headphones, Pencil, AlertTriangle, Search, X, BookOpen, FolderPlus, Pause, Play, Shield, Mail, Check, Archive, RotateCcw, CheckCircle2 } from 'lucide-react';
 import EditClassModal from '@/components/EditClassModal';
 import ProjectAssignmentModal from '@/components/ProjectAssignmentModal';
 import WeekGroupedLectures from '@/components/WeekGroupedLectures';
@@ -592,6 +592,10 @@ function RecordModal({ classId, cls, onClose }) {
 function AssignmentTab({ assignments, classId, cls, onUpdate }) {
   const [showAdd, setShowAdd] = useState(false);
   const [showProject, setShowProject] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
+  // Tracks which assignment+action is in flight, e.g. "abc123:completed", so
+  // only the button being pressed shows a spinner.
+  const [resolvingKey, setResolvingKey] = useState(null);
 
   const typeColors = {
     exam: 'bg-rose-500/10 text-rose-600',
@@ -600,10 +604,101 @@ function AssignmentTab({ assignments, classId, cls, onUpdate }) {
     assignment: 'bg-blue-500/10 text-blue-600',
   };
 
+  const todayStr = new Date().toISOString().split('T')[0];
+  const statusOf = (a) => a.status || 'active';
+  const isPastDue = (a) => statusOf(a) === 'active' && a.due_date && a.due_date < todayStr;
+
+  const activeAssignments = assignments.filter(a => statusOf(a) !== 'archived');
+  const archivedAssignments = assignments.filter(a => statusOf(a) === 'archived');
+
+  const resolve = async (assignmentId, action) => {
+    setResolvingKey(assignmentId + ':' + action);
+    try {
+      await base44.functions.invoke('resolveAssignment', { assignment_id: assignmentId, action });
+      onUpdate();
+    } catch (e) {
+      alert('Could not update the assignment. Please try again.');
+    }
+    setResolvingKey(null);
+  };
+
+  const renderCard = (a) => {
+    const status = statusOf(a);
+    const pastDue = isPastDue(a);
+    const completed = status === 'completed';
+    const archived = status === 'archived';
+    const resolved = completed || archived;
+    const busy = resolvingKey !== null;
+
+    return (
+      <div key={a.id} className={`rounded-xl border bg-card p-4 transition-all ${pastDue ? 'border-amber-500/40' : 'border-border'} ${resolved ? 'opacity-70' : ''}`}>
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="text-sm font-medium text-foreground">{a.title}</h3>
+              {completed && (
+                <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600">
+                  <CheckCircle2 className="w-2.5 h-2.5" /> Completed
+                </span>
+              )}
+              {archived && (
+                <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground">
+                  <Archive className="w-2.5 h-2.5" /> Archived
+                </span>
+              )}
+              {pastDue && (
+                <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-amber-500/10 text-amber-600">
+                  <AlertTriangle className="w-2.5 h-2.5" /> Past due
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground mt-0.5">Due {a.due_date}</p>
+            {a.type === 'project' && a.description && (
+              <p className="text-xs text-muted-foreground mt-1.5 line-clamp-2">{a.description}</p>
+            )}
+            {a.type === 'project' && a.roadmap && a.roadmap.length > 0 && (
+              <p className="text-[10px] text-primary mt-1 font-medium">{a.roadmap.length}-step roadmap</p>
+            )}
+          </div>
+          <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-md uppercase ${typeColors[a.type]}`}>{a.type}</span>
+        </div>
+
+        {/* Past-due prompt — resolve the deadline and clear its leftover sessions */}
+        {pastDue && (
+          <div className="mt-3 pt-3 border-t border-amber-500/20">
+            <p className="text-[11px] text-muted-foreground mb-2">
+              This deadline has passed. Resolving it also clears the study sessions still scheduled for it.
+            </p>
+            <div className="flex gap-2">
+              <button onClick={() => resolve(a.id, 'completed')} disabled={busy}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-700 dark:text-emerald-500 text-xs font-medium hover:bg-emerald-500/20 disabled:opacity-50">
+                {resolvingKey === a.id + ':completed' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />} Mark done
+              </button>
+              <button onClick={() => resolve(a.id, 'archived')} disabled={busy}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-border text-muted-foreground text-xs font-medium hover:bg-muted disabled:opacity-50">
+                {resolvingKey === a.id + ':archived' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Archive className="w-3.5 h-3.5" />} Archive
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Resolved — allow reactivating if it was closed by mistake */}
+        {resolved && (
+          <div className="mt-3 pt-3 border-t border-border">
+            <button onClick={() => resolve(a.id, 'reactivate')} disabled={busy}
+              className="inline-flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground hover:text-foreground disabled:opacity-50">
+              {resolvingKey === a.id + ':reactivate' ? <Loader2 className="w-3 h-3 animate-spin" /> : <RotateCcw className="w-3 h-3" />} Reactivate
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <p className="text-sm text-muted-foreground">{assignments.length} assignment{assignments.length !== 1 ? 's' : ''}</p>
+        <p className="text-sm text-muted-foreground">{activeAssignments.length} assignment{activeAssignments.length !== 1 ? 's' : ''}</p>
         <div className="flex gap-2">
           <button onClick={() => setShowAdd(true)} className="inline-flex items-center gap-1.5 bg-primary text-primary-foreground px-3 py-2 rounded-lg text-sm font-medium hover:bg-primary/90">
             <Plus className="w-4 h-4" /> Add
@@ -614,30 +709,37 @@ function AssignmentTab({ assignments, classId, cls, onUpdate }) {
         </div>
       </div>
 
-      {assignments.length === 0 ? (
+      {activeAssignments.length === 0 && archivedAssignments.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border p-12 text-center">
           <Calendar className="w-8 h-8 text-muted-foreground mx-auto mb-3" strokeWidth={1.5} />
           <p className="text-sm text-muted-foreground">No assignments yet. Add exams, quizzes, or deadlines to generate study plans.</p>
         </div>
+      ) : activeAssignments.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-border p-8 text-center">
+          <Check className="w-6 h-6 text-emerald-600 mx-auto mb-2" strokeWidth={1.5} />
+          <p className="text-sm text-muted-foreground">You're all caught up — no active assignments.</p>
+        </div>
       ) : (
         <div className="space-y-2">
-          {assignments.map(a => (
-            <div key={a.id} className="rounded-xl border border-border bg-card p-4">
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-sm font-medium text-foreground">{a.title}</h3>
-                  <p className="text-xs text-muted-foreground mt-0.5">Due {a.due_date}</p>
-                  {a.type === 'project' && a.description && (
-                    <p className="text-xs text-muted-foreground mt-1.5 line-clamp-2">{a.description}</p>
-                  )}
-                  {a.type === 'project' && a.roadmap && a.roadmap.length > 0 && (
-                    <p className="text-[10px] text-primary mt-1 font-medium">{a.roadmap.length}-step roadmap</p>
-                  )}
-                </div>
-                <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-md uppercase ${typeColors[a.type]}`}>{a.type}</span>
-              </div>
+          {activeAssignments.map(renderCard)}
+        </div>
+      )}
+
+      {/* Archived assignments — hidden by default */}
+      {archivedAssignments.length > 0 && (
+        <div className="mt-4">
+          <button
+            onClick={() => setShowArchived(v => !v)}
+            className="text-xs font-medium text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5"
+          >
+            <Archive className="w-3.5 h-3.5" />
+            {showArchived ? 'Hide' : 'Show'} archived ({archivedAssignments.length})
+          </button>
+          {showArchived && (
+            <div className="space-y-2 mt-2">
+              {archivedAssignments.map(renderCard)}
             </div>
-          ))}
+          )}
         </div>
       )}
 
