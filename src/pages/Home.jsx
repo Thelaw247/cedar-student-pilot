@@ -13,7 +13,7 @@ import DailyProgressRing from '@/components/DailyProgressRing';
 import FloatingActionButton from '@/components/FloatingActionButton';
 import AutoPrintPrompt from '@/components/AutoPrintPrompt';
 import AttendancePrompt from '@/components/AttendancePrompt';
-import WeekView from '@/components/WeekView';
+import WeeklyCalendar from '@/components/WeeklyCalendar';
 import AddEventModal from '@/components/AddEventModal';
 import { classMeetsOnDay, getClassTimesForDay } from '@/lib/classSchedule';
 import { eventsOnDate, weekDates } from '@/lib/eventSchedule';
@@ -233,6 +233,14 @@ export default function Home() {
             onAddStudyBlock={() => setShowAddExamOrStudy(true)}
           />
           <RiskIndicatorCard />
+
+          <div className="flex items-center justify-between mb-3 mt-6">
+            <h2 className="font-heading text-sm font-semibold text-muted-foreground uppercase tracking-wide">Today's schedule</h2>
+            <button onClick={() => setShowAddEvent(true)}
+              className="inline-flex items-center gap-1.5 bg-primary text-primary-foreground px-3 py-2 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors">
+              <Plus className="w-4 h-4" /> Add event
+            </button>
+          </div>
           <Timeline items={allItems} onAddEvent={() => setShowAddEvent(true)} />
         </div>
       )}
@@ -261,12 +269,13 @@ export default function Home() {
             </button>
           </div>
 
-          <WeekView
+          <WeeklyCalendar
             classes={classes}
             events={events}
             studySessions={studySessions}
             weekOffset={weekOffset}
-            onEditEvent={() => {}}
+            dateAware
+            onEditClass={(c) => navigate(`/classes/${c.id}`)}
           />
         </div>
       )}
