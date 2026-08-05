@@ -55,7 +55,7 @@ export default function DailyProgressRing({ classes, events, studySessions, curr
           </PieChart>
         </ResponsiveContainer>
         <div className="absolute inset-0 flex items-center justify-center">
-          <span className="font-heading text-lg font-bold tabular-nums">{percentage}%</span>
+          <span className="font-heading text-sm font-bold tabular-nums">{percentage}%</span>
         </div>
       </div>
       <div className="flex-1 min-w-0">
