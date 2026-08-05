@@ -77,6 +77,15 @@ export default function StudyPlanner() {
     setResolvingKey(null);
   };
 
+  // Dismiss a single overdue session — marks it 'skipped' so it leaves the
+  // upcoming list (and stops counting as "missed") while staying in history.
+  const skipSession = async (session) => {
+    setSessions(prev => prev.map(s => s.id === session.id ? { ...s, status: 'skipped' } : s));
+    try {
+      await base44.entities.StudySession.update(session.id, { status: 'skipped' });
+    } catch (e) { console.error(e); }
+  };
+
   const classMap = Object.fromEntries(classes.map(c => [c.id, c]));
   const assignmentMap = Object.fromEntries(assignments.map(a => [a.id, a]));
 
@@ -200,8 +209,9 @@ export default function StudyPlanner() {
               {[...upcoming, ...completed].map(s => {
                 const cls = classMap[s.class_id];
                 const assignment = assignmentMap[s.assignment_id];
+                const overdue = s.status === 'scheduled' && s.scheduled_date && s.scheduled_date < todayStr;
                 return (
-                  <div key={s.id} className={`rounded-xl border bg-card p-4 transition-all ${s.status === 'completed' ? 'opacity-60' : ''}`}>
+                  <div key={s.id} className={`rounded-xl border bg-card p-4 transition-all ${s.status === 'completed' ? 'opacity-60' : ''} ${overdue ? 'border-amber-500/40' : 'border-border'}`}>
                     <div className="flex items-start gap-3">
                       <button onClick={() => toggleStatus(s)}
                         className={`w-6 h-6 rounded-md border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition-colors ${s.status === 'completed' ? 'bg-primary border-primary' : 'border-border hover:border-primary'}`}>
@@ -219,6 +229,9 @@ export default function StudyPlanner() {
                             <span className="text-[11px] font-medium px-2 py-0.5 rounded bg-purple-500/10 text-purple-600 border border-purple-500/20">Project</span>
                           ) : s.notes && (
                             <span className="text-[11px] font-medium px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">Review</span>
+                          )}
+                          {overdue && (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded bg-amber-500/10 text-amber-600 border border-amber-500/20">Past due</span>
                           )}
                         </div>
                         {s.notes && <p className="text-sm text-muted-foreground mt-1.5">{s.notes}</p>}
@@ -241,6 +254,12 @@ export default function StudyPlanner() {
                           className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-border text-xs font-medium text-foreground hover:bg-primary/5 hover:border-primary/30 transition-colors">
                           <Headphones className="w-3.5 h-3.5" /> Focus
                         </Link>
+                        {overdue && (
+                          <button onClick={() => skipSession(s)}
+                            className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-border text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+                            <X className="w-3.5 h-3.5" /> Dismiss
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>
