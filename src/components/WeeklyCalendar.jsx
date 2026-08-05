@@ -1,9 +1,20 @@
 import React from 'react';
-import { Clock } from 'lucide-react';
+import { Clock, MapPin } from 'lucide-react';
 import { getClassMeetings, getClassDays } from '@/lib/classSchedule';
+import { weekDates, expandEventsInRange, parseLocalDate } from '@/lib/eventSchedule';
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const HOUR_HEIGHT = 44;
+
+// Colors for non-class items so the grid reads consistently with the rest of
+// the app (study = violet, work = amber, etc.).
+const TYPE_COLORS = {
+  work: '#F59E0B',
+  study: '#8B5CF6',
+  appointment: '#10B981',
+  reminder: '#EC4899',
+  custom: '#3B82F6',
+};
 
 function parseTime(timeStr) {
   if (!timeStr) return null;
@@ -25,24 +36,106 @@ function formatTime(timeStr) {
   return `${dh}:${String(m || 0).padStart(2, '0')} ${ampm}`;
 }
 
-export default function WeeklyCalendar({ classes, onEditClass }) {
-  if (!classes || classes.length === 0) {
+function todayString() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+/**
+ * WeeklyCalendar — a week-at-a-glance time grid (day columns × hour rows).
+ *
+ * Base mode (Classes page): pass only `classes` — renders the recurring class
+ * timetable, exactly as before.
+ *
+ * Date-aware mode (Today → Weekly): also pass `events`, `studySessions`,
+ * `weekOffset`, and `dateAware`. The grid then maps the shown week's dates onto
+ * the columns and overlays study sessions and (expanded recurring) events, so
+ * the Today weekly view and the Classes schedule share one identical grid.
+ */
+export default function WeeklyCalendar({
+  classes = [],
+  events = [],
+  studySessions = [],
+  weekOffset = 0,
+  dateAware = false,
+  onEditClass,
+  onEditEvent,
+}) {
+  // Map the seven day-columns to concrete dates for the shown week (date-aware).
+  const dates = dateAware ? weekDates(new Date(), weekOffset) : null; // Mon..Sun
+  const dayToDate = {};
+  if (dates) DAYS.forEach((d, i) => { dayToDate[d] = dates[i]; });
+  const todayStr = todayString();
+
+  // Expand recurring + one-time events across the visible week once.
+  const weekEvents = dateAware && dates ? expandEventsInRange(events, dates[0], dates[6]) : [];
+
+  // Collect every item, grouped by day label. Classes are day-of-week based
+  // (same every week); study/events are placed by their concrete date.
+  const itemsByDay = {};
+  for (const day of DAYS) {
+    const items = [];
+    for (const c of classes) {
+      for (const m of getClassMeetings(c).filter(mm => mm.day === day)) {
+        items.push({
+          key: `c-${c.id}-${day}`, kind: 'class', title: c.name,
+          start: m.start_time, end: m.end_time, color: c.color || '#3B82F6',
+          room: c.room, onClick: onEditClass ? () => onEditClass(c) : null,
+        });
+      }
+    }
+    if (dateAware) {
+      const dstr = dayToDate[day];
+      for (const s of studySessions.filter(ss => ss.scheduled_date === dstr)) {
+        items.push({
+          key: `s-${s.id}`, kind: 'study', title: s.notes || 'Study session',
+          start: s.scheduled_time, end: null, color: TYPE_COLORS.study,
+        });
+      }
+      for (const e of weekEvents.filter(ev => ev.date === dstr)) {
+        items.push({
+          key: `e-${e.id}-${dstr}`, kind: e.type || 'custom', title: e.title,
+          start: e.start_time, end: e.end_time,
+          color: e.color || TYPE_COLORS[e.type] || TYPE_COLORS.custom,
+          recurring: e._recurring,
+          onClick: onEditEvent ? () => onEditEvent(e) : null,
+        });
+      }
+    }
+    itemsByDay[day] = items;
+  }
+
+  const hasAnything = DAYS.some(d => itemsByDay[d].length > 0);
+  if (!hasAnything) {
     return (
       <div className="rounded-xl border border-dashed border-border p-12 text-center">
         <Clock className="w-8 h-8 text-muted-foreground mx-auto mb-3" strokeWidth={1.5} />
-        <p className="text-sm text-muted-foreground">No classes yet. Add a class to see your weekly schedule.</p>
+        <p className="text-sm text-muted-foreground">
+          {dateAware ? 'Nothing scheduled this week.' : 'No classes yet. Add a class to see your weekly schedule.'}
+        </p>
       </div>
     );
   }
 
-  const allTimes = classes.flatMap(c =>
-    getClassMeetings(c).flatMap(m => {
-      const s = parseTime(m.start_time);
-      const e = parseTime(m.end_time) || (s != null ? s + 60 : null);
-      return [s, e].filter(t => t != null);
-    })
-  );
+  // Timed vs untimed split (untimed items get an "all-day" band above the grid).
+  const timedByDay = {};
+  const untimedByDay = {};
+  for (const day of DAYS) {
+    timedByDay[day] = itemsByDay[day].filter(it => parseTime(it.start) != null);
+    untimedByDay[day] = itemsByDay[day].filter(it => parseTime(it.start) == null);
+  }
+  const anyUntimed = DAYS.some(d => untimedByDay[d].length > 0);
 
+  // Time range from the timed items (fallback to a standard 8am–6pm window).
+  const allTimes = [];
+  for (const day of DAYS) {
+    for (const it of timedByDay[day]) {
+      const s = parseTime(it.start);
+      const e = parseTime(it.end) || (s != null ? s + 60 : null);
+      if (s != null) allTimes.push(s);
+      if (e != null) allTimes.push(e);
+    }
+  }
   const startMin = allTimes.length ? Math.floor(Math.min(...allTimes) / 60) * 60 : 8 * 60;
   const endMin = allTimes.length ? Math.ceil(Math.max(...allTimes) / 60) * 60 : 18 * 60;
   const totalHeight = ((endMin - startMin) / 60) * HOUR_HEIGHT;
@@ -50,7 +143,8 @@ export default function WeeklyCalendar({ classes, onEditClass }) {
   const hours = [];
   for (let m = startMin; m <= endMin; m += 60) hours.push(m);
 
-  const activeDays = DAYS.filter(d => classes.some(c => getClassDays(c).includes(d)));
+  // Show only days that have something (fallback Mon–Fri), matching the base grid.
+  const activeDays = DAYS.filter(d => itemsByDay[d].length > 0);
   const displayDays = activeDays.length > 0 ? activeDays : DAYS.slice(0, 5);
 
   return (
@@ -59,11 +153,47 @@ export default function WeeklyCalendar({ classes, onEditClass }) {
         {/* Day headers */}
         <div className="flex border-b border-border bg-muted/30">
           <div className="w-12 flex-shrink-0"></div>
-          {displayDays.map(d => (
-            <div key={d} className="flex-1 text-center py-2 text-xs font-semibold text-muted-foreground">{d}</div>
-          ))}
+          {displayDays.map(d => {
+            const dstr = dateAware ? dayToDate[d] : null;
+            const isToday = !!dstr && dstr === todayStr;
+            const dateObj = dstr ? parseLocalDate(dstr) : null;
+            return (
+              <div key={d} className={`flex-1 text-center py-2 ${isToday ? 'bg-primary/10' : ''}`}>
+                <span className={`text-xs font-semibold ${isToday ? 'text-primary' : 'text-muted-foreground'}`}>{d}</span>
+                {dateObj && (
+                  <span className={`block text-[10px] tabular-nums ${isToday ? 'text-primary' : 'text-muted-foreground'}`}>
+                    {dateObj.getDate()}
+                  </span>
+                )}
+              </div>
+            );
+          })}
         </div>
-        {/* Grid */}
+
+        {/* All-day / untimed band (only when some item has no time) */}
+        {anyUntimed && (
+          <div className="flex border-b border-border/60">
+            <div className="w-12 flex-shrink-0 flex items-center justify-end pr-2">
+              <span className="text-[9px] font-medium text-muted-foreground">all-day</span>
+            </div>
+            {displayDays.map(day => (
+              <div key={day} className="flex-1 border-l border-border p-1 space-y-1 min-h-[28px]">
+                {untimedByDay[day].map(it => {
+                  const Tag = it.onClick ? 'button' : 'div';
+                  return (
+                    <Tag key={it.key} onClick={it.onClick || undefined}
+                      className="block w-full text-left rounded-md px-1 py-0.5 overflow-hidden"
+                      style={{ backgroundColor: (it.color) + '18', borderLeft: `2px solid ${it.color}` }}>
+                      <span className="text-[10px] font-medium text-foreground truncate block leading-tight">{it.title}</span>
+                    </Tag>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Timed grid */}
         <div className="flex relative" style={{ height: totalHeight }}>
           {/* Time labels */}
           <div className="w-12 flex-shrink-0 relative">
@@ -78,34 +208,35 @@ export default function WeeklyCalendar({ classes, onEditClass }) {
             })}
           </div>
           {/* Day columns */}
-          {displayDays.map(day => (
-            <div key={day} className="flex-1 relative border-l border-border">
-              {hours.map(m => {
-                const top = ((m - startMin) / 60) * HOUR_HEIGHT;
-                return <div key={m} className="absolute left-0 right-0 border-t border-border/40" style={{ top }}></div>;
-              })}
-              {classes.flatMap(c =>
-                getClassMeetings(c)
-                  .filter(m => m.day === day)
-                  .map(m => ({ cls: c, meeting: m }))
-              ).map(({ cls: c, meeting }, mi) => {
-                const start = parseTime(meeting.start_time);
-                const end = parseTime(meeting.end_time) || start + 60;
-                if (start == null) return null;
-                const top = ((start - startMin) / 60) * HOUR_HEIGHT;
-                const height = Math.max(20, ((end - start) / 60) * HOUR_HEIGHT - 2);
-                return (
-                  <button key={`${c.id}-${day}-${mi}`} onClick={() => onEditClass?.(c)}
-                    className="absolute left-0.5 right-0.5 rounded-md text-left p-1 overflow-hidden hover:shadow-md transition-all"
-                    style={{ top, height, backgroundColor: (c.color || '#3B82F6') + '18', borderLeft: `2px solid ${c.color || '#3B82F6'}` }}>
-                    <p className="text-[10px] font-semibold text-foreground truncate leading-tight">{c.name}</p>
-                    {height > 28 && <p className="text-[9px] text-muted-foreground tabular-nums leading-tight">{formatTime(meeting.start_time)}</p>}
-                    {height > 40 && c.room && <p className="text-[9px] text-muted-foreground truncate leading-tight">{c.room}</p>}
-                  </button>
-                );
-              })}
-            </div>
-          ))}
+          {displayDays.map(day => {
+            const dstr = dateAware ? dayToDate[day] : null;
+            const isToday = !!dstr && dstr === todayStr;
+            return (
+              <div key={day} className={`flex-1 relative border-l border-border ${isToday ? 'bg-primary/[0.03]' : ''}`}>
+                {hours.map(m => {
+                  const top = ((m - startMin) / 60) * HOUR_HEIGHT;
+                  return <div key={m} className="absolute left-0 right-0 border-t border-border/40" style={{ top }}></div>;
+                })}
+                {timedByDay[day].map((it, mi) => {
+                  const start = parseTime(it.start);
+                  const end = parseTime(it.end) || start + 60;
+                  if (start == null) return null;
+                  const top = ((start - startMin) / 60) * HOUR_HEIGHT;
+                  const height = Math.max(20, ((end - start) / 60) * HOUR_HEIGHT - 2);
+                  const Tag = it.onClick ? 'button' : 'div';
+                  return (
+                    <Tag key={it.key || `${day}-${mi}`} onClick={it.onClick || undefined}
+                      className="absolute left-0.5 right-0.5 rounded-md text-left p-1 overflow-hidden hover:shadow-md transition-all"
+                      style={{ top, height, backgroundColor: (it.color || '#3B82F6') + '18', borderLeft: `2px solid ${it.color || '#3B82F6'}` }}>
+                      <p className="text-[10px] font-semibold text-foreground truncate leading-tight">{it.title}</p>
+                      {height > 28 && <p className="text-[9px] text-muted-foreground tabular-nums leading-tight">{formatTime(it.start)}</p>}
+                      {height > 40 && it.room && <p className="text-[9px] text-muted-foreground truncate leading-tight">{it.room}</p>}
+                    </Tag>
+                  );
+                })}
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>
