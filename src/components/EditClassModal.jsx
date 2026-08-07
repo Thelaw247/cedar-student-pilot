@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Loader2, Trash2, X } from 'lucide-react';
+import { Loader2, Trash2, X, AlertTriangle } from 'lucide-react';
 
 const ALL_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EF4444', '#EC4899', '#14B8A6'];
@@ -35,6 +35,9 @@ export default function EditClassModal({ classData, semesterId, onDeleteClass, o
   const [scheduleMode, setScheduleMode] = useState(initialMode(classData));
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  // Two-step confirm — clicking the trash icon shows this panel instead of
+  // deleting immediately.
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   useEffect(() => {
     if (classData) {
@@ -162,6 +165,28 @@ export default function EditClassModal({ classData, semesterId, onDeleteClass, o
           <h3 className="font-heading text-lg font-semibold">{isEdit ? 'Edit Class' : 'Add Class'}</h3>
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
         </div>
+
+        {/* Delete confirmation replaces the form when active */}
+        {confirmingDelete ? (
+          <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4">
+            <div className="flex items-start gap-2 mb-3">
+              <AlertTriangle className="w-4 h-4 text-destructive mt-0.5 flex-shrink-0" />
+              <p className="text-sm text-muted-foreground">
+                This permanently deletes <span className="font-medium text-foreground">{classData?.name}</span>. This can’t be undone.
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setConfirmingDelete(false)} disabled={deleting}
+                className="flex-1 py-2.5 rounded-lg border border-border text-sm font-medium text-muted-foreground hover:bg-muted disabled:opacity-50">
+                Cancel
+              </button>
+              <button type="button" onClick={handleDelete} disabled={deleting}
+                className="flex-1 py-2.5 rounded-lg bg-destructive text-destructive-foreground text-sm font-medium hover:bg-destructive/90 disabled:opacity-50 flex items-center justify-center gap-2">
+                {deleting ? <><Loader2 className="w-4 h-4 animate-spin" /> Deleting…</> : <><Trash2 className="w-4 h-4" /> Delete permanently</>}
+              </button>
+            </div>
+          </div>
+        ) : (
         <form onSubmit={handleSubmit} className="space-y-3">
           <input type="text" placeholder="Class name" value={form.name || ''}
             onChange={e => setForm({ ...form, name: e.target.value })}
@@ -284,9 +309,9 @@ export default function EditClassModal({ classData, semesterId, onDeleteClass, o
           {/* Actions */}
           <div className="flex gap-2 pt-3">
             {isEdit && (
-              <button type="button" onClick={handleDelete} disabled={deleting}
-                className="inline-flex items-center justify-center px-3 py-2.5 rounded-lg border border-destructive/30 text-destructive text-sm font-medium hover:bg-destructive/10 disabled:opacity-50">
-                {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+              <button type="button" onClick={() => setConfirmingDelete(true)}
+                className="inline-flex items-center justify-center px-3 py-2.5 rounded-lg border border-destructive/30 text-destructive text-sm font-medium hover:bg-destructive/10">
+                <Trash2 className="w-4 h-4" />
               </button>
             )}
             <button type="button" onClick={onClose} className="flex-1 px-4 py-2.5 rounded-lg border border-border text-sm font-medium text-muted-foreground hover:bg-muted">Cancel</button>
@@ -295,6 +320,7 @@ export default function EditClassModal({ classData, semesterId, onDeleteClass, o
             </button>
           </div>
         </form>
+        )}
       </div>
     </div>
   );
