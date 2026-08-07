@@ -802,21 +802,7 @@ function AssignmentTab({ assignments, classId, cls, onUpdate, highlightAssignmen
 }
 
 function StudyTab({ classId, cls, lectures, onUpdate }) {
-  const [missedLoading, setMissedLoading] = useState(false);
-
-  const handleMissedLecture = async () => {
-    setMissedLoading(true);
-    try {
-      await base44.functions.invoke('generateMissedLectureSummary', {
-        class_id: classId,
-        date: new Date().toISOString().split('T')[0],
-      });
-      onUpdate();
-    } catch (e) {
-      alert('Failed to generate missed lecture summary.');
-    }
-    setMissedLoading(false);
-  };
+  const [showMissedConfirm, setShowMissedConfirm] = useState(false);
 
   return (
     <div>
@@ -855,11 +841,80 @@ function StudyTab({ classId, cls, lectures, onUpdate }) {
           <div className="flex-1">
             <h3 className="text-sm font-medium text-foreground">Missed a Lecture?</h3>
             <p className="text-xs text-muted-foreground mt-0.5 mb-3">Generate an AI-estimated summary based on previous lectures and course progression.</p>
-            <button onClick={handleMissedLecture} disabled={missedLoading}
-              className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-amber-500/30 bg-amber-500/5 text-sm font-medium text-amber-700 dark:text-amber-500 hover:bg-amber-500/10 disabled:opacity-50">
-              {missedLoading ? <><Loader2 className="w-4 h-4 animate-spin" /> Generating...</> : 'Generate Missed Lecture Summary'}
+            <button onClick={() => setShowMissedConfirm(true)}
+              className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-amber-500/30 bg-amber-500/5 text-sm font-medium text-amber-700 dark:text-amber-500 hover:bg-amber-500/10">
+              Generate Missed Lecture Summary
             </button>
           </div>
+        </div>
+      </div>
+
+      {showMissedConfirm && (
+        <MissedLectureConfirmModal
+          classId={classId}
+          onClose={() => setShowMissedConfirm(false)}
+          onGenerated={() => { setShowMissedConfirm(false); onUpdate(); }}
+        />
+      )}
+    </div>
+  );
+}
+
+function MissedLectureConfirmModal({ classId, onClose, onGenerated }) {
+  const [notes, setNotes] = useState('');
+  const [generating, setGenerating] = useState(false);
+
+  const confirmGenerate = async () => {
+    setGenerating(true);
+    try {
+      await base44.functions.invoke('generateMissedLectureSummary', {
+        class_id: classId,
+        date: new Date().toISOString().split('T')[0],
+        guidance_notes: notes.trim() || undefined,
+      });
+      onGenerated();
+    } catch (e) {
+      alert('Failed to generate missed lecture summary. Please try again.');
+      setGenerating(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/30 glass" onClick={onClose}>
+      <div className="bg-card w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl border border-border p-6 animate-fade-in" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-heading text-lg font-semibold">Generate Missed Lecture Summary?</h3>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
+        </div>
+
+        <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 mb-4 flex items-start gap-2">
+          <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+          <p className="text-xs text-amber-700 dark:text-amber-500">
+            This creates a new lecture entry with AI-estimated content based on your previous lectures — it doesn't reflect what was actually taught. It'll be clearly labelled as AI-estimated.
+          </p>
+        </div>
+
+        <p className="text-xs font-medium text-muted-foreground mb-1.5">
+          Notes on what was actually covered <span className="font-normal">(optional)</span>
+        </p>
+        <textarea
+          value={notes}
+          onChange={e => setNotes(e.target.value)}
+          placeholder="e.g. we covered chapters 4–5 and did a group problem set on integration by parts"
+          className="w-full px-3 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 resize-none mb-4"
+          rows={3}
+        />
+        <p className="text-[11px] text-muted-foreground -mt-3 mb-4">Anything you add here guides the AI's estimate alongside your course's previous lectures.</p>
+
+        <div className="flex gap-2">
+          <button onClick={onClose} disabled={generating}
+            className="flex-1 px-4 py-2.5 rounded-lg border border-border text-sm font-medium text-muted-foreground hover:bg-muted disabled:opacity-50">
+            Cancel
+          </button>
+          <button onClick={confirmGenerate} disabled={generating}
+            className="flex-1 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-2">
+            {generating ? <><Loader2 className="w-4 h-4 animate-spin" /> Generating…</> : 'Confirm & Generate'}
+          </button>
         </div>
       </div>
     </div>
