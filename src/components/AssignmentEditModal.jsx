@@ -1,14 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { X, Loader2, Save, CalendarClock, Check, AlertCircle } from 'lucide-react';
+import { X, Loader2, Save, CalendarClock, Check, AlertCircle, Trash2, AlertTriangle } from 'lucide-react';
 
 /**
- * AssignmentEditModal — edit an assignment's title/due date, and edit the
+ * AssignmentEditModal — edit an assignment's title/due date, edit the
  * StudySession rows scheduled for it (project roadmap work sessions, or the
- * regular auto-generated study sessions for an exam/assignment). Sessions are
- * the actual schedulable unit in this app (Assignment.roadmap is just the
- * static step template a project was created from), so editing sessions here
- * is what changes what actually shows up in the planner and weekly view.
+ * regular auto-generated study sessions for an exam/assignment), and delete
+ * the assignment outright. Sessions are the actual schedulable unit in this
+ * app (Assignment.roadmap is just the static step template a project was
+ * created from), so editing/deleting sessions here is what changes what
+ * actually shows up in the planner and weekly view.
+ *
+ * This is the single edit surface for assignments/exams/projects, reached
+ * from both the Classes → Assignments tab and the Study planner — deleting
+ * here covers every entry point.
  */
 export default function AssignmentEditModal({ assignment, onClose, onUpdate }) {
   const [title, setTitle] = useState(assignment.title || '');
@@ -21,6 +26,11 @@ export default function AssignmentEditModal({ assignment, onClose, onUpdate }) {
   // Per-session local edit buffers, keyed by session id.
   const [edits, setEdits] = useState({});
   const [savingSessionId, setSavingSessionId] = useState(null);
+
+  // Delete flow — two-step inline confirm (consistent with the pattern used
+  // elsewhere in the app for destructive actions).
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -77,7 +87,23 @@ export default function AssignmentEditModal({ assignment, onClose, onUpdate }) {
     setSavingSessionId(null);
   };
 
+  const deleteAssignment = async () => {
+    setDeleting(true);
+    try {
+      // Same backend function used for archive/complete/reactivate — its
+      // 'deleted' action removes every linked session first, then the
+      // assignment itself, so nothing orphaned is left in the planner.
+      await base44.functions.invoke('resolveAssignment', { assignment_id: assignment.id, action: 'deleted' });
+      onUpdate?.();
+      onClose();
+    } catch (e) {
+      alert('Could not delete. Please try again.');
+      setDeleting(false);
+    }
+  };
+
   const isProject = assignment.type === 'project';
+  const typeLabel = isProject ? 'project' : assignment.type === 'exam' ? 'exam' : assignment.type === 'quiz' ? 'quiz' : 'assignment';
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/30 glass" onClick={onClose}>
@@ -152,6 +178,37 @@ export default function AssignmentEditModal({ assignment, onClose, onUpdate }) {
                   </div>
                 );
               })}
+            </div>
+          )}
+        </div>
+
+        {/* Danger zone — delete this assignment/exam/project and every
+            session tied to it, in one step. */}
+        <div className="mt-5 pt-4 border-t border-border">
+          {!confirmingDelete ? (
+            <button onClick={() => setConfirmingDelete(true)}
+              className="inline-flex items-center gap-2 text-xs font-medium text-destructive hover:underline">
+              <Trash2 className="w-3.5 h-3.5" /> Delete this {typeLabel}
+            </button>
+          ) : (
+            <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3">
+              <div className="flex items-start gap-2 mb-3">
+                <AlertTriangle className="w-4 h-4 text-destructive mt-0.5 flex-shrink-0" />
+                <p className="text-xs text-muted-foreground">
+                  This permanently deletes this {typeLabel}
+                  {sessions.length > 0 ? ` and its ${sessions.length} scheduled session${sessions.length !== 1 ? 's' : ''}` : ''}. This can’t be undone.
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <button onClick={() => setConfirmingDelete(false)} disabled={deleting}
+                  className="flex-1 py-2 rounded-lg border border-border text-xs font-medium text-muted-foreground hover:bg-muted disabled:opacity-50">
+                  Cancel
+                </button>
+                <button onClick={deleteAssignment} disabled={deleting}
+                  className="flex-1 py-2 rounded-lg bg-destructive text-destructive-foreground text-xs font-medium hover:bg-destructive/90 disabled:opacity-50 flex items-center justify-center gap-1.5">
+                  {deleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />} Delete permanently
+                </button>
+              </div>
             </div>
           )}
         </div>
