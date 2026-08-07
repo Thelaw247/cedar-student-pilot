@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { GraduationCap, BookOpen, AlertCircle, AlertTriangle, Plus, CalendarClock } from 'lucide-react';
+import { GraduationCap, BookOpen, AlertCircle, AlertTriangle, Plus, CalendarClock, X } from 'lucide-react';
 import UpNextCard from '@/components/UpNextCard';
 import RebookSessionModal from '@/components/RebookSessionModal';
+import { isDismissedToday, dismissToday } from '@/lib/dismiss';
 
 function formatTime(timeStr) {
   if (!timeStr) return '';
@@ -34,6 +35,12 @@ export default function TodayIntelligenceCard({
   onAddStudyBlock,
 }) {
   const [rebookSession, setRebookSession] = useState(null);
+  // Dismiss state for the two banners below — per-day (see lib/dismiss), so a
+  // dismissed-but-still-true problem (still exam week, still behind) returns
+  // tomorrow instead of being silenced for good.
+  const [examWeekDismissed, setExamWeekDismissed] = useState(() => isDismissedToday('examweek'));
+  const [behindDismissed, setBehindDismissed] = useState(() => isDismissedToday('behind'));
+
   const today = getTodayString();
   const now = new Date();
   const nowMin = now.getHours() * 60 + now.getMinutes();
@@ -141,9 +148,10 @@ export default function TodayIntelligenceCard({
             </button>
           )}
 
-          {/* Top Priority */}
+          {/* Top Priority — routes into the class's Assignments tab, landing
+              directly on this item, instead of just the class overview. */}
           {topPriority && (
-            <Link to={topPriority.class_id ? `/classes/${topPriority.class_id}` : '/planner'}
+            <Link to={topPriority.class_id ? `/classes/${topPriority.class_id}?tab=assignments&assignmentId=${topPriority.id}` : '/planner'}
               className="flex items-center gap-2.5 rounded-lg p-2.5 bg-card border border-border hover:shadow-sm transition-all">
               <div className="w-9 h-9 rounded-lg bg-rose-500/10 flex items-center justify-center flex-shrink-0">
                 <AlertCircle className="w-5 h-5 text-rose-600" strokeWidth={1.5} />
@@ -160,7 +168,7 @@ export default function TodayIntelligenceCard({
       </div>
 
       {/* Exam Week banner */}
-      {isExamWeek && (
+      {isExamWeek && !examWeekDismissed && (
         <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 flex items-center gap-2.5 animate-fade-in">
           <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center flex-shrink-0">
             <AlertTriangle className="w-4 h-4 text-amber-600" />
@@ -174,11 +182,16 @@ export default function TodayIntelligenceCard({
               }).join(' · ')}
             </p>
           </div>
+          <button onClick={() => { dismissToday('examweek'); setExamWeekDismissed(true); }}
+            aria-label="Dismiss"
+            className="text-muted-foreground hover:text-foreground flex-shrink-0 p-1 -m-1">
+            <X className="w-3.5 h-3.5" />
+          </button>
         </div>
       )}
 
       {/* Behind Schedule banner */}
-      {behindSessions.length > 0 && (
+      {behindSessions.length > 0 && !behindDismissed && (
         <div className="rounded-xl border border-rose-500/30 bg-rose-500/5 p-3 flex items-center gap-2.5 animate-fade-in">
           <div className="w-8 h-8 rounded-lg bg-rose-500/10 flex items-center justify-center flex-shrink-0">
             <AlertCircle className="w-4 h-4 text-rose-600" />
@@ -192,6 +205,11 @@ export default function TodayIntelligenceCard({
           <button onClick={() => setRebookSession(behindSessions[0])}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-600 text-white text-xs font-medium hover:bg-rose-700 flex-shrink-0">
             <CalendarClock className="w-3 h-3" /> Rebook
+          </button>
+          <button onClick={() => { dismissToday('behind'); setBehindDismissed(true); }}
+            aria-label="Dismiss"
+            className="text-muted-foreground hover:text-foreground flex-shrink-0 p-1 -m-1">
+            <X className="w-3.5 h-3.5" />
           </button>
         </div>
       )}
