@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
-import { GraduationCap, Calendar, Clock, Check, X, Headphones, Plus, CalendarClock } from 'lucide-react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { GraduationCap, Calendar, Clock, Check, X, Headphones, Plus, CalendarClock, Pencil } from 'lucide-react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import AddExamOrStudyModal from '@/components/AddExamOrStudyModal';
 import RebookSessionModal from '@/components/RebookSessionModal';
+import AssignmentEditModal from '@/components/AssignmentEditModal';
 import PracticePanel from '@/components/PracticePanel';
 import ReviewFromLectures from '@/components/ReviewFromLectures';
 
@@ -16,6 +17,7 @@ const priorityColors = {
 const statusIcons = { scheduled: Clock, completed: Check, skipped: X };
 
 export default function StudyPlanner() {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   // Deep-link support: /planner?tab=practice&classId=X&ids=a,b,c
   const initialTab = searchParams.get('tab') === 'practice' ? 'practice' : 'plan';
@@ -29,6 +31,9 @@ export default function StudyPlanner() {
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
   const [rebookSession, setRebookSession] = useState(null);
+  // The assignment currently open in the edit modal (shared architecture with
+  // the Classes → Assignments tab — same component, same edit flow).
+  const [editAssignment, setEditAssignment] = useState(null);
   // Tracks which assignment+action is resolving, e.g. "abc123:completed".
   const [resolvingKey, setResolvingKey] = useState(null);
 
@@ -152,8 +157,13 @@ export default function StudyPlanner() {
                   const busy = resolvingKey !== null;
                   return (
                     <div key={a.id} className={`rounded-xl border bg-card p-3 ${pastDue ? 'border-amber-500/40' : 'border-border'}`}>
-                      <div className="flex items-center gap-3">
-                        <div className="w-1 h-10 rounded-full" style={{ backgroundColor: cls?.color || '#3B82F6' }}></div>
+                      {/* Clicking the row lands you on this item inside the class's
+                          Assignments tab (same deep-link pattern used elsewhere). */}
+                      <div
+                        className="flex items-center gap-3 cursor-pointer"
+                        onClick={() => navigate(`/classes/${a.class_id}?tab=assignments&assignmentId=${a.id}`)}
+                      >
+                        <div className="w-1 h-10 rounded-full flex-shrink-0" style={{ backgroundColor: cls?.color || '#3B82F6' }}></div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <h3 className="text-sm font-medium text-foreground truncate">{a.title}</h3>
@@ -166,6 +176,15 @@ export default function StudyPlanner() {
                         <span className={`text-xs font-semibold px-2 py-1 rounded-md flex-shrink-0 ${pastDue ? 'bg-amber-500/10 text-amber-600' : daysUntil <= 3 ? 'bg-rose-500/10 text-rose-600' : 'bg-muted text-muted-foreground'}`}>
                           {pastDue ? 'Past due' : daysUntil <= 0 ? 'Today' : `${daysUntil}d`}
                         </span>
+                        {/* Edit — opens the same AssignmentEditModal used in Classes,
+                            without navigating away. */}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setEditAssignment(a); }}
+                          aria-label="Edit"
+                          className="w-7 h-7 rounded-lg border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors flex-shrink-0"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
                       </div>
 
                       {/* Past-due prompt — resolve and clear the sessions made for it */}
@@ -254,6 +273,15 @@ export default function StudyPlanner() {
                           className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-border text-xs font-medium text-foreground hover:bg-primary/5 hover:border-primary/30 transition-colors">
                           <Headphones className="w-3.5 h-3.5" /> Focus
                         </Link>
+                        {/* Edit — same modal as the deadline cards / Classes tab.
+                            Only shown when this session belongs to an assignment
+                            (some ad-hoc study blocks don't). */}
+                        {assignment && (
+                          <button onClick={() => setEditAssignment(assignment)}
+                            className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-border text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors flex-shrink-0">
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                         {overdue && (
                           <button onClick={() => skipSession(s)}
                             className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-border text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
@@ -278,6 +306,13 @@ export default function StudyPlanner() {
           className={classMap[rebookSession.class_id]?.name}
           onClose={() => setRebookSession(null)}
           onRebooked={loadData}
+        />
+      )}
+      {editAssignment && (
+        <AssignmentEditModal
+          assignment={editAssignment}
+          onClose={() => setEditAssignment(null)}
+          onUpdate={loadData}
         />
       )}
     </div>
