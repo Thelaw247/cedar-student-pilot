@@ -1,15 +1,20 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
-// Resolve an assignment (mark it completed or archived) and clean up the study
-// sessions that were scheduled specifically for it. Leftover 'scheduled'
-// sessions for a past assignment are what keep firing "missed study sessions"
-// warnings and cluttering the planner, so resolving flips them to 'skipped'
-// (kept as history, but out of every "upcoming / behind" view).
+// Resolve an assignment (mark it completed/archived, reactivate it, or delete
+// it outright) and clean up the study sessions tied to it. Leftover
+// 'scheduled' sessions for a past assignment are what keep firing "missed
+// study sessions" warnings and cluttering the planner, so resolving flips
+// them to 'skipped' (kept as history, but out of every "upcoming / behind"
+// view). Deleting goes further: since sessions only exist to prep for the
+// assignment they're tied to, a deleted assignment removes them outright
+// rather than leaving orphaned rows around.
 //
 // action:
 //   'completed'  -> assignment done; clear its still-scheduled sessions
 //   'archived'   -> hide assignment; clear its still-scheduled sessions
 //   'reactivate' -> set back to active; sessions are left as-is
+//   'deleted'    -> permanently delete the assignment AND every session tied
+//                   to it (regardless of status), then remove the assignment
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -21,8 +26,8 @@ Deno.serve(async (req) => {
     if (!assignment_id || !action) {
       return Response.json({ error: 'assignment_id and action are required' }, { status: 400 });
     }
-    if (!['completed', 'archived', 'reactivate'].includes(action)) {
-      return Response.json({ error: 'action must be completed, archived, or reactivate' }, { status: 400 });
+    if (!['completed', 'archived', 'reactivate', 'deleted'].includes(action)) {
+      return Response.json({ error: 'action must be completed, archived, reactivate, or deleted' }, { status: 400 });
     }
 
     // Confirm the assignment exists and belongs to the caller (scoped client).
@@ -31,6 +36,34 @@ Deno.serve(async (req) => {
       assignment = await base44.entities.Assignment.get(assignment_id);
     } catch (e) {
       return Response.json({ error: 'Assignment not found' }, { status: 404 });
+    }
+
+    // Deletion is a distinct path: remove every linked session outright (not
+    // just the scheduled ones), then remove the assignment itself.
+    if (action === 'deleted') {
+      let deletedSessions = 0;
+      let sessions = [];
+      try {
+        sessions = await base44.entities.StudySession.filter({ assignment_id });
+      } catch (e) {
+        sessions = [];
+      }
+      for (const s of sessions) {
+        if (s && s.id) {
+          try {
+            await base44.entities.StudySession.delete(s.id);
+            deletedSessions += 1;
+          } catch (e) { /* non-fatal: continue clearing the rest */ }
+        }
+      }
+      await base44.entities.Assignment.delete(assignment_id);
+
+      return Response.json({
+        status: 'complete',
+        assignment_id,
+        deleted: true,
+        cleared_sessions: deletedSessions,
+      });
     }
 
     const newStatus = action === 'reactivate' ? 'active' : action;
