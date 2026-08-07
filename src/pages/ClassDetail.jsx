@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { ChevronLeft, Plus, GraduationCap, Clock, MapPin, Mic, FileText, Loader2, Calendar, AlertCircle, Brain, Headphones, Pencil, AlertTriangle, Search, X, BookOpen, FolderPlus, Pause, Play, Shield, Mail, Check, Archive, RotateCcw, CheckCircle2 } from 'lucide-react';
 import EditClassModal from '@/components/EditClassModal';
 import ProjectAssignmentModal from '@/components/ProjectAssignmentModal';
+import AssignmentEditModal from '@/components/AssignmentEditModal';
 import WeekGroupedLectures from '@/components/WeekGroupedLectures';
 import ExamPredictionCard from '@/components/ExamPredictionCard';
 import HandbookReader from '@/components/HandbookReader';
@@ -13,13 +14,20 @@ import { getSetting } from '@/lib/settings';
 
 export default function ClassDetail() {
   const { classId } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [cls, setCls] = useState(null);
   const [lectures, setLectures] = useState([]);
   const [assignments, setAssignments] = useState([]);
   const [coverage, setCoverage] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState('lectures');
+  // Tab can arrive via URL (?tab=assignments), e.g. from the "What Matters
+  // Today" priority card — falls back to 'lectures' exactly as before when
+  // no query param is present, so normal in-app navigation is unaffected.
+  const [tab, setTab] = useState(() => searchParams.get('tab') || 'lectures');
   const [showEdit, setShowEdit] = useState(false);
+  // Deep-linked assignment to scroll to / highlight once the Assignments tab
+  // is showing (also from the "What Matters Today" priority card).
+  const highlightAssignmentId = searchParams.get('assignmentId') || null;
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -39,6 +47,17 @@ export default function ClassDetail() {
   }, [classId]);
 
   useEffect(() => { loadData(); }, [loadData]);
+
+  const changeTab = (t) => {
+    setTab(t);
+    // Once the person navigates manually, drop the deep-link params so they
+    // don't stick around (e.g. re-highlighting after switching away and back).
+    if (searchParams.get('tab') || searchParams.get('assignmentId')) {
+      searchParams.delete('tab');
+      searchParams.delete('assignmentId');
+      setSearchParams(searchParams, { replace: true });
+    }
+  };
 
   if (loading) return <div className="flex items-center justify-center min-h-[60vh]"><div className="w-8 h-8 border-3 border-muted border-t-primary rounded-full animate-spin"></div></div>;
   if (!cls) return <div className="p-6 text-center text-muted-foreground">Class not found.</div>;
@@ -73,7 +92,7 @@ export default function ClassDetail() {
       {/* Tabs */}
       <div className="flex gap-1 border-b border-border mb-6 overflow-x-auto scrollbar-hide">
         {['lectures', 'assignments', 'handbook', 'study'].map(t => (
-          <button key={t} onClick={() => setTab(t)}
+          <button key={t} onClick={() => changeTab(t)}
             className={`px-4 py-2.5 text-sm font-medium capitalize border-b-2 transition-colors whitespace-nowrap ${tab === t ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>
             {t === 'study' ? 'Practice' : t}
           </button>
@@ -84,7 +103,7 @@ export default function ClassDetail() {
         <LectureTab lectures={lectures} coverage={coverage} classId={classId} cls={cls} onUpdate={loadData} />
       )}
       {tab === 'assignments' && (
-        <AssignmentTab assignments={assignments} classId={classId} cls={cls} onUpdate={loadData} />
+        <AssignmentTab assignments={assignments} classId={classId} cls={cls} onUpdate={loadData} highlightAssignmentId={highlightAssignmentId} />
       )}
       {tab === 'handbook' && (
         <HandbookTab cls={cls} lectures={lectures} />
@@ -589,13 +608,15 @@ function RecordModal({ classId, cls, onClose }) {
   );
 }
 
-function AssignmentTab({ assignments, classId, cls, onUpdate }) {
+function AssignmentTab({ assignments, classId, cls, onUpdate, highlightAssignmentId }) {
   const [showAdd, setShowAdd] = useState(false);
   const [showProject, setShowProject] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
+  const [editAssignment, setEditAssignment] = useState(null);
   // Tracks which assignment+action is in flight, e.g. "abc123:completed", so
   // only the button being pressed shows a spinner.
   const [resolvingKey, setResolvingKey] = useState(null);
+  const cardRefs = useRef({});
 
   const typeColors = {
     exam: 'bg-rose-500/10 text-rose-600',
@@ -610,6 +631,22 @@ function AssignmentTab({ assignments, classId, cls, onUpdate }) {
 
   const activeAssignments = assignments.filter(a => statusOf(a) !== 'archived');
   const archivedAssignments = assignments.filter(a => statusOf(a) === 'archived');
+
+  // If a deep-linked assignment lives in the archived section, auto-expand it
+  // so it's actually visible to scroll to.
+  useEffect(() => {
+    if (highlightAssignmentId && archivedAssignments.some(a => a.id === highlightAssignmentId)) {
+      setShowArchived(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [highlightAssignmentId]);
+
+  // Scroll the deep-linked assignment into view once it's rendered.
+  useEffect(() => {
+    if (highlightAssignmentId && cardRefs.current[highlightAssignmentId]) {
+      cardRefs.current[highlightAssignmentId].scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [highlightAssignmentId, activeAssignments.length, archivedAssignments.length]);
 
   const resolve = async (assignmentId, action) => {
     setResolvingKey(assignmentId + ':' + action);
@@ -629,39 +666,47 @@ function AssignmentTab({ assignments, classId, cls, onUpdate }) {
     const archived = status === 'archived';
     const resolved = completed || archived;
     const busy = resolvingKey !== null;
+    const highlighted = highlightAssignmentId === a.id;
 
     return (
-      <div key={a.id} className={`rounded-xl border bg-card p-4 transition-all ${pastDue ? 'border-amber-500/40' : 'border-border'} ${resolved ? 'opacity-70' : ''}`}>
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="text-sm font-medium text-foreground">{a.title}</h3>
-              {completed && (
-                <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600">
-                  <CheckCircle2 className="w-2.5 h-2.5" /> Completed
-                </span>
+      <div key={a.id} ref={el => { cardRefs.current[a.id] = el; }}
+        className={`rounded-xl border bg-card p-4 transition-all ${pastDue ? 'border-amber-500/40' : 'border-border'} ${resolved ? 'opacity-70' : ''} ${highlighted ? 'ring-2 ring-primary/50' : ''}`}>
+        {/* Card body — click to open the edit modal (title, due date, sessions) */}
+        <button type="button" onClick={() => setEditAssignment(a)} className="w-full text-left">
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="text-sm font-medium text-foreground">{a.title}</h3>
+                {completed && (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600">
+                    <CheckCircle2 className="w-2.5 h-2.5" /> Completed
+                  </span>
+                )}
+                {archived && (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground">
+                    <Archive className="w-2.5 h-2.5" /> Archived
+                  </span>
+                )}
+                {pastDue && (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-amber-500/10 text-amber-600">
+                    <AlertTriangle className="w-2.5 h-2.5" /> Past due
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5">Due {a.due_date}</p>
+              {a.type === 'project' && a.description && (
+                <p className="text-xs text-muted-foreground mt-1.5 line-clamp-2">{a.description}</p>
               )}
-              {archived && (
-                <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground">
-                  <Archive className="w-2.5 h-2.5" /> Archived
-                </span>
-              )}
-              {pastDue && (
-                <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-amber-500/10 text-amber-600">
-                  <AlertTriangle className="w-2.5 h-2.5" /> Past due
-                </span>
+              {a.type === 'project' && a.roadmap && a.roadmap.length > 0 && (
+                <p className="text-[10px] text-primary mt-1 font-medium">{a.roadmap.length}-step roadmap</p>
               )}
             </div>
-            <p className="text-xs text-muted-foreground mt-0.5">Due {a.due_date}</p>
-            {a.type === 'project' && a.description && (
-              <p className="text-xs text-muted-foreground mt-1.5 line-clamp-2">{a.description}</p>
-            )}
-            {a.type === 'project' && a.roadmap && a.roadmap.length > 0 && (
-              <p className="text-[10px] text-primary mt-1 font-medium">{a.roadmap.length}-step roadmap</p>
-            )}
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-md uppercase ${typeColors[a.type]}`}>{a.type}</span>
+              <Pencil className="w-3 h-3 text-muted-foreground" />
+            </div>
           </div>
-          <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-md uppercase ${typeColors[a.type]}`}>{a.type}</span>
-        </div>
+        </button>
 
         {/* Past-due prompt — resolve the deadline and clear its leftover sessions */}
         {pastDue && (
@@ -670,11 +715,11 @@ function AssignmentTab({ assignments, classId, cls, onUpdate }) {
               This deadline has passed. Resolving it also clears the study sessions still scheduled for it.
             </p>
             <div className="flex gap-2">
-              <button onClick={() => resolve(a.id, 'completed')} disabled={busy}
+              <button onClick={(e) => { e.stopPropagation(); resolve(a.id, 'completed'); }} disabled={busy}
                 className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-700 dark:text-emerald-500 text-xs font-medium hover:bg-emerald-500/20 disabled:opacity-50">
                 {resolvingKey === a.id + ':completed' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />} Mark done
               </button>
-              <button onClick={() => resolve(a.id, 'archived')} disabled={busy}
+              <button onClick={(e) => { e.stopPropagation(); resolve(a.id, 'archived'); }} disabled={busy}
                 className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-border text-muted-foreground text-xs font-medium hover:bg-muted disabled:opacity-50">
                 {resolvingKey === a.id + ':archived' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Archive className="w-3.5 h-3.5" />} Archive
               </button>
@@ -685,7 +730,7 @@ function AssignmentTab({ assignments, classId, cls, onUpdate }) {
         {/* Resolved — allow reactivating if it was closed by mistake */}
         {resolved && (
           <div className="mt-3 pt-3 border-t border-border">
-            <button onClick={() => resolve(a.id, 'reactivate')} disabled={busy}
+            <button onClick={(e) => { e.stopPropagation(); resolve(a.id, 'reactivate'); }} disabled={busy}
               className="inline-flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground hover:text-foreground disabled:opacity-50">
               {resolvingKey === a.id + ':reactivate' ? <Loader2 className="w-3 h-3 animate-spin" /> : <RotateCcw className="w-3 h-3" />} Reactivate
             </button>
@@ -745,6 +790,13 @@ function AssignmentTab({ assignments, classId, cls, onUpdate }) {
 
       {showAdd && <AddAssignmentModal classId={classId} onClose={() => { setShowAdd(false); onUpdate(); }} />}
       {showProject && <ProjectAssignmentModal classId={classId} className={cls?.name} onClose={() => { setShowProject(false); onUpdate(); }} />}
+      {editAssignment && (
+        <AssignmentEditModal
+          assignment={editAssignment}
+          onClose={() => setEditAssignment(null)}
+          onUpdate={onUpdate}
+        />
+      )}
     </div>
   );
 }
