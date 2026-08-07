@@ -1,15 +1,16 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { fetchWithCache } from '@/hooks/useEntityData';
 import { cacheGet, cacheSet, invalidateEntity } from '@/lib/cache';
 import { enqueueOperation } from '@/lib/syncQueue';
-import { ChevronLeft, FileText, Clock, AlertCircle, Loader2, Tag, BookOpen, ListChecks, Lightbulb, Sparkles, Headphones, CloudOff, Zap } from 'lucide-react';
+import { ChevronLeft, FileText, Clock, AlertCircle, Loader2, Tag, BookOpen, ListChecks, Lightbulb, Sparkles, Headphones, CloudOff, Zap, Trash2, AlertTriangle } from 'lucide-react';
 import TranscriptActions from '@/components/TranscriptActions';
 import InLectureQuiz from '@/components/InLectureQuiz';
 
 export default function LectureDetail() {
   const { lectureId } = useParams();
+  const navigate = useNavigate();
   const [lecture, setLecture] = useState(null);
   const [cls, setCls] = useState(null);
   const [note, setNote] = useState('');
@@ -17,6 +18,10 @@ export default function LectureDetail() {
   const [loading, setLoading] = useState(true);
   const [savingNote, setSavingNote] = useState(false);
   const [showQuiz, setShowQuiz] = useState(false);
+  // Delete flow — two-step inline confirm, consistent with the pattern used
+  // elsewhere in the app for destructive actions.
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -88,6 +93,17 @@ export default function LectureDetail() {
     setSavingNote(false);
   };
 
+  const deleteLecture = async () => {
+    setDeleting(true);
+    try {
+      await base44.entities.Lecture.delete(lectureId);
+      navigate(cls ? `/classes/${cls.id}?tab=lectures` : '/classes');
+    } catch (e) {
+      alert('Could not delete this lecture. Please try again.');
+      setDeleting(false);
+    }
+  };
+
   if (loading) return <div className="flex items-center justify-center min-h-[60vh]"><div className="w-8 h-8 border-3 border-muted border-t-primary rounded-full animate-spin"></div></div>;
   if (!lecture) return <div className="p-6 text-center text-muted-foreground">Lecture not found.</div>;
 
@@ -116,8 +132,32 @@ export default function LectureDetail() {
             className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border text-xs font-medium text-foreground hover:bg-primary/5 hover:border-primary/30 transition-colors">
             <Headphones className="w-3.5 h-3.5" /> Focus
           </Link>
+          <button onClick={() => setConfirmingDelete(true)} aria-label="Delete lecture"
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-destructive/30 text-destructive text-xs font-medium hover:bg-destructive/10 transition-colors">
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
         </div>
       </div>
+
+      {/* Delete confirmation */}
+      {confirmingDelete && (
+        <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 mb-6">
+          <div className="flex items-start gap-2 mb-3">
+            <AlertTriangle className="w-4 h-4 text-destructive mt-0.5 flex-shrink-0" />
+            <p className="text-sm text-muted-foreground">This permanently deletes this lecture, its transcript, and its AI-generated notes. This can’t be undone.</p>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={() => setConfirmingDelete(false)} disabled={deleting}
+              className="flex-1 py-2 rounded-lg border border-border text-sm font-medium text-muted-foreground hover:bg-muted disabled:opacity-50">
+              Cancel
+            </button>
+            <button onClick={deleteLecture} disabled={deleting}
+              className="flex-1 py-2 rounded-lg bg-destructive text-destructive-foreground text-sm font-medium hover:bg-destructive/90 disabled:opacity-50 flex items-center justify-center gap-2">
+              {deleting ? <><Loader2 className="w-4 h-4 animate-spin" /> Deleting…</> : <><Trash2 className="w-4 h-4" /> Delete permanently</>}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Header */}
       <div className="flex items-start gap-3 mb-6">
