@@ -1,36 +1,55 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
-import { X, Loader2, Save, CalendarClock, Check, AlertCircle, Trash2, AlertTriangle } from 'lucide-react';
+import { X, Loader2, CalendarClock, Check } from 'lucide-react';
+import { useAutosave } from '@/hooks/useAutosave';
+import AutosaveIndicator from '@/components/AutosaveIndicator';
+import DeleteXButton from '@/components/DeleteXButton';
+import { defaultSessionTitle } from '@/lib/sessionTitle';
 
 /**
- * AssignmentEditModal — edit an assignment's title/due date, edit the
- * StudySession rows scheduled for it (project roadmap work sessions, or the
- * regular auto-generated study sessions for an exam/assignment), and delete
- * the assignment outright. Sessions are the actual schedulable unit in this
- * app (Assignment.roadmap is just the static step template a project was
- * created from), so editing/deleting sessions here is what changes what
- * actually shows up in the planner and weekly view.
+ * AssignmentEditModal — edit an assignment's title/due date, edit and delete
+ * the StudySession rows scheduled for it (project roadmap work sessions, or
+ * the auto-generated study sessions for an exam/assignment), and delete the
+ * assignment outright. Sessions are the actual schedulable unit in this app
+ * (Assignment.roadmap is just the static step template a project was created
+ * from), so editing/deleting sessions here is what changes what shows up in
+ * the planner and weekly view.
  *
- * This is the single edit surface for assignments/exams/projects, reached
- * from both the Classes → Assignments tab and the Study planner — deleting
- * here covers every entry point.
+ * This is the single edit surface for assignments/exams/projects, reached from
+ * both the Classes → Assignments tab and the Study planner.
+ *
+ * Everything autosaves. There are no Save buttons: edits are written ~700ms
+ * after you stop typing, and any still-pending write is flushed when the modal
+ * closes. The parent is only told to reload on close, so a page-level refetch
+ * doesn't fire on every keystroke.
  */
 export default function AssignmentEditModal({ assignment, onClose, onUpdate }) {
   const [title, setTitle] = useState(assignment.title || '');
   const [dueDate, setDueDate] = useState(assignment.due_date || '');
-  const [savingHeader, setSavingHeader] = useState(false);
-  const [headerSaved, setHeaderSaved] = useState(false);
 
   const [sessions, setSessions] = useState([]);
   const [loadingSessions, setLoadingSessions] = useState(true);
   // Per-session local edit buffers, keyed by session id.
   const [edits, setEdits] = useState({});
-  const [savingSessionId, setSavingSessionId] = useState(null);
+  const [deletingAssignment, setDeletingAssignment] = useState(false);
 
-  // Delete flow — two-step inline confirm (consistent with the pattern used
-  // elsewhere in the app for destructive actions).
-  const [confirmingDelete, setConfirmingDelete] = useState(false);
-  const [deleting, setDeleting] = useState(false);
+  // Did anything actually change? Drives whether we bother reloading on close.
+  const dirtyRef = useRef(false);
+
+  const assignmentSaver = useAutosave({ entity: 'Assignment' });
+  const sessionSaver = useAutosave({ entity: 'StudySession' });
+
+  // One combined status so the header shows a single, calm indicator.
+  const status = [assignmentSaver.status, sessionSaver.status].includes('error')
+    ? 'error'
+    : [assignmentSaver.status, sessionSaver.status].includes('saving')
+      ? 'saving'
+      : [assignmentSaver.status, sessionSaver.status].includes('saved')
+        ? 'saved'
+        : 'idle';
+
+  const isProject = assignment.type === 'project';
+  const typeLabel = isProject ? 'project' : assignment.type === 'exam' ? 'exam' : assignment.type === 'quiz' ? 'quiz' : 'assignment';
 
   useEffect(() => {
     let cancelled = false;
@@ -40,55 +59,71 @@ export default function AssignmentEditModal({ assignment, onClose, onUpdate }) {
         if (!cancelled) {
           setSessions(sess);
           const initial = {};
-          for (const s of sess) {
-            initial[s.id] = { scheduled_date: s.scheduled_date || '', scheduled_time: s.scheduled_time || '', notes: s.notes || '' };
-          }
+          sess.forEach((s, i) => {
+            initial[s.id] = {
+              // Seed the box with the session's real title, or a sensible
+              // computed name when the row predates the `title` field. Older
+              // rows left this blank, or showed their description here.
+              title: s.title || defaultSessionTitle(s, assignment, i),
+              scheduled_date: s.scheduled_date || '',
+              scheduled_time: s.scheduled_time || '',
+              notes: s.notes || '',
+            };
+          });
           setEdits(initial);
         }
       } catch (e) { console.error(e); }
       if (!cancelled) setLoadingSessions(false);
     })();
     return () => { cancelled = true; };
-  }, [assignment.id]);
+  }, [assignment.id, assignment]);
 
-  const saveHeader = async () => {
-    if (!title.trim() || !dueDate) return;
-    setSavingHeader(true);
-    try {
-      await base44.entities.Assignment.update(assignment.id, { title: title.trim(), due_date: dueDate });
-      setHeaderSaved(true);
-      onUpdate?.();
-      setTimeout(() => setHeaderSaved(false), 2000);
-    } catch (e) {
-      alert('Could not save. Please try again.');
-    }
-    setSavingHeader(false);
+  // ---- Assignment header (autosaved) --------------------------------------
+
+  const onTitleChange = (value) => {
+    setTitle(value);
+    if (!value.trim()) return; // don't persist an empty title
+    dirtyRef.current = true;
+    assignmentSaver.save(assignment.id, { title: value.trim() });
   };
+
+  const onDueDateChange = (value) => {
+    setDueDate(value);
+    if (!value) return;
+    dirtyRef.current = true;
+    assignmentSaver.save(assignment.id, { due_date: value });
+  };
+
+  // ---- Sessions (autosaved) -----------------------------------------------
 
   const updateEdit = (sessionId, field, value) => {
     setEdits(prev => ({ ...prev, [sessionId]: { ...prev[sessionId], [field]: value } }));
+    // A session must keep a date; ignore the keystroke that empties it.
+    if (field === 'scheduled_date' && !value) return;
+    dirtyRef.current = true;
+    sessionSaver.save(sessionId, { [field]: value });
+    // Keep the local list in sync so the planner reflects it on close.
+    setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, [field]: value } : s));
   };
 
-  const saveSession = async (sessionId) => {
-    const e = edits[sessionId];
-    if (!e || !e.scheduled_date) return;
-    setSavingSessionId(sessionId);
-    try {
-      await base44.entities.StudySession.update(sessionId, {
-        scheduled_date: e.scheduled_date,
-        scheduled_time: e.scheduled_time || '',
-        notes: e.notes || '',
-      });
-      setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, ...e } : s));
-      onUpdate?.();
-    } catch (err) {
-      alert('Could not save that session. Please try again.');
-    }
-    setSavingSessionId(null);
+  // ---- Deletes -------------------------------------------------------------
+
+  const deleteSession = async (sessionId) => {
+    // Drop any queued autosave for this row first — writing to a deleted
+    // record would fail and surface a spurious error.
+    sessionSaver.discard(sessionId);
+    await base44.entities.StudySession.delete(sessionId);
+    setSessions(prev => prev.filter(s => s.id !== sessionId));
+    setEdits(prev => {
+      const next = { ...prev };
+      delete next[sessionId];
+      return next;
+    });
+    dirtyRef.current = true;
   };
 
   const deleteAssignment = async () => {
-    setDeleting(true);
+    setDeletingAssignment(true);
     try {
       // Same backend function used for archive/complete/reactivate — its
       // 'deleted' action removes every linked session first, then the
@@ -97,38 +132,53 @@ export default function AssignmentEditModal({ assignment, onClose, onUpdate }) {
       onUpdate?.();
       onClose();
     } catch (e) {
-      alert('Could not delete. Please try again.');
-      setDeleting(false);
+      setDeletingAssignment(false);
+      throw e; // DeleteXButton surfaces the failure inline
     }
   };
 
-  const isProject = assignment.type === 'project';
-  const typeLabel = isProject ? 'project' : assignment.type === 'exam' ? 'exam' : assignment.type === 'quiz' ? 'quiz' : 'assignment';
+  // ---- Close ---------------------------------------------------------------
+
+  const handleClose = useCallback(async () => {
+    // Write anything still debounced before the modal goes away.
+    await Promise.all([assignmentSaver.flush(), sessionSaver.flush()]);
+    if (dirtyRef.current) onUpdate?.();
+    onClose();
+  }, [assignmentSaver, sessionSaver, onUpdate, onClose]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/30 glass" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/30 glass" onClick={handleClose}>
       <div className="bg-card w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl border border-border p-6 animate-fade-in max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-start justify-between mb-1 gap-3">
           <h3 className="font-heading text-lg font-semibold">Edit {isProject ? 'Project' : 'Assignment'}</h3>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {/* Delete the whole thing — takes every linked session with it. */}
+            <DeleteXButton
+              className="relative"
+              ariaLabel={`Delete this ${typeLabel}`}
+              confirmLabel={deletingAssignment ? 'Deleting…' : 'Delete'}
+              confirmText={`Permanently delete this ${typeLabel}${sessions.length > 0 ? ` and its ${sessions.length} scheduled session${sessions.length !== 1 ? 's' : ''}` : ''}. This can’t be undone.`}
+              onDelete={deleteAssignment}
+            />
+            <button onClick={handleClose} aria-label="Close" className="text-muted-foreground hover:text-foreground">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
+        <AutosaveIndicator status={status} className="mb-4 block" />
 
         {/* Title + due date */}
         <div className="space-y-3 mb-3">
           <div>
             <p className="text-xs font-medium text-muted-foreground mb-1.5">Title</p>
-            <input type="text" value={title} onChange={e => setTitle(e.target.value)}
+            <input type="text" value={title} onChange={e => onTitleChange(e.target.value)}
               className="w-full px-3 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40" />
           </div>
           <div>
             <p className="text-xs font-medium text-muted-foreground mb-1.5">Due date</p>
-            <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)}
+            <input type="date" value={dueDate} onChange={e => onDueDateChange(e.target.value)}
               className="w-full px-3 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40" />
           </div>
-          <button onClick={saveHeader} disabled={savingHeader || !title.trim() || !dueDate}
-            className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-2">
-            {savingHeader ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</> : headerSaved ? <><Check className="w-4 h-4" /> Saved</> : <><Save className="w-4 h-4" /> Save changes</>}
-          </button>
         </div>
 
         {/* Work sessions */}
@@ -147,10 +197,16 @@ export default function AssignmentEditModal({ assignment, onClose, onUpdate }) {
           ) : (
             <div className="space-y-2">
               {sessions.map((s, i) => {
-                const e = edits[s.id] || { scheduled_date: '', scheduled_time: '', notes: '' };
-                const dirty = e.scheduled_date !== (s.scheduled_date || '') || e.scheduled_time !== (s.scheduled_time || '') || e.notes !== (s.notes || '');
+                const e = edits[s.id] || { title: '', scheduled_date: '', scheduled_time: '', notes: '' };
                 return (
-                  <div key={s.id} className="rounded-lg border border-border p-3">
+                  <div key={s.id} className="relative rounded-lg border border-border p-3 pr-10">
+                    {/* Delete just this session. */}
+                    <DeleteXButton
+                      ariaLabel={`Delete ${isProject ? 'step' : 'session'} ${i + 1}`}
+                      confirmText={`Delete “${e.title || `${isProject ? 'Step' : 'Session'} ${i + 1}`}”? This removes it from your planner and calendar.`}
+                      onDelete={() => deleteSession(s.id)}
+                    />
+
                     <div className="flex items-center gap-2 mb-2">
                       <span className="text-[10px] font-semibold text-muted-foreground bg-muted rounded px-1.5 py-0.5">
                         {isProject ? `Step ${i + 1}` : `Session ${i + 1}`}
@@ -162,53 +218,26 @@ export default function AssignmentEditModal({ assignment, onClose, onUpdate }) {
                         <span className="text-[10px] font-semibold text-muted-foreground">Skipped</span>
                       )}
                     </div>
-                    <input type="text" value={e.notes} onChange={ev => updateEdit(s.id, 'notes', ev.target.value)}
+
+                    {/* Title — the session's own name, NOT its description. */}
+                    <input type="text" value={e.title} onChange={ev => updateEdit(s.id, 'title', ev.target.value)}
                       placeholder="Session title"
                       className="w-full px-2.5 py-2 rounded-lg border border-input bg-background text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-primary/40" />
+
+                    {/* Notes — the longer "what to do in this session" text. */}
+                    <input type="text" value={e.notes} onChange={ev => updateEdit(s.id, 'notes', ev.target.value)}
+                      placeholder="Notes (optional)"
+                      className="w-full px-2.5 py-2 rounded-lg border border-input bg-background text-xs text-muted-foreground mb-2 focus:outline-none focus:ring-2 focus:ring-primary/40" />
+
                     <div className="flex gap-2">
                       <input type="date" value={e.scheduled_date} onChange={ev => updateEdit(s.id, 'scheduled_date', ev.target.value)}
                         className="flex-1 px-2.5 py-2 rounded-lg border border-input bg-background text-xs focus:outline-none focus:ring-2 focus:ring-primary/40" />
                       <input type="time" value={e.scheduled_time} onChange={ev => updateEdit(s.id, 'scheduled_time', ev.target.value)}
                         className="flex-1 px-2.5 py-2 rounded-lg border border-input bg-background text-xs focus:outline-none focus:ring-2 focus:ring-primary/40" />
-                      <button onClick={() => saveSession(s.id)} disabled={!dirty || !e.scheduled_date || savingSessionId === s.id}
-                        className="px-3 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 disabled:opacity-40 flex items-center justify-center flex-shrink-0">
-                        {savingSessionId === s.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-                      </button>
                     </div>
                   </div>
                 );
               })}
-            </div>
-          )}
-        </div>
-
-        {/* Danger zone — delete this assignment/exam/project and every
-            session tied to it, in one step. */}
-        <div className="mt-5 pt-4 border-t border-border">
-          {!confirmingDelete ? (
-            <button onClick={() => setConfirmingDelete(true)}
-              className="inline-flex items-center gap-2 text-xs font-medium text-destructive hover:underline">
-              <Trash2 className="w-3.5 h-3.5" /> Delete this {typeLabel}
-            </button>
-          ) : (
-            <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3">
-              <div className="flex items-start gap-2 mb-3">
-                <AlertTriangle className="w-4 h-4 text-destructive mt-0.5 flex-shrink-0" />
-                <p className="text-xs text-muted-foreground">
-                  This permanently deletes this {typeLabel}
-                  {sessions.length > 0 ? ` and its ${sessions.length} scheduled session${sessions.length !== 1 ? 's' : ''}` : ''}. This can’t be undone.
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <button onClick={() => setConfirmingDelete(false)} disabled={deleting}
-                  className="flex-1 py-2 rounded-lg border border-border text-xs font-medium text-muted-foreground hover:bg-muted disabled:opacity-50">
-                  Cancel
-                </button>
-                <button onClick={deleteAssignment} disabled={deleting}
-                  className="flex-1 py-2 rounded-lg bg-destructive text-destructive-foreground text-xs font-medium hover:bg-destructive/90 disabled:opacity-50 flex items-center justify-center gap-1.5">
-                  {deleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />} Delete permanently
-                </button>
-              </div>
             </div>
           )}
         </div>
