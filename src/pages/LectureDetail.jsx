@@ -17,7 +17,6 @@ export default function LectureDetail() {
   const [note, setNote] = useState('');
   const [noteId, setNoteId] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [savingNote, setSavingNote] = useState(false);
   // Autosave bookkeeping: the last value we know is persisted, so loading the
   // note doesn't trigger a pointless write, and a debounce timer.
   const lastSavedNoteRef = useRef('');
@@ -67,7 +66,6 @@ export default function LectureDetail() {
   }, [loadData]);
 
   const saveNote = useCallback(async () => {
-    setSavingNote(true);
     setNoteStatus('saving');
     try {
       if (!navigator.onLine) {
@@ -79,7 +77,8 @@ export default function LectureDetail() {
         }
         // Optimistically update local cache
         invalidateEntity('Note');
-        setSavingNote(false);
+        lastSavedNoteRef.current = note;
+        setNoteStatus('saved');
         return;
       }
       if (noteId) {
@@ -105,7 +104,6 @@ export default function LectureDetail() {
       }
       console.error(e);
     }
-    setSavingNote(false);
   }, [note, noteId, lectureId, lecture?.class_id]);
 
   // Autosave notes ~800ms after typing stops. Replaces the old "Save Notes"
