@@ -78,7 +78,6 @@ export default function AssignmentEditModal({ assignment, onClose, onUpdate }) {
     return () => { cancelled = true; };
     // Intentionally keyed on the id alone: re-running on a new `assignment`
     // object identity would wipe in-progress edits.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [assignment.id]);
 
   // ---- Assignment header (autosaved) --------------------------------------
