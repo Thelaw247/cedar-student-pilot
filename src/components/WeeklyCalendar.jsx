@@ -88,7 +88,8 @@ export default function WeeklyCalendar({
       const dstr = dayToDate[day];
       for (const s of studySessions.filter(ss => ss.scheduled_date === dstr)) {
         items.push({
-          key: `s-${s.id}`, kind: 'study', title: s.notes || 'Study session',
+          // See src/lib/sessionTitle.js — `notes` is a description, not a title.
+          key: `s-${s.id}`, kind: 'study', title: sessionTitle(s),
           start: s.scheduled_time, end: null, color: TYPE_COLORS.study,
         });
       }
