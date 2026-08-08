@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { fetchWithCache } from '@/hooks/useEntityData';
@@ -7,6 +7,7 @@ import { enqueueOperation } from '@/lib/syncQueue';
 import { ChevronLeft, FileText, Clock, AlertCircle, Loader2, Tag, BookOpen, ListChecks, Lightbulb, Sparkles, Headphones, CloudOff, Zap, Trash2, AlertTriangle } from 'lucide-react';
 import TranscriptActions from '@/components/TranscriptActions';
 import InLectureQuiz from '@/components/InLectureQuiz';
+import AutosaveIndicator from '@/components/AutosaveIndicator';
 
 export default function LectureDetail() {
   const { lectureId } = useParams();
@@ -17,6 +18,11 @@ export default function LectureDetail() {
   const [noteId, setNoteId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [savingNote, setSavingNote] = useState(false);
+  // Autosave bookkeeping: the last value we know is persisted, so loading the
+  // note doesn't trigger a pointless write, and a debounce timer.
+  const lastSavedNoteRef = useRef('');
+  const noteTimerRef = useRef(null);
+  const [noteStatus, setNoteStatus] = useState('idle');
   const [showQuiz, setShowQuiz] = useState(false);
   // Delete flow — two-step inline confirm, consistent with the pattern used
   // elsewhere in the app for destructive actions.
@@ -45,6 +51,7 @@ export default function LectureDetail() {
       if (notes.length > 0) {
         setNote(notes[0].content || '');
         setNoteId(notes[0].id);
+        lastSavedNoteRef.current = notes[0].content || '';
       }
     } catch (e) { console.error(e); }
     setLoading(false);
