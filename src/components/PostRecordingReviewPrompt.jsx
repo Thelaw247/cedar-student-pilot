@@ -58,7 +58,7 @@ export default function PostRecordingReviewPrompt({ classId, lectureId, onDone }
     try {
       const dates = buildReviewDates();
       const time = preferredTime();
-      const records = dates.map(({ date }) => ({
+      const records = dates.map(({ date }, i) => ({
         class_id: classId,
         lecture_id: lectureId,
         scheduled_date: date,
@@ -67,6 +67,8 @@ export default function PostRecordingReviewPrompt({ classId, lectureId, onDone }
         priority: 'medium',
         status: 'scheduled',
         session_type: 'review',
+        // Name in `title`, explanation in `notes` — see src/lib/sessionTitle.js.
+        title: `Lecture review ${i + 1}`,
         notes: 'Auto-scheduled review for a recorded lecture.',
       }));
       await Promise.all(records.map(r => base44.entities.StudySession.create(r)));
