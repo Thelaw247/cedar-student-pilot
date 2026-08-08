@@ -17,6 +17,7 @@ import WeeklyCalendar from '@/components/WeeklyCalendar';
 import AddEventModal from '@/components/AddEventModal';
 import { classMeetsOnDay, getClassTimesForDay } from '@/lib/classSchedule';
 import { eventsOnDate, weekDates } from '@/lib/eventSchedule';
+import { sessionTitle, sessionDescription } from '@/lib/sessionTitle';
 
 function getTodayString() {
   const d = new Date();
@@ -145,7 +146,10 @@ export default function Home() {
     })),
     ...studySessions.filter(s => s.scheduled_date === today).map(s => ({
       id: s.id,
-      title: s.notes || 'Study session',
+      // `title` is the session's name; `notes` stays the description shown
+      // beneath it on the timeline (see src/lib/sessionTitle.js).
+      title: sessionTitle(s),
+      notes: sessionDescription(s),
       time: s.scheduled_time,
       type: 'study',
       classId: s.class_id,
