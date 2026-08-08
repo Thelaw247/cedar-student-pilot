@@ -66,8 +66,9 @@ export default function LectureDetail() {
     return () => window.removeEventListener('cedar-data-changed', handler);
   }, [loadData]);
 
-  const saveNote = async () => {
+  const saveNote = useCallback(async () => {
     setSavingNote(true);
+    setNoteStatus('saving');
     try {
       if (!navigator.onLine) {
         // Queue the note save for later sync
@@ -89,16 +90,37 @@ export default function LectureDetail() {
         setNoteId(n.id);
         invalidateEntity('Note');
       }
+      lastSavedNoteRef.current = note;
+      setNoteStatus('saved');
+      setTimeout(() => setNoteStatus('idle'), 2000);
     } catch (e) {
       // If network fails mid-save, queue for retry
       if (e?.message?.includes('network') || e?.message?.includes('fetch') || !navigator.onLine) {
         enqueueOperation({ entity: 'Note', operation: noteId ? 'update' : 'create', args: noteId ? [noteId, { content: note }] : [{ lecture_id: lectureId, class_id: lecture?.class_id, content: note }] });
         invalidateEntity('Note');
+        lastSavedNoteRef.current = note;
+        setNoteStatus('saved');
+      } else {
+        setNoteStatus('error');
       }
       console.error(e);
     }
     setSavingNote(false);
-  };
+  }, [note, noteId, lectureId, lecture?.class_id]);
+
+  // Autosave notes ~800ms after typing stops. Replaces the old "Save Notes"
+  // button. The first write creates the Note record; later ones update it.
+  // Skips the initial load and any no-op change so we don't write on mount.
+  useEffect(() => {
+    if (loading) return;
+    if (note === lastSavedNoteRef.current) return;
+    // Don't create an empty Note record just because the box was focused.
+    if (!noteId && !note.trim()) return;
+    if (noteTimerRef.current) clearTimeout(noteTimerRef.current);
+    setNoteStatus('saving');
+    noteTimerRef.current = setTimeout(() => { saveNote(); }, 800);
+    return () => { if (noteTimerRef.current) clearTimeout(noteTimerRef.current); };
+  }, [note, loading, noteId, saveNote]);
 
   const deleteLecture = async () => {
     setDeleting(true);
@@ -284,11 +306,10 @@ export default function LectureDetail() {
           className="w-full px-3 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 resize-none"
           rows={5}
         />
-        <button onClick={saveNote} disabled={savingNote}
-          className="mt-2 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50">
-          {savingNote ? 'Saving...' : 'Save Notes'}
-          {!navigator.onLine && !savingNote && <CloudOff className="w-3.5 h-3.5" />}
-        </button>
+        <div className="mt-2 flex items-center gap-2">
+          <AutosaveIndicator status={noteStatus} />
+          {!navigator.onLine && <CloudOff className="w-3.5 h-3.5 text-muted-foreground" />}
+        </div>
       </Section>
       {/* In-lecture focus quiz */}
       {showQuiz && lecture && (
