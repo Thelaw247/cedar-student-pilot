@@ -129,6 +129,51 @@ export function computeClassProficiency(lecturesWithCoverage, allClassLectures) 
 }
 
 /**
+ * Build the { lecture, coverage } pairs `computeClassProficiency` expects from
+ * raw KnowledgeCoverage rows plus that class's Lecture list.
+ *
+ * Kept here so every caller feeds the function identically — the Analytics
+ * rings and the per-class breakdown below them must not be able to disagree.
+ */
+export function pairCoverageWithLectures(coverageRows, classLectures = []) {
+  return (coverageRows || []).map(kc => {
+    const lec = classLectures.find(l => l.id === kc.lecture_id);
+    return {
+      lecture: lec || { id: kc.lecture_id, date: kc.last_reviewed_date || '' },
+      coverage: kc,
+    };
+  });
+}
+
+/**
+ * Roll per-class proficiency up into one overall figure.
+ *
+ * Weighted by how many distinct concepts each class has actually covered, so a
+ * class tracking twelve concepts counts for more than one tracking a single
+ * concept. A plain mean would let a one-concept class swing the headline
+ * number as hard as a whole semester's worth of material.
+ *
+ * @param {Array<{proficiency: number, conceptsSeen: number}>} perClass
+ * @returns {number|null} 0-100, or null when no class has any data
+ */
+export function aggregateProficiency(perClass) {
+  const entries = (perClass || []).filter(Boolean);
+  if (entries.length === 0) return null;
+
+  let weighted = 0;
+  let totalWeight = 0;
+  for (const e of entries) {
+    // Every class with data counts at least once, even before concepts are
+    // tracked, so it can't be silently dropped from the average.
+    const weight = Math.max(1, Number(e.conceptsSeen) || 0);
+    weighted += (Number(e.proficiency) || 0) * weight;
+    totalWeight += weight;
+  }
+  if (totalWeight === 0) return null;
+  return Math.round(weighted / totalWeight);
+}
+
+/**
  * Get the worst (most decayed) state across multiple lecture decay states.
  */
 export function getWorstState(states) {
