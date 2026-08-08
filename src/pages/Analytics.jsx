@@ -108,15 +108,38 @@ export default function Analytics() {
   // showing 100% while individual reviews read 67 and 15).
   const clampPct = (n) => Math.max(0, Math.min(100, Math.round(Number(n) || 0)));
 
-  // Only classes that actually have review data get a filter chip — no point
-  // offering a class whose rings would all read 0%.
-  const classesWithReviews = classes.filter(c => reviews.some(r => r.class_id === c.id));
-
-  // If the selected class no longer has reviews (e.g. data changed), fall back
-  // to the aggregate view rather than showing an empty scoped section.
-  const effectiveClassId = selectedClassId && classesWithReviews.some(c => c.id === selectedClassId)
+  // Every class the student added is selectable, whether or not it has data
+  // yet — a class with nothing recorded shows an honest empty state rather
+  // than being silently missing from the filter.
+  const effectiveClassId = selectedClassId && classes.some(c => c.id === selectedClassId)
     ? selectedClassId
     : null;
+
+  const lecturesByClass = useMemo(() => {
+    const map = {};
+    for (const l of lectures) {
+      (map[l.class_id] = map[l.class_id] || []).push(l);
+    }
+    return map;
+  }, [lectures]);
+
+  // Decay-aware proficiency per class — the SAME computation the per-class
+  // breakdown below uses, so the ring and the list can never disagree.
+  // `null` means the class has no knowledge-coverage data at all.
+  const proficiencyByClass = useMemo(() => {
+    const out = {};
+    for (const c of classes) {
+      const rows = coverage.filter(k => k.class_id === c.id);
+      if (rows.length === 0) { out[c.id] = null; continue; }
+      const classLectures = lecturesByClass[c.id] || [];
+      const result = computeClassProficiency(pairCoverageWithLectures(rows, classLectures), classLectures);
+      out[c.id] = {
+        ...result,
+        conceptsSeen: new Set(rows.flatMap(r => r.concepts_seen || [])).size,
+      };
+    }
+    return out;
+  }, [classes, coverage, lecturesByClass]);
 
   // Scope the review set to the selected class (or all reviews when aggregate).
   const scopedReviews = effectiveClassId
@@ -124,13 +147,34 @@ export default function Analytics() {
     : reviews;
 
   const latestReviews = scopedReviews.slice(0, 50);
-  const avgProficiency = latestReviews.length > 0
-    ? clampPct(latestReviews.reduce((s, r) => s + clampPct(r.proficiency_score), 0) / latestReviews.length)
-    : 0;
+
+  // Proficiency = retained knowledge, decayed by how long ago it was reviewed.
+  // Sourced from KnowledgeCoverage, NOT from the raw StudySessionReview score,
+  // which is a snapshot of how one sitting went and never ages.
+  const scopedClassIds = effectiveClassId ? [effectiveClassId] : classes.map(c => c.id);
+  const avgProficiency = aggregateProficiency(scopedClassIds.map(id => proficiencyByClass[id]));
+
   const avgInDepth = latestReviews.length > 0
     ? clampPct(latestReviews.reduce((s, r) => s + clampPct(r.in_depth_score), 0) / latestReviews.length)
-    : 0;
-  const latestCoverage = latestReviews.length > 0 ? clampPct(latestReviews[0].coverage_percentage) : 0;
+    : null;
+
+  // Course coverage: average the most recent review of each class in scope.
+  // Taking a single global latest review meant one arbitrary class's number was
+  // presented as the overall figure.
+  const latestCoverage = useMemo(() => {
+    const perClassLatest = [];
+    for (const id of scopedClassIds) {
+      // reviews arrive newest-first, so the first match is that class's latest.
+      const latest = reviews.find(r => r.class_id === id);
+      if (latest) perClassLatest.push(clampPct(latest.coverage_percentage));
+    }
+    if (perClassLatest.length === 0) return null;
+    return clampPct(perClassLatest.reduce((s, v) => s + v, 0) / perClassLatest.length);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reviews, effectiveClassId, classes]);
+
+  // Does the current scope have anything at all to show?
+  const hasAnyData = avgProficiency !== null || latestReviews.length > 0;
 
   // Overall knowledge growth data (cumulative coverage over reviews)
   const growthData = [...latestReviews].reverse().map((r, idx) => ({
