@@ -64,19 +64,22 @@ export default function DeleteXButton({
 
   return (
     <div ref={wrapRef} className={`${className} z-20`} onClick={e => e.stopPropagation()}>
-      {!confirming ? (
-        <button
-          type="button"
-          aria-label={ariaLabel}
-          onClick={(e) => { e.stopPropagation(); setConfirming(true); }}
-          className="w-6 h-6 rounded-md bg-destructive/10 text-destructive border border-destructive/20
-                     flex items-center justify-center hover:bg-destructive/20 hover:border-destructive/40
-                     transition-colors flex-shrink-0"
-        >
-          <X className="w-3.5 h-3.5" strokeWidth={2.5} />
-        </button>
-      ) : (
-        <div className="w-56 rounded-lg border border-destructive/30 bg-card shadow-lg p-2.5 animate-fade-in">
+      {/* The ✕ always stays in the layout; the confirm panel overlays it, so
+          opening the confirm never reflows the card behind it. */}
+      <button
+        type="button"
+        aria-label={ariaLabel}
+        aria-expanded={confirming}
+        onClick={(e) => { e.stopPropagation(); setConfirming(true); }}
+        className={`w-6 h-6 rounded-md bg-destructive/10 text-destructive border border-destructive/20
+                   flex items-center justify-center hover:bg-destructive/20 hover:border-destructive/40
+                   transition-colors flex-shrink-0 ${confirming ? 'opacity-0 pointer-events-none' : ''}`}
+      >
+        <X className="w-3.5 h-3.5" strokeWidth={2.5} />
+      </button>
+
+      {confirming && (
+        <div className="absolute top-0 right-0 w-56 rounded-lg border border-destructive/30 bg-card shadow-lg p-2.5 animate-fade-in">
           <div className="flex items-start gap-1.5 mb-2">
             <AlertTriangle className="w-3.5 h-3.5 text-destructive mt-px flex-shrink-0" />
             <p className="text-[11px] leading-snug text-muted-foreground">{confirmText}</p>
