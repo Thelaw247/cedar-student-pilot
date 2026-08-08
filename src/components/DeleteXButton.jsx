@@ -56,7 +56,7 @@ export default function DeleteXButton({
     try {
       await onDelete();
       // On success the row usually unmounts, so no state reset needed.
-    } catch (err) {
+    } catch (_err) {
       setError('Could not delete. Try again.');
       setDeleting(false);
     }
