@@ -76,7 +76,10 @@ export default function AssignmentEditModal({ assignment, onClose, onUpdate }) {
       if (!cancelled) setLoadingSessions(false);
     })();
     return () => { cancelled = true; };
-  }, [assignment.id, assignment]);
+    // Intentionally keyed on the id alone: re-running on a new `assignment`
+    // object identity would wipe in-progress edits.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [assignment.id]);
 
   // ---- Assignment header (autosaved) --------------------------------------
 
