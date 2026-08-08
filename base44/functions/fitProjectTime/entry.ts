@@ -117,7 +117,9 @@ Deno.serve(async (req) => {
           status: 'scheduled',
           session_type: 'project',
           roadmap_step_index: stepIndex,
-          notes: stepIndex >= 0 && roadmap[stepIndex] ? `Project: ${roadmap[stepIndex].title}` : 'Additional project work time'
+          // Name goes in `title`; `notes` stays free for a description.
+          title: stepIndex >= 0 && roadmap[stepIndex] ? `Step ${stepIndex + 1}: ${roadmap[stepIndex].title}` : 'Additional project work time',
+          notes: stepIndex >= 0 && roadmap[stepIndex] ? (roadmap[stepIndex].description || '') : ''
         });
         remaining -= sessionMin;
       }
