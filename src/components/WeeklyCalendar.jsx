@@ -2,6 +2,7 @@ import React from 'react';
 import { Clock, MapPin } from 'lucide-react';
 import { getClassMeetings, getClassDays } from '@/lib/classSchedule';
 import { weekDates, expandEventsInRange, parseLocalDate } from '@/lib/eventSchedule';
+import { sessionTitle } from '@/lib/sessionTitle';
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const HOUR_HEIGHT = 44;
