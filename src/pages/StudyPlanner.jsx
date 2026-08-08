@@ -270,7 +270,14 @@ export default function StudyPlanner() {
                 const assignment = assignmentMap[s.assignment_id];
                 const overdue = s.status === 'scheduled' && s.scheduled_date && s.scheduled_date < todayStr;
                 return (
-                  <div key={s.id} className={`rounded-xl border bg-card p-4 transition-all ${s.status === 'completed' ? 'opacity-60' : ''} ${overdue ? 'border-amber-500/40' : 'border-border'}`}>
+                  <div key={s.id} className={`relative rounded-xl border bg-card p-4 pr-10 transition-all ${s.status === 'completed' ? 'opacity-60' : ''} ${overdue ? 'border-amber-500/40' : 'border-border'}`}>
+                    {/* Delete this one session outright. "Dismiss" below only
+                        marks it skipped — this removes it for good. */}
+                    <DeleteXButton
+                      ariaLabel={`Delete ${sessionTitle(s, assignment)}`}
+                      confirmText={`Permanently delete “${sessionTitle(s, assignment)}”. This removes it from your planner and calendar.`}
+                      onDelete={() => deleteSession(s)}
+                    />
                     <div className="flex items-start gap-3">
                       <button onClick={() => toggleStatus(s)}
                         className={`w-6 h-6 rounded-md border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition-colors ${s.status === 'completed' ? 'bg-primary border-primary' : 'border-border hover:border-primary'}`}>
@@ -278,22 +285,26 @@ export default function StudyPlanner() {
                       </button>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
+                          {/* Name comes from the session's own `title`, with a
+                              computed fallback for rows created before that
+                              field existed (see src/lib/sessionTitle.js). */}
                           <h3 className="text-base font-semibold text-foreground">
-                            {s.session_type === 'project' ? (s.notes || assignment?.title || 'Project Session') : (assignment?.title || 'Study Session')}
+                            {sessionTitle(s, assignment)}
                           </h3>
                           <span className={`text-[11px] font-semibold px-2 py-0.5 rounded border uppercase ${priorityColors[s.priority] || priorityColors.medium}`}>
                             {s.priority}
                           </span>
                           {s.session_type === 'project' ? (
                             <span className="text-[11px] font-medium px-2 py-0.5 rounded bg-purple-500/10 text-purple-600 border border-purple-500/20">Project</span>
-                          ) : s.notes && (
+                          ) : sessionDescription(s) && (
                             <span className="text-[11px] font-medium px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">Review</span>
                           )}
                           {overdue && (
                             <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded bg-amber-500/10 text-amber-600 border border-amber-500/20">Past due</span>
                           )}
                         </div>
-                        {s.notes && <p className="text-sm text-muted-foreground mt-1.5">{s.notes}</p>}
+                        {/* The description sits under the title — never as the title. */}
+                        {sessionDescription(s) && <p className="text-sm text-muted-foreground mt-1.5">{sessionDescription(s)}</p>}
                         <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm text-muted-foreground mt-2">
                           <span className="inline-flex items-center gap-1.5 min-w-0"><GraduationCap className="w-3.5 h-3.5 flex-shrink-0" /> <span className="truncate">{cls?.name || '—'}</span></span>
                           <span className="inline-flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5 flex-shrink-0" /> {s.scheduled_date}</span>
