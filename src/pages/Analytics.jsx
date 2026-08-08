@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts';
-import { Clock, TrendingUp, Calendar, Brain, BarChart3, Headphones, Loader2, GraduationCap, Target, BookOpen, AlertCircle, Award, Check, X } from 'lucide-react';
+import { Clock, TrendingUp, Calendar, Brain, BarChart3, Loader2, GraduationCap, Target, BookOpen, Award, Check, X } from 'lucide-react';
 import KnowledgeCoverageSection from '@/components/KnowledgeCoverageSection';
 import { computeClassProficiency, pairCoverageWithLectures, aggregateProficiency } from '@/lib/conceptDecay';
 
@@ -170,7 +170,6 @@ export default function Analytics() {
     }
     if (perClassLatest.length === 0) return null;
     return clampPct(perClassLatest.reduce((s, v) => s + v, 0) / perClassLatest.length);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reviews, effectiveClassId, classes]);
 
   // Does the current scope have anything at all to show?
