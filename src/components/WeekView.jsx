@@ -2,6 +2,7 @@ import React from 'react';
 import { GraduationCap, Briefcase, BookOpen, Bell, Calendar as CalIcon, Clock, MapPin } from 'lucide-react';
 import { getClassTimesForDay } from '@/lib/classSchedule';
 import { expandEventsInRange, weekDates, parseLocalDate } from '@/lib/eventSchedule';
+import { sessionTitle } from '@/lib/sessionTitle';
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -62,7 +63,9 @@ export default function WeekView({ classes = [], events = [], studySessions = []
     // Study sessions scheduled on this date.
     for (const s of studySessions.filter(ss => ss.scheduled_date === dateStr)) {
       items.push({
-        key: `s-${s.id}`, kind: 'study', title: s.notes || 'Study session',
+        // Titles come from the session's own `title` field. `notes` is the
+        // description and is deliberately NOT used as a label here.
+        key: `s-${s.id}`, kind: 'study', title: sessionTitle(s),
         start: s.scheduled_time, end: null, color: TYPE_META.study.color,
       });
     }
