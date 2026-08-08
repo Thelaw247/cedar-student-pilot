@@ -43,9 +43,15 @@
       "default": "scheduled",
       "title": "Status"
     },
+    "title": {
+      "type": "string",
+      "title": "Session Title",
+      "description": "Short name for this session, e.g. 'Biology Final \u2014 Session 3' or 'Final review'. Shown as the heading in the planner and calendar. Distinct from 'notes', which holds the longer description of what to do in the session."
+    },
     "notes": {
       "type": "string",
-      "title": "Notes"
+      "title": "Notes",
+      "description": "Longer description of what this session should cover. Shown under the title, not as the title."
     },
     "email_notified": {
       "type": "boolean",
