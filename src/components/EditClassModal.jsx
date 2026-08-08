@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Loader2, Trash2, X, AlertTriangle } from 'lucide-react';
+import AutosaveIndicator from '@/components/AutosaveIndicator';
 
 const ALL_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EF4444', '#EC4899', '#14B8A6'];
@@ -35,6 +36,11 @@ export default function EditClassModal({ classData, semesterId, onDeleteClass, o
   const [scheduleMode, setScheduleMode] = useState(initialMode(classData));
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  // Autosave state — edit mode only. Creating a class still needs an explicit
+  // submit, since there's no record to write to until it exists.
+  const [autosaveStatus, setAutosaveStatus] = useState('idle');
+  const autosaveTimerRef = useRef(null);
+  const skipFirstAutosaveRef = useRef(true);
   // Two-step confirm — clicking the trash icon shows this panel instead of
   // deleting immediately.
   const [confirmingDelete, setConfirmingDelete] = useState(false);
@@ -107,12 +113,11 @@ export default function EditClassModal({ classData, semesterId, onDeleteClass, o
     setScheduleMode(mode);
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!form.name) return;
-    setSaving(true);
-    try {
-      let payload;
+  // Shape the form into the record we persist. Shared by autosave (edit) and
+  // the explicit submit (create) so both write exactly the same thing.
+  const buildPayload = useCallback(() => {
+    let payload;
+    {
       if (scheduleMode === 'perday') {
         const meetings = sortByDay((form.meetings || []).filter(m => m.day));
         const earliest = [...meetings].sort((a, b) => (a.start_time || '99').localeCompare(b.start_time || '99'))[0];
@@ -134,11 +139,40 @@ export default function EditClassModal({ classData, semesterId, onDeleteClass, o
           meetings: [],
         };
       }
-      if (isEdit) {
-        await base44.entities.Class.update(classData.id, payload);
-      } else {
-        await base44.entities.Class.create(payload);
+    }
+    return payload;
+  }, [form, scheduleMode, semesterId]);
+
+  // Autosave an existing class ~700ms after the last change. Skips the first
+  // run (which is just the form being populated from props) and any state
+  // where the class has no name, since name is required.
+  useEffect(() => {
+    if (!isEdit) return;
+    if (skipFirstAutosaveRef.current) { skipFirstAutosaveRef.current = false; return; }
+    if (!form.name) return;
+    if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
+    setAutosaveStatus('saving');
+    autosaveTimerRef.current = setTimeout(async () => {
+      try {
+        await base44.entities.Class.update(classData.id, buildPayload());
+        setAutosaveStatus('saved');
+        setTimeout(() => setAutosaveStatus('idle'), 2000);
+      } catch (e) {
+        console.error(e);
+        setAutosaveStatus('error');
       }
+    }, 700);
+    return () => { if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current); };
+  }, [form, scheduleMode, isEdit, classData?.id, buildPayload]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!form.name) return;
+    // In edit mode everything is already autosaved; this just closes.
+    if (isEdit) { onClose(); return; }
+    setSaving(true);
+    try {
+      await base44.entities.Class.create(buildPayload());
       onClose();
     } catch (e) { console.error(e); }
     setSaving(false);
