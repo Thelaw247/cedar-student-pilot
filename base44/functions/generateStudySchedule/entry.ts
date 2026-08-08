@@ -162,9 +162,15 @@ Higher-priority sessions should cover complex material or happen closer to the d
       }
     });
 
-    let sessionsToCreate = (schedule.sessions || []).map(s => ({
+    // Every session gets a real `title`. Before this field existed the UI fell
+    // back to `notes` for the heading, which left auto-generated sessions
+    // nameless (no notes written) and made the one session that DID have notes
+    // display its description where its title belongs. `title` is the name;
+    // `notes` stays the longer description.
+    let sessionsToCreate = (schedule.sessions || []).map((s, i) => ({
       assignment_id: assignment_id,
       class_id: assignment.class_id,
+      title: `${assignment.title} — Session ${i + 1}`,
       scheduled_date: s.scheduled_date,
       scheduled_time: s.scheduled_time,
       duration_minutes: s.duration_minutes || 60,
@@ -227,12 +233,16 @@ Higher-priority sessions should cover complex material or happen closer to the d
         place(reviewDateStr, start, 45);
         sessionsToCreate.push({
           assignment_id, class_id: assignment.class_id,
+          title: `${assignment.title} — Final review`,
           scheduled_date: reviewDateStr, scheduled_time: toTime(start),
           duration_minutes: 45, priority: 'high', status: 'scheduled',
           notes: "Light review session — skim key concepts, don't go in depth."
         });
       } else {
+        // Re-purpose the session already on that day: give it the review name
+        // and put the guidance in notes, where a description belongs.
         const existing = sessionsToCreate.find(s => s.scheduled_date === reviewDateStr);
+        existing.title = `${assignment.title} — Final review`;
         existing.notes = "Light review session — skim key concepts, don't go in depth.";
       }
     }
