@@ -81,7 +81,10 @@ export default function ProjectAssignmentModal({ classId, className, onClose }) 
           status: 'scheduled',
           session_type: 'project',
           roadmap_step_index: i,
-          notes: `Project Step ${i + 1}: ${rStep.title}`,
+          // The step name belongs in `title`; `notes` carries the step's
+          // longer description when the roadmap provides one.
+          title: `Step ${i + 1}: ${rStep.title}`,
+          notes: rStep.description || '',
         };
       });
 
