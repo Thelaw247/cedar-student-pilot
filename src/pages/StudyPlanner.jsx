@@ -7,6 +7,8 @@ import RebookSessionModal from '@/components/RebookSessionModal';
 import AssignmentEditModal from '@/components/AssignmentEditModal';
 import PracticePanel from '@/components/PracticePanel';
 import ReviewFromLectures from '@/components/ReviewFromLectures';
+import DeleteXButton from '@/components/DeleteXButton';
+import { sessionTitle, sessionDescription } from '@/lib/sessionTitle';
 
 const priorityColors = {
   high: 'bg-rose-500/10 text-rose-600 border-rose-500/20',
@@ -90,6 +92,38 @@ export default function StudyPlanner() {
       await base44.entities.StudySession.update(session.id, { status: 'skipped' });
     } catch (e) { console.error(e); }
   };
+
+  // Permanently remove a single study session. Distinct from "Dismiss", which
+  // keeps the row as history — this one is gone for good. Optimistic removal;
+  // on failure we restore the row and let DeleteXButton show the error.
+  const deleteSession = async (session) => {
+    setSessions(prev => prev.filter(s => s.id !== session.id));
+    try {
+      await base44.entities.StudySession.delete(session.id);
+    } catch (e) {
+      setSessions(prev => [...prev, session].sort((a, b) => (a.scheduled_date || '').localeCompare(b.scheduled_date || '')));
+      throw e;
+    }
+  };
+
+  // Permanently remove an exam/assignment AND every session scheduled for it.
+  // resolveAssignment's 'deleted' action clears the sessions server-side first,
+  // so nothing orphaned is left behind in the planner or weekly view.
+  const deleteAssignment = async (assignment) => {
+    const linked = sessions.filter(s => s.assignment_id === assignment.id);
+    setAssignments(prev => prev.filter(a => a.id !== assignment.id));
+    setSessions(prev => prev.filter(s => s.assignment_id !== assignment.id));
+    try {
+      await base44.functions.invoke('resolveAssignment', { assignment_id: assignment.id, action: 'deleted' });
+    } catch (e) {
+      setAssignments(prev => [...prev, assignment]);
+      setSessions(prev => [...prev, ...linked]);
+      throw e;
+    }
+  };
+
+  // How many sessions a deadline would take with it — shown in its confirm.
+  const sessionCountFor = (assignmentId) => sessions.filter(s => s.assignment_id === assignmentId).length;
 
   const classMap = Object.fromEntries(classes.map(c => [c.id, c]));
   const assignmentMap = Object.fromEntries(assignments.map(a => [a.id, a]));
