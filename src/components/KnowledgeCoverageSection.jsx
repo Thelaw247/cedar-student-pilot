@@ -1,49 +1,26 @@
-import React, { useState, useEffect } from 'react';
-import { base44 } from '@/api/base44Client';
-import { Loader2, BookOpen, AlertCircle, CheckCircle2, Circle, ChevronRight, ChevronDown, Brain } from 'lucide-react';
+import React, { useState } from 'react';
+import { BookOpen, AlertCircle, CheckCircle2, ChevronRight, ChevronDown, Brain } from 'lucide-react';
 import SessionReview from '@/components/SessionReview';
 import FreshnessBadge from '@/components/FreshnessBadge';
-import { computeClassProficiency, getDecayState, daysSinceReview, DECAY_STATES } from '@/lib/conceptDecay';
+import { computeClassProficiency, pairCoverageWithLectures, getDecayState, daysSinceReview, DECAY_STATES } from '@/lib/conceptDecay';
 
-export default function KnowledgeCoverageSection({ classes }) {
-  const [coverage, setCoverage] = useState([]);
-  const [lecturesByClass, setLecturesByClass] = useState({});
-  const [loading, setLoading] = useState(true);
+/**
+ * Per-class knowledge coverage breakdown.
+ *
+ * Coverage rows and lectures are supplied by the parent (Analytics) rather
+ * than fetched here, so this list and the proficiency rings above it are
+ * computed from byte-identical inputs. They previously read from separate
+ * fetches and separate metrics, which is how the ring could show 100% for a
+ * class this list scored at 15%.
+ *
+ * @param {Array} classes         every class in the active semester
+ * @param {Array} coverage        all KnowledgeCoverage rows across those classes
+ * @param {Object} lecturesByClass  { [classId]: Lecture[] }
+ * @param {Function} onReload     re-fetch after a review changes the data
+ */
+export default function KnowledgeCoverageSection({ classes, coverage = [], lecturesByClass = {}, onReload }) {
   const [expandedClass, setExpandedClass] = useState(null);
   const [reviewLecture, setReviewLecture] = useState(null);
-
-  const reloadCoverage = async () => {
-    try {
-      const allCoverage = [];
-      const lecMap = {};
-      for (const c of classes) {
-        const [cov, lecs] = await Promise.all([
-          base44.entities.KnowledgeCoverage.filter({ class_id: c.id }),
-          base44.entities.Lecture.filter({ class_id: c.id }, 'date'),
-        ]);
-        allCoverage.push(...cov);
-        lecMap[c.id] = lecs;
-      }
-      setCoverage(allCoverage);
-      setLecturesByClass(lecMap);
-    } catch (e) { console.error(e); }
-  };
-
-  useEffect(() => {
-    (async () => {
-      setLoading(true);
-      await reloadCoverage();
-      setLoading(false);
-    })();
-  }, [classes]);
-
-  if (loading) {
-    return (
-      <div className="rounded-xl border border-border bg-card p-8 text-center">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground mx-auto" />
-      </div>
-    );
-  }
 
   if (coverage.length === 0) {
     return (
@@ -66,11 +43,7 @@ export default function KnowledgeCoverageSection({ classes }) {
     <div className="space-y-2 mb-8">
       {classEntries.map(({ class: cls, lectures }) => {
         const classLectures = lecturesByClass[cls.id] || [];
-        const lecturesWithCoverage = lectures.map(kc => {
-          const lec = classLectures.find(l => l.id === kc.lecture_id);
-          return { lecture: lec || { id: kc.lecture_id, date: kc.last_reviewed_date || '' }, coverage: kc };
-        });
-        const decayResult = computeClassProficiency(lecturesWithCoverage, classLectures);
+        const decayResult = computeClassProficiency(pairCoverageWithLectures(lectures, classLectures), classLectures);
         const proficiency = decayResult.proficiency;
         const classDecayState = DECAY_STATES[decayResult.decayState] || DECAY_STATES.unreviewed;
 
@@ -196,7 +169,7 @@ export default function KnowledgeCoverageSection({ classes }) {
           classId={reviewLecture.class_id}
           lectureId={reviewLecture.lecture_id}
           className={classes.find(c => c.id === reviewLecture.class_id)?.name}
-          onClose={() => { setReviewLecture(null); reloadCoverage(); }}
+          onClose={() => { setReviewLecture(null); onReload?.(); }}
         />
       )}
     </div>
