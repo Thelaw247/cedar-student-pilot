@@ -340,7 +340,9 @@ export default function EditClassModal({ classData, semesterId, onDeleteClass, o
             </div>
           </div>
 
-          {/* Actions */}
+          {/* Actions. Editing autosaves, so there's nothing to confirm — just
+              a status line and a way out. Creating still needs a submit. */}
+          {isEdit && <AutosaveIndicator status={autosaveStatus} className="block pt-3" />}
           <div className="flex gap-2 pt-3">
             {isEdit && (
               <button type="button" onClick={() => setConfirmingDelete(true)}
@@ -348,10 +350,19 @@ export default function EditClassModal({ classData, semesterId, onDeleteClass, o
                 <Trash2 className="w-4 h-4" />
               </button>
             )}
-            <button type="button" onClick={onClose} className="flex-1 px-4 py-2.5 rounded-lg border border-border text-sm font-medium text-muted-foreground hover:bg-muted">Cancel</button>
-            <button type="submit" disabled={saving || !form.name} className="flex-1 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-2">
-              {saving ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</> : isEdit ? 'Save Changes' : 'Add Class'}
-            </button>
+            {isEdit ? (
+              <button type="button" onClick={onClose}
+                className="flex-1 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90">
+                Done
+              </button>
+            ) : (
+              <>
+                <button type="button" onClick={onClose} className="flex-1 px-4 py-2.5 rounded-lg border border-border text-sm font-medium text-muted-foreground hover:bg-muted">Cancel</button>
+                <button type="submit" disabled={saving || !form.name} className="flex-1 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-2">
+                  {saving ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</> : 'Add Class'}
+                </button>
+              </>
+            )}
           </div>
         </form>
         )}
