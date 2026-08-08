@@ -274,8 +274,10 @@ export default function Analytics() {
         </div>
       )}
 
-      {/* Knowledge & Proficiency Section */}
-      {reviews.length > 0 && (
+      {/* Knowledge & Proficiency Section. Shown when there is either review
+          data or knowledge-coverage data — a class can have real proficiency
+          from lecture reviews without ever having a StudySessionReview. */}
+      {(reviews.length > 0 || coverage.length > 0) && (
         <>
           <div className="flex items-center gap-2 mb-3 mt-8">
             <Brain className="w-4 h-4 text-primary" />
