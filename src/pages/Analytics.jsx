@@ -1,40 +1,57 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts';
 import { Clock, TrendingUp, Calendar, Brain, BarChart3, Headphones, Loader2, GraduationCap, Target, BookOpen, AlertCircle, Award, Check, X } from 'lucide-react';
 import KnowledgeCoverageSection from '@/components/KnowledgeCoverageSection';
+import { computeClassProficiency, pairCoverageWithLectures, aggregateProficiency } from '@/lib/conceptDecay';
 
 export default function Analytics() {
   const [records, setRecords] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [classes, setClasses] = useState([]);
   const [lectures, setLectures] = useState([]);
+  // KnowledgeCoverage is loaded here rather than inside KnowledgeCoverageSection
+  // so the proficiency rings and the per-class breakdown below them are computed
+  // from the exact same rows. Previously they read different data sources, which
+  // is how the ring could show 100% while the class below it read 15%.
+  const [coverage, setCoverage] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  const loadAll = useCallback(async () => {
+    try {
+      const [recs, revs] = await Promise.all([
+        base44.entities.StudyRecord.list('-date', 200),
+        base44.entities.StudySessionReview.list('-created_date', 100),
+      ]);
+      setRecords(recs);
+      setReviews(revs);
+      const semesters = await base44.entities.Semester.filter({ is_active: true });
+      if (semesters.length > 0) {
+        const cls = await base44.entities.Class.filter({ semester_id: semesters[0].id });
+        setClasses(cls);
+        const allLectures = [];
+        const allCoverage = [];
+        for (const c of cls) {
+          const [lecs, cov] = await Promise.all([
+            base44.entities.Lecture.filter({ class_id: c.id }),
+            base44.entities.KnowledgeCoverage.filter({ class_id: c.id }),
+          ]);
+          allLectures.push(...lecs);
+          allCoverage.push(...cov);
+        }
+        setLectures(allLectures);
+        setCoverage(allCoverage);
+      }
+    } catch (e) { console.error(e); }
+  }, []);
 
   useEffect(() => {
     (async () => {
-      try {
-        const [recs, revs] = await Promise.all([
-          base44.entities.StudyRecord.list('-date', 200),
-          base44.entities.StudySessionReview.list('-created_date', 100),
-        ]);
-        setRecords(recs);
-        setReviews(revs);
-        const semesters = await base44.entities.Semester.filter({ is_active: true });
-        if (semesters.length > 0) {
-          const cls = await base44.entities.Class.filter({ semester_id: semesters[0].id });
-          setClasses(cls);
-          const allLectures = [];
-          for (const c of cls) {
-            const lecs = await base44.entities.Lecture.filter({ class_id: c.id });
-            allLectures.push(...lecs);
-          }
-          setLectures(allLectures);
-        }
-      } catch (e) { console.error(e); }
+      setLoading(true);
+      await loadAll();
       setLoading(false);
     })();
-  }, []);
+  }, [loadAll]);
 
   // Which class the Knowledge & Proficiency section is scoped to.
   // null = all classes (aggregate across every review session).
