@@ -283,9 +283,9 @@ export default function Analytics() {
           </div>
 
           {/* Per-class filter — scope the rings and growth chart to one class,
-              or view the aggregate across every class. Only classes that have
-              review data appear as options. */}
-          {classesWithReviews.length > 0 && (
+              or view the aggregate across every class. Every class the student
+              added is listed, so none is silently missing. */}
+          {classes.length > 0 && (
             <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide mb-4 pb-1">
               <button
                 onClick={() => setSelectedClassId(null)}
@@ -297,7 +297,7 @@ export default function Analytics() {
               >
                 All classes
               </button>
-              {classesWithReviews.map(c => {
+              {classes.map(c => {
                 const active = effectiveClassId === c.id;
                 return (
                   <button
@@ -318,14 +318,17 @@ export default function Analytics() {
             </div>
           )}
 
-          {latestReviews.length === 0 ? (
+          {!hasAnyData ? (
             <div className="rounded-xl border border-dashed border-border p-8 text-center mb-4">
               <Brain className="w-6 h-6 text-muted-foreground mx-auto mb-2" strokeWidth={1.5} />
-              <p className="text-sm text-muted-foreground">No review sessions for {scopeLabel} yet.</p>
+              <p className="text-sm text-muted-foreground">No study or review data for {scopeLabel} yet.</p>
+              <p className="text-xs text-muted-foreground mt-1">Complete a review session for this class to start tracking proficiency.</p>
             </div>
           ) : (
             <>
-              {/* Score cards */}
+              {/* Score cards. Proficiency is decay-adjusted retained knowledge;
+                  coverage and in-depth come from review sessions, so they read
+                  “—” rather than 0% when a class hasn't been reviewed yet. */}
               <div className="grid grid-cols-3 gap-3 mb-4">
                 <ScoreRingCard icon={Target} label="Proficiency" value={avgProficiency} color="#3B82F6" />
                 <ScoreRingCard icon={BookOpen} label="Course Coverage" value={latestCoverage} color="#10B981" />
@@ -355,8 +358,14 @@ export default function Analytics() {
             </>
           )}
 
-          {/* Per-class knowledge coverage */}
-          <KnowledgeCoverageSection classes={classes} />
+          {/* Per-class knowledge coverage — fed the same rows the rings above
+              were computed from, so the numbers always agree. */}
+          <KnowledgeCoverageSection
+            classes={classes}
+            coverage={coverage}
+            lecturesByClass={lecturesByClass}
+            onReload={loadAll}
+          />
         </>
       )}
 
@@ -453,7 +462,10 @@ function StatCard({ icon: Icon, label, value, color }) {
 }
 
 function ScoreRingCard({ icon: Icon, label, value, color }) {
-  const pct = Math.max(0, Math.min(100, Math.round(Number(value) || 0)));
+  // `null`/undefined means "no data", which is not the same as 0% — render an
+  // empty ring and a dash so an unmeasured metric never reads as a bad score.
+  const hasValue = value !== null && value !== undefined;
+  const pct = hasValue ? Math.max(0, Math.min(100, Math.round(Number(value) || 0))) : 0;
   const data = [
     { name: 'Filled', value: pct, fill: color },
     { name: 'Remaining', value: 100 - pct, fill: 'hsl(var(--muted))' },
@@ -468,7 +480,9 @@ function ScoreRingCard({ icon: Icon, label, value, color }) {
           </PieChart>
         </ResponsiveContainer>
         <div className="absolute inset-0 flex items-center justify-center">
-          <span className="font-heading text-xs font-bold" style={{ color }}>{pct}%</span>
+          {hasValue
+            ? <span className="font-heading text-xs font-bold" style={{ color }}>{pct}%</span>
+            : <span className="font-heading text-xs font-bold text-muted-foreground">—</span>}
         </div>
       </div>
       <p className="text-xs text-muted-foreground mt-1">{label}</p>
