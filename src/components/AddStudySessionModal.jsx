@@ -5,6 +5,7 @@ import { Loader2, X } from 'lucide-react';
 export default function AddStudySessionModal({ classes, onClose }) {
   const [form, setForm] = useState({
     class_id: '',
+    title: '',
     scheduled_date: new Date().toLocaleDateString('en-CA'),
     scheduled_time: '19:00',
     duration_minutes: 60,
@@ -18,7 +19,13 @@ export default function AddStudySessionModal({ classes, onClose }) {
     if (!form.class_id || !form.scheduled_date) return;
     setSaving(true);
     try {
-      await base44.entities.StudySession.create({ ...form, status: 'scheduled' });
+      // Never leave a session nameless — see src/lib/sessionTitle.js.
+      const fallback = classes.find(c => c.id === form.class_id)?.name;
+      await base44.entities.StudySession.create({
+        ...form,
+        title: form.title.trim() || (fallback ? `${fallback} study session` : 'Study session'),
+        status: 'scheduled',
+      });
       onClose();
     } catch (e) { console.error(e); }
     setSaving(false);
@@ -37,6 +44,8 @@ export default function AddStudySessionModal({ classes, onClose }) {
             <option value="">Select a class...</option>
             {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
+          <input type="text" placeholder="Session title (optional)" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })}
+            className="w-full px-3 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40" />
           <input type="date" value={form.scheduled_date} onChange={e => setForm({ ...form, scheduled_date: e.target.value })}
             className="w-full px-3 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40" />
           <div className="grid grid-cols-2 gap-3">
