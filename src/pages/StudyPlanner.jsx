@@ -190,7 +190,7 @@ export default function StudyPlanner() {
                   const pastDue = !!a.due_date && a.due_date < todayStr;
                   const busy = resolvingKey !== null;
                   return (
-                    <div key={a.id} className={`relative rounded-xl border bg-card p-3 ${pastDue ? 'border-amber-500/40' : 'border-border'}`}>
+                    <div key={a.id} className={`relative rounded-xl border bg-card p-3 pr-10 ${pastDue ? 'border-amber-500/40' : 'border-border'}`}>
                       {/* Delete this deadline and every session tied to it. */}
                       <DeleteXButton
                         ariaLabel={`Delete ${a.title}`}
@@ -216,8 +216,6 @@ export default function StudyPlanner() {
                         <span className={`text-xs font-semibold px-2 py-1 rounded-md flex-shrink-0 ${pastDue ? 'bg-amber-500/10 text-amber-600' : daysUntil <= 3 ? 'bg-rose-500/10 text-rose-600' : 'bg-muted text-muted-foreground'}`}>
                           {pastDue ? 'Past due' : daysUntil <= 0 ? 'Today' : `${daysUntil}d`}
                         </span>
-                        {/* Right padding leaves room for the ✕ in the corner. */}
-                        <span className="w-5 flex-shrink-0" aria-hidden="true" />
                         {/* Edit — opens the same AssignmentEditModal used in Classes,
                             without navigating away. */}
                         <button
