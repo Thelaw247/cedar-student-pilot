@@ -1,6 +1,6 @@
 import React from 'react';
-import { Clock, MapPin } from 'lucide-react';
-import { getClassMeetings, getClassDays } from '@/lib/classSchedule';
+import { Clock } from 'lucide-react';
+import { getClassMeetings } from '@/lib/classSchedule';
 import { weekDates, expandEventsInRange, parseLocalDate } from '@/lib/eventSchedule';
 import { sessionTitle } from '@/lib/sessionTitle';
 
