@@ -2,7 +2,6 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import BottomNav from './BottomNav';
-import FloatingChat from './FloatingChat';
 import StudySessionNotifier from './StudySessionNotifier';
 import OfflineIndicator from './OfflineIndicator';
 import CommandPalette from './CommandPalette';
@@ -42,7 +41,12 @@ export default function Layout() {
         </main>
         <BottomNav />
       </div>
-      <FloatingChat />
+      {/* The floating AI chat button is intentionally not rendered. It sat at
+          the same fixed position as the Today page's quick-task button
+          (both bottom-20 / lg:bottom-6, right-4, z-40) and the two overlapped.
+          src/components/FloatingChat.jsx is left in place — re-add <FloatingChat />
+          here once it has a position that doesn't collide. The full AI page at
+          /ai is unaffected. */}
       <StudySessionNotifier />
       <OfflineIndicator />
       <CommandPalette />
