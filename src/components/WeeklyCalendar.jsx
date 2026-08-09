@@ -7,6 +7,19 @@ import { sessionTitle } from '@/lib/sessionTitle';
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const HOUR_HEIGHT = 44;
 
+// The grid always spans at least 8am–10pm so the calendar looks the same from
+// week to week. Without a fixed floor/ceiling the window collapsed to whatever
+// happened to be scheduled — a single 10–11am class rendered a one-hour-tall
+// calendar. Anything outside this range still extends the grid to fit.
+const DAY_START_MIN = 8 * 60;   // 08:00
+const DAY_END_MIN = 22 * 60;    // 22:00
+
+// Breathing room so an event block never sits on top of an hour line: 1px below
+// the line it starts on, clear of the next one, and inset from the column edges
+// so the gridline stays visible either side of it.
+const BLOCK_INSET_X = 4;        // px each side
+const BLOCK_GAP_Y = 3;          // px trimmed from the block's height
+
 // Colors for non-class items so the grid reads consistently with the rest of
 // the app (study = violet, work = amber, etc.).
 const TYPE_COLORS = {
@@ -24,8 +37,11 @@ function parseTime(timeStr) {
 }
 
 function formatHour(h) {
-  const ampm = h >= 12 ? 'PM' : 'AM';
-  const dh = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  // Wrap past midnight — an event ending at 23:30 pushes the grid to hour 24,
+  // which would otherwise read "12PM" instead of "12AM".
+  const hh = ((h % 24) + 24) % 24;
+  const ampm = hh >= 12 ? 'PM' : 'AM';
+  const dh = hh === 0 ? 12 : hh > 12 ? hh - 12 : hh;
   return `${dh}${ampm}`;
 }
 
@@ -128,7 +144,9 @@ export default function WeeklyCalendar({
   }
   const anyUntimed = DAYS.some(d => untimedByDay[d].length > 0);
 
-  // Time range from the timed items (fallback to a standard 8am–6pm window).
+  // Time range: always the standard 8am–10pm day, widened only far enough to
+  // fit anything that falls outside it. This keeps the grid identical week to
+  // week instead of resizing around whatever happens to be scheduled.
   const allTimes = [];
   for (const day of DAYS) {
     for (const it of timedByDay[day]) {
@@ -138,8 +156,10 @@ export default function WeeklyCalendar({
       if (e != null) allTimes.push(e);
     }
   }
-  const startMin = allTimes.length ? Math.floor(Math.min(...allTimes) / 60) * 60 : 8 * 60;
-  const endMin = allTimes.length ? Math.ceil(Math.max(...allTimes) / 60) * 60 : 18 * 60;
+  const earliest = allTimes.length ? Math.min(...allTimes) : DAY_START_MIN;
+  const latest = allTimes.length ? Math.max(...allTimes) : DAY_END_MIN;
+  const startMin = Math.min(DAY_START_MIN, Math.floor(earliest / 60) * 60);
+  const endMin = Math.max(DAY_END_MIN, Math.ceil(latest / 60) * 60);
   const totalHeight = ((endMin - startMin) / 60) * HOUR_HEIGHT;
 
   const hours = [];
