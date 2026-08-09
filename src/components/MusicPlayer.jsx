@@ -26,7 +26,6 @@ const stations = [
     name: 'Lofi',
     tracks: [
       { title: 'Lofi Fruits — Pop Covers', videoId: 'aC3K-AqUZyo' },
-      { title: 'Lofi Girl — Live Radio', videoId: 'jfKfPfyJRdk' },
     ],
   },
 ];
@@ -50,7 +49,7 @@ export default function MusicPlayer({ onClose }) {
   const [customUrl, setCustomUrl] = useState('');
   const [customTitle, setCustomTitle] = useState('');
   // Which saved track is being renamed, and its in-progress name.
-  const [editingIndex, setEditingIndex] = useState(null);
+  const [editingId, setEditingId] = useState(null);
   const [editingTitle, setEditingTitle] = useState('');
   // Collapsed = track list hidden, playback continues in a compact bar.
   const [collapsed, setCollapsed] = useState(false);
@@ -141,12 +140,7 @@ export default function MusicPlayer({ onClose }) {
     else onClose();
   };
 
-  const persist = (updated) => {
-    setCustomTracks(updated);
-    localStorage.setItem('cedar-custom-music', JSON.stringify(updated));
-  };
-
-  const addCustomTrack = () => {
+  const addCustomTrack = async () => {
     const videoId = extractYouTubeId(customUrl.trim());
     if (!videoId) {
       alert('Please enter a valid YouTube URL (e.g. https://youtube.com/watch?v=...)');
@@ -154,31 +148,56 @@ export default function MusicPlayer({ onClose }) {
     }
     // Name is optional — fall back to a numbered label so a track is never blank.
     const title = customTitle.trim() || `Custom Track ${customTracks.length + 1}`;
-    persist([...customTracks, { title, videoId }]);
     setCustomUrl('');
     setCustomTitle('');
-    playTrack(videoId, title);
+    setTrackError(null);
+    try {
+      const created = await base44.entities.CustomTrack.create({ title, video_id: videoId });
+      setCustomTracks(prev => [...prev, created]);
+      playTrack(videoId, title);
+    } catch (e) {
+      console.error(e);
+      setTrackError('Couldn’t save that track. Please try again.');
+    }
   };
 
-  const removeCustomTrack = (index) => {
-    persist(customTracks.filter((_, i) => i !== index));
-    if (editingIndex === index) setEditingIndex(null);
+  const removeCustomTrack = async (track) => {
+    if (editingId === track.id) setEditingId(null);
+    const previous = customTracks;
+    setCustomTracks(prev => prev.filter(t => t.id !== track.id));
+    try {
+      await base44.entities.CustomTrack.delete(track.id);
+    } catch (e) {
+      console.error(e);
+      setCustomTracks(previous);
+      setTrackError('Couldn’t delete that track.');
+    }
   };
 
-  const startRename = (index) => {
-    setEditingIndex(index);
-    setEditingTitle(customTracks[index].title);
+  const startRename = (track) => {
+    setEditingId(track.id);
+    setEditingTitle(track.title);
   };
 
-  const saveRename = () => {
-    if (editingIndex === null) return;
-    const title = editingTitle.trim() || customTracks[editingIndex].title;
-    const updated = customTracks.map((t, i) => i === editingIndex ? { ...t, title } : t);
-    persist(updated);
-    // Keep the now-playing label in sync if this is the track that's running.
-    if (customTracks[editingIndex].videoId === currentVideoId) setCurrentTitle(title);
-    setEditingIndex(null);
+  const saveRename = async () => {
+    if (editingId === null) return;
+    const track = customTracks.find(t => t.id === editingId);
+    setEditingId(null);
     setEditingTitle('');
+    if (!track) return;
+    const title = editingTitle.trim() || track.title;
+    if (title === track.title) return;
+
+    setCustomTracks(prev => prev.map(t => t.id === track.id ? { ...t, title } : t));
+    // Keep the now-playing label in sync if this is the track that's running.
+    if (track.video_id === currentVideoId) setCurrentTitle(title);
+    try {
+      await base44.entities.CustomTrack.update(track.id, { title });
+    } catch (e) {
+      console.error(e);
+      setCustomTracks(prev => prev.map(t => t.id === track.id ? { ...t, title: track.title } : t));
+      setTrackError('Couldn’t rename that track.');
+    }
   };
 
   const appleMusicSearch = encodeURIComponent(currentTitle || 'lofi study beats');
