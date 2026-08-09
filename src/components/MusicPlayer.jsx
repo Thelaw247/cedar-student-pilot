@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { X, Music, Plus, Apple, Trash2, Play, Pause, Square, ExternalLink } from 'lucide-react';
+import { X, Music, Plus, Apple, Trash2, Play, Pause, Square, ExternalLink, Pencil, Check } from 'lucide-react';
 
 // Video IDs supplied and confirmed playable by the user. If one ever starts
 // showing "Video unavailable" it means the upload was removed or its owner
@@ -288,7 +288,7 @@ export default function MusicPlayer({ onClose }) {
                 ))}
               </div>
               <p className="text-[10px] text-muted-foreground mt-2 text-center">
-                Some tracks block embedding and won’t play here. Add your own in “My Music”.
+                Add and name your own tracks in “My Music”.
               </p>
             </div>
           )}
@@ -296,15 +296,21 @@ export default function MusicPlayer({ onClose }) {
           {/* Custom tab */}
           {tab === 'custom' && (
             <div>
-              <div className="flex gap-2 mb-3">
+              <div className="space-y-2 mb-3">
                 <input type="text" placeholder="Paste YouTube URL..." value={customUrl}
                   onChange={e => setCustomUrl(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && addCustomTrack()}
-                  className="flex-1 px-2.5 py-2 rounded-md border border-input bg-background text-xs focus:outline-none focus:ring-1 focus:ring-primary" />
-                <button onClick={addCustomTrack}
-                  className="px-2.5 py-2 rounded-md bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 flex items-center justify-center">
-                  <Plus className="w-3.5 h-3.5" />
-                </button>
+                  className="w-full px-2.5 py-2 rounded-md border border-input bg-background text-xs focus:outline-none focus:ring-1 focus:ring-primary" />
+                <div className="flex gap-2">
+                  <input type="text" placeholder="Track name (optional)" value={customTitle}
+                    onChange={e => setCustomTitle(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && addCustomTrack()}
+                    className="flex-1 px-2.5 py-2 rounded-md border border-input bg-background text-xs focus:outline-none focus:ring-1 focus:ring-primary" />
+                  <button onClick={addCustomTrack}
+                    className="px-2.5 py-2 rounded-md bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 flex items-center justify-center flex-shrink-0">
+                    <Plus className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
               {customTracks.length === 0 ? (
                 <p className="text-xs text-muted-foreground text-center py-6 px-4">
@@ -314,15 +320,45 @@ export default function MusicPlayer({ onClose }) {
                 <div className="space-y-1 max-h-40 overflow-y-auto scrollbar-hide">
                   {customTracks.map((t, i) => (
                     <div key={i} className="flex items-center gap-1">
-                      <button onClick={() => playTrack(t.videoId, t.title)}
-                        className={`flex-1 text-left px-2.5 py-2 rounded-md text-xs flex items-center gap-2 transition-colors ${currentVideoId === t.videoId ? 'bg-primary/10 text-primary font-medium' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}>
-                        <Play className="w-3 h-3 flex-shrink-0" fill={currentVideoId === t.videoId ? 'currentColor' : 'none'} />
-                        <span className="truncate">{t.title}</span>
-                      </button>
-                      <button onClick={() => removeCustomTrack(i)}
-                        className="text-muted-foreground hover:text-destructive p-1.5 transition-colors">
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                      {editingIndex === i ? (
+                        <>
+                          <input
+                            autoFocus
+                            type="text"
+                            value={editingTitle}
+                            onChange={e => setEditingTitle(e.target.value)}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter') saveRename();
+                              if (e.key === 'Escape') setEditingIndex(null);
+                            }}
+                            onBlur={saveRename}
+                            className="flex-1 px-2.5 py-2 rounded-md border border-input bg-background text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+                          />
+                          <button onMouseDown={e => e.preventDefault()} onClick={saveRename}
+                            aria-label="Save name"
+                            className="text-primary hover:text-primary/80 p-1.5 transition-colors">
+                            <Check className="w-3.5 h-3.5" />
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button onClick={() => playTrack(t.videoId, t.title)}
+                            className={`flex-1 text-left px-2.5 py-2 rounded-md text-xs flex items-center gap-2 transition-colors ${currentVideoId === t.videoId ? 'bg-primary/10 text-primary font-medium' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}>
+                            <Play className="w-3 h-3 flex-shrink-0" fill={currentVideoId === t.videoId ? 'currentColor' : 'none'} />
+                            <span className="truncate">{t.title}</span>
+                          </button>
+                          <button onClick={() => startRename(i)}
+                            aria-label={`Rename ${t.title}`}
+                            className="text-muted-foreground hover:text-foreground p-1.5 transition-colors">
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                          <button onClick={() => removeCustomTrack(i)}
+                            aria-label={`Delete ${t.title}`}
+                            className="text-muted-foreground hover:text-destructive p-1.5 transition-colors">
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </>
+                      )}
                     </div>
                   ))}
                 </div>
