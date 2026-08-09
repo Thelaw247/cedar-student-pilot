@@ -7,18 +7,24 @@ import { sessionTitle } from '@/lib/sessionTitle';
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const HOUR_HEIGHT = 44;
 
-// The grid always spans at least 8am–10pm so the calendar looks the same from
-// week to week. Without a fixed floor/ceiling the window collapsed to whatever
-// happened to be scheduled — a single 10–11am class rendered a one-hour-tall
-// calendar. Anything outside this range still extends the grid to fit.
+// The grid always spans 8am–5pm so the calendar looks the same from week to
+// week. Without a fixed floor/ceiling the window collapsed to whatever happened
+// to be scheduled — a single 10–11am class rendered a one-hour-tall calendar.
+// Anything outside this range extends the grid, plus one hour of padding so the
+// outlying event isn't flush against the edge.
 const DAY_START_MIN = 8 * 60;   // 08:00
-const DAY_END_MIN = 22 * 60;    // 22:00
+const DAY_END_MIN = 17 * 60;    // 17:00
+const EDGE_PADDING_MIN = 60;    // extra hour beyond an out-of-range event
 
 // Breathing room so an event block never sits on top of an hour line: 1px below
 // the line it starts on, clear of the next one, and inset from the column edges
 // so the gridline stays visible either side of it.
 const BLOCK_INSET_X = 4;        // px each side
 const BLOCK_GAP_Y = 3;          // px trimmed from the block's height
+
+// Rendered height of an hour label, used to keep the first and last ones from
+// straddling the gridlines that bound the grid.
+const LABEL_HEIGHT = 12;
 
 // Colors for non-class items so the grid reads consistently with the rest of
 // the app (study = violet, work = amber, etc.).
@@ -144,9 +150,9 @@ export default function WeeklyCalendar({
   }
   const anyUntimed = DAYS.some(d => untimedByDay[d].length > 0);
 
-  // Time range: always the standard 8am–10pm day, widened only far enough to
-  // fit anything that falls outside it. This keeps the grid identical week to
-  // week instead of resizing around whatever happens to be scheduled.
+  // Time range: the standard 8am–5pm day. Anything scheduled outside that
+  // widens the grid to the containing hour plus one hour of padding, so an
+  // early or late event never sits flush against the top or bottom edge.
   const allTimes = [];
   for (const day of DAYS) {
     for (const it of timedByDay[day]) {
@@ -158,8 +164,12 @@ export default function WeeklyCalendar({
   }
   const earliest = allTimes.length ? Math.min(...allTimes) : DAY_START_MIN;
   const latest = allTimes.length ? Math.max(...allTimes) : DAY_END_MIN;
-  const startMin = Math.min(DAY_START_MIN, Math.floor(earliest / 60) * 60);
-  const endMin = Math.max(DAY_END_MIN, Math.ceil(latest / 60) * 60);
+  const startMin = earliest < DAY_START_MIN
+    ? Math.max(0, Math.floor(earliest / 60) * 60 - EDGE_PADDING_MIN)
+    : DAY_START_MIN;
+  const endMin = latest > DAY_END_MIN
+    ? Math.min(24 * 60, Math.ceil(latest / 60) * 60 + EDGE_PADDING_MIN)
+    : DAY_END_MIN;
   const totalHeight = ((endMin - startMin) / 60) * HOUR_HEIGHT;
 
   const hours = [];
@@ -220,10 +230,17 @@ export default function WeeklyCalendar({
           {/* Time labels */}
           <div className="w-12 flex-shrink-0 relative">
             {hours.map(m => {
-              const top = ((m - startMin) / 60) * HOUR_HEIGHT;
+              const line = ((m - startMin) / 60) * HOUR_HEIGHT;
               const h = m / 60;
+              // Labels are centred on their gridline, except the first and last
+              // — those would hang over the grid's top and bottom borders, so
+              // they're clamped to sit just inside instead.
+              const top = Math.min(
+                Math.max(line - LABEL_HEIGHT / 2, 0),
+                Math.max(0, totalHeight - LABEL_HEIGHT)
+              );
               return (
-                <div key={m} className="absolute right-2 text-[10px] font-medium text-muted-foreground tabular-nums" style={{ top: top - 6 }}>
+                <div key={m} className="absolute right-2 text-[10px] font-medium text-muted-foreground tabular-nums leading-none" style={{ top }}>
                   {formatHour(h)}
                 </div>
               );
