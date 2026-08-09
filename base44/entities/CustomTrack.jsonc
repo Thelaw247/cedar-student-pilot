@@ -1,0 +1,20 @@
+{
+  "name": "CustomTrack",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "title": "Track Title",
+      "description": "User-given name for the track, e.g. 'Lofi Fruits - Pop Covers'."
+    },
+    "video_id": {
+      "type": "string",
+      "title": "YouTube Video ID",
+      "description": "The 11-character YouTube video ID, extracted from the URL the student pasted."
+    }
+  },
+  "required": [
+    "title",
+    "video_id"
+  ]
+}
