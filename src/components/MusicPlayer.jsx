@@ -369,15 +369,22 @@ export default function MusicPlayer({ onClose }) {
                   </button>
                 </div>
               </div>
-              {customTracks.length === 0 ? (
+              {trackError && (
+                <p className="text-[11px] text-destructive mb-2">{trackError}</p>
+              )}
+              {loadingTracks ? (
+                <div className="flex justify-center py-6">
+                  <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                </div>
+              ) : customTracks.length === 0 ? (
                 <p className="text-xs text-muted-foreground text-center py-6 px-4">
                   Add your favorite YouTube tracks — lofi fruits, chill edits, or anything else — by pasting the URL above.
                 </p>
               ) : (
                 <div className="space-y-1 max-h-40 overflow-y-auto scrollbar-hide">
-                  {customTracks.map((t, i) => (
-                    <div key={i} className="flex items-center gap-1">
-                      {editingIndex === i ? (
+                  {customTracks.map(t => (
+                    <div key={t.id} className="flex items-center gap-1">
+                      {editingId === t.id ? (
                         <>
                           <input
                             autoFocus
@@ -386,7 +393,7 @@ export default function MusicPlayer({ onClose }) {
                             onChange={e => setEditingTitle(e.target.value)}
                             onKeyDown={e => {
                               if (e.key === 'Enter') saveRename();
-                              if (e.key === 'Escape') setEditingIndex(null);
+                              if (e.key === 'Escape') { setEditingId(null); setEditingTitle(''); }
                             }}
                             onBlur={saveRename}
                             className="flex-1 px-2.5 py-2 rounded-md border border-input bg-background text-xs focus:outline-none focus:ring-1 focus:ring-primary"
@@ -399,17 +406,17 @@ export default function MusicPlayer({ onClose }) {
                         </>
                       ) : (
                         <>
-                          <button onClick={() => playTrack(t.videoId, t.title)}
-                            className={`flex-1 text-left px-2.5 py-2 rounded-md text-xs flex items-center gap-2 transition-colors ${currentVideoId === t.videoId ? 'bg-primary/10 text-primary font-medium' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}>
-                            <Play className="w-3 h-3 flex-shrink-0" fill={currentVideoId === t.videoId ? 'currentColor' : 'none'} />
+                          <button onClick={() => playTrack(t.video_id, t.title)}
+                            className={`flex-1 text-left px-2.5 py-2 rounded-md text-xs flex items-center gap-2 transition-colors ${currentVideoId === t.video_id ? 'bg-primary/10 text-primary font-medium' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}>
+                            <Play className="w-3 h-3 flex-shrink-0" fill={currentVideoId === t.video_id ? 'currentColor' : 'none'} />
                             <span className="truncate">{t.title}</span>
                           </button>
-                          <button onClick={() => startRename(i)}
+                          <button onClick={() => startRename(t)}
                             aria-label={`Rename ${t.title}`}
                             className="text-muted-foreground hover:text-foreground p-1.5 transition-colors">
                             <Pencil className="w-3.5 h-3.5" />
                           </button>
-                          <button onClick={() => removeCustomTrack(i)}
+                          <button onClick={() => removeCustomTrack(t)}
                             aria-label={`Delete ${t.title}`}
                             className="text-muted-foreground hover:text-destructive p-1.5 transition-colors">
                             <Trash2 className="w-3.5 h-3.5" />
