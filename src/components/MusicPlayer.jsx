@@ -103,24 +103,44 @@ export default function MusicPlayer({ onClose }) {
     else onClose();
   };
 
+  const persist = (updated) => {
+    setCustomTracks(updated);
+    localStorage.setItem('cedar-custom-music', JSON.stringify(updated));
+  };
+
   const addCustomTrack = () => {
     const videoId = extractYouTubeId(customUrl.trim());
     if (!videoId) {
       alert('Please enter a valid YouTube URL (e.g. https://youtube.com/watch?v=...)');
       return;
     }
-    const track = { title: `Custom Track ${customTracks.length + 1}`, videoId };
-    const updated = [...customTracks, track];
-    setCustomTracks(updated);
-    localStorage.setItem('cedar-custom-music', JSON.stringify(updated));
+    // Name is optional — fall back to a numbered label so a track is never blank.
+    const title = customTitle.trim() || `Custom Track ${customTracks.length + 1}`;
+    persist([...customTracks, { title, videoId }]);
     setCustomUrl('');
-    playTrack(videoId, track.title);
+    setCustomTitle('');
+    playTrack(videoId, title);
   };
 
   const removeCustomTrack = (index) => {
-    const updated = customTracks.filter((_, i) => i !== index);
-    setCustomTracks(updated);
-    localStorage.setItem('cedar-custom-music', JSON.stringify(updated));
+    persist(customTracks.filter((_, i) => i !== index));
+    if (editingIndex === index) setEditingIndex(null);
+  };
+
+  const startRename = (index) => {
+    setEditingIndex(index);
+    setEditingTitle(customTracks[index].title);
+  };
+
+  const saveRename = () => {
+    if (editingIndex === null) return;
+    const title = editingTitle.trim() || customTracks[editingIndex].title;
+    const updated = customTracks.map((t, i) => i === editingIndex ? { ...t, title } : t);
+    persist(updated);
+    // Keep the now-playing label in sync if this is the track that's running.
+    if (customTracks[editingIndex].videoId === currentVideoId) setCurrentTitle(title);
+    setEditingIndex(null);
+    setEditingTitle('');
   };
 
   const appleMusicSearch = encodeURIComponent(currentTitle || 'lofi study beats');
