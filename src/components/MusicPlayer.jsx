@@ -94,6 +94,26 @@ export default function MusicPlayer({ onClose }) {
     else onClose();
   };
 
+  const addCustomTrack = () => {
+    const videoId = extractYouTubeId(customUrl.trim());
+    if (!videoId) {
+      alert('Please enter a valid YouTube URL (e.g. https://youtube.com/watch?v=...)');
+      return;
+    }
+    const track = { title: `Custom Track ${customTracks.length + 1}`, videoId };
+    const updated = [...customTracks, track];
+    setCustomTracks(updated);
+    localStorage.setItem('cedar-custom-music', JSON.stringify(updated));
+    setCustomUrl('');
+    playTrack(videoId, track.title);
+  };
+
+  const removeCustomTrack = (index) => {
+    const updated = customTracks.filter((_, i) => i !== index);
+    setCustomTracks(updated);
+    localStorage.setItem('cedar-custom-music', JSON.stringify(updated));
+  };
+
   const appleMusicSearch = encodeURIComponent(currentTitle || 'lofi study beats');
   const watchUrl = currentVideoId ? `https://www.youtube.com/watch?v=${currentVideoId}` : null;
 
@@ -284,24 +304,4 @@ export default function MusicPlayer({ onClose }) {
       )}
     </div>
   );
-
-  function addCustomTrack() {
-    const videoId = extractYouTubeId(customUrl.trim());
-    if (!videoId) {
-      alert('Please enter a valid YouTube URL (e.g. https://youtube.com/watch?v=...)');
-      return;
-    }
-    const track = { title: `Custom Track ${customTracks.length + 1}`, videoId };
-    const updated = [...customTracks, track];
-    setCustomTracks(updated);
-    localStorage.setItem('cedar-custom-music', JSON.stringify(updated));
-    setCustomUrl('');
-    playTrack(videoId, track.title);
-  }
-
-  function removeCustomTrack(index) {
-    const updated = customTracks.filter((_, i) => i !== index);
-    setCustomTracks(updated);
-    localStorage.setItem('cedar-custom-music', JSON.stringify(updated));
-  }
 }
