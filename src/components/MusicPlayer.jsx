@@ -1,5 +1,11 @@
-import React, { useState, useRef } from 'react';
-import { X, Music, Plus, Apple, Trash2, Play, Pause, Square, ExternalLink, Pencil, Check } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { base44 } from '@/api/base44Client';
+import { X, Music, Plus, Apple, Trash2, Play, Pause, Square, ExternalLink, Pencil, Check, Loader2 } from 'lucide-react';
+
+// Where custom tracks used to live. They're stored in the CustomTrack entity
+// now so they follow the student across devices; anything still under this key
+// is migrated once on first load and then removed.
+const LEGACY_STORAGE_KEY = 'cedar-custom-music';
 
 // Video IDs supplied and confirmed playable by the user. If one ever starts
 // showing "Video unavailable" it means the upload was removed or its owner
@@ -50,12 +56,44 @@ export default function MusicPlayer({ onClose }) {
   const [collapsed, setCollapsed] = useState(false);
   const [paused, setPaused] = useState(false);
   const iframeRef = useRef(null);
-  const [customTracks, setCustomTracks] = useState(() => {
-    try {
-      const saved = localStorage.getItem('cedar-custom-music');
-      return saved ? JSON.parse(saved) : [];
-    } catch { return []; }
-  });
+  const [customTracks, setCustomTracks] = useState([]);
+  const [loadingTracks, setLoadingTracks] = useState(true);
+  const [trackError, setTrackError] = useState(null);
+
+  // Load saved tracks, migrating any left in localStorage from before they
+  // were a real entity. Migration is keyed off the legacy key existing and
+  // dedupes on video_id, so a partly-completed run can't create duplicates.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        let rows = await base44.entities.CustomTrack.list('created_date');
+
+        let legacy = [];
+        try {
+          legacy = JSON.parse(localStorage.getItem(LEGACY_STORAGE_KEY) || '[]');
+        } catch { legacy = []; }
+
+        if (Array.isArray(legacy) && legacy.length > 0) {
+          const existing = new Set(rows.map(r => r.video_id));
+          const toCreate = legacy
+            .filter(t => t && t.videoId && !existing.has(t.videoId))
+            .map((t, i) => ({ title: t.title || `Custom Track ${i + 1}`, video_id: t.videoId }));
+          if (toCreate.length > 0) await base44.entities.CustomTrack.bulkCreate(toCreate);
+          // Only drop the local copy once the write actually succeeded.
+          localStorage.removeItem(LEGACY_STORAGE_KEY);
+          rows = await base44.entities.CustomTrack.list('created_date');
+        }
+
+        if (!cancelled) setCustomTracks(rows);
+      } catch (e) {
+        console.error(e);
+        if (!cancelled) setTrackError('Couldn’t load your saved tracks.');
+      }
+      if (!cancelled) setLoadingTracks(false);
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   /**
    * Drive the embedded player without loading YouTube's IFrame API script.
