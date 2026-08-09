@@ -243,13 +243,29 @@ export default function WeeklyCalendar({
                   const start = parseTime(it.start);
                   const end = parseTime(it.end) || start + 60;
                   if (start == null) return null;
-                  const top = ((start - startMin) / 60) * HOUR_HEIGHT;
-                  const height = Math.max(20, ((end - start) / 60) * HOUR_HEIGHT - 2);
+                  // Sit 1px below the hour line this starts on, and stop short
+                  // of the next one, so the block never covers a gridline.
+                  const top = ((start - startMin) / 60) * HOUR_HEIGHT + 1;
+                  const height = Math.max(18, ((end - start) / 60) * HOUR_HEIGHT - BLOCK_GAP_Y);
+                  const color = it.color || '#3B82F6';
                   const Tag = it.onClick ? 'button' : 'div';
                   return (
                     <Tag key={it.key || `${day}-${mi}`} onClick={it.onClick || undefined}
-                      className="absolute left-0.5 right-0.5 rounded-md text-left p-1 overflow-hidden hover:shadow-md transition-all"
-                      style={{ top, height, backgroundColor: (it.color || '#3B82F6') + '18', borderLeft: `2px solid ${it.color || '#3B82F6'}` }}>
+                      className="absolute rounded-md text-left p-1 overflow-hidden hover:shadow-md transition-all"
+                      style={{
+                        top,
+                        height,
+                        // Inset from the column edges so the hour lines stay
+                        // visible either side of the block.
+                        left: BLOCK_INSET_X,
+                        right: BLOCK_INSET_X,
+                        // Tint layered over the card colour keeps the block
+                        // opaque, so gridlines don't show through the middle
+                        // of an event.
+                        backgroundColor: 'hsl(var(--card))',
+                        backgroundImage: `linear-gradient(${color}18, ${color}18)`,
+                        borderLeft: `2px solid ${color}`,
+                      }}>
                       <p className="text-[10px] font-semibold text-foreground truncate leading-tight">{it.title}</p>
                       {height > 28 && <p className="text-[9px] text-muted-foreground tabular-nums leading-tight">{formatTime(it.start)}</p>}
                       {height > 40 && it.room && <p className="text-[9px] text-muted-foreground truncate leading-tight">{it.room}</p>}
