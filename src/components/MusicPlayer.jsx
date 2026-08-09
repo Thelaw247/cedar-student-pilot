@@ -1,20 +1,25 @@
 import React, { useState, useRef } from 'react';
 import { X, Music, Plus, Apple, Trash2, Play, Pause, Square, ExternalLink } from 'lucide-react';
 
+// Video IDs supplied and confirmed playable by the user. If one ever starts
+// showing "Video unavailable" it means the upload was removed or its owner
+// turned off third-party embedding — nothing here can override that, which is
+// why every track also offers an "Open on YouTube" link.
 const stations = [
   {
     name: 'Classical',
     tracks: [
-      { title: 'Bach — Cello Suite No. 1', videoId: '1prweTlAqV4' },
-      { title: 'Chopin — Nocturne Op. 9 No. 2', videoId: 't28PhBSqsZo' },
-      { title: 'Debussy — Clair de Lune', videoId: 'ZIsQP4wOJ9c' },
-      { title: 'Mozart — Piano Concerto No. 21', videoId: 'tDQt5q9N7Cs' },
+      { title: 'Bach — Cello Suites No. 1–3', videoId: 'z89qUzN3vmU' },
+      { title: 'Chopin — Nocturne Op. 9 No. 2', videoId: '9E6b3swbnWg' },
+      { title: 'Debussy — Clair de Lune', videoId: 'WNcsUNKlAKw' },
+      { title: 'Mozart — Piano Concerto No. 1', videoId: 'as-Dl7t3rfk' },
       { title: 'Beethoven — Moonlight Sonata', videoId: '4Tr0otuiQuU' },
     ],
   },
   {
     name: 'Lofi',
     tracks: [
+      { title: 'Lofi Fruits — Pop Covers', videoId: 'aC3K-AqUZyo' },
       { title: 'Lofi Girl — Live Radio', videoId: 'jfKfPfyJRdk' },
     ],
   },
@@ -37,6 +42,10 @@ export default function MusicPlayer({ onClose }) {
   const [currentVideoId, setCurrentVideoId] = useState(null);
   const [currentTitle, setCurrentTitle] = useState('');
   const [customUrl, setCustomUrl] = useState('');
+  const [customTitle, setCustomTitle] = useState('');
+  // Which saved track is being renamed, and its in-progress name.
+  const [editingIndex, setEditingIndex] = useState(null);
+  const [editingTitle, setEditingTitle] = useState('');
   // Collapsed = track list hidden, playback continues in a compact bar.
   const [collapsed, setCollapsed] = useState(false);
   const [paused, setPaused] = useState(false);
