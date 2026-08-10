@@ -1,0 +1,31 @@
+{
+  // Scheduled sweep for study-session reminder emails.
+  //
+  // The function is ALSO reachable over public HTTP at
+  // /functions/sendStudyReminders, so scheduling alone is not an access
+  // control. entry.ts gates the broadcast path on a shared secret and fails
+  // closed when that secret is not configured. See entry.ts for details.
+  "name": "sendStudyReminders",
+  "entry": "entry.ts",
+  "automations": [
+    {
+      "type": "scheduled",
+      "name": "study_reminder_sweep",
+      "description": "Every 10 minutes, email owners of study sessions starting within the next 30 minutes.",
+      "is_active": true,
+
+      "schedule_mode": "recurring",
+      "schedule_type": "simple",
+      "repeat_unit": "minutes",
+      "repeat_interval": 10,
+
+      // trigger_token must equal the REMINDERS_TRIGGER_TOKEN app secret or the
+      // broadcast is rejected. Replace the placeholder below with the value you
+      // set via `base44 secrets set REMINDERS_TRIGGER_TOKEN`.
+      "function_args": {
+        "source": "automation",
+        "trigger_token": "REPLACE_WITH_REMINDERS_TRIGGER_TOKEN"
+      }
+    }
+  ]
+}
