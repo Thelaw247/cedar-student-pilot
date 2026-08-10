@@ -4,9 +4,11 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { UserPlus, Mail, Lock, Loader2, Apple, Facebook } from "lucide-react";
+import { UserPlus, Mail, Lock, Loader2 } from "lucide-react";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import AuthLayout from "@/components/AuthLayout";
+import AppleIcon from "@/components/AppleIcon";
+import FacebookIcon from "@/components/FacebookIcon";
 import { toast } from "@/components/ui/use-toast";
 import { safeReturnTo } from "@/lib/authReturnTo";
 
@@ -149,7 +151,7 @@ export default function Register() {
           className="h-12 text-sm font-medium"
           onClick={handleApple}
         >
-          <Apple className="w-5 h-5 mr-2" />
+          <AppleIcon className="w-5 h-5 mr-2" />
           Apple
         </Button>
         <Button
@@ -157,7 +159,7 @@ export default function Register() {
           className="h-12 text-sm font-medium"
           onClick={handleFacebook}
         >
-          <Facebook className="w-5 h-5 mr-2" />
+          <FacebookIcon className="w-5 h-5 mr-2" />
           Facebook
         </Button>
       </div>
