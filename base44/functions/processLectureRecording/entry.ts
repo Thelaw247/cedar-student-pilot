@@ -15,18 +15,21 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 // does not affect the bill at all, so the only levers that matter are the
 // NUMBER of calls and which model tier each one uses.
 //
-// This pipeline is ~11 InvokeLLM calls for a 60-minute lecture (5 cleaning +
-// 4 extraction chunks + 1 stitch + 1 flashcards) = ~33 credits, plus 1 for the
-// audio upload, plus whatever TranscribeAudio costs. At 20,000 credits/month
-// that caps the WHOLE APP at roughly 550 lectures/month across all users.
+// TRANSCRIPT CLEANING IS NOT DONE HERE ANYMORE.
+// It used to run automatically on every recording and was ~45% of this
+// pipeline's credits, for a pass that only improves readability — extraction,
+// concepts, exam mentions and flashcards all work fine on raw speech-to-text.
+// It now lives in the cleanLectureTranscript function, triggered by a button on
+// the lecture page, so only the noisy recordings that actually need it pay.
+//
+// This pipeline is now ~6 InvokeLLM calls for a 60-minute lecture (4 extraction
+// chunks + 1 stitch + 1 flashcards) = ~18 credits, plus 1 for the audio upload,
+// plus whatever TranscribeAudio costs.
 //
 // SCALE NOTE: backend functions can fetch() third-party APIs and read keys via
 // secrets.get() from 'base44:runtime'. Calls made that way cost ZERO Base44
 // credits and have no ceiling. Moving this pipeline to a direct Whisper + LLM
 // key is the intended path before user growth hits the cap above.
-
-// Characters of transcript fed to one cleaning call. Unchanged from before.
-const CLEAN_CHUNK_SIZE = 12000;
 
 // Characters of transcript fed to one extraction call. Long lectures are split
 // across several calls and merged, so late-lecture content is never lost.
@@ -85,50 +88,6 @@ const EXTRACTION_SCHEMA = {
     exam_mentions: { type: 'array', items: { type: 'string' } }
   }
 };
-
-/**
- * Clean raw speech-to-text while preserving the professor's voice.
- * Unchanged in behaviour — only lifted out of the request handler so the
- * pipeline can skip it entirely when a cleaned transcript already exists.
- */
-async function cleanTranscript(base44, rawTranscript) {
-  const cleanOne = async (text, isChunk) => {
-    const result = await base44.asServiceRole.integrations.Core.InvokeLLM({
-      prompt: `You are a professional transcript editor for university lecture recordings. ${isChunk ? 'Clean up this raw speech-to-text chunk' : 'Your job is to clean up raw speech-to-text'} WITHOUT flattening the professor's voice. The value of this transcript is that it preserves how THIS professor actually explained things — their characteristic phrases, their emphasis, the cues a student will recognize later. Stay faithful to their wording.
-
-DO fix (never compromise on these):
-1. Punctuation, capitalization, and sentence boundaries
-2. Spelling and obvious speech-to-text errors (homophones, misheard technical terms) using context — no misspelled words in the output
-3. Genuine transcription garble: nonsensical fragments, noise artifacts, and words the recognizer clearly got wrong
-4. Stutter-type repetition and false starts ONLY when they are disfluencies, e.g. "I think th- I think that" becomes "I think that"
-5. Add paragraph breaks at natural topic transitions
-
-DO NOT do (this is what preserves the professor's voice):
-1. Do NOT summarize, paraphrase, or shorten — keep the professor's actual words and sentence structure
-2. Do NOT remove a phrase just because the professor repeats it across the lecture. Deliberate repetition ("again, the key idea here is...", "remember...", "this is important...") is exactly what helps recall — keep every instance
-3. Do NOT strip verbal cues and discourse markers that carry the professor's style ("so", "now", "okay so", "right", "the thing to notice is"). Keep them where they reflect how the professor actually talks. Only drop pure meaningless filler ("um", "uh", "er")
-4. Do NOT standardize the professor's phrasing into generic textbook language — if they said "this guy blows up" about a term going to infinity, keep their words
-
-The goal: read it back and it should sound like the professor talking, cleanly punctuated and correctly spelled — not like a summary of what they said.
-
-Raw transcript${isChunk ? ' chunk' : ''}:
-${text}
-
-Return ONLY the cleaned transcript text, nothing else. No preamble, no explanation.`,
-    });
-    return asText(result);
-  };
-
-  if (rawTranscript.length <= CLEAN_CHUNK_SIZE) {
-    return (await cleanOne(rawTranscript, false)).trim();
-  }
-
-  const cleanedChunks = [];
-  for (const chunk of splitInto(rawTranscript, CLEAN_CHUNK_SIZE)) {
-    cleanedChunks.push(await cleanOne(chunk, true));
-  }
-  return cleanedChunks.join('\n\n').trim();
-}
 
 /**
  * Extract structured content from the WHOLE transcript.
@@ -304,10 +263,12 @@ Deno.serve(async (req) => {
         return Response.json({ error: 'No speech detected' }, { status: 400 });
       }
 
-      transcript = await cleanTranscript(base44, rawTranscript);
+      // Stored raw. The student can run cleanLectureTranscript later if this
+      // particular recording came out noisy.
+      transcript = rawTranscript.trim();
 
       // Persist before any further LLM work, so a later failure resumes from
-      // here instead of re-transcribing and re-cleaning.
+      // here instead of paying for transcription twice.
       await base44.entities.Lecture.update(lecture_id, { transcript, status: 'processing' });
     }
 
