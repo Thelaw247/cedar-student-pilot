@@ -1,5 +1,11 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
+// Flashcards and quizzes are generated from already-extracted lecture content,
+// so this is formatting work rather than analysis. Routed to a cheap fast model
+// instead of the app-level default. See processLectureRecording for the wider
+// routing rationale.
+const CHEAP_MODEL = 'gemini_3_flash';
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -39,6 +45,7 @@ Deno.serve(async (req) => {
     }
 
     const material = await base44.asServiceRole.integrations.Core.InvokeLLM({
+      model: CHEAP_MODEL,
       prompt: `You are an AI study material generator. Based on the following university lecture content, generate study material of type "${material_type}".
 
 Lecture content:
