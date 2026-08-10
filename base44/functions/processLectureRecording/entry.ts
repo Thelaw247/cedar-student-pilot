@@ -2,19 +2,28 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 // DO NOT pin a `model` on these calls.
 //
-// Base44 bills integration credits PER CALL, not per token:
-//   invokeLLM (Automatic)      ~1 credit per call
+// Base44 bills integration credits PER CALL, not per token. Current rate card:
+//   invokeLLM (Automatic)      ~3 credits per call   <- cheapest tier
 //   invokeLLM (Gemini 3 Flash) ~5 credits per call
-//   invokeLLM (GPT-5.4)       ~15 credits per call
+//   invokeLLM (GPT-5)         ~15 credits per call
+//   automation run             1 credit, even if it does nothing
+//   UploadFile                 1 credit per upload
+//   database reads/writes      0 credits
 //
 // Pinning gemini_3_flash on the cleaning pass — the highest-volume call in the
-// app, 4-5 per lecture — made it 5x more expensive, not cheaper. Token volume
+// app, 4-5 per lecture — cost 5 credits where Automatic costs 3. Token volume
 // does not affect the bill at all, so the only levers that matter are the
-// NUMBER of calls and which model tier each one uses. Leaving `model` unset
-// uses Automatic, the cheapest tier, and Base44 routes it appropriately.
+// NUMBER of calls and which model tier each one uses.
 //
-// If a specific call ever genuinely needs a stronger model, pin it there alone
-// and account for the 5x or 15x multiplier per call.
+// This pipeline is ~11 InvokeLLM calls for a 60-minute lecture (5 cleaning +
+// 4 extraction chunks + 1 stitch + 1 flashcards) = ~33 credits, plus 1 for the
+// audio upload, plus whatever TranscribeAudio costs. At 20,000 credits/month
+// that caps the WHOLE APP at roughly 550 lectures/month across all users.
+//
+// SCALE NOTE: backend functions can fetch() third-party APIs and read keys via
+// secrets.get() from 'base44:runtime'. Calls made that way cost ZERO Base44
+// credits and have no ceiling. Moving this pipeline to a direct Whisper + LLM
+// key is the intended path before user growth hits the cap above.
 
 // Characters of transcript fed to one cleaning call. Unchanged from before.
 const CLEAN_CHUNK_SIZE = 12000;
