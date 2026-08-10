@@ -34,12 +34,6 @@ export default function Sidebar() {
           </NavLink>
         ))}
       </nav>
-      <div className="p-4">
-        <div className="rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 p-4 border border-primary/10">
-          <p className="text-xs font-medium text-foreground">Need help studying?</p>
-          <p className="text-[11px] text-muted-foreground mt-1">Ask your AI assistant anything about your lectures.</p>
-        </div>
-      </div>
     </aside>
   );
 }
