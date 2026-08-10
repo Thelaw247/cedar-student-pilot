@@ -1,5 +1,37 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
+// Characters of transcript fed to a single extraction call. Long lectures are
+// split across several calls and merged, so late-lecture content is never lost.
+const EXTRACT_CHUNK_SIZE = 15000;
+
+// Case-insensitive union that keeps the first-seen spelling of each entry.
+function mergeStrings(lists) {
+  const seen = new Map();
+  for (const list of lists) {
+    for (const raw of (list || [])) {
+      const value = typeof raw === 'string' ? raw.trim() : '';
+      if (!value) continue;
+      const key = value.toLowerCase();
+      if (!seen.has(key)) seen.set(key, value);
+    }
+  }
+  return [...seen.values()];
+}
+
+// Same idea for {term, definition} pairs, keyed on the term.
+function mergeDefinitions(lists) {
+  const seen = new Map();
+  for (const list of lists) {
+    for (const def of (list || [])) {
+      const term = def?.term?.trim();
+      if (!term) continue;
+      const key = term.toLowerCase();
+      if (!seen.has(key)) seen.set(key, { term, definition: def.definition || '' });
+    }
+  }
+  return [...seen.values()];
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -10,16 +42,73 @@ Deno.serve(async (req) => {
     const { lecture_id, audio_url } = body;
     if (!lecture_id || !audio_url) return Response.json({ error: 'lecture_id and audio_url are required' }, { status: 400 });
 
-    // Step 1: Transcribe the audio
-    const transcriptResult = await base44.asServiceRole.integrations.Core.TranscribeAudio({ audio_url });
-    const rawTranscript = typeof transcriptResult === 'string' ? transcriptResult : transcriptResult.text || JSON.stringify(transcriptResult);
+    // Every stage below is resumable. Transcription and the cleaning pass are
+    // by far the most expensive work in the app, so a failure late in the
+    // pipeline must never force the caller to pay for them a second time. Each
+    // stage checks whether its output is already persisted and skips if so.
+    const existing = await base44.asServiceRole.entities.Lecture.get(lecture_id);
+    const hasTranscript = !!(existing?.transcript && existing.transcript.trim() && existing.transcript !== '[No speech detected in recording]');
 
-    if (!rawTranscript || rawTranscript.trim().length === 0) {
-      await base44.asServiceRole.entities.Lecture.update(lecture_id, { status: 'complete', transcript: '[No speech detected in recording]' });
-      return Response.json({ error: 'No speech detected' }, { status: 400 });
+    let transcript = hasTranscript ? existing.transcript.trim() : '';
+
+    if (!hasTranscript) {
+      // Step 1: Transcribe the audio
+      const transcriptResult = await base44.asServiceRole.integrations.Core.TranscribeAudio({ audio_url });
+      const rawTranscript = typeof transcriptResult === 'string' ? transcriptResult : transcriptResult.text || JSON.stringify(transcriptResult);
+
+      if (!rawTranscript || rawTranscript.trim().length === 0) {
+        await base44.asServiceRole.entities.Lecture.update(lecture_id, { status: 'complete', transcript: '[No speech detected in recording]' });
+        return Response.json({ error: 'No speech detected' }, { status: 400 });
+      }
+
+      transcript = await cleanTranscript(base44, rawTranscript);
+
+      // Persist immediately, before any further LLM work. If analysis fails,
+      // a retry resumes from here instead of re-transcribing and re-cleaning.
+      await base44.asServiceRole.entities.Lecture.update(lecture_id, { transcript, status: 'processing' });
     }
 
-    // Step 2: Clean the transcript — remove murmurs, filler, noise, false starts
+    // Step 3: Get class context
+    const lecture = await base44.asServiceRole.entities.Lecture.get(lecture_id);
+    const cls = lecture.class_id ? await base44.asServiceRole.entities.Class.get(lecture.class_id) : null;
+
+    // Step 4: Extract structured content — skipped if already done.
+    if (!lecture.ai_title) {
+      const analysis = await extractFromTranscript(base44, transcript, cls, lecture.date);
+      await base44.asServiceRole.entities.Lecture.update(lecture_id, {
+        ai_title: analysis.title,
+        ai_summary: analysis.summary,
+        ai_concepts: analysis.concepts || [],
+        ai_vocabulary: analysis.vocabulary || [],
+        ai_definitions: analysis.definitions || [],
+        ai_formulas: analysis.formulas || [],
+        ai_action_items: analysis.action_items || [],
+        ai_exam_mentions: analysis.exam_mentions || [],
+        status: 'complete'
+      });
+    }
+
+    // Step 5: Flashcards. Non-fatal and idempotent — previously a failure here
+    // returned 500 on an otherwise-successful lecture, and the retry both
+    // re-paid for the whole pipeline and duplicated the cards.
+    try {
+      const alreadyHave = await base44.asServiceRole.entities.Flashcard.filter({ lecture_id });
+      if (!alreadyHave || alreadyHave.length === 0) {
+        const fresh = await base44.asServiceRole.entities.Lecture.get(lecture_id);
+        await generateFlashcards(base44, fresh, cls);
+      }
+    } catch (e) {
+      // Lecture itself is complete; cards can be regenerated on demand.
+    }
+
+    return Response.json({ status: 'complete', lecture_id });
+  } catch (error) {
+    return Response.json({ error: error.message }, { status: 500 });
+  }
+});
+
+/** Clean raw speech-to-text while preserving the professor's voice. */
+async function cleanTranscript(base44, rawTranscript) {
     // For long recordings (60+ min), chunk the transcript and clean each section
     const CHUNK_SIZE = 12000;
     let cleanTranscript = '';
