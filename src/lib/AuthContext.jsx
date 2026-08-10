@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
 import { appParams } from '@/lib/app-params';
 import { setCachedUserId } from '@/lib/currentUser';
@@ -78,6 +78,11 @@ export const AuthProvider = ({ children }) => {
         }
         setIsLoadingPublicSettings(false);
         setIsLoadingAuth(false);
+        // authChecked must be set on EVERY terminal path. Leaving it false
+        // while isLoadingAuth is false is the exact state ProtectedRoute treats
+        // as "auth not yet checked", which made it retry forever — and, once
+        // the retry loop was fixed, sit on a permanent spinner instead.
+        setAuthChecked(true);
       }
     } catch (error) {
       console.error('Unexpected error:', error);
@@ -87,10 +92,21 @@ export const AuthProvider = ({ children }) => {
       });
       setIsLoadingPublicSettings(false);
       setIsLoadingAuth(false);
+      // Same reason as the inner catch above.
+      setAuthChecked(true);
     }
   };
 
-  const checkUserAuth = async () => {
+  // Memoised deliberately — do not convert back to a plain function.
+  //
+  // ProtectedRoute depends on this function's identity inside a useEffect. When
+  // it was recreated on every provider render, that effect re-fired on every
+  // render: call -> setState -> re-render -> new identity -> call, an unbounded
+  // loop that pegs the main thread and looks like the app failing to load.
+  //
+  // The empty dependency array is correct: the body only uses setState setters
+  // (stable by contract) and the module-level base44 client.
+  const checkUserAuth = useCallback(async () => {
     try {
       // Now check if the user is authenticated
       setIsLoadingAuth(true);
@@ -114,7 +130,7 @@ export const AuthProvider = ({ children }) => {
         });
       }
     }
-  };
+  }, []);
 
   const logout = (shouldRedirect = true) => {
     setUser(null);
