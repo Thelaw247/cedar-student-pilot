@@ -256,7 +256,14 @@ Deno.serve(async (req) => {
     // far the most expensive work in the app, so a failure later in the pipeline
     // must never make the caller pay for them twice. Each stage checks whether
     // its output is already persisted and skips if so.
-    const existing = await base44.asServiceRole.entities.Lecture.get(lecture_id);
+    // Tolerate this lookup failing: it's only an optimisation, and the original
+    // pipeline didn't read the lecture until after transcription. A miss here
+    // must not block processing a brand-new recording.
+    let existing = null;
+    try {
+      existing = await base44.asServiceRole.entities.Lecture.get(lecture_id);
+    } catch (e) { /* treat as a fresh lecture */ }
+
     const NO_SPEECH = '[No speech detected in recording]';
     const hasTranscript = !!(existing?.transcript && existing.transcript.trim() && existing.transcript !== NO_SPEECH);
 
