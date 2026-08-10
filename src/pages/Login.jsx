@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { LogIn, Mail, Lock, Loader2 } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
 import GoogleIcon from "@/components/GoogleIcon";
+import { safeReturnTo } from "@/lib/authReturnTo";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -20,7 +21,10 @@ export default function Login() {
     setLoading(true);
     try {
       await base44.auth.loginViaEmailPassword(email, password);
-      window.location.href = "/";
+      // Return the user to whatever they were trying to reach before being
+      // sent here. safeReturnTo() rejects off-origin and token-poisoning
+      // values, so this is never a raw redirect target.
+      window.location.href = safeReturnTo();
     } catch (err) {
       setError(err.message || "Invalid email or password");
     } finally {
@@ -29,7 +33,7 @@ export default function Login() {
   };
 
   const handleGoogle = () => {
-    base44.auth.loginWithProvider("google", "/");
+    base44.auth.loginWithProvider("google", safeReturnTo());
   };
 
   return (
@@ -40,7 +44,7 @@ export default function Login() {
       footer={
         <>
           Don't have an account?{" "}
-          <Link to="/register" className="text-primary font-medium hover:underline">
+          <Link to={`/register${window.location.search}`} className="text-primary font-medium hover:underline">
             Create one
           </Link>
         </>
