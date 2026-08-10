@@ -1,5 +1,17 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
+// Model routing. InvokeLLM defaults to the app-level model when `model` is
+// omitted, which is what every call here used to do. Mechanical work is routed
+// to a cheap fast model; anything whose output quality drives a user-facing
+// feature is left on the app default deliberately.
+//
+// The cleaning pass is ~77% of this pipeline's tokens and is purely mechanical
+// (punctuation, spelling, filler removal — its prompt explicitly forbids
+// paraphrasing), so it is the single highest-value call to route cheaply.
+// Extraction is NOT routed: it produces the concepts and exam mentions the
+// coverage feature depends on.
+const CHEAP_MODEL = 'gemini_3_flash';
+
 // Characters of transcript fed to one cleaning call. Unchanged from before.
 const CLEAN_CHUNK_SIZE = 12000;
 
@@ -69,6 +81,7 @@ const EXTRACTION_SCHEMA = {
 async function cleanTranscript(base44, rawTranscript) {
   const cleanOne = async (text, isChunk) => {
     const result = await base44.asServiceRole.integrations.Core.InvokeLLM({
+      model: CHEAP_MODEL,
       prompt: `You are a professional transcript editor for university lecture recordings. ${isChunk ? 'Clean up this raw speech-to-text chunk' : 'Your job is to clean up raw speech-to-text'} WITHOUT flattening the professor's voice. The value of this transcript is that it preserves how THIS professor actually explained things — their characteristic phrases, their emphasis, the cues a student will recognize later. Stay faithful to their wording.
 
 DO fix (never compromise on these):
@@ -204,6 +217,7 @@ async function generateFlashcards(base44, lecture, cls) {
   if (!concepts && !definitions && !formulas) return;
 
   const result = await base44.asServiceRole.integrations.Core.InvokeLLM({
+    model: CHEAP_MODEL,
     prompt: `Create 8 study flashcards for a university lecture in "${cls?.name || 'the class'}" titled "${lecture.ai_title || 'Untitled'}". Each flashcard has a front (question or term) and a back (answer or definition). Focus on the most important material and spread the cards across the whole lecture, not just the beginning.
 
 Lecture summary:
