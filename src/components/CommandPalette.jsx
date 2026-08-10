@@ -1,12 +1,15 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Clock, GraduationCap, BookOpen, Sparkles, FileText, Mic, Calendar } from 'lucide-react';
+import { Search, Clock, GraduationCap, BookOpen, FileText, Mic, Calendar } from 'lucide-react';
 
 /**
  * Universal Command Palette — ⌘K / Ctrl+K
- * Navigate anywhere, search, create events, start recording, ask AI.
+ * Navigate anywhere, search, create events, start recording.
+ *
+ * The "Ask AI" entries were removed along with the AI Assistant page — they
+ * pointed at /assistant, which no longer has a route.
  */
-export default function CommandPalette({ classes, lectures, assignments, onAskAI, onStartRecording }) {
+export default function CommandPalette({ classes, lectures, assignments, onStartRecording }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [activeIndex, setActiveIndex] = useState(0);
@@ -34,7 +37,6 @@ export default function CommandPalette({ classes, lectures, assignments, onAskAI
 
     const actions = [];
     if (q.includes('record') || q.includes('lecture')) actions.push({ label: 'Start Recording', icon: Mic, type: 'action', run: () => { onStartRecording?.(); setOpen(false); } });
-    if (q.includes('ask') || q.includes('ai') || q.includes('question')) actions.push({ label: 'Ask AI', icon: Sparkles, type: 'action', run: () => { onAskAI?.(); setOpen(false); } });
     if (q.includes('event') || q.includes('add')) actions.push({ label: 'Add Event', icon: Calendar, type: 'action', run: () => { navigate('/'); setOpen(false); } });
 
     const matchedClasses = (classes || []).filter(c => c.name?.toLowerCase().includes(q)).slice(0, 3)
@@ -45,7 +47,7 @@ export default function CommandPalette({ classes, lectures, assignments, onAskAI
       .map(a => ({ label: a.title, sub: `Due ${a.due_date}`, icon: FileText, type: 'assignment', run: () => { navigate(`/classes/${a.class_id}`); setOpen(false); } }));
 
     return { actions, items: [...matchedClasses, ...matchedLectures, ...matchedAssignments] };
-  }, [query, classes, lectures, assignments, navigate, onAskAI, onStartRecording]);
+  }, [query, classes, lectures, assignments, navigate, onStartRecording]);
 
   const allResults = [...results.actions, ...results.items];
 
@@ -61,7 +63,6 @@ export default function CommandPalette({ classes, lectures, assignments, onAskAI
   }, [open, allResults, activeIndex]);
 
   const defaultActions = [
-    { label: 'Ask AI anything...', icon: Sparkles, run: () => { navigate('/assistant'); setOpen(false); } },
     { label: 'Start Recording', icon: Mic, run: () => { onStartRecording?.(); setOpen(false); } },
     { label: 'Go to Calendar', icon: Calendar, run: () => { navigate('/'); setOpen(false); } },
     { label: 'Study', icon: BookOpen, run: () => { navigate('/planner'); setOpen(false); } },
