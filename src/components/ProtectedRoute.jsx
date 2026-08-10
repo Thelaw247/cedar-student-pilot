@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Outlet } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -12,8 +12,16 @@ const DefaultFallback = () => (
 export default function ProtectedRoute({ fallback = <DefaultFallback />, unauthenticatedElement }) {
   const { isAuthenticated, isLoadingAuth, authChecked, authError, checkUserAuth } = useAuth();
 
+  // Fire the fallback auth check at most once per mount. checkUserAuth is
+  // memoised in AuthContext so this effect no longer re-fires on every render,
+  // but the ref makes that guarantee local: if the context is ever refactored
+  // and the function stops being stable, this can still only run once instead
+  // of spinning into an infinite call/render loop.
+  const attemptedRef = useRef(false);
+
   useEffect(() => {
-    if (!authChecked && !isLoadingAuth) {
+    if (!authChecked && !isLoadingAuth && !attemptedRef.current) {
+      attemptedRef.current = true;
       checkUserAuth();
     }
   }, [authChecked, isLoadingAuth, checkUserAuth]);
