@@ -23,6 +23,9 @@ export default function LectureDetail() {
   const noteTimerRef = useRef(null);
   const [noteStatus, setNoteStatus] = useState('idle');
   const [showQuiz, setShowQuiz] = useState(false);
+  // On-demand transcript cleanup — a paid pass, so it is never automatic.
+  const [cleaning, setCleaning] = useState(false);
+  const [cleanError, setCleanError] = useState(null);
   // Delete flow — two-step inline confirm, consistent with the pattern used
   // elsewhere in the app for destructive actions.
   const [confirmingDelete, setConfirmingDelete] = useState(false);
@@ -119,6 +122,44 @@ export default function LectureDetail() {
     noteTimerRef.current = setTimeout(() => { saveNote(); }, 800);
     return () => { if (noteTimerRef.current) clearTimeout(noteTimerRef.current); };
   }, [note, loading, noteId, saveNote]);
+
+  // Run the paid cleanup pass on this lecture's transcript. The backend is
+  // idempotent — a lecture that is already cleaned returns early and is not
+  // charged — so a double-tap can't double-spend.
+  const cleanTranscript = async () => {
+    setCleaning(true);
+    setCleanError(null);
+    try {
+      const res = await base44.functions.invoke('cleanLectureTranscript', { lecture_id: lectureId });
+      if (res?.data?.error) throw new Error(res.data.error);
+      invalidateEntity('Lecture');
+      await loadData();
+    } catch (e) {
+      console.error(e);
+      setCleanError(e?.response?.data?.error || e?.message || 'Could not clean the transcript. Nothing was changed.');
+    }
+    setCleaning(false);
+  };
+
+  // Cleanup preserves the original in transcript_raw, so this is a pure field
+  // swap — no LLM calls, nothing to pay for.
+  const restoreRawTranscript = async () => {
+    if (!lecture?.transcript_raw) return;
+    setCleaning(true);
+    setCleanError(null);
+    try {
+      await base44.entities.Lecture.update(lectureId, {
+        transcript: lecture.transcript_raw,
+        transcript_cleaned: false,
+      });
+      invalidateEntity('Lecture');
+      await loadData();
+    } catch (e) {
+      console.error(e);
+      setCleanError('Could not restore the original transcript.');
+    }
+    setCleaning(false);
+  };
 
   const deleteLecture = async () => {
     setDeleting(true);
