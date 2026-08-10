@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Sun, Moon, Bell, Sparkles, Clock, Palette, Calendar, Loader2, Check, AlertCircle, GraduationCap, BookOpen, Shield } from 'lucide-react';
+import { Sun, Moon, Bell, Sparkles, Clock, Palette, Calendar, Loader2, Check, AlertCircle, GraduationCap, BookOpen, Shield, User, LogOut } from 'lucide-react';
 import { getSetting, setSetting } from '@/lib/settings';
+import { useAuth } from '@/lib/AuthContext';
 import ReviewScheduleSection from '@/components/ReviewScheduleSection';
 import LearningModeToggle from '@/components/LearningModeToggle';
 import ConceptDecaySettings from '@/components/ConceptDecaySettings';
 import DataExportSection from '@/components/DataExportSection';
 
 export default function Settings() {
+  const { user, logout } = useAuth();
   const [isDark, setIsDark] = useState(false);
   const [googleCalConnected, setGoogleCalConnected] = useState(false);
   const [connecting, setConnecting] = useState(false);
@@ -139,6 +141,27 @@ export default function Settings() {
 
       <SettingsSection icon={Shield} title="Data & Privacy">
         <DataExportSection />
+      </SettingsSection>
+
+      {/* Account — until now there was no way to sign out anywhere in the app. */}
+      <SettingsSection icon={User} title="Account">
+        {user?.email && (
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+              <User className="w-4 h-4 text-primary" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-medium truncate">{user.full_name || user.email}</p>
+              {user.full_name && <p className="text-xs text-muted-foreground truncate">{user.email}</p>}
+            </div>
+          </div>
+        )}
+        <button
+          onClick={() => logout()}
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-border text-sm font-medium text-muted-foreground hover:text-destructive hover:border-destructive/40 transition-colors"
+        >
+          <LogOut className="w-4 h-4" /> Sign out
+        </button>
       </SettingsSection>
 
       <p className="text-center text-xs text-muted-foreground mt-8 mb-4">Cedar Student Pilot • v1.0</p>
