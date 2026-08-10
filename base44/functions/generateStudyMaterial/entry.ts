@@ -1,8 +1,8 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 // Do not pin a `model` here. Base44 bills integration credits PER CALL, so
-// Gemini 3 Flash (~5 credits) costs 5x Automatic (~1 credit) for the same
-// single call. See processLectureRecording for the full rationale.
+// Gemini 3 Flash (~5 credits) costs more than Automatic (~3 credits) for the
+// same single call. See processLectureRecording for the full rate card.
 
 Deno.serve(async (req) => {
   try {
