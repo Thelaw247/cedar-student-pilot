@@ -11,7 +11,6 @@ import Home from './pages/Home';
 import Classes from './pages/Classes';
 import ClassDetail from './pages/ClassDetail';
 import LectureDetail from './pages/LectureDetail';
-import AIAssistant from './pages/AIAssistant';
 import StudyPlanner from './pages/StudyPlanner';
 import SettingsPage from './pages/Settings';
 import PrivacyPolicy from './pages/PrivacyPolicy';
@@ -52,7 +51,10 @@ const AuthenticatedApp = () => {
         <Route path="/classes" element={<Classes />} />
         <Route path="/classes/:classId" element={<ClassDetail />} />
         <Route path="/lectures/:lectureId" element={<LectureDetail />} />
-        <Route path="/assistant" element={<AIAssistant />} />
+        {/* The AI Assistant page is deliberately not routed for now. Without a
+            route, /assistant falls through to the catch-all 404 below and the
+            page isn't bundled at all. src/pages/AIAssistant.jsx is kept on disk
+            so it can be reinstated with an import and a route. */}
         <Route path="/planner" element={<StudyPlanner />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/privacy" element={<PrivacyPolicy />} />
