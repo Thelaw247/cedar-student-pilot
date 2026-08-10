@@ -1,6 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
-// Characters of transcript fed to one cleaning call.
+// Characters of transcript fed to one cleaning call. Unchanged from before.
 const CLEAN_CHUNK_SIZE = 12000;
 
 // Characters of transcript fed to one extraction call. Long lectures are split
