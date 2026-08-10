@@ -1,10 +1,8 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
-// Slotting sessions into free time is constrained scheduling, and the result is
-// deterministically conflict-checked and relocated below regardless of what the
-// model returns — so a cheap fast model is sufficient here. See
-// processLectureRecording for the wider routing rationale.
-const CHEAP_MODEL = 'gemini_3_flash';
+// Do not pin a `model` here. Base44 bills integration credits PER CALL, so
+// Gemini 3 Flash (~5 credits) costs 5x Automatic (~1 credit) for the same
+// single call. See processLectureRecording for the full rationale.
 
 // Day label helpers (match the app's Mon..Sun scheme).
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -124,7 +122,6 @@ Deno.serve(async (req) => {
     }).join('\n');
 
     const schedule = await base44.asServiceRole.integrations.Core.InvokeLLM({
-      model: CHEAP_MODEL,
       prompt: `You are an AI study planner. Generate a study schedule for a student preparing for an upcoming assignment. You MUST NOT schedule sessions that overlap the student's existing commitments listed below.
 
 Assignment: ${assignment.title}
