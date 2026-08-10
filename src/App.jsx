@@ -36,21 +36,16 @@ const RedirectToLogin = () => {
 };
 
 const AuthenticatedApp = () => {
-  const { isLoadingAuth, isLoadingPublicSettings } = useAuth();
-
-  // Show loading spinner while checking app public settings or auth
-  if (isLoadingPublicSettings || isLoadingAuth) {
-    return (
-      <div className="fixed inset-0 flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin"></div>
-      </div>
-    );
-  }
-
-  // Auth errors are handled inside ProtectedRoute now, so that the public
-  // routes below stay reachable while signed out. Previously an auth_required
-  // error short-circuited the whole route tree and bounced to Base44's hosted
-  // login, which would have made these pages unreachable.
+  // Deliberately NOT gated on isLoadingAuth / isLoadingPublicSettings.
+  //
+  // A top-level spinner here blocked every route until auth resolved — including
+  // /login. That made the login page unreachable in exactly the situations you
+  // need it: an unresolved session, a hung /api/apps/public request, an expired
+  // token. The symptom was an endless spinner on /login with no way out.
+  //
+  // Public routes must always render. ProtectedRoute owns the loading state for
+  // everything behind it (`if (isLoadingAuth || !authChecked) return fallback`),
+  // so protected pages still show a spinner while auth is in flight.
   return (
     <Routes>
       {/* Public — reachable without an account. */}
