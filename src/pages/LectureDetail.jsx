@@ -289,9 +289,50 @@ export default function LectureDetail() {
       {/* Transcript */}
       {lecture.transcript && (
         <Section icon={FileText} title="Transcript" actions={<TranscriptActions lecture={lecture} />}>
+          {/* Recordings are stored as raw speech-to-text. Cleanup is a paid,
+              on-demand pass rather than something every lecture pays for — most
+              recordings are perfectly readable without it. */}
+          <div className="flex items-center justify-between gap-3 mb-3">
+            {lecture.transcript_cleaned ? (
+              <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-emerald-600">
+                <Sparkles className="w-3 h-3" /> Cleaned up
+              </span>
+            ) : (
+              <p className="text-[11px] text-muted-foreground">
+                Raw transcript. Clean it up if this recording came out noisy.
+              </p>
+            )}
+
+            {!lecture.transcript_cleaned && (
+              <button
+                onClick={cleanTranscript}
+                disabled={cleaning}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-border text-[11px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-50 flex-shrink-0 transition-colors"
+              >
+                {cleaning
+                  ? <><Loader2 className="w-3 h-3 animate-spin" /> Cleaning…</>
+                  : <><Sparkles className="w-3 h-3" /> Clean up transcript</>}
+              </button>
+            )}
+          </div>
+
+          {cleanError && (
+            <p className="text-[11px] text-destructive mb-2">{cleanError}</p>
+          )}
+
           <div className="max-h-64 overflow-y-auto pr-2">
             <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">{lecture.transcript}</p>
           </div>
+
+          {lecture.transcript_cleaned && lecture.transcript_raw && (
+            <button
+              onClick={restoreRawTranscript}
+              disabled={cleaning}
+              className="mt-2 text-[11px] text-muted-foreground hover:text-foreground underline disabled:opacity-50"
+            >
+              Restore the original
+            </button>
+          )}
         </Section>
       )}
 
