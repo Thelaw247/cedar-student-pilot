@@ -117,19 +117,24 @@ export const AuthProvider = ({ children }) => {
   const logout = (shouldRedirect = true) => {
     setUser(null);
     setIsAuthenticated(false);
-    
+
     if (shouldRedirect) {
-      // Use the SDK's logout method which handles token cleanup and redirect
-      base44.auth.logout(window.location.href);
+      // Land on the in-app login page rather than back on the page they just
+      // signed out of, which would immediately bounce them here anyway.
+      base44.auth.logout(`${window.location.origin}/login`);
     } else {
       // Just remove the token without redirect
       base44.auth.logout();
     }
   };
 
+  // The app uses its own login pages (src/pages/Login.jsx), not Base44's hosted
+  // screen, so this must not call base44.auth.redirectToLogin() — doing so
+  // would bypass the in-app flow entirely. ProtectedRoute is what normally
+  // performs this redirect; this stays for any imperative caller.
   const navigateToLogin = () => {
-    // Use the SDK's redirectToLogin method
-    base44.auth.redirectToLogin(window.location.href);
+    const returnTo = encodeURIComponent(window.location.pathname + window.location.search);
+    window.location.href = `/login?returnTo=${returnTo}`;
   };
 
   return (
