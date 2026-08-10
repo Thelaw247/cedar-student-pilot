@@ -11,13 +11,21 @@
     {
       "type": "scheduled",
       "name": "study_reminder_sweep",
-      "description": "Every 10 minutes, email owners of study sessions starting within the next 30 minutes.",
+      "description": "Every 30 minutes, email owners of study sessions starting within the next 30 minutes.",
       "is_active": true,
 
+      // COST: each automation run costs 1 integration credit even when it sends
+      // nothing, plus 1 credit per email sent. The interval is matched to the
+      // function's own 30-minute look-ahead window, so coverage has no gaps
+      // (a sweep at T covers T..T+30, the next covers T+30..T+60) while using
+      // the fewest possible runs.
+      //   every 10 min = 144 runs/day = ~4,320 credits/month  (22% of a Pro plan)
+      //   every 30 min =  48 runs/day = ~1,440 credits/month  (7% of a Pro plan)
+      // Do not shorten this interval without recalculating that budget.
       "schedule_mode": "recurring",
       "schedule_type": "simple",
       "repeat_unit": "minutes",
-      "repeat_interval": 10,
+      "repeat_interval": 30,
 
       // trigger_token must equal the REMINDERS_TRIGGER_TOKEN app secret or the
       // broadcast is rejected. Replace the placeholder below with the value you
