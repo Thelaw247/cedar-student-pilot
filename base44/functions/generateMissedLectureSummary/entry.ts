@@ -11,11 +11,11 @@ Deno.serve(async (req) => {
     if (!class_id) return Response.json({ error: 'class_id is required' }, { status: 400 });
 
     // Get class info
-    const cls = await base44.asServiceRole.entities.Class.get(class_id);
+    const cls = await base44.entities.Class.get(class_id);
     if (!cls) return Response.json({ error: 'Class not found' }, { status: 404 });
 
     // Get previous lectures for context
-    const lectures = await base44.asServiceRole.entities.Lecture.filter({ class_id: class_id }, '-date');
+    const lectures = await base44.entities.Lecture.filter({ class_id: class_id }, '-date');
     const previousLectures = lectures.filter(l => l.transcript).slice(0, 5);
     const previousSummaries = previousLectures.map(l => `${l.date}: ${l.ai_summary || l.transcript?.substring(0, 500) || ''}`).join('\n\n');
 
@@ -64,7 +64,7 @@ IMPORTANT: This is an estimation based on course progression. Be clear that this
     // instructor field is set to 'AI' and pre-confirmed so the UI locks it —
     // this was never taught by a real instructor, and that should never be
     // editable away.
-    const lecture = await base44.asServiceRole.entities.Lecture.create({
+    const lecture = await base44.entities.Lecture.create({
       class_id: class_id,
       date: date || new Date().toISOString().split('T')[0],
       is_missed: true,
@@ -77,6 +77,7 @@ IMPORTANT: This is an estimation based on course progression. Be clear that this
       ai_action_items: analysis.action_items || [],
       actual_instructor: 'AI',
       instructor_confirmed: true,
+      user_id: user.id,
     });
 
     return Response.json({ lecture_id: lecture.id, status: 'complete' });

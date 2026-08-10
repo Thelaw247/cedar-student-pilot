@@ -27,7 +27,7 @@ Deno.serve(async (req) => {
 
     // --- Calculate coverage percentage ---
     // Get all lectures for the class to know total concepts
-    const allLectures = await base44.asServiceRole.entities.Lecture.filter({ class_id });
+    const allLectures = await base44.entities.Lecture.filter({ class_id });
     const lecturesWithContent = allLectures.filter(l => l.ai_concepts && l.ai_concepts.length > 0);
     const totalConcepts = [...new Set(lecturesWithContent.flatMap(l => l.ai_concepts || []))];
 
@@ -39,7 +39,7 @@ Deno.serve(async (req) => {
     const uniqueSessionConcepts = [...new Set(sessionConcepts)];
 
     // Get existing knowledge coverage for this class
-    const existingCoverage = await base44.asServiceRole.entities.KnowledgeCoverage.filter({ class_id });
+    const existingCoverage = await base44.entities.KnowledgeCoverage.filter({ class_id });
     const previouslySeen = existingCoverage.flatMap(k => k.concepts_seen || []);
     const allSeenConcepts = [...new Set([...previouslySeen, ...uniqueSessionConcepts])];
 
@@ -65,7 +65,7 @@ Deno.serve(async (req) => {
     );
 
     // --- Save the review record ---
-    const review = await base44.asServiceRole.entities.StudySessionReview.create({
+    const review = await base44.entities.StudySessionReview.create({
       study_record_id: study_record_id || null,
       class_id,
       lecture_ids: lecture_ids || [],
@@ -75,7 +75,8 @@ Deno.serve(async (req) => {
       proficiency_score: proficiencyScore,
       coverage_percentage: coveragePercentage,
       in_depth_score: inDepthScore,
-      overall_score: overallScore
+      overall_score: overallScore,
+      user_id: user.id
     });
 
     // --- Update KnowledgeCoverage per lecture ---
@@ -109,7 +110,7 @@ Deno.serve(async (req) => {
           ? Math.round((updatedMastered.length / updatedSeen.length) * 100)
           : 0;
 
-        await base44.asServiceRole.entities.KnowledgeCoverage.update(existing.id, {
+        await base44.entities.KnowledgeCoverage.update(existing.id, {
           concepts_seen: updatedSeen,
           concepts_mastered: updatedMastered,
           proficiency: Math.max(existing.proficiency || 0, newProficiency),
@@ -118,20 +119,21 @@ Deno.serve(async (req) => {
         });
       } else {
         const mastered = [...new Set([...masteredFromQuiz, ...masteredFromSelf])];
-        await base44.asServiceRole.entities.KnowledgeCoverage.create({
+        await base44.entities.KnowledgeCoverage.create({
           class_id,
           lecture_id: lecId,
           concepts_seen: concepts,
           concepts_mastered: mastered,
           proficiency: concepts.length > 0 ? Math.round((mastered.length / concepts.length) * 100) : 0,
           sessions_reviewed: 1,
-          last_reviewed_date: today
+          last_reviewed_date: today,
+          user_id: user.id
         });
       }
     }
 
     // --- Calculate course-wide coverage from all KnowledgeCoverage records ---
-    const updatedCoverage = await base44.asServiceRole.entities.KnowledgeCoverage.filter({ class_id });
+    const updatedCoverage = await base44.entities.KnowledgeCoverage.filter({ class_id });
     const totalSeen = [...new Set(updatedCoverage.flatMap(k => k.concepts_seen || []))];
     const totalMastered = [...new Set(updatedCoverage.flatMap(k => k.concepts_mastered || []))];
     const courseProficiency = totalSeen.length > 0

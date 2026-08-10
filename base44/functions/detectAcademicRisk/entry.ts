@@ -11,12 +11,12 @@ Deno.serve(async (req) => {
     const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
     // Gather data across all classes
-    const semesters = await base44.asServiceRole.entities.Semester.filter({ is_active: true });
+    const semesters = await base44.entities.Semester.filter({ is_active: true });
     if (semesters.length === 0) {
       return Response.json({ risks: [], burnout_level: 'none' });
     }
 
-    const classes = await base44.asServiceRole.entities.Class.filter({ semester_id: semesters[0].id });
+    const classes = await base44.entities.Class.filter({ semester_id: semesters[0].id });
     const allLectures = [];
     const allAssignments = [];
     const allStudyRecords = [];
@@ -24,11 +24,11 @@ Deno.serve(async (req) => {
     const allSessions = [];
 
     for (const cls of classes) {
-      const lecs = await base44.asServiceRole.entities.Lecture.filter({ class_id: cls.id }, '-date');
+      const lecs = await base44.entities.Lecture.filter({ class_id: cls.id }, '-date');
       allLectures.push(...lecs);
-      const asgns = await base44.asServiceRole.entities.Assignment.filter({ class_id: cls.id });
+      const asgns = await base44.entities.Assignment.filter({ class_id: cls.id });
       allAssignments.push(...asgns);
-      const sessions = await base44.asServiceRole.entities.StudySession.filter({ class_id: cls.id });
+      const sessions = await base44.entities.StudySession.filter({ class_id: cls.id });
       allSessions.push(...sessions);
     }
 

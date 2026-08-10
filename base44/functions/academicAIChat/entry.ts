@@ -10,18 +10,18 @@ Deno.serve(async (req) => {
     const { message, class_id } = body;
     if (!message) return Response.json({ error: 'message is required' }, { status: 400 });
 
-    const semesters = await base44.asServiceRole.entities.Semester.filter({ is_active: true });
+    const semesters = await base44.entities.Semester.filter({ is_active: true });
     let matchedLectures = [];
     let relatedLectures = [];
     let classContext = '';
     let allLectures = [];
 
     if (semesters.length > 0) {
-      const classes = await base44.asServiceRole.entities.Class.filter({ semester_id: semesters[0].id });
+      const classes = await base44.entities.Class.filter({ semester_id: semesters[0].id });
       const targetClasses = class_id ? classes.filter(c => c.id === class_id) : classes;
 
       for (const cls of targetClasses) {
-        const lectures = await base44.asServiceRole.entities.Lecture.filter({ class_id: cls.id }, '-date');
+        const lectures = await base44.entities.Lecture.filter({ class_id: cls.id }, '-date');
         for (const lec of lectures) {
           if (!lec.transcript && !lec.ai_summary) continue;
           allLectures.push({ lecture: lec, className: cls.name, classId: cls.id });
@@ -69,7 +69,7 @@ Deno.serve(async (req) => {
 
       const assignmentContext = [];
       for (const cls of (class_id ? targetClasses : classes)) {
-        const assignments = await base44.asServiceRole.entities.Assignment.filter({ class_id: cls.id });
+        const assignments = await base44.entities.Assignment.filter({ class_id: cls.id });
         for (const a of assignments) {
           assignmentContext.push(`${a.title} (${a.type}) for ${cls.name} - due ${a.due_date}`);
         }

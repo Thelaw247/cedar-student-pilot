@@ -59,10 +59,29 @@
       "format": "date",
       "title": "Recording Consent Date",
       "description": "The date the student confirmed recording permission for this class (attestation timestamp)."
+    },
+    "user_id": {
+      "type": "string",
+      "title": "Owner User ID"
     }
   },
   "required": [
     "semester_id",
-    "name"
-  ]
+    "name",
+    "user_id"
+  ],
+  "rls": {
+    "create": {
+      "data.user_id": "{{user.id}}"
+    },
+    "read": {
+      "data.user_id": "{{user.id}}"
+    },
+    "update": {
+      "data.user_id": "{{user.id}}"
+    },
+    "delete": {
+      "data.user_id": "{{user.id}}"
+    }
+  }
 }

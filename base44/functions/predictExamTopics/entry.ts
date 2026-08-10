@@ -10,8 +10,8 @@ Deno.serve(async (req) => {
     const { class_id } = body;
     if (!class_id) return Response.json({ error: 'class_id is required' }, { status: 400 });
 
-    const lectures = await base44.asServiceRole.entities.Lecture.filter({ class_id }, '-date');
-    const assignments = await base44.asServiceRole.entities.Assignment.filter({ class_id });
+    const lectures = await base44.entities.Lecture.filter({ class_id }, '-date');
+    const assignments = await base44.entities.Assignment.filter({ class_id });
 
     const lecturesWithContent = lectures.filter(l => l.ai_summary || l.transcript || (l.ai_concepts && l.ai_concepts.length > 0));
     if (lecturesWithContent.length === 0) {

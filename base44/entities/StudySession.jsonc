@@ -70,10 +70,29 @@
     "roadmap_step_index": {
       "type": "number",
       "title": "Roadmap Step Index"
+    },
+    "user_id": {
+      "type": "string",
+      "title": "Owner User ID"
     }
   },
   "required": [
     "class_id",
-    "scheduled_date"
-  ]
+    "scheduled_date",
+    "user_id"
+  ],
+  "rls": {
+    "create": {
+      "data.user_id": "{{user.id}}"
+    },
+    "read": {
+      "data.user_id": "{{user.id}}"
+    },
+    "update": {
+      "data.user_id": "{{user.id}}"
+    },
+    "delete": {
+      "data.user_id": "{{user.id}}"
+    }
+  }
 }

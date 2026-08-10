@@ -12,31 +12,31 @@ Deno.serve(async (req) => {
 
     // Get class info
     let cls = null;
-    try { cls = await base44.asServiceRole.entities.Class.get(class_id); } catch (e) { /* skip */ }
+    try { cls = await base44.entities.Class.get(class_id); } catch (e) { /* skip */ }
 
     // Get lectures — either specific ids or all for the class
     let lectures = [];
     if (lecture_ids && lecture_ids.length > 0) {
       for (const id of lecture_ids) {
         try {
-          const lec = await base44.asServiceRole.entities.Lecture.get(id);
+          const lec = await base44.entities.Lecture.get(id);
           lectures.push(lec);
         } catch (e) { /* skip */ }
       }
     } else {
-      lectures = await base44.asServiceRole.entities.Lecture.filter({ class_id }, '-date');
+      lectures = await base44.entities.Lecture.filter({ class_id }, '-date');
     }
 
     // If assignment_id provided, determine exam scope
     let scopeLabel = 'Full Class';
     if (assignment_id) {
       try {
-        const asgn = await base44.asServiceRole.entities.Assignment.get(assignment_id);
+        const asgn = await base44.entities.Assignment.get(assignment_id);
         if (asgn) {
           scopeLabel = asgn.title || 'Exam Scope';
           if (asgn.coverage_scope === 'since_last' && lectures.length > 0) {
             // Find the last exam/quiz and only include lectures after it
-            const allAssignments = await base44.asServiceRole.entities.Assignment.filter({ class_id }, 'due_date');
+            const allAssignments = await base44.entities.Assignment.filter({ class_id }, 'due_date');
             const sortedAsgns = allAssignments.filter(a => a.due_date < asgn.due_date).sort((a, b) => b.due_date.localeCompare(a.due_date));
             if (sortedAsgns.length > 0) {
               const lastExamDate = sortedAsgns[0].due_date;
@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
     const notesByLecture = {};
     for (const lec of lecturesWithContent) {
       try {
-        const notes = await base44.asServiceRole.entities.Note.filter({ lecture_id: lec.id });
+        const notes = await base44.entities.Note.filter({ lecture_id: lec.id });
         notesByLecture[lec.id] = notes.map(n => n.content || '').filter(Boolean).join('\n\n');
       } catch (e) { /* skip */ }
     }

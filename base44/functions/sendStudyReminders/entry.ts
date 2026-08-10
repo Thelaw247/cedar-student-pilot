@@ -29,11 +29,13 @@ Deno.serve(async (req) => {
 
       if (diff < 0 || diff > 30) continue;
 
-      // Get the user who owns this session
-      if (!session.created_by_id) continue;
+      // Get the user who owns this session (prefer the per-user owner field,
+      // falling back to created_by_id for legacy rows created before RLS).
+      const ownerId = session.user_id || session.created_by_id;
+      if (!ownerId) continue;
       let user;
       try {
-        user = await base44.asServiceRole.entities.User.get(session.created_by_id);
+        user = await base44.asServiceRole.entities.User.get(ownerId);
       } catch (e) { continue; }
       if (!user || !user.email) continue;
 

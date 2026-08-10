@@ -209,7 +209,7 @@ ${partSummaries}`,
  * raw transcript. Cheaper, and it covers the entire lecture instead of only the
  * first 12,000 characters as before.
  */
-async function generateFlashcards(base44, lecture, cls) {
+async function generateFlashcards(base44, lecture, cls, userId) {
   const concepts = (lecture.ai_concepts || []).join(', ');
   const definitions = (lecture.ai_definitions || []).map(d => `${d.term}: ${d.definition}`).join('\n');
   const formulas = (lecture.ai_formulas || []).join('\n');
@@ -247,12 +247,13 @@ ${formulas || '(none)'}`,
   const cards = result?.flashcards || [];
   if (cards.length === 0) return;
 
-  await base44.asServiceRole.entities.Flashcard.bulkCreate(cards.map(fc => ({
+  await base44.entities.Flashcard.bulkCreate(cards.map(fc => ({
     lecture_id: lecture.id,
     class_id: lecture.class_id,
     front: fc.front,
     back: fc.back,
-    ai_generated: true
+    ai_generated: true,
+    user_id: userId
   })));
 }
 
@@ -275,7 +276,7 @@ Deno.serve(async (req) => {
     // must not block processing a brand-new recording.
     let existing = null;
     try {
-      existing = await base44.asServiceRole.entities.Lecture.get(lecture_id);
+      existing = await base44.entities.Lecture.get(lecture_id);
     } catch (e) { /* treat as a fresh lecture */ }
 
     const NO_SPEECH = '[No speech detected in recording]';
@@ -288,7 +289,7 @@ Deno.serve(async (req) => {
       const rawTranscript = typeof transcriptResult === 'string' ? transcriptResult : transcriptResult.text || JSON.stringify(transcriptResult);
 
       if (!rawTranscript || rawTranscript.trim().length === 0) {
-        await base44.asServiceRole.entities.Lecture.update(lecture_id, { status: 'complete', transcript: NO_SPEECH });
+        await base44.entities.Lecture.update(lecture_id, { status: 'complete', transcript: NO_SPEECH });
         return Response.json({ error: 'No speech detected' }, { status: 400 });
       }
 
@@ -296,15 +297,15 @@ Deno.serve(async (req) => {
 
       // Persist before any further LLM work, so a later failure resumes from
       // here instead of re-transcribing and re-cleaning.
-      await base44.asServiceRole.entities.Lecture.update(lecture_id, { transcript, status: 'processing' });
+      await base44.entities.Lecture.update(lecture_id, { transcript, status: 'processing' });
     }
 
-    const lecture = await base44.asServiceRole.entities.Lecture.get(lecture_id);
-    const cls = lecture.class_id ? await base44.asServiceRole.entities.Class.get(lecture.class_id) : null;
+    const lecture = await base44.entities.Lecture.get(lecture_id);
+    const cls = lecture.class_id ? await base44.entities.Class.get(lecture.class_id) : null;
 
     if (!lecture.ai_title) {
       const analysis = await extractFromTranscript(base44, transcript, cls, lecture.date);
-      await base44.asServiceRole.entities.Lecture.update(lecture_id, {
+      await base44.entities.Lecture.update(lecture_id, {
         ai_title: analysis.title,
         ai_summary: analysis.summary,
         ai_concepts: analysis.concepts || [],
@@ -321,10 +322,10 @@ Deno.serve(async (req) => {
     // returned 500 on an otherwise-successful lecture, and the client retry
     // re-paid for the entire pipeline AND duplicated the cards.
     try {
-      const alreadyHave = await base44.asServiceRole.entities.Flashcard.filter({ lecture_id });
+      const alreadyHave = await base44.entities.Flashcard.filter({ lecture_id });
       if (!alreadyHave || alreadyHave.length === 0) {
-        const fresh = await base44.asServiceRole.entities.Lecture.get(lecture_id);
-        await generateFlashcards(base44, fresh, cls);
+        const fresh = await base44.entities.Lecture.get(lecture_id);
+        await generateFlashcards(base44, fresh, cls, user.id);
       }
     } catch (e) {
       // Lecture itself is complete; cards can be regenerated on demand.

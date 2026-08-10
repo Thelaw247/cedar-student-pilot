@@ -73,10 +73,29 @@
         "type": "string"
       },
       "title": "Topics Reviewed"
+    },
+    "user_id": {
+      "type": "string",
+      "title": "Owner User ID"
     }
   },
   "required": [
     "duration_seconds",
-    "date"
-  ]
+    "date",
+    "user_id"
+  ],
+  "rls": {
+    "create": {
+      "data.user_id": "{{user.id}}"
+    },
+    "read": {
+      "data.user_id": "{{user.id}}"
+    },
+    "update": {
+      "data.user_id": "{{user.id}}"
+    },
+    "delete": {
+      "data.user_id": "{{user.id}}"
+    }
+  }
 }

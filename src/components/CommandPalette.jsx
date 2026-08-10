@@ -82,7 +82,7 @@ export default function CommandPalette({ classes, lectures, assignments, onStart
             autoFocus
             value={query}
             onChange={e => { setQuery(e.target.value); setActiveIndex(0); }}
-            placeholder="Search classes, lectures, notes, or ask AI..."
+            placeholder="Search classes, lectures, notes..."
             className="flex-1 bg-transparent text-sm focus:outline-none placeholder:text-muted-foreground"
           />
           <kbd className="hidden sm:inline-block text-[10px] font-medium text-muted-foreground border border-border rounded px-1.5 py-0.5">ESC</kbd>
@@ -91,9 +91,6 @@ export default function CommandPalette({ classes, lectures, assignments, onStart
           {displayed.length === 0 ? (
             <div className="px-4 py-8 text-center">
               <p className="text-sm text-muted-foreground">No results found</p>
-              <button onClick={() => { onAskAI?.(); setOpen(false); }} className="mt-3 text-sm text-primary font-medium hover:underline">
-                Ask AI instead →
-              </button>
             </div>
           ) : (
             <div className="space-y-0.5">
@@ -110,7 +107,7 @@ export default function CommandPalette({ classes, lectures, assignments, onStart
                     <p className="text-sm font-medium text-foreground truncate">{item.label}</p>
                     {item.sub && <p className="text-xs text-muted-foreground truncate">{item.sub}</p>}
                   </div>
-                  {item.type === 'action' && <Sparkles className="w-3 h-3 text-violet-400 flex-shrink-0" />}
+                  {item.type === 'action' && <span className="w-3 h-3 flex-shrink-0" />}
                 </button>
               ))}
             </div>

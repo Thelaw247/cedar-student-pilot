@@ -34,16 +34,16 @@ Deno.serve(async (req) => {
     const { assignment_id } = body;
     if (!assignment_id) return Response.json({ error: 'assignment_id is required' }, { status: 400 });
 
-    const assignment = await base44.asServiceRole.entities.Assignment.get(assignment_id);
+    const assignment = await base44.entities.Assignment.get(assignment_id);
     if (!assignment) return Response.json({ error: 'Assignment not found' }, { status: 404 });
 
-    const cls = await base44.asServiceRole.entities.Class.get(assignment.class_id);
-    const lectures = await base44.asServiceRole.entities.Lecture.filter({ class_id: assignment.class_id }, 'date');
+    const cls = await base44.entities.Class.get(assignment.class_id);
+    const lectures = await base44.entities.Lecture.filter({ class_id: assignment.class_id }, 'date');
 
-    const semesters = await base44.asServiceRole.entities.Semester.filter({ is_active: true });
+    const semesters = await base44.entities.Semester.filter({ is_active: true });
     let allClasses = [];
     if (semesters.length > 0) {
-      allClasses = await base44.asServiceRole.entities.Class.filter({ semester_id: semesters[0].id });
+      allClasses = await base44.entities.Class.filter({ semester_id: semesters[0].id });
     }
 
     const dueDate = new Date(assignment.due_date);
@@ -88,7 +88,7 @@ Deno.serve(async (req) => {
     // 2) Existing study sessions.
     const existingSessions = [];
     for (const c of allClasses) {
-      const sess = await base44.asServiceRole.entities.StudySession.filter({ class_id: c.id });
+      const sess = await base44.entities.StudySession.filter({ class_id: c.id });
       existingSessions.push(...sess);
     }
     for (const s of existingSessions) {
@@ -97,7 +97,7 @@ Deno.serve(async (req) => {
     }
 
     // 3) Calendar events (one-time + weekly recurrence).
-    const events = await base44.asServiceRole.entities.CalendarEvent.list();
+    const events = await base44.entities.CalendarEvent.list();
     for (const { ds, label } of windowDates) {
       for (const e of events) {
         let hits = false;
@@ -176,6 +176,7 @@ Higher-priority sessions should cover complex material or happen closer to the d
     // `notes` stays the longer description.
     let sessionsToCreate = (schedule.sessions || []).map((s, i) => ({
       assignment_id: assignment_id,
+      user_id: user.id,
       class_id: assignment.class_id,
       title: `${assignment.title} — Session ${i + 1}`,
       scheduled_date: s.scheduled_date,
@@ -239,7 +240,7 @@ Higher-priority sessions should cover complex material or happen closer to the d
         if (start == null) start = 19 * 60;
         place(reviewDateStr, start, 45);
         sessionsToCreate.push({
-          assignment_id, class_id: assignment.class_id,
+          assignment_id, class_id: assignment.class_id, user_id: user.id,
           title: `${assignment.title} — Final review`,
           scheduled_date: reviewDateStr, scheduled_time: toTime(start),
           duration_minutes: 45, priority: 'high', status: 'scheduled',
@@ -255,7 +256,7 @@ Higher-priority sessions should cover complex material or happen closer to the d
     }
 
     if (sessionsToCreate.length > 0) {
-      await base44.asServiceRole.entities.StudySession.bulkCreate(sessionsToCreate);
+      await base44.entities.StudySession.bulkCreate(sessionsToCreate);
     }
 
     return Response.json({ sessions_created: sessionsToCreate.length });

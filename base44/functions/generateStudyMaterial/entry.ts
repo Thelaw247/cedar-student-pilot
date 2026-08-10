@@ -17,7 +17,7 @@ Deno.serve(async (req) => {
     if (!class_id || !material_type) return Response.json({ error: 'class_id and material_type are required' }, { status: 400 });
 
     // Get lectures for the class
-    let lectures = await base44.asServiceRole.entities.Lecture.filter({ class_id: class_id }, 'date');
+    let lectures = await base44.entities.Lecture.filter({ class_id: class_id }, 'date');
 
     // Scope selection, in priority order:
     // 1. explicit lecture_ids[] (arbitrary subset chosen via checkboxes)
@@ -91,9 +91,10 @@ Return the appropriate JSON structure.`,
         class_id: class_id,
         front: fc.front,
         back: fc.back,
-        ai_generated: true
+        ai_generated: true,
+        user_id: user.id
       }));
-      await base44.asServiceRole.entities.Flashcard.bulkCreate(flashcards);
+      await base44.entities.Flashcard.bulkCreate(flashcards);
     }
 
     if ((material_type === 'quiz' || material_type === 'practice_test') && material.questions) {
@@ -104,9 +105,10 @@ Return the appropriate JSON structure.`,
         answer: q.answer,
         options: q.options || [],
         type: q.type || 'multiple_choice',
-        ai_generated: true
+        ai_generated: true,
+        user_id: user.id
       }));
-      await base44.asServiceRole.entities.PracticeQuestion.bulkCreate(questions);
+      await base44.entities.PracticeQuestion.bulkCreate(questions);
     }
 
     return Response.json({ material_type, generated: true, material });

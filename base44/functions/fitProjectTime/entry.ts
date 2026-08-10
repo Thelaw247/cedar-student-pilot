@@ -109,6 +109,7 @@ Deno.serve(async (req) => {
 
         sessionsToCreate.push({
           assignment_id,
+          user_id: user.id,
           class_id: assignment.class_id,
           scheduled_date: gap.date,
           scheduled_time: startTime,

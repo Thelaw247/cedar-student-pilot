@@ -11,10 +11,29 @@
       "type": "string",
       "title": "YouTube Video ID",
       "description": "The 11-character YouTube video ID, extracted from the URL the student pasted."
+    },
+    "user_id": {
+      "type": "string",
+      "title": "Owner User ID"
     }
   },
   "required": [
     "title",
-    "video_id"
-  ]
+    "video_id",
+    "user_id"
+  ],
+  "rls": {
+    "create": {
+      "data.user_id": "{{user.id}}"
+    },
+    "read": {
+      "data.user_id": "{{user.id}}"
+    },
+    "update": {
+      "data.user_id": "{{user.id}}"
+    },
+    "delete": {
+      "data.user_id": "{{user.id}}"
+    }
+  }
 }

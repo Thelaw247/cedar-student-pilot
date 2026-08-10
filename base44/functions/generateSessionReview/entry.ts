@@ -13,7 +13,7 @@ Deno.serve(async (req) => {
     // Get class info to detect complex/problem-solving classes
     let cls = null;
     try {
-      cls = await base44.asServiceRole.entities.Class.get(class_id);
+      cls = await base44.entities.Class.get(class_id);
     } catch (e) { /* class might not exist */ }
     const className = (cls?.name || '').toLowerCase();
 
@@ -26,12 +26,12 @@ Deno.serve(async (req) => {
       lectures = [];
       for (const id of lecture_ids) {
         try {
-          const lec = await base44.asServiceRole.entities.Lecture.get(id);
+          const lec = await base44.entities.Lecture.get(id);
           lectures.push(lec);
         } catch (e) { /* skip */ }
       }
     } else {
-      lectures = await base44.asServiceRole.entities.Lecture.filter({ class_id }, '-date', 10);
+      lectures = await base44.entities.Lecture.filter({ class_id }, '-date', 10);
     }
 
     // Filter to lectures that have AI content

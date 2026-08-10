@@ -60,20 +60,20 @@ Return JSON: { "results": [ { "correct": boolean, "feedback": string }, ... ] } 
     if (lecture_ids && lecture_ids.length > 0) {
       for (const id of lecture_ids) {
         try {
-          const lec = await base44.asServiceRole.entities.Lecture.get(id);
+          const lec = await base44.entities.Lecture.get(id);
           targetLectures.push(lec);
         } catch (e) { /* skip */ }
       }
     } else {
       const today = new Date().toISOString().split('T')[0];
       if (scope === 'today') {
-        const allLecs = await base44.asServiceRole.entities.Lecture.filter({ date: today }, 'date');
+        const allLecs = await base44.entities.Lecture.filter({ date: today }, 'date');
         targetLectures = allLecs;
       } else if (scope === 'week') {
         const weekAgo = new Date();
         weekAgo.setDate(weekAgo.getDate() - 7);
         const weekAgoStr = weekAgo.toISOString().split('T')[0];
-        const allLecs = await base44.asServiceRole.entities.Lecture.list('-date', 50);
+        const allLecs = await base44.entities.Lecture.list('-date', 50);
         targetLectures = allLecs.filter(l => l.date >= weekAgoStr && l.date <= today);
       }
     }
@@ -96,7 +96,7 @@ Return JSON: { "results": [ { "correct": boolean, "feedback": string }, ... ] } 
     const classIds = [...new Set(sorted.map(l => l.class_id).filter(Boolean))];
     let cls = null;
     if (classIds.length === 1) {
-      try { cls = await base44.asServiceRole.entities.Class.get(classIds[0]); } catch (e) { /* skip */ }
+      try { cls = await base44.entities.Class.get(classIds[0]); } catch (e) { /* skip */ }
     }
 
     // Build context in chronological order — following the exact teaching flow
