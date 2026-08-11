@@ -1,4 +1,20 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+import { secrets } from 'base44:runtime';
+
+// ---- Transcription routing ------------------------------------------------
+// Groq's whisper-large-v3-turbo costs ~$0.04 USD/hr against its own API key and
+// consumes ZERO Base44 integration credits, versus Core.TranscribeAudio whose
+// credit cost is undocumented and which counts against the shared 20,000/month
+// pool that caps the entire app.
+//
+// Set the key with:  base44 secrets set GROQ_API_KEY
+// With no key set, this falls back to Core.TranscribeAudio unchanged, so this
+// file is safe to deploy before the key exists.
+const GROQ_ENDPOINT = 'https://api.groq.com/openai/v1/audio/transcriptions';
+const GROQ_MODEL = 'whisper-large-v3-turbo';
+// Groq caps uploads at 25MB on the free tier (100MB on dev). Stay under it and
+// let anything larger fall through to Base44 rather than failing the lecture.
+const GROQ_MAX_BYTES = 24 * 1024 * 1024;
 
 // DO NOT pin a `model` on these calls.
 //
@@ -74,6 +90,65 @@ function splitInto(text, size) {
 }
 
 const asText = (result) => (typeof result === 'string' ? result : (result?.text || String(result ?? '')));
+
+/** Transcribe via Groq. Throws on any problem so the caller can fall back. */
+async function transcribeViaGroq(audio_url: string, apiKey: string): Promise<string> {
+  const audioRes = await fetch(audio_url);
+  if (!audioRes.ok) throw new Error(`could not fetch audio (${audioRes.status})`);
+
+  const blob = await audioRes.blob();
+  if (blob.size > GROQ_MAX_BYTES) {
+    throw new Error(`file is ${(blob.size / 1048576).toFixed(1)}MB, over the Groq limit`);
+  }
+
+  const form = new FormData();
+  form.append('file', blob, 'lecture.mp3');
+  form.append('model', GROQ_MODEL);
+  form.append('response_format', 'json');
+
+  const res = await fetch(GROQ_ENDPOINT, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${apiKey}` },
+    body: form,
+  });
+
+  if (!res.ok) {
+    const detail = await res.text().catch(() => '');
+    throw new Error(`Groq ${res.status}: ${detail.slice(0, 200)}`);
+  }
+
+  const data = await res.json();
+  const text = (data?.text || '').trim();
+  // Groq is known to answer 200 with an empty body on oversized or unsupported
+  // files rather than erroring, so a status check alone is not enough.
+  if (!text) throw new Error('Groq returned an empty transcript');
+  return text;
+}
+
+/**
+ * Transcribe a recording, preferring Groq and falling back to Base44.
+ *
+ * The fallback deliberately costs credits: losing a student's lecture is worse
+ * than an unexpected credit charge. Every fallback is logged so a misconfigured
+ * key shows up in the function logs instead of silently draining the pool.
+ */
+async function transcribeAudio(base44, audio_url: string): Promise<string> {
+  // secrets.get() must be called per-request, never at module load.
+  const groqKey = secrets.get('GROQ_API_KEY');
+
+  if (groqKey) {
+    try {
+      const text = await transcribeViaGroq(audio_url, groqKey);
+      console.log('[transcribe] groq ok,', text.length, 'chars');
+      return text;
+    } catch (e) {
+      console.error('[transcribe] groq failed, falling back to Base44 (this costs credits):', e.message);
+    }
+  }
+
+  const result = await base44.asServiceRole.integrations.Core.TranscribeAudio({ audio_url });
+  return typeof result === 'string' ? result : (result.text || JSON.stringify(result));
+}
 
 const EXTRACTION_SCHEMA = {
   type: 'object',
@@ -255,8 +330,7 @@ Deno.serve(async (req) => {
     let transcript = hasTranscript ? existing.transcript.trim() : '';
 
     if (!hasTranscript) {
-      const transcriptResult = await base44.asServiceRole.integrations.Core.TranscribeAudio({ audio_url });
-      const rawTranscript = typeof transcriptResult === 'string' ? transcriptResult : transcriptResult.text || JSON.stringify(transcriptResult);
+      const rawTranscript = await transcribeAudio(base44, audio_url);
 
       if (!rawTranscript || rawTranscript.trim().length === 0) {
         await base44.entities.Lecture.update(lecture_id, { status: 'complete', transcript: NO_SPEECH });
