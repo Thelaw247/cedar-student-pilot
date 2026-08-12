@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+import { invokeLLM } from '../../shared/llm.ts';
 
 // On-demand transcript cleanup.
 //
@@ -92,7 +93,10 @@ Deno.serve(async (req) => {
     const cleanedParts: string[] = [];
 
     for (let i = 0; i < chunks.length; i++) {
-      const result = await base44.asServiceRole.integrations.Core.InvokeLLM({
+      // Cheap model by default. Note this pass is output-heavy — it emits a
+      // near-verbatim rewrite — so on a per-token provider it is the most
+      // expensive thing in the app. That is exactly why it is on-demand.
+      const result = await invokeLLM(base44, {
         prompt: cleanPrompt(chunks[i], chunks.length > 1),
       });
       const part = asText(result).trim();
