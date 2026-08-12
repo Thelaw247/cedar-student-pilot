@@ -1,6 +1,10 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 import { secrets } from 'base44:runtime';
 import { invokeLLM, QUALITY_MODEL } from '../../shared/llm.ts';
+import {
+  getBalance, availableCredits, insufficientResponse, spendCredits,
+  logUsage, durationCost, COST_PER_30MIN_PROCESS, groqCostCad, base44CostCad,
+} from '../../shared/credits.ts';
 
 // ---- Transcription routing ------------------------------------------------
 // Groq's whisper-large-v3-turbo costs ~$0.04 USD/hr against its own API key and
@@ -91,6 +95,12 @@ function splitInto(text, size) {
 }
 
 const asText = (result) => (typeof result === 'string' ? result : (result?.text || String(result ?? '')));
+
+/** How many LLM calls this transcript required — used for cost attribution. */
+function existingLecture_llmCalls(transcript: string): number {
+  const chunks = Math.max(1, Math.ceil((transcript || '').length / EXTRACT_CHUNK_SIZE));
+  return chunks + (chunks > 1 ? 1 : 0) + 1; // chunks + stitch + flashcards
+}
 
 /** Transcribe via Groq. Throws on any problem so the caller can fall back. */
 async function transcribeViaGroq(audio_url: string, apiKey: string): Promise<string> {
@@ -319,6 +329,13 @@ Deno.serve(async (req) => {
     const { lecture_id, audio_url } = body;
     if (!lecture_id || !audio_url) return Response.json({ error: 'lecture_id and audio_url are required' }, { status: 400 });
 
+    // ---- CREDIT GATE -------------------------------------------------------
+    // Checked BEFORE any work and charged only AFTER success. A lecture that
+    // was already transcribed is free to resume, so a retry after a partial
+    // failure never charges twice.
+    const started = Date.now();
+    const balance = await getBalance(base44, user.id);
+
     // Every stage below is resumable. Transcription and the cleaning pass are by
     // far the most expensive work in the app, so a failure later in the pipeline
     // must never make the caller pay for them twice. Each stage checks whether
@@ -335,6 +352,19 @@ Deno.serve(async (req) => {
     const hasTranscript = !!(existing?.transcript && existing.transcript.trim() && existing.transcript !== NO_SPEECH);
 
     let transcript = hasTranscript ? existing.transcript.trim() : '';
+
+    // Only charge for work not already done. Resuming a half-processed lecture
+    // is free because the expensive part is already paid for.
+    const audioSeconds = existing?.duration_seconds || 0;
+    const cost = hasTranscript ? 0 : durationCost(audioSeconds, COST_PER_30MIN_PROCESS);
+
+    if (cost > 0 && availableCredits(balance) < cost) {
+      await logUsage(base44, {
+        user_id: user.id, feature: 'process_lecture', lecture_id,
+        tier_at_time: balance.tier, success: false, audio_seconds: audioSeconds,
+      });
+      return insufficientResponse('process_lecture', cost, balance);
+    }
 
     if (!hasTranscript) {
       const rawTranscript = await transcribeAudio(base44, audio_url);
@@ -384,7 +414,30 @@ Deno.serve(async (req) => {
       // Lecture itself is complete; cards can be regenerated on demand.
     }
 
-    return Response.json({ status: 'complete', lecture_id });
+    // ---- CHARGE + LOG (success path only) ----------------------------------
+    if (cost > 0) await spendCredits(base44, balance, cost);
+
+    const usedGroq = !!secrets.get('GROQ_API_KEY');
+    const usedGemini = !!secrets.get('GEMINI_API_KEY');
+    const llmCalls = existingLecture_llmCalls(transcript);
+    await logUsage(base44, {
+      user_id: user.id,
+      feature: 'process_lecture',
+      lecture_id,
+      provider: usedGemini ? 'gemini' : 'base44',
+      model: usedGemini ? QUALITY_MODEL : 'automatic',
+      call_count: llmCalls,
+      // UploadFile is charged regardless; LLM credits only when NOT on own keys.
+      base44_credits: 1 + (usedGemini ? 0 : llmCalls * 3),
+      audio_seconds: audioSeconds,
+      cedar_credits_charged: cost,
+      cost_cad: base44CostCad(1 + (usedGemini ? 0 : llmCalls * 3)) + (usedGroq ? groqCostCad(audioSeconds) : 0),
+      tier_at_time: balance.tier,
+      success: true,
+      latency_ms: Date.now() - started,
+    });
+
+    return Response.json({ status: 'complete', lecture_id, credits_charged: cost });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
