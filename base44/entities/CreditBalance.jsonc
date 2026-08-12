@@ -1,7 +1,7 @@
 {
   "name": "CreditBalance",
-  "type": "object",
   "description": "One row per user. The authoritative record of what a user is allowed to spend. Written ONLY by backend functions via asServiceRole - a user who can write this row has an infinite plan.",
+  "type": "object",
   "properties": {
     "user_id": {
       "type": "string",
@@ -50,6 +50,16 @@
       "type": "boolean",
       "default": false,
       "title": "Fair Use Flagged"
+    },
+    "stripe_customer_id": {
+      "type": "string",
+      "title": "Stripe Customer ID",
+      "description": "The Stripe customer created on first checkout. Reused for the billing portal and subscription lifecycle. Set only by backend functions via asServiceRole."
+    },
+    "stripe_subscription_id": {
+      "type": "string",
+      "title": "Stripe Subscription ID",
+      "description": "The active Stripe subscription id, synced from webhook events. Cleared on cancellation at period end. Set only by backend functions via asServiceRole."
     }
   },
   "required": [

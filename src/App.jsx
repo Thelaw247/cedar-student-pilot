@@ -23,6 +23,7 @@ import SemesterSetup from './pages/SemesterSetup';
 import FocusMode from './pages/FocusMode';
 import Analytics from './pages/Analytics';
 import LectureReview from './pages/LectureReview';
+import CheckoutSuccess from './pages/CheckoutSuccess';
 
 /**
  * Sends an unauthenticated visitor to the in-app login page, remembering where
@@ -82,6 +83,7 @@ const AuthenticatedApp = () => {
         <Route path="/lecture-review" element={<LectureReview />} />
         <Route path="/lecture-review/:scope" element={<LectureReview />} />
         <Route path="/lecture-review/lecture/:lectureId" element={<LectureReview />} />
+        <Route path="/checkout/success" element={<CheckoutSuccess />} />
       </Route>
       </Route>
       <Route path="*" element={<PageNotFound />} />

@@ -1,0 +1,58 @@
+{
+  "name": "ProcessedStripeEvent",
+  "description": "Idempotency ledger for Stripe-driven credit grants. One row per processed Stripe event or checkout session. The grant helpers in base44/shared/stripe.ts check anchor_id BEFORE granting, so the checkout redirect, the webhook, and Stripe retries can never double-grant the same purchase.",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "title": "User ID"
+    },
+    "anchor_id": {
+      "type": "string",
+      "title": "Anchor ID",
+      "description": "The stable Stripe id used to dedupe: checkout session id for initial grants, invoice id for renewals, event id for tier sync / downgrade."
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "subscription_initial",
+        "pack",
+        "subscription_renewal",
+        "tier_sync",
+        "downgrade"
+      ],
+      "title": "Kind"
+    },
+    "stripe_event_id": {
+      "type": "string",
+      "title": "Stripe Event ID"
+    },
+    "stripe_session_id": {
+      "type": "string",
+      "title": "Stripe Session ID"
+    },
+    "credits_granted": {
+      "type": "number",
+      "default": 0,
+      "title": "Credits Granted"
+    },
+    "processed_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Processed At"
+    }
+  },
+  "required": [
+    "user_id",
+    "anchor_id",
+    "kind"
+  ],
+  "rls": {
+    "create": false,
+    "read": {
+      "data.user_id": "{{user.id}}"
+    },
+    "update": false,
+    "delete": false
+  }
+}

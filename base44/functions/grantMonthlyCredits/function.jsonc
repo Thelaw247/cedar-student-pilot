@@ -1,0 +1,32 @@
+{
+  // Daily top-up of subscription credits for active subscribers.
+  //
+  // The function is ALSO reachable over public HTTP at
+  // /functions/grantMonthlyCredits, so scheduling alone is not access control.
+  // entry.ts gates the broadcast path on the GRANT_TRIGGER_TOKEN app secret and
+  // fails closed when that secret is not configured. See entry.ts for details.
+  "name": "grantMonthlyCredits",
+  "entry": "entry.ts",
+  "automations": [
+    {
+      "type": "scheduled",
+      "name": "monthly_credit_grant",
+      "description": "Daily sweep: tops up subscription credits for active subscribers whose last grant was in a previous month. ~30 runs/month, 1 credit each. Free tier is a lifetime grant and is never refreshed here. IMPORTANT for semester (4-month) plans: without this, subscribers only get credits when an invoice fires every 4 months, leaving months 1-3 dry. DISABLED until GRANT_TRIGGER_TOKEN is set in Settings → Secrets and the trigger_token placeholder below is replaced with that value, then flip is_active back to true.",
+      "is_active": false,
+      // COST: each automation run costs 1 integration credit even when it
+      // grants nothing. Daily = ~30/month, which is fine. Do NOT make this
+      // hourly (that would be ~720 credits/month).
+      "schedule_mode": "recurring",
+      "schedule_type": "simple",
+      "repeat_unit": "days",
+      "repeat_interval": 1,
+      // trigger_token must equal the GRANT_TRIGGER_TOKEN app secret or the run
+      // is rejected. Replace the placeholder below with the value you set via
+      // `base44 secrets set GRANT_TRIGGER_TOKEN`.
+      "function_args": {
+        "source": "automation",
+        "trigger_token": "REPLACE_WITH_GRANT_TRIGGER_TOKEN"
+      }
+    }
+  ]
+}

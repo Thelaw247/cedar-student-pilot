@@ -52,7 +52,7 @@ export const TIER_GRANT: Record<string, number> = {
 
 // ------------------------------------------------------------- balance io ---
 
-const periodKey = (d = new Date()) =>
+export const periodKey = (d = new Date()) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 
 /**

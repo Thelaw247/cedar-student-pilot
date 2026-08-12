@@ -38,7 +38,7 @@ export const TIERS = {
     monthly: 9.99,
     semester: 29.99,
     creditsPerMonth: 60,
-    stripe: { monthlyPriceId: null, semesterPriceId: null },
+    stripe: { monthlyPriceId: 'price_1U3VdPEJUVVmZYwUPVYkrzkf', semesterPriceId: 'price_1U3VdQEJUVVmZYwUVxC0O3ZK' },
     includes: [
       'Everything in Free',
       '~6 recorded lectures a month',
@@ -55,7 +55,7 @@ export const TIERS = {
     monthly: 16.99,
     semester: 54.99,
     creditsPerMonth: 150,
-    stripe: { monthlyPriceId: null, semesterPriceId: null },
+    stripe: { monthlyPriceId: 'price_1U3VdQEJUVVmZYwUd0aWOoc3', semesterPriceId: 'price_1U3VdQEJUVVmZYwUiEeBVotN' },
     includes: [
       'Everything in Student',
       '~15 recorded lectures a month',
@@ -71,7 +71,7 @@ export const TIERS = {
     semester: 99.99,
     creditsPerMonth: 400,
     fairUseHoursPerSemester: 250,
-    stripe: { monthlyPriceId: null, semesterPriceId: null },
+    stripe: { monthlyPriceId: 'price_1U3VdQEJUVVmZYwUCLTKXxPn', semesterPriceId: 'price_1U3VdREJUVVmZYwUQlYOoFre' },
     includes: [
       'Everything in Scholar',
       'Record every lecture and lab',
@@ -85,10 +85,10 @@ export const TIER_ORDER = ['free', 'student', 'scholar', 'unlimited'];
 
 /** One-off credit packs. No subscription needed; all features unlock while balance > 0. */
 export const CREDIT_PACKS = [
-  { id: 'topup',    name: 'Top-up',   credits: 100,  price: 5.99,  stripePriceId: null },
-  { id: 'standard', name: 'Standard', credits: 250,  price: 12.99, stripePriceId: null },
-  { id: 'bulk',     name: 'Bulk',     credits: 600,  price: 24.99, stripePriceId: null },
-  { id: 'semester', name: 'Semester', credits: 1500, price: 49.99, stripePriceId: null },
+  { id: 'topup',    name: 'Top-up',   credits: 100,  price: 5.99,  stripePriceId: 'price_1U3VdREJUVVmZYwUmnWd2dSB' },
+  { id: 'standard', name: 'Standard', credits: 250,  price: 12.99, stripePriceId: 'price_1U3VdREJUVVmZYwUj5ScyF6G' },
+  { id: 'bulk',     name: 'Bulk',     credits: 600,  price: 24.99, stripePriceId: 'price_1U3VdREJUVVmZYwUW42DAigi' },
+  { id: 'semester', name: 'Semester', credits: 1500, price: 49.99, stripePriceId: 'price_1U3VdSEJUVVmZYwUL4cnt0Eo' },
 ];
 
 /**

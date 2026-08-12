@@ -52,6 +52,11 @@ export default function SubscriptionSettings() {
   const startCheckout = async (payload, key) => {
     setBusy(key);
     setError(null);
+    if (window.self !== window.top) {
+      setError('Checkout only works from the published app. Open Cedar in a new tab to complete your purchase.');
+      setBusy(null);
+      return;
+    }
     try {
       const res = await base44.functions.invoke('createCheckoutSession', payload);
       const url = res?.data?.url || res?.data?.checkout_url;
