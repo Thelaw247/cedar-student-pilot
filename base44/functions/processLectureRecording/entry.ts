@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 import { secrets } from 'base44:runtime';
+import { invokeLLM, QUALITY_MODEL } from '../../shared/llm.ts';
 
 // ---- Transcription routing ------------------------------------------------
 // Groq's whisper-large-v3-turbo costs ~$0.04 USD/hr against its own API key and
@@ -180,7 +181,12 @@ async function extractFromTranscript(base44, transcript, cls, lectureDate) {
     const scope = total > 1
       ? `This is part ${part} of ${total} of a single lecture transcript. Extract only what appears in THIS part; the parts are merged afterwards.`
       : '';
-    const result = await base44.asServiceRole.integrations.Core.InvokeLLM({
+    // Routed through the shared helper: uses your own Gemini key when
+    // GEMINI_API_KEY is set (0 Base44 credits), else falls back to Core.InvokeLLM.
+    // Pinned to the stronger model — these concepts and exam mentions are what
+    // the exam-coverage feature runs on.
+    const result = await invokeLLM(base44, {
+      model: QUALITY_MODEL,
       prompt: `You are an AI academic assistant analyzing a university lecture transcript. The class is "${className}" taught by ${instructor} on ${lectureDate}.
 ${scope}
 
@@ -229,7 +235,7 @@ ${text}`,
     .join('\n\n');
 
   try {
-    const stitched = await base44.asServiceRole.integrations.Core.InvokeLLM({
+    const stitched = await invokeLLM(base44, {
       prompt: `These are section summaries from one university lecture in "${className}", in order. Combine them into a single coherent summary of the whole lecture (2-3 paragraphs) and give the lecture one concise descriptive title (5-8 words). Do not invent anything not present below.
 
 ${partSummaries}`,
@@ -262,7 +268,8 @@ async function generateFlashcards(base44, lecture, cls, userId) {
 
   if (!concepts && !definitions && !formulas) return;
 
-  const result = await base44.asServiceRole.integrations.Core.InvokeLLM({
+  // Cheap model is fine here — it reformats content that extraction already produced.
+  const result = await invokeLLM(base44, {
     prompt: `Create 8 study flashcards for a university lecture in "${cls?.name || 'the class'}" titled "${lecture.ai_title || 'Untitled'}". Each flashcard has a front (question or term) and a back (answer or definition). Focus on the most important material and spread the cards across the whole lecture, not just the beginning.
 
 Lecture summary:
