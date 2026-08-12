@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Loader2, Zap, CreditCard, ExternalLink, TrendingUp, AlertCircle } from 'lucide-react';
-import { TIERS, CREDIT_PACKS, CREDITS_PER_LECTURE, tierOf, nextTierUp } from '@/lib/tiers';
+import { CREDIT_PACKS, CREDITS_PER_LECTURE, tierOf, nextTierUp } from '@/lib/tiers';
 
 /**
  * Subscription, credit balance and purchase management.
