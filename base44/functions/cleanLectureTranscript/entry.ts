@@ -1,5 +1,10 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+import { secrets } from 'base44:runtime';
 import { invokeLLM } from '../../shared/llm.ts';
+import {
+  getBalance, availableCredits, insufficientResponse, spendCredits,
+  logUsage, durationCost, COST_PER_30MIN_CLEAN, base44CostCad,
+} from '../../shared/credits.ts';
 
 // On-demand transcript cleanup.
 //
@@ -75,18 +80,29 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Lecture not found' }, { status: 404 });
     }
 
-    // TODO(credits): once CreditBalance exists, charge here — AFTER the checks
-    // below and BEFORE the LLM calls, refunding if the work throws. Cost is
-    // ceil(transcript.length / CLEAN_CHUNK_SIZE) calls.
-
+    // Idempotency first: an already-cleaned lecture costs nothing and is never
+    // re-charged, so a double-tap cannot double-spend.
     if (lecture.transcript_cleaned) {
-      // Already paid for. Return success without spending anything.
       return Response.json({ status: 'already_clean', calls: 0, charged: false });
     }
 
     const source = (lecture.transcript || '').trim();
     if (!source || source === '[No speech detected in recording]') {
       return Response.json({ error: 'This lecture has no transcript to clean.' }, { status: 400 });
+    }
+
+    // ---- CREDIT GATE: check before the work, charge only after it succeeds --
+    const started = Date.now();
+    const balance = await getBalance(base44, user.id);
+    const audioSeconds = lecture.duration_seconds || 0;
+    const cost = durationCost(audioSeconds, COST_PER_30MIN_CLEAN);
+
+    if (availableCredits(balance) < cost) {
+      await logUsage(base44, {
+        user_id: user.id, feature: 'clean_transcript', lecture_id,
+        tier_at_time: balance.tier, success: false, audio_seconds: audioSeconds,
+      });
+      return insufficientResponse('clean_transcript', cost, balance);
     }
 
     const chunks = splitInto(source, CLEAN_CHUNK_SIZE);
@@ -116,10 +132,31 @@ Deno.serve(async (req) => {
       transcript_cleaned: true,
     });
 
+    // Charged only now that the transcript is safely written.
+    await spendCredits(base44, balance, cost);
+
+    const usedGemini = !!secrets.get('GEMINI_API_KEY');
+    await logUsage(base44, {
+      user_id: user.id,
+      feature: 'clean_transcript',
+      lecture_id,
+      provider: usedGemini ? 'gemini' : 'base44',
+      model: usedGemini ? 'gemini-2.5-flash-lite' : 'automatic',
+      call_count: chunks.length,
+      base44_credits: usedGemini ? 0 : chunks.length * 3,
+      audio_seconds: audioSeconds,
+      cedar_credits_charged: cost,
+      cost_cad: base44CostCad(usedGemini ? 0 : chunks.length * 3),
+      tier_at_time: balance.tier,
+      success: true,
+      latency_ms: Date.now() - started,
+    });
+
     return Response.json({
       status: 'complete',
       calls: chunks.length,
       charged: true,
+      credits_charged: cost,
       chars_before: source.length,
       chars_after: cleaned.length,
     });
