@@ -1,0 +1,119 @@
+{
+  "name": "UsageEvent",
+  "type": "object",
+  "description": "One row per billable AI action. Database writes cost 0 Base44 credits, so logging every call is free. This is the ledger behind cost-per-user, margin-by-tier and credit-burn dashboards.",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "title": "User ID"
+    },
+    "occurred_at": {
+      "type": "string",
+      "title": "Occurred At",
+      "description": "ISO timestamp. Used for daily/monthly bucketing."
+    },
+    "feature": {
+      "type": "string",
+      "enum": [
+        "process_lecture",
+        "clean_transcript",
+        "handbook",
+        "study_material",
+        "exam_prediction",
+        "study_schedule",
+        "lecture_review",
+        "missed_summary",
+        "project_roadmap",
+        "smart_rebook",
+        "timetable_import",
+        "session_review"
+      ],
+      "title": "Feature"
+    },
+    "provider": {
+      "type": "string",
+      "enum": [
+        "base44",
+        "groq",
+        "gemini"
+      ],
+      "title": "Provider",
+      "description": "Splits shared Base44 credits from uncapped direct-API spend."
+    },
+    "model": {
+      "type": "string",
+      "title": "Model"
+    },
+    "call_count": {
+      "type": "number",
+      "default": 0,
+      "title": "Call Count",
+      "description": "Base44 bills PER CALL - this is the cost driver, not tokens."
+    },
+    "base44_credits": {
+      "type": "number",
+      "default": 0,
+      "title": "Base44 Credits",
+      "description": "0 when the call went to a direct API."
+    },
+    "input_tokens": {
+      "type": "number",
+      "default": 0,
+      "title": "Input Tokens"
+    },
+    "output_tokens": {
+      "type": "number",
+      "default": 0,
+      "title": "Output Tokens"
+    },
+    "audio_seconds": {
+      "type": "number",
+      "default": 0,
+      "title": "Audio Seconds"
+    },
+    "cedar_credits_charged": {
+      "type": "number",
+      "default": 0,
+      "title": "Cedar Credits Charged",
+      "description": "What the user was billed in app credits."
+    },
+    "cost_cad": {
+      "type": "number",
+      "default": 0,
+      "title": "Cost CAD",
+      "description": "Estimated real cost to serve, computed at write time."
+    },
+    "lecture_id": {
+      "type": "string",
+      "title": "Lecture ID"
+    },
+    "tier_at_time": {
+      "type": "string",
+      "title": "Tier At Time",
+      "description": "Denormalised so margin-by-tier needs no join."
+    },
+    "success": {
+      "type": "boolean",
+      "default": true,
+      "title": "Success",
+      "description": "Failed calls are logged but never charged."
+    },
+    "latency_ms": {
+      "type": "number",
+      "default": 0,
+      "title": "Latency ms"
+    }
+  },
+  "required": [
+    "user_id",
+    "feature"
+  ],
+  "rls": {
+    "create": false,
+    "read": {
+      "data.user_id": "{{user.id}}"
+    },
+    "update": false,
+    "delete": false
+  }
+}

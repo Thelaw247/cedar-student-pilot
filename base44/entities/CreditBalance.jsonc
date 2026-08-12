@@ -1,0 +1,66 @@
+{
+  "name": "CreditBalance",
+  "type": "object",
+  "description": "One row per user. The authoritative record of what a user is allowed to spend. Written ONLY by backend functions via asServiceRole - a user who can write this row has an infinite plan.",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "title": "User ID"
+    },
+    "tier": {
+      "type": "string",
+      "enum": [
+        "free",
+        "student",
+        "scholar",
+        "unlimited"
+      ],
+      "default": "free",
+      "title": "Tier"
+    },
+    "subscription_credits": {
+      "type": "number",
+      "default": 0,
+      "title": "Subscription Credits",
+      "description": "Granted by the plan. Expire at period end. Spent BEFORE purchased credits."
+    },
+    "purchased_credits": {
+      "type": "number",
+      "default": 0,
+      "title": "Purchased Credits",
+      "description": "Bought in a pack. Never expire, survive cancellation."
+    },
+    "lifetime_granted": {
+      "type": "number",
+      "default": 0,
+      "title": "Lifetime Granted",
+      "description": "Total ever granted. Free tier uses this to enforce a lifetime cap rather than a monthly one."
+    },
+    "period_key": {
+      "type": "string",
+      "title": "Period Key",
+      "description": "e.g. 2026-08. Used by the monthly grant job to avoid double-granting."
+    },
+    "last_grant_date": {
+      "type": "string",
+      "format": "date",
+      "title": "Last Grant Date"
+    },
+    "fair_use_flagged": {
+      "type": "boolean",
+      "default": false,
+      "title": "Fair Use Flagged"
+    }
+  },
+  "required": [
+    "user_id"
+  ],
+  "rls": {
+    "create": false,
+    "read": {
+      "data.user_id": "{{user.id}}"
+    },
+    "update": false,
+    "delete": false
+  }
+}
