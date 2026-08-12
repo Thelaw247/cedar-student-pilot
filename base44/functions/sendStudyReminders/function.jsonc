@@ -11,8 +11,15 @@
     {
       "type": "scheduled",
       "name": "study_reminder_sweep",
-      "description": "Every 30 minutes, email owners of study sessions starting within the next 30 minutes.",
-      "is_active": true,
+      // DISABLED. Reasons, so nobody switches this back on without thinking:
+      //  1. It burned ~1,440 integration credits/month (7% of a Pro plan) just
+      //     to wake up, whether or not it had anything to send.
+      //  2. Email was always a stopgap. Reminders belong in iOS push once the
+      //     native app exists — free, and actually where the student looks.
+      // The function itself is left in place (secret-gated, fails closed) so the
+      // schedule can be re-enabled by flipping is_active back to true.
+      "description": "DISABLED — replaced by iOS push. Was: every 30 min, email owners of sessions starting within 30 min.",
+      "is_active": false,
 
       // COST: each automation run costs 1 integration credit even when it sends
       // nothing, plus 1 credit per email sent. The interval is matched to the
