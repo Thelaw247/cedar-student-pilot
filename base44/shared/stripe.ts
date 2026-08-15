@@ -184,7 +184,10 @@ export async function grantSubscriptionInitial(
   base44: any, userId: string, tier: string, _period: string,
   anchorId: string, stripeSessionId: string, stripeEventId: string,
 ) {
-  if (await hasProcessed(base44, anchorId)) return { already: true };
+  const claim = await claimAnchor(base44, anchorId, userId, 'subscription_initial', {
+    stripe_event_id: stripeEventId, stripe_session_id: stripeSessionId,
+  });
+  if (!claim.won) return { already: true };
   const balance = await getBalance(base44, userId);
   const grant = TIER_GRANT[tier] || 0;
   await base44.asServiceRole.entities.CreditBalance.update(balance.id, {
@@ -193,7 +196,7 @@ export async function grantSubscriptionInitial(
     period_key: periodKey(),
     last_grant_date: todayStr(),
   });
-  await recordProcessed(base44, { anchor_id: anchorId, user_id: userId, kind: 'subscription_initial', stripe_event_id: stripeEventId, stripe_session_id: stripeSessionId, credits_granted: grant });
+  await finalizeClaim(base44, claim.rowId, grant);
   return { granted: grant };
 }
 
@@ -202,12 +205,15 @@ export async function grantPack(
   base44: any, userId: string, credits: number,
   anchorId: string, stripeSessionId: string, stripeEventId: string,
 ) {
-  if (await hasProcessed(base44, anchorId)) return { already: true };
+  const claim = await claimAnchor(base44, anchorId, userId, 'pack', {
+    stripe_event_id: stripeEventId, stripe_session_id: stripeSessionId,
+  });
+  if (!claim.won) return { already: true };
   const balance = await getBalance(base44, userId);
   await base44.asServiceRole.entities.CreditBalance.update(balance.id, {
     purchased_credits: (balance.purchased_credits || 0) + credits,
   });
-  await recordProcessed(base44, { anchor_id: anchorId, user_id: userId, kind: 'pack', stripe_event_id: stripeEventId, stripe_session_id: stripeSessionId, credits_granted: credits });
+  await finalizeClaim(base44, claim.rowId, credits);
   return { granted: credits };
 }
 
@@ -216,7 +222,8 @@ export async function grantPack(
 export async function grantRenewal(
   base44: any, userId: string, tier: string, invoiceId: string, periodStart: number,
 ) {
-  if (await hasProcessed(base44, invoiceId)) return { already: true };
+  const claim = await claimAnchor(base44, invoiceId, userId, 'subscription_renewal');
+  if (!claim.won) return { already: true };
   const balance = await getBalance(base44, userId);
   const monthKey = periodKey(periodStart ? new Date(periodStart * 1000) : new Date());
   if (balance.tier === tier && balance.period_key === monthKey) return { skipped: 'same_period' };
@@ -227,17 +234,17 @@ export async function grantRenewal(
     period_key: monthKey,
     last_grant_date: todayStr(periodStart ? new Date(periodStart * 1000) : new Date()),
   });
-  await recordProcessed(base44, { anchor_id: invoiceId, user_id: userId, kind: 'subscription_renewal', credits_granted: grant });
+  await finalizeClaim(base44, claim.rowId, grant);
   return { granted: grant };
 }
 
 /** Plan change (subscription.updated): sync tier, no credit grant. */
 export async function syncTier(base44: any, userId: string, tier: string, subscriptionId: string, anchorId: string) {
-  if (anchorId && await hasProcessed(base44, anchorId)) return { already: true };
+  const claim = anchorId ? await claimAnchor(base44, anchorId, userId, 'tier_sync') : { won: true, rowId: undefined };
+  if (!claim.won) return { already: true };
   const balance = await getBalance(base44, userId);
   if (balance.tier === tier && balance.stripe_subscription_id === subscriptionId) return { skipped: 'no_change' };
   await base44.asServiceRole.entities.CreditBalance.update(balance.id, { tier, stripe_subscription_id: subscriptionId });
-  if (anchorId) await recordProcessed(base44, { anchor_id: anchorId, user_id: userId, kind: 'tier_sync' });
   return { synced: tier };
 }
 
@@ -245,14 +252,14 @@ export async function syncTier(base44: any, userId: string, tier: string, subscr
  *  cancel_at_period_end, so dropping to free here is "at period end". Purchased
  *  credits are never touched. */
 export async function downgradeAtPeriodEnd(base44: any, userId: string, subscriptionId: string, anchorId: string) {
-  if (anchorId && await hasProcessed(base44, anchorId)) return { already: true };
+  const claim = anchorId ? await claimAnchor(base44, anchorId, userId, 'downgrade') : { won: true, rowId: undefined };
+  if (!claim.won) return { already: true };
   const balance = await getBalance(base44, userId);
   await base44.asServiceRole.entities.CreditBalance.update(balance.id, {
     tier: 'free',
     stripe_subscription_id: '',
     subscription_credits: 0,
   });
-  if (anchorId) await recordProcessed(base44, { anchor_id: anchorId, user_id: userId, kind: 'downgrade' });
   return { downgraded: true };
 }
 
