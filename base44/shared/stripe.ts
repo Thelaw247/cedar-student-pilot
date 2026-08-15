@@ -20,6 +20,45 @@ function appId(): string {
   return Deno.env.get('BASE44_APP_ID') || secrets.get('BASE44_APP_ID') || '';
 }
 
+const DEFAULT_ORIGIN = 'https://cedar-student-pilot.base44.app';
+
+/**
+ * Where Stripe sends the student back after checkout or the billing portal.
+ *
+ * Read from the APP_ORIGIN secret so moving to a custom domain is a settings
+ * change, not a code change. Previously this was hardcoded to the base44.app
+ * host, which would have bounced paying users back to the wrong site the
+ * moment a real domain went live.
+ *
+ * Deliberately NOT derived from the incoming request origin: that value is
+ * attacker-controllable and Stripe will happily redirect to whatever we pass,
+ * which is an open redirect. A configured value or the known default only.
+ */
+export function appOrigin(): string {
+  let configured = '';
+  try { configured = secrets.get('APP_ORIGIN') || ''; } catch { /* not configured */ }
+  const origin = (configured || DEFAULT_ORIGIN).trim().replace(/\/+$/, '');
+  if (!/^https:\/\/[a-z0-9.-]+(:\d+)?$/i.test(origin)) {
+    console.error('[stripe] APP_ORIGIN is not a valid https origin, using default:', origin);
+    return DEFAULT_ORIGIN;
+  }
+  return origin;
+}
+
+/** Cancel a subscription immediately. Used by account deletion so a deleted
+ *  account cannot keep being billed. */
+export async function stripeDelete(path: string) {
+  const SK = secrets.get('STRIPE_SECRET_KEY');
+  if (!SK) throw new Error('STRIPE_SECRET_KEY not configured');
+  const res = await fetch(`${BASE}/${path}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${SK}`, 'Stripe-Version': STRIPE_VERSION },
+  });
+  const text = await res.text();
+  if (!res.ok) throw new Error(`Stripe DELETE ${path} ${res.status}: ${text.slice(0, 300)}`);
+  return JSON.parse(text);
+}
+
 // Flatten params into [key, value] pairs with explicit bracket notation for
 // nested hashes and indexed arrays. Empty strings are dropped so we never
 // send metadata[cedar_pack]= for a subscription, etc.
