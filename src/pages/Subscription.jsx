@@ -99,7 +99,11 @@ export default function Subscription() {
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${period === 'semester' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
           >
             Semester
-            <span className="ml-1.5 text-[10px] font-semibold text-emerald-600 uppercase">Save 25%</span>
+            {maxSavingPercent > 0 && (
+              <span className="ml-1.5 text-[10px] font-semibold text-emerald-600 uppercase">
+                Save up to {maxSavingPercent}%
+              </span>
+            )}
           </button>
           <button
             onClick={() => setPeriod('monthly')}
