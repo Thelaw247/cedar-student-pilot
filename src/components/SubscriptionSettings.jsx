@@ -177,6 +177,16 @@ export default function SubscriptionSettings() {
         </div>
       )}
 
+      {/* Full comparison. The panel above only ever shows the NEXT tier up, so
+          without this there is no way to see or jump straight to a higher one. */}
+      <Link
+        to="/subscription"
+        className="flex items-center justify-between rounded-lg border border-border px-3 py-2.5 mb-4 hover:bg-muted transition-colors"
+      >
+        <span className="text-xs font-medium">Compare all plans and billing periods</span>
+        <ChevronRight className="w-4 h-4 text-muted-foreground" />
+      </Link>
+
       {/* Credit packs */}
       <div>
         <div className="flex items-center gap-2 mb-1">
