@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+import { invokeLLM, QUALITY_MODEL } from '../../shared/llm.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -25,7 +26,10 @@ Question: ${g.question}
 Model answer (the key idea): ${g.correct_answer || '(none provided)'}
 Student's answer: ${g.student_answer || '(blank)'}`).join('\n\n');
 
-      const grading = await base44.asServiceRole.integrations.Core.InvokeLLM({
+      // Quality model: this decides whether a student's answer counts as
+      // correct, which feeds KnowledgeCoverage and the proficiency stats.
+      const grading = await invokeLLM(base44, {
+        model: QUALITY_MODEL,
         prompt: `You are grading short-answer responses on a university review quiz. Judge each answer ONLY on whether the student demonstrates a correct grasp of the underlying concept. Do NOT require the wording to match the model answer — paraphrases, different examples, and informal phrasing are fully acceptable as long as the core understanding is right. Mark wrong only when the concept is missing, misunderstood, or materially incorrect. A blank or off-topic answer is incorrect.
 
 For each item return:
@@ -131,7 +135,7 @@ ${transcriptSnippet}`;
 - Avoid "one_word" unless a term truly has a single unambiguous answer.
 For every question, set correct_answer to the ideal/model answer. For short_answer, correct_answer should be a concise model answer capturing the key idea a correct response must convey.`;
 
-    const result = await base44.asServiceRole.integrations.Core.InvokeLLM({
+    const result = await invokeLLM(base44, {
       prompt: `You are an academic tutor creating a review quiz that follows the EXACT teaching flow the professor used across ${sorted.length} lecture(s) for "${className}".
 
 CRITICAL: The questions MUST follow the chronological order of how topics were taught. Start with what the professor discussed FIRST in the earliest lecture, and progress through to what was discussed LAST in the most recent lecture. This creates a natural review flow that mirrors the actual learning sequence.
