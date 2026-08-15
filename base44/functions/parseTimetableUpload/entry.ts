@@ -10,6 +10,13 @@ Deno.serve(async (req) => {
     const { file_url } = body;
     if (!file_url) return Response.json({ error: 'file_url is required' }, { status: 400 });
 
+    // NOT migrated to shared/llm.ts on purpose. This is the only vision call in
+    // the app — it passes `file_urls` so the model can read a photo of a
+    // timetable — and invokeLLM() is text-only, so routing it through would
+    // silently drop the image and break onboarding. It runs once per signup and
+    // is deliberately ungated (gating onboarding kills activation), so the ~3
+    // Base44 credits it costs are acceptable. Migrate only after invokeLLM()
+    // grows Gemini inline-image support.
     const result = await base44.asServiceRole.integrations.Core.InvokeLLM({
       prompt: `You are an expert at reading university class timetables. Analyze the provided timetable image or document and extract ALL classes/courses shown.
 
