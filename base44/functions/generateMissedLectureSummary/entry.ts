@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+import { invokeLLM, QUALITY_MODEL } from '../../shared/llm.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -29,7 +30,8 @@ Deno.serve(async (req) => {
       : '';
 
     // Generate estimated lecture content
-    const analysis = await base44.asServiceRole.integrations.Core.InvokeLLM({
+    const analysis = await invokeLLM(base44, {
+      model: QUALITY_MODEL,
       prompt: `You are an AI academic assistant. A student missed a class and wants an AI-estimated summary of what was likely covered.
 
 Class: ${cls.name}
