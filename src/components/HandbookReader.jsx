@@ -211,6 +211,18 @@ export default function HandbookReader({ classId, lectureIds, assignmentId, stud
               <Filter className="w-3 h-3" /> Scoped: {handbook.scope_label}
             </div>
           )}
+
+          {/* Coverage. Lectures with no processed content are dropped from the
+              handbook; without this the book just looks shorter than the class
+              actually is, with no way to tell why. */}
+          <p className="text-xs text-muted-foreground mt-3">
+            {handbook.total_lectures} chapter{handbook.total_lectures === 1 ? '' : 's'}
+            {handbook.lectures_excluded > 0 && (
+              <span className="text-amber-600">
+                {' · '}{handbook.lectures_excluded} lecture{handbook.lectures_excluded === 1 ? '' : 's'} not processed yet
+              </span>
+            )}
+          </p>
         </div>
 
         {/* TOC dropdown */}
@@ -226,6 +238,9 @@ export default function HandbookReader({ classId, lectureIds, assignmentId, stud
                 >
                   <span className="text-[10px] text-muted-foreground tabular-nums w-6">{String(toc.chapter).padStart(2, '0')}</span>
                   <span className="flex-1 truncate">{toc.title}</span>
+                  {toc.section_count !== undefined && toc.section_count <= 2 && (
+                    <span className="text-[9px] text-amber-600 font-medium uppercase tracking-wide">thin</span>
+                  )}
                   <span className="text-[10px] text-muted-foreground">{toc.date}</span>
                 </button>
               ))}
