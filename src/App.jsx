@@ -24,6 +24,7 @@ import FocusMode from './pages/FocusMode';
 import Analytics from './pages/Analytics';
 import LectureReview from './pages/LectureReview';
 import CheckoutSuccess from './pages/CheckoutSuccess';
+import Subscription from './pages/Subscription';
 
 /**
  * Sends an unauthenticated visitor to the in-app login page, remembering where
@@ -83,6 +84,9 @@ const AuthenticatedApp = () => {
         <Route path="/lecture-review" element={<LectureReview />} />
         <Route path="/lecture-review/:scope" element={<LectureReview />} />
         <Route path="/lecture-review/lecture/:lectureId" element={<LectureReview />} />
+        {/* Full plan comparison and checkout. Logged-in only for now; a public
+            pricing page can reuse this once the landing page exists. */}
+        <Route path="/subscription" element={<Subscription />} />
         <Route path="/checkout/success" element={<CheckoutSuccess />} />
       </Route>
       </Route>
