@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+import { invokeLLM, QUALITY_MODEL } from '../../shared/llm.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -67,7 +68,8 @@ Deno.serve(async (req) => {
     const topTopics = scoredTopics.slice(0, 15);
     const lectureSummaries = lecturesWithContent.slice(-10).map(l => `[${l.date}] ${l.ai_title || 'Untitled'}: ${l.ai_summary || ''} | Concepts: ${(l.ai_concepts || []).join(', ')} | Exam mentions: ${(l.ai_exam_mentions || []).join(', ')}`).join('\n');
 
-    const prediction = await base44.asServiceRole.integrations.Core.InvokeLLM({
+    const prediction = await invokeLLM(base44, {
+      model: QUALITY_MODEL,
       prompt: `You are an academic exam predictor AI. Based on the student's lecture data, predict which topics are most likely to appear on the upcoming exam.
 
 Lecture data (most recent 10):
