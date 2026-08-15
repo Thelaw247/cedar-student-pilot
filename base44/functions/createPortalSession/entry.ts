@@ -1,6 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 import { getBalance } from '../../shared/credits.ts';
-import { stripePost } from '../../shared/stripe.ts';
+import { stripePost, appOrigin } from '../../shared/stripe.ts';
 
 /**
  * Opens the Stripe Billing Portal for the caller's customer. The hosted portal
