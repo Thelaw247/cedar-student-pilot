@@ -38,7 +38,10 @@ export default function HandbookReader({ classId, lectureIds, assignmentId, stud
       setLoading(false);
     };
     load();
-  }, [classId, showFullHandbook]);
+    // lectureIds is an array — serialise it so a changed scope actually
+    // retriggers the fetch. Leaving it out meant FocusMode could switch
+    // scope while mounted and keep showing the previous scope's handbook.
+  }, [classId, showFullHandbook, assignmentId, (lectureIds || []).join(',')]);
 
   const getQuestionCount = () => {
     const preset = QUIZ_PRESETS.find(p => p.key === quizDepth);
@@ -250,11 +253,16 @@ export default function HandbookReader({ classId, lectureIds, assignmentId, stud
           <h2 className="font-heading text-xl font-bold mb-1">{chapter.title}</h2>
           <p className="text-xs text-muted-foreground mb-4">{chapter.lecture_date}</p>
 
-          {chapter.summary && (
-            <div className="mb-5">
-              <p className="text-sm text-foreground leading-relaxed">{chapter.summary}</p>
-            </div>
-          )}
+          {/* The summary is generated as 2-3 paragraphs. Without
+              whitespace-pre-wrap those breaks collapse and the main body of
+              every chapter renders as one dense block. */}
+          <div className="mb-5">
+            {chapter.summary ? (
+              <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">{chapter.summary}</p>
+            ) : (
+              <p className="text-sm text-muted-foreground italic">No summary was captured for this lecture.</p>
+            )}
+          </div>
 
           {chapter.ai_expansion && (
             <div className="mb-5 rounded-lg border border-dashed border-primary/40 bg-primary/5 p-3">
@@ -267,55 +275,84 @@ export default function HandbookReader({ classId, lectureIds, assignmentId, stud
             </div>
           )}
 
-          {chapter.concepts?.length > 0 && (
-            <ChapterSection title="Key Concepts">
-              <div className="flex flex-wrap gap-2">
-                {chapter.concepts.map((c, i) => (
-                  <span key={i} className="px-2.5 py-1 rounded-md bg-primary/10 text-primary text-xs font-medium">{c}</span>
-                ))}
+          {/* Every section always renders, with an explicit empty state.
+              Conditionally hiding them meant a chapter with no formulas looked
+              identical to one where extraction failed, and the shape of a
+              chapter changed unpredictably as you paged through the book. */}
+          <ChapterSection title="Key Concepts" count={chapter.concepts?.length}>
+            <div className="flex flex-wrap gap-2">
+              {chapter.concepts.map((c, i) => (
+                <span key={i} className="px-2.5 py-1 rounded-md bg-primary/10 text-primary text-xs font-medium">{c}</span>
+              ))}
+            </div>
+          </ChapterSection>
+
+          <ChapterSection title="Definitions" count={chapter.definitions?.length}>
+            <div className="space-y-2">
+              {chapter.definitions.map((d, i) => (
+                <div key={i} className="text-sm">
+                  <span className="font-medium text-foreground">{d.term}</span>
+                  <span className="text-muted-foreground"> — {d.definition}</span>
+                </div>
+              ))}
+            </div>
+          </ChapterSection>
+
+          <ChapterSection title="Vocabulary" count={chapter.vocabulary?.length}>
+            <div className="flex flex-wrap gap-2">
+              {(chapter.vocabulary || []).map((v, i) => (
+                <span key={i} className="px-2.5 py-1 rounded-md bg-muted text-foreground text-xs">{typeof v === 'string' ? v : v?.term}</span>
+              ))}
+            </div>
+          </ChapterSection>
+
+          <ChapterSection title="Formulas" count={chapter.formulas?.length}>
+            <div className="space-y-1.5">
+              {chapter.formulas.map((f, i) => (
+                <div key={i} className="px-3 py-2 rounded-lg bg-muted font-mono text-sm">{f}</div>
+              ))}
+            </div>
+          </ChapterSection>
+
+          <ChapterSection title="Action Items" count={chapter.action_items?.length}>
+            <ul className="space-y-1.5">
+              {(chapter.action_items || []).map((a, i) => (
+                <li key={i} className="flex items-start gap-2 text-sm text-foreground">
+                  <span className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 flex-shrink-0" />
+                  {typeof a === 'string' ? a : a?.text}
+                </li>
+              ))}
+            </ul>
+          </ChapterSection>
+
+          <ChapterSection title="Exam Announcements" count={chapter.exam_mentions?.length}>
+            <ul className="space-y-1.5">
+              {chapter.exam_mentions.map((m, i) => (
+                <li key={i} className="flex items-start gap-2 text-sm text-amber-700 dark:text-amber-500">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mt-1.5 flex-shrink-0" />{m}
+                </li>
+              ))}
+            </ul>
+          </ChapterSection>
+
+          <ChapterSection title="Lecture Notes" count={chapter.notes ? 1 : 0}>
+            <div className="rounded-lg bg-muted/50 p-3 text-sm text-foreground leading-relaxed whitespace-pre-wrap">{chapter.notes}</div>
+          </ChapterSection>
+
+          {chapter.transcript_excerpt && (
+            <details className="mb-4 group">
+              <summary className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 cursor-pointer hover:text-foreground select-none">
+                From the Transcript
+                {chapter.transcript_length > chapter.transcript_excerpt.length && (
+                  <span className="ml-1.5 font-normal normal-case tracking-normal">
+                    (first {Math.round(chapter.transcript_excerpt.length / 100) / 10}k of {Math.round(chapter.transcript_length / 100) / 10}k characters)
+                  </span>
+                )}
+              </summary>
+              <div className="rounded-lg bg-muted/30 p-3 text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap max-h-80 overflow-y-auto">
+                {chapter.transcript_excerpt}
               </div>
-            </ChapterSection>
-          )}
-
-          {chapter.definitions?.length > 0 && (
-            <ChapterSection title="Definitions">
-              <div className="space-y-2">
-                {chapter.definitions.map((d, i) => (
-                  <div key={i} className="text-sm">
-                    <span className="font-medium text-foreground">{d.term}</span>
-                    <span className="text-muted-foreground"> — {d.definition}</span>
-                  </div>
-                ))}
-              </div>
-            </ChapterSection>
-          )}
-
-          {chapter.formulas?.length > 0 && (
-            <ChapterSection title="Formulas">
-              <div className="space-y-1.5">
-                {chapter.formulas.map((f, i) => (
-                  <div key={i} className="px-3 py-2 rounded-lg bg-muted font-mono text-sm">{f}</div>
-                ))}
-              </div>
-            </ChapterSection>
-          )}
-
-          {chapter.exam_mentions?.length > 0 && (
-            <ChapterSection title="Exam Announcements">
-              <ul className="space-y-1.5">
-                {chapter.exam_mentions.map((m, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm text-amber-700 dark:text-amber-500">
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mt-1.5 flex-shrink-0" />{m}
-                  </li>
-                ))}
-              </ul>
-            </ChapterSection>
-          )}
-
-          {chapter.notes && (
-            <ChapterSection title="Lecture Notes">
-              <div className="rounded-lg bg-muted/50 p-3 text-sm text-foreground leading-relaxed whitespace-pre-wrap">{chapter.notes}</div>
-            </ChapterSection>
+            </details>
           )}
         </div>
 
@@ -360,11 +397,20 @@ export default function HandbookReader({ classId, lectureIds, assignmentId, stud
   );
 }
 
-function ChapterSection({ title, children }) {
+/**
+ * Always renders its heading. When `count` is 0 the body is replaced by an
+ * explicit "nothing captured" line rather than the whole section vanishing,
+ * so a student can tell the difference between a lecture that had no formulas
+ * and one where extraction failed.
+ */
+function ChapterSection({ title, count, children }) {
+  const isEmpty = !count;
   return (
     <div className="mb-4">
       <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">{title}</h3>
-      {children}
+      {isEmpty
+        ? <p className="text-sm text-muted-foreground/70 italic">Nothing captured for this lecture.</p>
+        : children}
     </div>
   );
 }
