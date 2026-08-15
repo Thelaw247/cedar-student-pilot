@@ -21,7 +21,7 @@ export default async function (req: Request) {
     const APP_ID = Deno.env.get('BASE44_APP_ID') || '';
     const session = await stripePost('billing_portal/sessions', {
       customer: balance.stripe_customer_id,
-      return_url: 'https://cedar-student-pilot.base44.app/settings',
+      return_url: `${appOrigin()}/settings`,
       'metadata[base44_app_id]': APP_ID,
     }, crypto.randomUUID());
 
