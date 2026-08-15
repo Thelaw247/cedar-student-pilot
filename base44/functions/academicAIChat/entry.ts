@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+import { invokeLLM, QUALITY_MODEL } from '../../shared/llm.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -103,7 +104,8 @@ RULES:
 
 Student question: ${message}`;
 
-      const answer = await base44.asServiceRole.integrations.Core.InvokeLLM({
+      const answer = await invokeLLM(base44, {
+        model: QUALITY_MODEL,
         prompt: systemPrompt,
         add_context_from_internet: false,
         response_json_schema: {
@@ -137,7 +139,8 @@ Student question: ${message}`;
     }
 
     // No semester set up — general fallback
-    const answer = await base44.asServiceRole.integrations.Core.InvokeLLM({
+    const answer = await invokeLLM(base44, {
+        model: QUALITY_MODEL,
       prompt: `You are an AI academic assistant. The student has not set up a semester yet, so no lecture context is available. Give a brief, helpful general response. Clearly note that you don't have access to their lecture content yet.\n\nStudent question: ${message}`,
       add_context_from_internet: false,
     });
