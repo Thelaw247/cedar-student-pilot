@@ -1,0 +1,55 @@
+{
+  "name": "Handbook",
+  "description": "A cached, generated class handbook. Before this existed the handbook was rebuilt from scratch on every open \u2014 up to 6 LLM calls each time, non-deterministic AI expansions that read differently on every visit, and chapter numbers that shifted whenever a lecture was processed. Rows are keyed by (class_id, scope_key) and validated with source_hash: when the underlying lectures are unchanged the cached payload is returned with zero LLM calls. Written only by generateClassHandbook via asServiceRole.",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "title": "User ID"
+    },
+    "class_id": {
+      "type": "string",
+      "title": "Class ID"
+    },
+    "scope_key": {
+      "type": "string",
+      "title": "Scope Key",
+      "description": "Which slice of the class this handbook covers: 'full', 'assignment:<id>', or 'lectures:<sorted ids>'. One cached row per scope."
+    },
+    "source_hash": {
+      "type": "string",
+      "title": "Source Hash",
+      "description": "Fingerprint of the source lectures and their content. A mismatch means a lecture was added, removed, or reprocessed, so the cache is stale and the handbook is rebuilt."
+    },
+    "payload": {
+      "type": "string",
+      "title": "Payload",
+      "description": "The full handbook response as a JSON string. Stored opaquely so the chapter shape can evolve without an entity migration."
+    },
+    "total_lectures": {
+      "type": "number",
+      "default": 0,
+      "title": "Total Lectures"
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Generated At"
+    }
+  },
+  "required": [
+    "user_id",
+    "class_id",
+    "scope_key",
+    "source_hash",
+    "payload"
+  ],
+  "rls": {
+    "create": false,
+    "read": {
+      "data.user_id": "{{user.id}}"
+    },
+    "update": false,
+    "delete": false
+  }
+}
