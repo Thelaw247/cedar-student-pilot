@@ -13,7 +13,7 @@ export default function DataExportSection() {
   const [confirmText, setConfirmText] = useState('');
   const [deleting, setDeleting] = useState(false);
   const [deleteResult, setDeleteResult] = useState(null);
-  const [deleteError, setDeleteError] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
 
   const CONFIRM_WORD = 'DELETE';
 
@@ -42,16 +42,35 @@ export default function DataExportSection() {
   const handleDelete = async () => {
     if (confirmText.trim().toUpperCase() !== CONFIRM_WORD) return;
     setDeleting(true);
-    setDeleteError(false);
+    setDeleteError('');
     setDeleteResult(null);
     try {
-      const response = await base44.functions.invoke('deleteUserData', {});
-      setDeleteResult(response.data || { status: 'complete' });
+      // The backend refuses to run without this, so a stray invoke can't wipe
+      // an account. It also cancels any active Stripe subscription first.
+      const response = await base44.functions.invoke('deleteUserData', { confirm: 'DELETE' });
+      const data = response.data || { status: 'complete' };
+
+      // The function aborts without deleting anything if the subscription
+      // could not be cancelled — surface that instead of claiming success.
+      if (data.status === 'aborted') {
+        setDeleteError(data.message || 'Your subscription could not be cancelled, so nothing was deleted.');
+        setDeleting(false);
+        return;
+      }
+
+      setDeleteResult(data);
       setConfirming(false);
       setConfirmText('');
+
+      // Everything is gone, including the credit balance. Staying signed in
+      // would show a half-empty app built on records that no longer exist, so
+      // sign out and let them start clean.
+      setTimeout(() => {
+        try { base44.auth.logout(); } catch { window.location.href = '/login'; }
+      }, 4000);
     } catch (e) {
       console.error(e);
-      setDeleteError(true);
+      setDeleteError('Something went wrong. Please try again, or contact support if it keeps happening.');
     }
     setDeleting(false);
   };
@@ -84,21 +103,23 @@ export default function DataExportSection() {
             <div className="flex items-start gap-2">
               <Check className="w-4 h-4 text-emerald-600 mt-0.5 flex-shrink-0" />
               <div>
-                <p className="text-sm font-medium text-emerald-700 dark:text-emerald-500">Your data has been deleted</p>
+                <p className="text-sm font-medium text-emerald-700 dark:text-emerald-500">Your account has been reset</p>
                 <p className="text-xs text-muted-foreground mt-1">
                   {typeof deleteResult.total_deleted === 'number'
-                    ? `${deleteResult.total_deleted} record${deleteResult.total_deleted !== 1 ? 's' : ''} removed from your account.`
-                    : 'Your academic data has been removed from your account.'}
+                    ? `${deleteResult.total_deleted} record${deleteResult.total_deleted !== 1 ? 's' : ''} removed.`
+                    : 'Your data has been removed.'}
+                  {deleteResult.subscription_cancelled && ' Your subscription has been cancelled.'}
                 </p>
+                <p className="text-xs text-muted-foreground mt-1">Signing you out… signing in again will start a fresh free account.</p>
               </div>
             </div>
           </div>
         ) : !confirming ? (
           <>
-            <p className="text-sm text-muted-foreground mb-3">Permanently delete all of your academic data from your account. This can’t be undone.</p>
-            <button onClick={() => { setConfirming(true); setDeleteError(false); }}
+            <p className="text-sm text-muted-foreground mb-3">Permanently delete your account and everything in it. Any active subscription is cancelled. This can’t be undone.</p>
+            <button onClick={() => { setConfirming(true); setDeleteError(''); }}
               className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-destructive/30 bg-destructive/5 text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors">
-              <Trash2 className="w-4 h-4" /> Delete My Data
+              <Trash2 className="w-4 h-4" /> Delete My Account
             </button>
           </>
         ) : (
@@ -107,8 +128,14 @@ export default function DataExportSection() {
               <AlertTriangle className="w-4 h-4 text-destructive mt-0.5 flex-shrink-0" />
               <div>
                 <p className="text-sm font-medium text-destructive">This permanently deletes everything</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  All your lectures, transcripts, notes, study history, schedule, and coverage data will be erased. Consider exporting a copy first. This action can’t be reversed.
+                <ul className="text-xs text-muted-foreground mt-1.5 space-y-1">
+                  <li>• Lectures, transcripts, notes, flashcards and coverage data</li>
+                  <li>• Classes, semesters, schedule and calendar events</li>
+                  <li>• Your credit balance, including any credits you paid for</li>
+                  <li>• Cached handbooks and all usage history</li>
+                </ul>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Any active subscription is cancelled immediately. <span className="font-medium text-foreground">No refund is issued</span>, and purchased credits are not recoverable. Export a copy first if you want to keep anything.
                 </p>
               </div>
             </div>
@@ -126,12 +153,12 @@ export default function DataExportSection() {
             />
 
             {deleteError && (
-              <p className="text-xs text-destructive mb-3">Something went wrong. Please try again, or contact support if it keeps happening.</p>
+              <p className="text-xs text-destructive mb-3">{deleteError}</p>
             )}
 
             <div className="flex gap-2">
               <button
-                onClick={() => { setConfirming(false); setConfirmText(''); setDeleteError(false); }}
+                onClick={() => { setConfirming(false); setConfirmText(''); setDeleteError(''); }}
                 disabled={deleting}
                 className="flex-1 py-2.5 rounded-lg border border-border text-sm font-medium text-muted-foreground hover:bg-muted disabled:opacity-50">
                 Cancel
@@ -140,7 +167,7 @@ export default function DataExportSection() {
                 onClick={handleDelete}
                 disabled={deleting || confirmText.trim().toUpperCase() !== CONFIRM_WORD}
                 className="flex-1 py-2.5 rounded-lg bg-destructive text-destructive-foreground text-sm font-medium hover:bg-destructive/90 disabled:opacity-50 flex items-center justify-center gap-2">
-                {deleting ? <><Loader2 className="w-4 h-4 animate-spin" /> Deleting…</> : <><Trash2 className="w-4 h-4" /> Delete everything</>}
+                {deleting ? <><Loader2 className="w-4 h-4 animate-spin" /> Deleting…</> : <><Trash2 className="w-4 h-4" /> Delete my account</>}
               </button>
             </div>
           </div>
