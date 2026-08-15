@@ -8,8 +8,12 @@
  * All amounts CAD. Costs to serve are modelled in the finance workbook; these
  * are sell prices only.
  *
- * STRIPE INTEGRATION: fill in the price IDs after creating the products in
- * Stripe. Nothing else in the app needs to change.
+ * STRIPE PRICE IDS ARE DELIBERATELY NOT HERE. The client never sends a price
+ * to the server — SubscriptionSettings posts { tier, billing_period } or
+ * { pack } and createCheckoutSession resolves the price server-side from
+ * base44/shared/stripePrices.ts, which also picks the test or live catalogue
+ * automatically from the API key. Mirroring the ids here would be dead config
+ * that can only drift out of sync and mislead.
  */
 
 export const TIERS = {
@@ -21,7 +25,6 @@ export const TIERS = {
     semester: 0,
     creditsPerMonth: 20,
     lifetimeOnly: true, // free credits are a one-off grant, not a monthly refresh
-    stripe: { monthlyPriceId: null, semesterPriceId: null },
     includes: [
       'Full exam coverage map',
       'Unlimited typed-note lectures',
@@ -38,7 +41,6 @@ export const TIERS = {
     monthly: 9.99,
     semester: 29.99,
     creditsPerMonth: 60,
-    stripe: { monthlyPriceId: 'price_1U3VdPEJUVVmZYwUPVYkrzkf', semesterPriceId: 'price_1U3VdQEJUVVmZYwUVxC0O3ZK' },
     includes: [
       'Everything in Free',
       '~6 recorded lectures a month',
@@ -55,7 +57,6 @@ export const TIERS = {
     monthly: 16.99,
     semester: 54.99,
     creditsPerMonth: 150,
-    stripe: { monthlyPriceId: 'price_1U3VdQEJUVVmZYwUd0aWOoc3', semesterPriceId: 'price_1U3VdQEJUVVmZYwUiEeBVotN' },
     includes: [
       'Everything in Student',
       '~15 recorded lectures a month',
@@ -71,7 +72,6 @@ export const TIERS = {
     semester: 99.99,
     creditsPerMonth: 400,
     fairUseHoursPerSemester: 250,
-    stripe: { monthlyPriceId: 'price_1U3VdQEJUVVmZYwUCLTKXxPn', semesterPriceId: 'price_1U3VdREJUVVmZYwUQlYOoFre' },
     includes: [
       'Everything in Scholar',
       'Record every lecture and lab',
@@ -83,12 +83,13 @@ export const TIERS = {
 
 export const TIER_ORDER = ['free', 'student', 'scholar', 'unlimited'];
 
-/** One-off credit packs. No subscription needed; all features unlock while balance > 0. */
+/** One-off credit packs. No subscription needed; all features unlock while balance > 0.
+ *  `id` is what the client sends; the server maps it to a Stripe price. */
 export const CREDIT_PACKS = [
-  { id: 'topup',    name: 'Top-up',   credits: 100,  price: 5.99,  stripePriceId: 'price_1U3VdREJUVVmZYwUmnWd2dSB' },
-  { id: 'standard', name: 'Standard', credits: 250,  price: 12.99, stripePriceId: 'price_1U3VdREJUVVmZYwUj5ScyF6G' },
-  { id: 'bulk',     name: 'Bulk',     credits: 600,  price: 24.99, stripePriceId: 'price_1U3VdREJUVVmZYwUW42DAigi' },
-  { id: 'semester', name: 'Semester', credits: 1500, price: 49.99, stripePriceId: 'price_1U3VdSEJUVVmZYwUL4cnt0Eo' },
+  { id: 'topup',    name: 'Top-up',   credits: 100,  price: 5.99 },
+  { id: 'standard', name: 'Standard', credits: 250,  price: 12.99 },
+  { id: 'bulk',     name: 'Bulk',     credits: 600,  price: 24.99 },
+  { id: 'semester', name: 'Semester', credits: 1500, price: 49.99 },
 ];
 
 /**
