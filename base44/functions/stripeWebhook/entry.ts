@@ -36,6 +36,24 @@ export default async function (req: Request) {
     const data = event.data?.object;
     const eventId = event.id;
 
+    // Multi-app Stripe account guard.
+    //
+    // This Stripe account (acct_1ToUnnRecX8K7mfK) is shared with the separate
+    // "Cedar Pilot" Base44 app, which has its own live webhook endpoint
+    // subscribed to checkout.session.completed. Both apps therefore receive
+    // each other's events. Everything this app creates is stamped with
+    // metadata.base44_app_id, so an event carrying a DIFFERENT app id is not
+    // ours and must be ignored.
+    //
+    // Only rejects on a positive mismatch: events with no app id (e.g. invoices,
+    // which do not inherit subscription metadata) fall through to the handlers
+    // below, which resolve ownership via our own CreditBalance table anyway.
+    const OUR_APP_ID = Deno.env.get('BASE44_APP_ID') || '';
+    const eventAppId = data?.metadata?.base44_app_id;
+    if (OUR_APP_ID && eventAppId && eventAppId !== OUR_APP_ID) {
+      return Response.json({ received: true, ignored: 'different_app' });
+    }
+
     switch (event.type) {
       case 'checkout.session.completed': {
         const userId = data?.metadata?.user_id;
