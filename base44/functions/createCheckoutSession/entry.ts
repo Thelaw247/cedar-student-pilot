@@ -1,6 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 import { getBalance } from '../../shared/credits.ts';
-import { stripePost, ensureCustomer } from '../../shared/stripe.ts';
+import { stripePost, ensureCustomer, appOrigin } from '../../shared/stripe.ts';
 import { SUBSCRIPTION_PRICES, PACK_PRICES, VALID_TIERS, VALID_PACKS, VALID_PERIODS } from '../../shared/stripePrices.ts';
 
 /**
@@ -25,7 +25,10 @@ export default async function (req: Request) {
     const { tier, billing_period, pack } = body || {};
 
     const APP_ID = Deno.env.get('BASE44_APP_ID') || '';
-    const ORIGIN = 'https://cedar-student-pilot.base44.app';
+    // Set the APP_ORIGIN secret when the custom domain goes live; falls back
+    // to the base44.app host. Hardcoding this would send paying students back
+    // to the wrong site after checkout.
+    const ORIGIN = appOrigin();
 
     const params: Record<string, any> = {
       'metadata[base44_app_id]': APP_ID,
