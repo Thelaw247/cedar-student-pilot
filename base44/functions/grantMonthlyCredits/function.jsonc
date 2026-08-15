@@ -12,7 +12,11 @@
       "type": "scheduled",
       "name": "monthly_credit_grant",
       "description": "Daily sweep: tops up subscription credits for active subscribers whose last grant was in a previous month. ~30 runs/month, 1 credit each. Free tier is a lifetime grant and is never refreshed here. IMPORTANT for semester (4-month) plans: without this, subscribers only get credits when an invoice fires every 4 months, leaving months 1-3 dry. DISABLED until GRANT_TRIGGER_TOKEN is set in Settings → Secrets and the trigger_token placeholder below is replaced with that value, then flip is_active back to true.",
-      "is_active": true.,
+      // Kept false until GRANT_TRIGGER_TOKEN is set (see description above).
+      // There are currently zero subscribers, so an enabled run would be a
+      // rejected no-op costing ~30 integration credits a month. Flip to true
+      // as part of go-live, once the secret and trigger_token match.
+      "is_active": false,
       // COST: each automation run costs 1 integration credit even when it
       // grants nothing. Daily = ~30/month, which is fine. Do NOT make this
       // hourly (that would be ~720 credits/month).
