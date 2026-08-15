@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+import { invokeLLM } from '../../shared/llm.ts';
 
 // Do not pin a `model` here. Base44 bills integration credits PER CALL, so
 // Gemini 3 Flash (~5 credits) costs more than Automatic (~3 credits) for the
@@ -121,7 +122,7 @@ Deno.serve(async (req) => {
       return `${ds}: busy ${blocks.map(b => `${toTime(b.start)}-${toTime(b.start + b.dur)}`).join(', ')}`;
     }).join('\n');
 
-    const schedule = await base44.asServiceRole.integrations.Core.InvokeLLM({
+    const schedule = await invokeLLM(base44, {
       prompt: `You are an AI study planner. Generate a study schedule for a student preparing for an upcoming assignment. You MUST NOT schedule sessions that overlap the student's existing commitments listed below.
 
 Assignment: ${assignment.title}
