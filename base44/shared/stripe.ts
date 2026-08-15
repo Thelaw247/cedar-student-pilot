@@ -76,7 +76,10 @@ export async function ensureCustomer(base44: any, user: any, balance: any): Prom
     name: user.full_name || '',
     'metadata[base44_app_id]': appId(),
     'metadata[user_id]': user.id,
-  }, crypto.randomUUID());
+    // Deterministic idempotency key. A random key per call would defeat
+    // Stripe's idempotency entirely: two concurrent first-checkouts would
+    // create two Stripe customers for the same student.
+  }, `cedar-customer-${user.id}`);
   await base44.asServiceRole.entities.CreditBalance.update(balance.id, { stripe_customer_id: c.id });
   return c.id;
 }
@@ -87,6 +90,68 @@ export async function hasProcessed(base44: any, anchorId: string): Promise<boole
   if (!anchorId) return false;
   const rows = await base44.asServiceRole.entities.ProcessedStripeEvent.filter({ anchor_id: anchorId });
   return !!(rows && rows.length > 0);
+}
+
+/**
+ * Atomically-enough claim an anchor before granting.
+ *
+ * A plain hasProcessed() -> grant -> recordProcessed() sequence is check-then-act:
+ * the webhook and the success-page confirm routinely fire within milliseconds of
+ * each other, and both can pass the check before either records. There is no
+ * unique index available on anchor_id, so this claims FIRST and then re-reads:
+ * if two writers raced, only the lowest row id proceeds and the loser bails.
+ *
+ * Fails closed. If the claim cannot be written we do not grant — Stripe retries
+ * the webhook, which re-enters here and self-heals. Under-granting is visible
+ * and recoverable; double-granting is a silent loss of money.
+ */
+export async function claimAnchor(
+  base44: any,
+  anchorId: string,
+  userId: string,
+  kind: string,
+  extra: { stripe_event_id?: string; stripe_session_id?: string } = {},
+): Promise<{ won: boolean; rowId?: string }> {
+  if (!anchorId) return { won: false };
+
+  const existing = await base44.asServiceRole.entities.ProcessedStripeEvent.filter({ anchor_id: anchorId });
+  if (existing && existing.length > 0) return { won: false };
+
+  let mine: any;
+  try {
+    mine = await base44.asServiceRole.entities.ProcessedStripeEvent.create({
+      anchor_id: anchorId,
+      user_id: userId,
+      kind,
+      stripe_event_id: extra.stripe_event_id || '',
+      stripe_session_id: extra.stripe_session_id || '',
+      credits_granted: 0,
+      processed_at: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.error('[idempotency] claim failed, not granting', (err as Error).message);
+    return { won: false };
+  }
+
+  const rows = await base44.asServiceRole.entities.ProcessedStripeEvent.filter({ anchor_id: anchorId });
+  if (rows && rows.length > 1) {
+    const winner = rows.map((r: any) => String(r.id)).sort()[0];
+    if (winner !== String(mine.id)) {
+      console.warn('[idempotency] lost race for', anchorId, '- skipping grant');
+      return { won: false };
+    }
+  }
+  return { won: true, rowId: mine.id };
+}
+
+/** Write the granted amount back onto a claim row. Never throws. */
+export async function finalizeClaim(base44: any, rowId: string | undefined, credits: number) {
+  if (!rowId) return;
+  try {
+    await base44.asServiceRole.entities.ProcessedStripeEvent.update(rowId, { credits_granted: credits });
+  } catch (err) {
+    console.error('[idempotency] finalize failed', (err as Error).message);
+  }
 }
 
 export async function recordProcessed(base44: any, e: {
