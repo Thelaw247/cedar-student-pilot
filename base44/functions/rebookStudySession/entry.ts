@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+import { invokeLLM } from '../../shared/llm.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -37,7 +38,7 @@ Suggest a new date and time within the next 7 days that:
 
 Respond with ONLY a JSON object: {"new_date": "YYYY-MM-DD", "new_time": "HH:MM", "reason": "brief reason"}`;
 
-    const result = await base44.integrations.Core.InvokeLLM({
+    const result = await invokeLLM(base44, {
       prompt,
       response_json_schema: {
         type: 'object',
