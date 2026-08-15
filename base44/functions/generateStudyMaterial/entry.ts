@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+import { invokeLLM } from '../../shared/llm.ts';
 
 // Do not pin a `model` here. Base44 bills integration credits PER CALL, so
 // Gemini 3 Flash (~5 credits) costs more than Automatic (~3 credits) for the
@@ -42,7 +43,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'No lecture content available to generate study material' }, { status: 400 });
     }
 
-    const material = await base44.asServiceRole.integrations.Core.InvokeLLM({
+    const material = await invokeLLM(base44, {
       prompt: `You are an AI study material generator. Based on the following university lecture content, generate study material of type "${material_type}".
 
 Lecture content:
