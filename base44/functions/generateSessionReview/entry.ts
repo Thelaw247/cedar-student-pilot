@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+import { invokeLLM } from '../../shared/llm.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -70,7 +71,7 @@ Deno.serve(async (req) => {
 - 3 short answer questions (1-2 sentence answers)
 - 2 one-word answer questions`;
 
-    const result = await base44.asServiceRole.integrations.Core.InvokeLLM({
+    const result = await invokeLLM(base44, {
       prompt: `You are an academic tutor creating a study session review quiz for the class "${cls?.name || 'this class'}".
 
 ${questionTypeInstruction}
