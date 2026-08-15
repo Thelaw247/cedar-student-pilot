@@ -66,6 +66,15 @@ export default function Subscription() {
     };
   };
 
+  /** The badge on the Semester toggle. The saving differs per tier (Student
+   *  25%, Scholar 19%, Unlimited 17%), so a flat "Save 25%" overstated the
+   *  discount on two of three plans. Derive the real best case instead — if a
+   *  price ever changes, the badge follows it automatically. */
+  const maxSavingPercent = Math.max(
+    0,
+    ...TIER_ORDER.map((id) => savingFor(TIERS[id])?.percent || 0),
+  );
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-24">
