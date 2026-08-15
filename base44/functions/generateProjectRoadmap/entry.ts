@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+import { invokeLLM } from '../../shared/llm.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -12,7 +13,7 @@ Deno.serve(async (req) => {
 
     // Phase 1: Determine custom fields based on description
     if (!project_metadata) {
-      const result = await base44.asServiceRole.integrations.Core.InvokeLLM({
+      const result = await invokeLLM(base44, {
         prompt: `You are a project planning assistant for university students. A student needs to complete a project.
 
 Project Description: "${description}"
@@ -61,7 +62,7 @@ Only generate fields that are genuinely needed for THIS specific project. Do not
       .map(([k, v]) => `- ${k}: ${v}`)
       .join('\n');
 
-    const result = await base44.asServiceRole.integrations.Core.InvokeLLM({
+    const result = await invokeLLM(base44, {
       prompt: `You are a project planning assistant. Create a step-by-step roadmap for a student to complete their project.
 
 Project Description: "${description}"
