@@ -1,5 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 import { invokeLLM } from '../../shared/llm.ts';
+import { secrets } from 'base44:runtime';
+import { gateFeature, settleFeature } from '../../shared/credits.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -46,6 +48,11 @@ Deno.serve(async (req) => {
         message: 'No lecture content available for review yet. Record or process lectures first.'
       });
     }
+
+    // Gate after the content check — "no content yet" returns above and is
+    // not billable.
+    const gate = await gateFeature(base44, user.id, 'session_review', { class_id });
+    if (!gate.ok) return gate.response!;
 
     // Build context from lectures
     const lectureContext = lecturesWithContent.map(l => {
@@ -114,6 +121,13 @@ ${isComplex ? 'For problem questions, make them actual solvable problems based o
           }
         }
       }
+    });
+
+    await settleFeature(base44, gate, {
+      feature: 'session_review',
+      calls: 1,
+      usedGemini: !!secrets.get('GEMINI_API_KEY'),
+      extra: { class_id },
     });
 
     return Response.json({
