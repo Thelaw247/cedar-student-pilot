@@ -1,5 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 import { invokeLLM, QUALITY_MODEL } from '../../shared/llm.ts';
+import { secrets } from 'base44:runtime';
+import { gateFeature, settleFeature } from '../../shared/credits.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -18,6 +20,10 @@ Deno.serve(async (req) => {
     if (lecturesWithContent.length === 0) {
       return Response.json({ topics: [], message: 'Not enough lecture data to make predictions yet.' });
     }
+
+    // Gate after the data check — "not enough data yet" is not billable.
+    const gate = await gateFeature(base44, user.id, 'exam_prediction', { class_id });
+    if (!gate.ok) return gate.response!;
 
     // Aggregate concept frequency across all lectures
     const conceptFrequency = {};
@@ -115,6 +121,13 @@ Rules:
         },
       },
       add_context_from_internet: false,
+    });
+
+    await settleFeature(base44, gate, {
+      feature: 'exam_prediction',
+      calls: 1,
+      usedGemini: !!secrets.get('GEMINI_API_KEY'),
+      extra: { class_id },
     });
 
     return Response.json({
