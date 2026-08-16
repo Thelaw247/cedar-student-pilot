@@ -1,5 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 import { invokeLLM } from '../../shared/llm.ts';
+import { secrets } from 'base44:runtime';
+import { gateFeature, settleFeature } from '../../shared/credits.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -58,6 +60,12 @@ Only generate fields that are genuinely needed for THIS specific project. Do not
     }
 
     // Phase 2: Generate roadmap based on description + metadata
+
+    // Phase 1 (field discovery) returns above and stays free — it is a setup
+    // step, not the deliverable. Only the roadmap itself is billable.
+    const gate = await gateFeature(base44, user.id, 'project_roadmap');
+    if (!gate.ok) return gate.response!;
+
     const metadataStr = Object.entries(project_metadata)
       .map(([k, v]) => `- ${k}: ${v}`)
       .join('\n');
@@ -103,6 +111,12 @@ Each step needs:
         }
       }
     });
+    await settleFeature(base44, gate, {
+      feature: 'project_roadmap',
+      calls: 1,
+      usedGemini: !!secrets.get('GEMINI_API_KEY'),
+    });
+
     return Response.json({ roadmap: result.roadmap || [] });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
