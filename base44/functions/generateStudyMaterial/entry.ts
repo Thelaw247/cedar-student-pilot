@@ -1,5 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 import { invokeLLM } from '../../shared/llm.ts';
+import { secrets } from 'base44:runtime';
+import { gateFeature, settleFeature } from '../../shared/credits.ts';
 
 // Do not pin a `model` here. Base44 bills integration credits PER CALL, so
 // Gemini 3 Flash (~5 credits) costs more than Automatic (~3 credits) for the
@@ -42,6 +44,10 @@ Deno.serve(async (req) => {
     if (!lectureContent) {
       return Response.json({ error: 'No lecture content available to generate study material' }, { status: 400 });
     }
+
+    // Gate after the content check — "nothing to generate" is not billable.
+    const gate = await gateFeature(base44, user.id, 'study_material', { class_id });
+    if (!gate.ok) return gate.response!;
 
     const material = await invokeLLM(base44, {
       prompt: `You are an AI study material generator. Based on the following university lecture content, generate study material of type "${material_type}".
@@ -108,6 +114,13 @@ Return the appropriate JSON structure.`,
       }));
       await base44.entities.PracticeQuestion.bulkCreate(questions);
     }
+
+    await settleFeature(base44, gate, {
+      feature: 'study_material',
+      calls: 1,
+      usedGemini: !!secrets.get('GEMINI_API_KEY'),
+      extra: { class_id },
+    });
 
     return Response.json({ material_type, generated: true, material });
   } catch (error) {
