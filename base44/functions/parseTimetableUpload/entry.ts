@@ -1,4 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+import { secrets } from 'base44:runtime';
+import { gateFeature, settleFeature } from '../../shared/credits.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -9,6 +11,13 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const { file_url } = body;
     if (!file_url) return Response.json({ error: 'file_url is required' }, { status: 400 });
+
+    // timetable_import costs 0 by design — this runs during onboarding and must
+    // never be blocked. The gate passes automatically; it is here so the call
+    // still lands in UsageEvent and its real cost stays visible in the margin
+    // numbers rather than being invisible spend.
+    const gate = await gateFeature(base44, user.id, 'timetable_import');
+    if (!gate.ok) return gate.response!;
 
     // NOT migrated to shared/llm.ts on purpose. This is the only vision call in
     // the app — it passes `file_urls` so the model can read a photo of a
@@ -51,6 +60,15 @@ Be thorough — capture every class on the timetable. If days aren't explicitly 
           }
         }
       }
+    });
+
+    await settleFeature(base44, gate, {
+      feature: 'timetable_import',
+      calls: 1,
+      // This is the one vision call in the app and it does NOT route through
+      // invokeLLM, so it always bills Base44 integration credits regardless of
+      // whether GEMINI_API_KEY is set.
+      usedGemini: false,
     });
 
     return Response.json({ classes: result.classes || [] });
