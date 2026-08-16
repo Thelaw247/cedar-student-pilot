@@ -1,5 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 import { invokeLLM } from '../../shared/llm.ts';
+import { secrets } from 'base44:runtime';
+import { gateFeature, settleFeature } from '../../shared/credits.ts';
 
 // Do not pin a `model` here. Base44 bills integration credits PER CALL, so
 // Gemini 3 Flash (~5 credits) costs more than Automatic (~3 credits) for the
@@ -35,6 +37,10 @@ Deno.serve(async (req) => {
 
     const assignment = await base44.entities.Assignment.get(assignment_id);
     if (!assignment) return Response.json({ error: 'Assignment not found' }, { status: 404 });
+
+    // Gate after the assignment lookup — a missing assignment is not billable.
+    const gate = await gateFeature(base44, user.id, 'study_schedule');
+    if (!gate.ok) return gate.response!;
 
     const cls = await base44.entities.Class.get(assignment.class_id);
     const lectures = await base44.entities.Lecture.filter({ class_id: assignment.class_id }, 'date');
@@ -256,6 +262,12 @@ Higher-priority sessions should cover complex material or happen closer to the d
     if (sessionsToCreate.length > 0) {
       await base44.entities.StudySession.bulkCreate(sessionsToCreate);
     }
+
+    await settleFeature(base44, gate, {
+      feature: 'study_schedule',
+      calls: 1,
+      usedGemini: !!secrets.get('GEMINI_API_KEY'),
+    });
 
     return Response.json({ sessions_created: sessionsToCreate.length });
   } catch (error) {
