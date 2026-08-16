@@ -1,5 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 import { invokeLLM } from '../../shared/llm.ts';
+import { secrets } from 'base44:runtime';
+import { gateFeature, settleFeature } from '../../shared/credits.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -13,6 +15,10 @@ Deno.serve(async (req) => {
 
     const session = await base44.entities.StudySession.get(session_id);
     if (!session) return Response.json({ error: 'Session not found' }, { status: 404 });
+
+    // Gate after the session lookup — a missing session is not billable.
+    const gate = await gateFeature(base44, user.id, 'smart_rebook');
+    if (!gate.ok) return gate.response!;
 
     // Get class context
     const cls = session.class_id ? await base44.entities.Class.get(session.class_id) : null;
@@ -82,6 +88,12 @@ Respond with ONLY a JSON object: {"new_date": "YYYY-MM-DD", "new_time": "HH:MM",
       scheduled_date: newDate,
       scheduled_time: newTime,
       status: 'scheduled',
+    });
+
+    await settleFeature(base44, gate, {
+      feature: 'smart_rebook',
+      calls: 1,
+      usedGemini: !!secrets.get('GEMINI_API_KEY'),
     });
 
     return Response.json({ success: true, new_date: newDate, new_time: newTime, reason: result.reason });
