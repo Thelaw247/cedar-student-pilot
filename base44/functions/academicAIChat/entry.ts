@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 import { invokeLLM, QUALITY_MODEL } from '../../shared/llm.ts';
+import { secrets } from 'base44:runtime';
 
 /**
  * DISABLED — the AI chat is withdrawn pending a per-message price.
