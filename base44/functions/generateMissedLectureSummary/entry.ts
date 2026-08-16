@@ -1,5 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 import { invokeLLM, QUALITY_MODEL } from '../../shared/llm.ts';
+import { secrets } from 'base44:runtime';
+import { gateFeature, settleFeature } from '../../shared/credits.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -14,6 +16,10 @@ Deno.serve(async (req) => {
     // Get class info
     const cls = await base44.entities.Class.get(class_id);
     if (!cls) return Response.json({ error: 'Class not found' }, { status: 404 });
+
+    // Gate after the class lookup — a missing class is not billable.
+    const gate = await gateFeature(base44, user.id, 'missed_summary', { class_id });
+    if (!gate.ok) return gate.response!;
 
     // Get previous lectures for context
     const lectures = await base44.entities.Lecture.filter({ class_id: class_id }, '-date');
@@ -80,6 +86,13 @@ IMPORTANT: This is an estimation based on course progression. Be clear that this
       actual_instructor: 'AI',
       instructor_confirmed: true,
       user_id: user.id,
+    });
+
+    await settleFeature(base44, gate, {
+      feature: 'missed_summary',
+      calls: 1,
+      usedGemini: !!secrets.get('GEMINI_API_KEY'),
+      extra: { class_id, lecture_id: lecture.id },
     });
 
     return Response.json({ lecture_id: lecture.id, status: 'complete' });
