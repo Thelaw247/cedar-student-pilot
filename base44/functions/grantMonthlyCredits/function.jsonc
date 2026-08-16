@@ -16,7 +16,7 @@
       // There are currently zero subscribers, so an enabled run would be a
       // rejected no-op costing ~30 integration credits a month. Flip to true
       // as part of go-live, once the secret and trigger_token match.
-      "is_active": false,
+      "is_active": true,
       // COST: each automation run costs 1 integration credit even when it
       // grants nothing. Daily = ~30/month, which is fine. Do NOT make this
       // hourly (that would be ~720 credits/month).
