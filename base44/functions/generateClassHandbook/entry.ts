@@ -1,5 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 import { invokeLLM } from '../../shared/llm.ts';
+import { secrets } from 'base44:runtime';
+import { gateFeature, settleFeature } from '../../shared/credits.ts';
 
 /**
  * Builds a class handbook: one chapter per lecture, in teaching order.
@@ -137,6 +139,13 @@ Deno.serve(async (req) => {
       console.error('[handbook] cache read failed, rebuilding', (e as Error).message);
     }
 
+    // ---- CREDIT GATE ----------------------------------------------------
+    // Deliberately placed AFTER the cache check: a cache hit returned above
+    // does no LLM work, so re-opening an unchanged handbook stays free. Only
+    // a real rebuild is billable.
+    const gate = await gateFeature(base44, user.id, 'handbook');
+    if (!gate.ok) return gate.response!;
+
     // ----------------------------------------------------------- build ----
     // One query for all notes in the class, grouped in memory. This used to be
     // one awaited query PER LECTURE.
@@ -269,6 +278,13 @@ Return ONLY the supplementary explanation text (or an empty string if none is ne
     } catch (e) {
       console.error('[handbook] cache write failed', (e as Error).message);
     }
+
+    // Charged only now that the handbook is built and cached.
+    await settleFeature(base44, gate, {
+      feature: 'handbook',
+      calls: 1 + Math.min(EXPANSION_CAP, lecturesWithContent.length),
+      usedGemini: !!secrets.get('GEMINI_API_KEY'),
+    });
 
     return Response.json({ ...payload, cached: false });
   } catch (error) {
