@@ -1,8 +1,36 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 import { invokeLLM, QUALITY_MODEL } from '../../shared/llm.ts';
 
+/**
+ * DISABLED — the AI chat is withdrawn pending a per-message price.
+ *
+ * The UI entry points were removed (src/pages/AIAssistant.jsx is unrouted and
+ * <FloatingChat /> is unmounted), but removing the UI does NOT remove access:
+ * every Base44 function is a public endpoint at /functions/<name>, invokable
+ * from any signed-in browser console. Left open, this was an UNGATED,
+ * UNCHARGED, UNLOGGED LLM endpoint — the one uncapped cost hole in the app.
+ *
+ * So the kill switch lives HERE, on the server, not in the UI.
+ *
+ * The implementation below is deliberately kept intact for reintegration.
+ * To re-enable: set the ACADEMIC_CHAT_ENABLED secret to "true", add a `chat`
+ * cost to FEATURE_COSTS and a `chat` value to the UsageEvent.feature enum,
+ * then wire the gate/charge/log pattern in as with every other feature.
+ */
+const CHAT_ENABLED = () => {
+  try { return (secrets.get('ACADEMIC_CHAT_ENABLED') || '') === 'true'; } catch { return false; }
+};
+
 Deno.serve(async (req) => {
   try {
+    // Fail closed, before any auth or LLM work is done.
+    if (!CHAT_ENABLED()) {
+      return Response.json(
+        { error: 'feature_disabled', message: 'AI chat is not available yet.' },
+        { status: 403 },
+      );
+    }
+
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
