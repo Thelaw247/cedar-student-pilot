@@ -1,5 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 import { invokeLLM, QUALITY_MODEL } from '../../shared/llm.ts';
+import { secrets } from 'base44:runtime';
+import { gateFeature, settleFeature } from '../../shared/credits.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -58,6 +60,12 @@ Return JSON: { "results": [ { "correct": boolean, "feedback": string }, ... ] } 
       return Response.json({ results: grading.results || [] });
     }
     // ---- End grading mode ---------------------------------------------------
+
+    // Gate the review GENERATION only. Grading returns above and stays free:
+    // the student already paid for these questions, so charging again to mark
+    // their answers would bill the same purchase twice.
+    const gate = await gateFeature(base44, user.id, 'lecture_review');
+    if (!gate.ok) return gate.response!;
 
     let targetLectures = [];
 
@@ -189,6 +197,12 @@ Return a JSON object with:
           }
         }
       }
+    });
+
+    await settleFeature(base44, gate, {
+      feature: 'lecture_review',
+      calls: 1,
+      usedGemini: !!secrets.get('GEMINI_API_KEY'),
     });
 
     return Response.json({
