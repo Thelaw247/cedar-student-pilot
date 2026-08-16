@@ -129,6 +129,81 @@ export async function logUsage(base44: any, event: Record<string, any>) {
   }
 }
 
+// ------------------------------------------------- gate / settle helper ----
+
+/**
+ * The check-before-work half of the credit contract.
+ *
+ * Ten features previously called an LLM with no gate, no charge and no usage
+ * log at all: every plan's paid features were free and unlimited, and
+ * UsageEvent captured only 2 of 13 features, so cost-per-user was unknowable.
+ * Rather than paste the same twenty lines into each one, both halves live
+ * here — one place to change when the rate card moves.
+ *
+ * Call gateFeature() immediately BEFORE the expensive work and return
+ * gate.response if !gate.ok. Call settleFeature() only AFTER the result is
+ * safely persisted. A failed generation must never bill.
+ *
+ * Cost 0 features (timetable_import) pass the gate automatically but still
+ * log, so onboarding is never blocked yet its real cost stays visible.
+ */
+export async function gateFeature(
+  base44: any,
+  userId: string,
+  feature: string,
+  extra: Record<string, any> = {},
+): Promise<{ ok: boolean; response?: Response; balance?: any; cost?: number; startedAt?: number }> {
+  const cost = FEATURE_COSTS[feature] ?? 0;
+  const balance = await getBalance(base44, userId);
+
+  if (cost > 0 && availableCredits(balance) < cost) {
+    await logUsage(base44, {
+      user_id: userId, feature, tier_at_time: balance.tier, success: false, ...extra,
+    });
+    return { ok: false, response: insufficientResponse(feature, cost, balance) };
+  }
+  return { ok: true, balance, cost, startedAt: Date.now() };
+}
+
+/**
+ * The charge-after-success half. Deducts the credits and writes the ledger row
+ * that the margin dashboard reads. Never throws — a logging failure must not
+ * fail a request the user already paid for.
+ *
+ * `calls` is the number of LLM round trips made, which is what Base44 bills on
+ * when GEMINI_API_KEY is absent. With the key set, those calls cost 0 Base44
+ * credits and the real spend sits with Google instead.
+ */
+export async function settleFeature(
+  base44: any,
+  gate: { ok: boolean; balance?: any; cost?: number; startedAt?: number },
+  opts: { feature: string; calls?: number; usedGemini?: boolean; extra?: Record<string, any> },
+) {
+  if (!gate?.ok || !gate.balance) return;
+  const calls = opts.calls ?? 1;
+  const gemini = !!opts.usedGemini;
+  const base44Credits = gemini ? 0 : calls * 3;
+
+  try {
+    if ((gate.cost || 0) > 0) await spendCredits(base44, gate.balance, gate.cost as number);
+  } catch (e) {
+    console.error('[credits] spend failed', (e as Error).message);
+  }
+
+  await logUsage(base44, {
+    user_id: gate.balance.user_id,
+    feature: opts.feature,
+    provider: gemini ? 'gemini' : 'base44',
+    call_count: calls,
+    base44_credits: base44Credits,
+    cedar_credits_charged: gate.cost || 0,
+    cost_cad: base44CostCad(base44Credits),
+    tier_at_time: gate.balance.tier,
+    latency_ms: gate.startedAt ? Date.now() - gate.startedAt : 0,
+    ...(opts.extra || {}),
+  });
+}
+
 /** Cost estimates, kept here so the rate card lives in one place. */
 export const RATES = {
   cadPerBase44Credit: 120 / 20000,
