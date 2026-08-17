@@ -42,12 +42,36 @@ export function durationCost(seconds: number, per30: number): number {
   return Math.max(per30, Math.ceil(mins / 30) * per30);
 }
 
-/** Starting allowance by tier, in Cedar credits per month. */
+/** Starting allowance by tier, in Cedar credits per month.
+ *
+ *  Sized against real usage, not round numbers: a 1-hour lecture costs 10
+ *  credits to process and 16 if the transcript is also cleaned. A student
+ *  taking 5 courses at 3 lecture-hours a week records ~60 hours a month, so
+ *  the old 60-credit Student grant bought under 4 hours of fully-processed
+ *  lecture — less than one course. That scarcity is what made credit packs
+ *  the only usable route and inverted the pricing.
+ *
+ *  Per-credit rates these produce (see stripePrices.ts for the pack side):
+ *    student $0.050  scholar $0.038  unlimited $0.030 */
 export const TIER_GRANT: Record<string, number> = {
   free: 20, // 2 lectures, LIFETIME — not refreshed monthly
-  student: 60,
-  scholar: 150,
-  unlimited: 400,
+  student: 200,
+  scholar: 450,
+  unlimited: 1000,
+};
+
+/** Soft fair-use ceiling, in credits consumed within a single period.
+ *
+ *  Unlimited is the margin risk: at 1000 credits and worst-case routing it is
+ *  a ~60% margin, and a user recording everything could push past that. This
+ *  does NOT block anyone — settleFeature raises fair_use_flagged on the
+ *  balance so heavy accounts surface on the owner dashboard for a human
+ *  decision. Never auto-cut a paying customer off on an estimate. */
+export const FAIR_USE_CEILING: Record<string, number> = {
+  free: 0,
+  student: 400,
+  scholar: 900,
+  unlimited: 1500,
 };
 
 // ------------------------------------------------------------- balance io ---
