@@ -24,6 +24,7 @@ import FocusMode from './pages/FocusMode';
 import Analytics from './pages/Analytics';
 import LectureReview from './pages/LectureReview';
 import CheckoutSuccess from './pages/CheckoutSuccess';
+import OwnerAnalytics from './pages/OwnerAnalytics';
 import Subscription from './pages/Subscription';
 
 /**
@@ -88,6 +89,10 @@ const AuthenticatedApp = () => {
             pricing page can reuse this once the landing page exists. */}
         <Route path="/subscription" element={<Subscription />} />
         <Route path="/checkout/success" element={<CheckoutSuccess />} />
+        {/* Owner-only business dashboard: revenue, cost to serve and margin.
+            The UI is only linked for admins, but the real gate is server-side
+            — the ownerAnalytics function returns 403 to any non-admin. */}
+        <Route path="/owner" element={<OwnerAnalytics />} />
       </Route>
       </Route>
       <Route path="*" element={<PageNotFound />} />
