@@ -13,7 +13,7 @@
  * of the call (see shared/credits.ts RATES). Margin here is therefore
  * estimated too. Stripe fees are NOT deducted — see feesNote in the payload.
  */
-import { createClientFromRequest } from '@base44/sdk';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 import { stripeGet } from '../../shared/stripe.ts';
 import { TIER_GRANT } from '../../shared/credits.ts';
 
