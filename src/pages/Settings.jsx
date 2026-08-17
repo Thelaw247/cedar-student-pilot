@@ -11,50 +11,15 @@ import DataExportSection from '@/components/DataExportSection';
 
 export default function Settings() {
   const [isDark, setIsDark] = useState(false);
-  const [googleCalConnected, setGoogleCalConnected] = useState(false);
-  const [connecting, setConnecting] = useState(false);
-  const [checkingCal, setCheckingCal] = useState(true);
 
   useEffect(() => {
     setIsDark(document.documentElement.classList.contains('dark'));
-    // Check Google Calendar connection status on mount
-    (async () => {
-      try {
-        await base44.connectors.getConnection('googlecalendar');
-        setGoogleCalConnected(true);
-      } catch (e) {
-        setGoogleCalConnected(false);
-      }
-      setCheckingCal(false);
-    })();
   }, []);
 
   const toggleTheme = (dark) => {
     setIsDark(dark);
     document.documentElement.classList.toggle('dark', dark);
     localStorage.setItem('cedar-theme', dark ? 'dark' : 'light');
-  };
-
-  const connectGoogleCalendar = async () => {
-    setConnecting(true);
-    try {
-      const connection = await base44.connectAppUser('6a41cf62255e656d3c2b684a');
-      if (connection?.url) {
-        window.location.href = connection.url;
-      }
-    } catch (e) {
-      console.error(e);
-    }
-    setConnecting(false);
-  };
-
-  const disconnectGoogleCalendar = async () => {
-    try {
-      await base44.connectors.disconnect('googlecalendar');
-      setGoogleCalConnected(false);
-    } catch (e) {
-      console.error(e);
-    }
   };
 
   return (
@@ -84,30 +49,10 @@ export default function Settings() {
         </div>
       </SettingsSection>
 
-      <SettingsSection icon={Calendar} title="Google Calendar">
-        <p className="text-sm text-muted-foreground mb-3">Sync your Cedar events with Google Calendar for two-way synchronization.</p>
-        {checkingCal ? (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="w-4 h-4 animate-spin" /> Checking connection...
-          </div>
-        ) : googleCalConnected ? (
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-sm text-emerald-600">
-              <Check className="w-4 h-4" /> Connected
-            </div>
-            <button onClick={disconnectGoogleCalendar}
-              className="text-xs text-muted-foreground hover:text-destructive transition-colors">
-              Disconnect
-            </button>
-          </div>
-        ) : (
-          <button onClick={connectGoogleCalendar} disabled={connecting}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-border text-sm font-medium hover:bg-muted disabled:opacity-50">
-            {connecting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Calendar className="w-4 h-4" />}
-            Connect Google Calendar
-          </button>
-        )}
-      </SettingsSection>
+      {/* Google Calendar sync REMOVED — there is no Google OAuth app configured,
+          so "Connect Google Calendar" could only ever fail. Restore this section
+          once OAuth is set up and base44.connectAppUser has a real connector id
+          to point at. Nothing else in the app depends on the connection. */}
 
       <SettingsSection icon={Bell} title="Notifications">
         <Toggle label="Class reminders" description="Get notified before classes start" settingKey="classReminders" />
