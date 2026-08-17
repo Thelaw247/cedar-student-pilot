@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { base44 } from '@/api/base44Client';
-import { Sun, Moon, Bell, Sparkles, Clock, Palette, Calendar, Loader2, Check, AlertCircle, GraduationCap, BookOpen, Shield, User, Zap } from 'lucide-react';
+import { Sun, Moon, Bell, Sparkles, Clock, Palette, Check, AlertCircle, GraduationCap, BookOpen, Shield, User, Zap } from 'lucide-react';
 import { getSetting, setSetting } from '@/lib/settings';
 import ProfileSettings from '@/components/ProfileSettings';
 import SubscriptionSettings from '@/components/SubscriptionSettings';
