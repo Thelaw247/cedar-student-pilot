@@ -214,6 +214,26 @@ export async function settleFeature(
     console.error('[credits] spend failed', (e as Error).message);
   }
 
+  // Soft fair-use check. Consumption this period is what the tier granted
+  // minus what is left on the subscription bucket; purchased credits are
+  // excluded because the user paid separately for those and they are already
+  // margin-positive. Flag only, never block — see FAIR_USE_CEILING.
+  try {
+    const tier = gate.balance.tier || 'free';
+    const ceiling = FAIR_USE_CEILING[tier] ?? 0;
+    if (ceiling > 0 && !gate.balance.fair_use_flagged) {
+      const granted = TIER_GRANT[tier] ?? 0;
+      const usedThisPeriod = granted - (gate.balance.subscription_credits || 0) + (gate.cost || 0);
+      if (usedThisPeriod >= ceiling) {
+        await base44.asServiceRole.entities.CreditBalance.update(gate.balance.id, {
+          fair_use_flagged: true,
+        });
+      }
+    }
+  } catch (e) {
+    console.error('[credits] fair-use check failed', (e as Error).message);
+  }
+
   await logUsage(base44, {
     user_id: gate.balance.user_id,
     feature: opts.feature,
