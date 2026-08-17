@@ -39,11 +39,11 @@ export const TIERS = {
     name: 'Student',
     blurb: 'For one busy semester.',
     monthly: 9.99,
-    semester: 29.99,
-    creditsPerMonth: 60,
+    semester: 31.99,
+    creditsPerMonth: 200,
     includes: [
       'Everything in Free',
-      '~6 recorded lectures a month',
+      '~20 recorded lectures a month',
       'Class handbooks',
       'Exam topic prediction',
       'AI study schedules',
@@ -56,10 +56,10 @@ export const TIERS = {
     blurb: 'For a full course load.',
     monthly: 16.99,
     semester: 54.99,
-    creditsPerMonth: 150,
+    creditsPerMonth: 450,
     includes: [
       'Everything in Student',
-      '~15 recorded lectures a month',
+      '~45 recorded lectures a month',
       'Handbooks for every class',
       'Full proficiency history',
     ],
@@ -69,8 +69,8 @@ export const TIERS = {
     name: 'Unlimited',
     blurb: 'Record everything, every day.',
     monthly: 29.99,
-    semester: 99.99,
-    creditsPerMonth: 400,
+    semester: 95.99,
+    creditsPerMonth: 1000,
     fairUseHoursPerSemester: 250,
     includes: [
       'Everything in Scholar',
@@ -83,13 +83,19 @@ export const TIERS = {
 
 export const TIER_ORDER = ['free', 'student', 'scholar', 'unlimited'];
 
-/** One-off credit packs. No subscription needed; all features unlock while balance > 0.
+/** One-off credit packs — for topping up mid-period without changing plan.
+ *
+ *  DELIBERATELY dearer per credit than every subscription tier ($0.056-$0.070
+ *  against $0.030-$0.050). Packs never expire and need no commitment, and
+ *  that convenience is what the premium buys. If a pack is ever cheaper per
+ *  credit than a subscription, nobody subscribes and recurring revenue dies —
+ *  which is exactly what the previous catalogue did.
+ *
  *  `id` is what the client sends; the server maps it to a Stripe price. */
 export const CREDIT_PACKS = [
-  { id: 'topup',    name: 'Top-up',   credits: 100,  price: 5.99 },
-  { id: 'standard', name: 'Standard', credits: 250,  price: 12.99 },
-  { id: 'bulk',     name: 'Bulk',     credits: 600,  price: 24.99 },
-  { id: 'semester', name: 'Semester', credits: 1500, price: 49.99 },
+  { id: 'small',  name: 'Small',  credits: 100, price: 6.99 },
+  { id: 'medium', name: 'Medium', credits: 250, price: 14.99 },
+  { id: 'large',  name: 'Large',  credits: 500, price: 27.99 },
 ];
 
 /**
