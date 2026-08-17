@@ -3,7 +3,10 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { X, Music, Play, Pause, Square, Brain, Coffee, Check, BarChart3, Loader2, MessageCircle, Clock } from 'lucide-react';
 import MusicPlayer from '@/components/MusicPlayer';
-import AIStudyChat from '@/components/AIStudyChat';
+// AI Study Chat is WITHDRAWN pending a per-message price and a working
+// implementation. The component is left on disk — re-add the import plus the
+// toggle button and render block below to bring it back.
+// import AIStudyChat from '@/components/AIStudyChat';
 import SessionReview from '@/components/SessionReview';
 import FocusSessionWizard from '@/components/FocusSessionWizard';
 import HandbookReader from '@/components/HandbookReader';
@@ -575,7 +578,10 @@ export default function FocusMode() {
         </div>
       )}
 
-      {/* AI Study Chat toggle */}
+      {/* AI Study Chat toggle — WITHDRAWN. AIStudyChat called
+          Core.InvokeLLM directly from the browser, which bypassed every
+          credit gate and billed the shared Base44 integration pool with no
+          usage logging. Restore only once the chat is metered server-side.
       {phase !== 'idle' && phase !== 'review_prompt' && (
         <button onClick={() => setShowChat(!showChat)}
           className={`fixed bottom-4 right-4 z-30 w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-colors ${
@@ -589,8 +595,9 @@ export default function FocusMode() {
           )}
         </button>
       )}
+      */}
 
-      {/* AI Study Chat */}
+      {/* AI Study Chat — WITHDRAWN, see note on the toggle above.
       {showChat && phase !== 'review_prompt' && (
         <AIStudyChat
           classId={session?.class_id}
@@ -598,6 +605,7 @@ export default function FocusMode() {
           onInteractionsChange={setAiInteractions}
         />
       )}
+      */}
 
       {/* Music player */}
       {showMusic && <MusicPlayer onClose={() => setShowMusic(false)} />}
