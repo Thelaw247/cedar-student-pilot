@@ -39,6 +39,8 @@ export default function Home() {
   const [showAddEvent, setShowAddEvent] = useState(false);
   const [assignments, setAssignments] = useState([]);
   const [studySessions, setStudySessions] = useState([]);
+  const [attendance, setAttendance] = useState([]);
+  const [lectures, setLectures] = useState([]);
   const [examWeek, setExamWeek] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [showAddExamOrStudy, setShowAddExamOrStudy] = useState(false);
@@ -57,19 +59,26 @@ export default function Home() {
 
       // Load ALL events (not just today's): the Weekly view and recurring
       // events both need the full set to expand across any week.
-      const [allClasses, allEvents, allAssignments, allSessions] = await Promise.all([
+      const [allClasses, allEvents, allAssignments, allSessions, allAttendance, allLectures] = await Promise.all([
         semesters.length > 0
           ? fetchWithCache('Class', 'filter', [{ semester_id: semesters[0].id }])
           : Promise.resolve([]),
         fetchWithCache('CalendarEvent', 'list', []),
         fetchWithCache('Assignment', 'list', []),
         fetchWithCache('StudySession', 'list', []),
+        // Needed by DailyProgressRing: a class is only "done" once the student
+        // confirms attendance or records a lecture, never just because its end
+        // time has passed.
+        fetchWithCache('ClassAttendance', 'list', ['-date', 200]),
+        fetchWithCache('Lecture', 'list', ['-date', 200]),
       ]);
 
       setClasses(allClasses);
       setEvents(allEvents);
       setAssignments(allAssignments);
       setStudySessions(allSessions);
+      setAttendance(allAttendance);
+      setLectures(allLectures);
     } catch (e) {
       console.error(e);
     }
@@ -224,6 +233,8 @@ export default function Home() {
             classes={todayClasses}
             events={todayEvents}
             studySessions={studySessions}
+            attendance={attendance}
+            lectures={lectures}
             currentTime={currentTime}
           />
 
