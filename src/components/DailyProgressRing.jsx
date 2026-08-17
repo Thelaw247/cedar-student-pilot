@@ -106,6 +106,11 @@ export default function DailyProgressRing({ classes, events, studySessions, atte
             </div>
           ))}
         </div>
+        {pendingClasses > 0 && (
+          <p className="text-[11px] text-amber-600 mt-2">
+            {pendingClasses} {pendingClasses === 1 ? 'class needs' : 'classes need'} an attendance answer
+          </p>
+        )}
       </div>
       <div className="flex-shrink-0 self-start">
         {totalItems === 0 ? (
