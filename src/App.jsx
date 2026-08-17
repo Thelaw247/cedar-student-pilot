@@ -90,8 +90,10 @@ const AuthenticatedApp = () => {
         <Route path="/subscription" element={<Subscription />} />
         <Route path="/checkout/success" element={<CheckoutSuccess />} />
         {/* Owner-only business dashboard: revenue, cost to serve and margin.
-            The UI is only linked for admins, but the real gate is server-side
-            — the ownerAnalytics function returns 403 to any non-admin. */}
+            Reached from the Owner dashboard card in Settings, which only
+            renders for admins. That link is convenience only — the real gate
+            is server-side, since the route itself is guessable: the
+            ownerAnalytics function returns 403 to any non-admin caller. */}
         <Route path="/owner" element={<OwnerAnalytics />} />
       </Route>
       </Route>
