@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Sun, Moon, Bell, Sparkles, Clock, Palette, Check, AlertCircle, GraduationCap, BookOpen, Shield, User, Zap } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { base44 } from '@/api/base44Client';
+import { Sun, Moon, Bell, Sparkles, Clock, Palette, Check, AlertCircle, GraduationCap, BookOpen, Shield, User, Zap, LineChart, ArrowRight } from 'lucide-react';
 import { getSetting, setSetting } from '@/lib/settings';
 import ProfileSettings from '@/components/ProfileSettings';
 import SubscriptionSettings from '@/components/SubscriptionSettings';
@@ -10,9 +12,21 @@ import DataExportSection from '@/components/DataExportSection';
 
 export default function Settings() {
   const [isDark, setIsDark] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     setIsDark(document.documentElement.classList.contains('dark'));
+    // Owner dashboard entry point. This only decides whether the LINK renders;
+    // the real gate is server-side (ownerAnalytics returns 403 to non-admins),
+    // so a non-admin who guesses /owner still gets nothing.
+    (async () => {
+      try {
+        const me = await base44.auth.me();
+        setIsAdmin(me?.role === 'admin');
+      } catch {
+        setIsAdmin(false);
+      }
+    })();
   }, []);
 
   const toggleTheme = (dark) => {
@@ -52,6 +66,22 @@ export default function Settings() {
           so "Connect Google Calendar" could only ever fail. Restore this section
           once OAuth is set up and base44.connectAppUser has a real connector id
           to point at. Nothing else in the app depends on the connection. */}
+
+      {isAdmin && (
+        <SettingsSection icon={LineChart} title="Owner dashboard">
+          <p className="text-sm text-muted-foreground mb-3">
+            Revenue, cost to serve and margin per customer. Only you can see this.
+          </p>
+          <Link
+            to="/owner"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-border text-sm font-medium hover:bg-muted transition-colors"
+          >
+            <LineChart className="w-4 h-4" />
+            Open business overview
+            <ArrowRight className="w-4 h-4" />
+          </Link>
+        </SettingsSection>
+      )}
 
       <SettingsSection icon={Bell} title="Notifications">
         <Toggle label="Class reminders" description="Get notified before classes start" settingKey="classReminders" />
