@@ -18,6 +18,20 @@
  *
  * Both catalogues live in Stripe account acct_1ToUnnRecX8K7mfK (Cedar Pilot),
  * all prices CAD, all carrying cedar_* metadata that the webhook reads.
+ *
+ * PRICING MODEL (Option C). Subscriptions must ALWAYS be cheaper per credit
+ * than packs, or a rational user never subscribes and recurring revenue dies.
+ * The previous catalogue had this inverted: the 1500-credit pack worked out at
+ * $0.033/credit against $0.063-0.125 for every subscription tier, so packs
+ * strictly dominated. Current per-credit rates:
+ *
+ *   Student   $9.99/mo   200 cr   $0.050      Small  100 cr  $6.99   $0.070
+ *   Scholar   $16.99/mo  450 cr   $0.038      Medium 250 cr  $14.99  $0.060
+ *   Unlimited $29.99/mo  1000 cr  $0.030      Large  500 cr  $27.99  $0.056
+ *
+ * Cheapest pack ($0.056) is dearer than the priciest subscription ($0.050),
+ * so the ordering holds everywhere, semester included. If you ever change an
+ * amount here, re-check that invariant before shipping.
  */
 import { secrets } from 'base44:runtime';
 
@@ -27,30 +41,28 @@ type PackMap = Record<string, { priceId: string; credits: number }>;
 // ------------------------------------------------------------------ live ----
 // Products: Cedar Student / Cedar Scholar / Cedar Unlimited / Cedar Credits
 const LIVE_SUBSCRIPTION_PRICES: SubMap = {
-  student:   { monthly: 'price_1U4ZFbRecX8K7mfKozUiB8wl', semester: 'price_1U4ZFbRecX8K7mfK41xBdVt7' },
+  student:   { monthly: 'price_1U4ZFbRecX8K7mfKozUiB8wl', semester: 'price_1U5YKeRecX8K7mfKx4tqSr5I' },
   scholar:   { monthly: 'price_1U4ZFRRecX8K7mfK28s9gC59', semester: 'price_1U4ZFRRecX8K7mfKHwa5C3We' },
-  unlimited: { monthly: 'price_1U4ZFNRecX8K7mfKAbJhIiKA', semester: 'price_1U4ZFNRecX8K7mfKyeGfPoUx' },
+  unlimited: { monthly: 'price_1U4ZFNRecX8K7mfKAbJhIiKA', semester: 'price_1U5YKiRecX8K7mfKGdP4kMkK' },
 };
 
 const LIVE_PACK_PRICES: PackMap = {
-  topup:    { priceId: 'price_1U4ZblRecX8K7mfKrucRUTco', credits: 100 },
-  standard: { priceId: 'price_1U4ZbnRecX8K7mfK4Kl1neJO', credits: 250 },
-  bulk:     { priceId: 'price_1U4ZbpRecX8K7mfKblEW4M6W', credits: 600 },
-  semester: { priceId: 'price_1U4ZbrRecX8K7mfKhQGhVgUN', credits: 1500 },
+  small:  { priceId: 'price_1U5YKmRecX8K7mfKs8jgOUcs', credits: 100 },
+  medium: { priceId: 'price_1U5YKqRecX8K7mfKnqPJGaMT', credits: 250 },
+  large:  { priceId: 'price_1U5YKuRecX8K7mfKaGgeHZZQ', credits: 500 },
 };
 
 // ------------------------------------------------------------------ test ----
 const TEST_SUBSCRIPTION_PRICES: SubMap = {
-  student:   { monthly: 'price_1U4ZcQRecX8K7mfKFbmPPwsw', semester: 'price_1U4ZcSRecX8K7mfKWZMQiloz' },
+  student:   { monthly: 'price_1U4ZcQRecX8K7mfKFbmPPwsw', semester: 'price_1U5YKzRecX8K7mfKt7dExkuL' },
   scholar:   { monthly: 'price_1U4ZcURecX8K7mfK8r1bhRCu', semester: 'price_1U4ZcWRecX8K7mfKmkqyxMe1' },
-  unlimited: { monthly: 'price_1U4ZcZRecX8K7mfKvfXZi2wv', semester: 'price_1U4ZcbRecX8K7mfKTzQZyEiS' },
+  unlimited: { monthly: 'price_1U4ZcZRecX8K7mfKvfXZi2wv', semester: 'price_1U5YL3RecX8K7mfKoyLtrFOO' },
 };
 
 const TEST_PACK_PRICES: PackMap = {
-  topup:    { priceId: 'price_1U4ZcdRecX8K7mfK21rYrypG', credits: 100 },
-  standard: { priceId: 'price_1U4ZcfRecX8K7mfKdjEH9xTC', credits: 250 },
-  bulk:     { priceId: 'price_1U4ZciRecX8K7mfKaDI7DbJM', credits: 600 },
-  semester: { priceId: 'price_1U4ZcjRecX8K7mfKLCeP7opH', credits: 1500 },
+  small:  { priceId: 'price_1U5YL7RecX8K7mfKwOSZD2Hi', credits: 100 },
+  medium: { priceId: 'price_1U5YLBRecX8K7mfKwbPeqITO', credits: 250 },
+  large:  { priceId: 'price_1U5YLFRecX8K7mfKrO7nA7xu', credits: 500 },
 };
 
 // -------------------------------------------------------------- selection ---
