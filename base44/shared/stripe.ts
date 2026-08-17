@@ -277,14 +277,48 @@ export async function grantRenewal(
   return { granted: grant };
 }
 
-/** Plan change (subscription.updated): sync tier, no credit grant. */
+/** Plan change (subscription.updated): sync tier AND reconcile the credit
+ *  allowance.
+ *
+ *  Previously this synced the tier only, which meant an upgrade charged the
+ *  customer a prorated amount immediately while their balance stayed on the
+ *  old tier's allowance until the next monthly grant — potentially weeks of
+ *  paying more for nothing. grantMonthlyCredits can't rescue them either: it
+ *  skips anyone whose period_key is already the current month.
+ *
+ *  Upgrade   — credit the DIFFERENCE in allowance, not the full new allowance.
+ *              A student who has burned 40 of 60 and moves to unlimited gets
+ *              20 + (400 - 60) = 360, so the credits they already spent stay
+ *              spent and they can't cycle plans to farm credits.
+ *  Downgrade — never claw back mid-period; they paid for this period. The
+ *              next grantRenewal/cron SETS subscription_credits to the new
+ *              lower allowance, so it self-corrects at the period boundary.
+ *
+ *  Purchased credits are never touched either way. */
 export async function syncTier(base44: any, userId: string, tier: string, subscriptionId: string, anchorId: string) {
   const claim = anchorId ? await claimAnchor(base44, anchorId, userId, 'tier_sync') : { won: true, rowId: undefined };
   if (!claim.won) return { already: true };
   const balance = await getBalance(base44, userId);
   if (balance.tier === tier && balance.stripe_subscription_id === subscriptionId) return { skipped: 'no_change' };
-  await base44.asServiceRole.entities.CreditBalance.update(balance.id, { tier, stripe_subscription_id: subscriptionId });
-  return { synced: tier };
+
+  const patch: Record<string, any> = { tier, stripe_subscription_id: subscriptionId };
+
+  // Only reconcile on a real tier move between two paid tiers. Arriving from
+  // 'free' is a fresh subscription, which grantSubscription/grantRenewal has
+  // already granted in full — topping up here would double-grant.
+  const oldGrant = TIER_GRANT[balance.tier] || 0;
+  const newGrant = TIER_GRANT[tier] || 0;
+  const isUpgrade = balance.tier !== tier && balance.tier !== 'free' && newGrant > oldGrant;
+  const uplift = isUpgrade ? newGrant - oldGrant : 0;
+
+  if (uplift > 0) {
+    patch.subscription_credits = (balance.subscription_credits || 0) + uplift;
+    patch.lifetime_granted = (balance.lifetime_granted || 0) + uplift;
+  }
+
+  await base44.asServiceRole.entities.CreditBalance.update(balance.id, patch);
+  if (claim.rowId) await finalizeClaim(base44, claim.rowId, uplift);
+  return { synced: tier, uplift };
 }
 
 /** Cancellation (subscription.deleted): Stripe fires this at period end for
