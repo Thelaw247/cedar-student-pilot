@@ -13,12 +13,49 @@ function getTodayString() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-export default function DailyProgressRing({ classes, events, studySessions, currentTime }) {
+export default function DailyProgressRing({ classes, events, studySessions, attendance = [], lectures = [], currentTime }) {
   const today = getTodayString();
   const nowMin = currentTime.getHours() * 60 + currentTime.getMinutes();
 
+  /* A class counts as done only when the student CONFIRMED it, never because
+   * the clock passed its end time. The previous rule was
+   *   parseTime(c.end_time) < nowMin
+   * which reported 100% for a day where every class was skipped - the ring
+   * measured the time of day, not the student's progress, and told them they
+   * were "On Track" for a day they missed entirely.
+   *
+   * Confirmation means either an explicit ClassAttendance row with
+   * attended: true (the AttendancePrompt answer), or a Lecture recorded for
+   * that class today, which is proof of attendance on its own.
+   *
+   * Unanswered classes stay in the total but not in the done count, so an
+   * ignored prompt reads as incomplete rather than complete. */
+  const attendedToday = new Set(
+    (attendance || [])
+      .filter((a) => a.date === today && a.attended === true && a.class_id)
+      .map((a) => a.class_id),
+  );
+  const recordedToday = new Set(
+    (lectures || [])
+      .filter((l) => l.date === today && l.class_id)
+      .map((l) => l.class_id),
+  );
+
   const totalClasses = classes.length;
-  const doneClasses = classes.filter(c => c.end_time && parseTime(c.end_time) < nowMin).length;
+  const doneClasses = classes.filter(
+    (c) => attendedToday.has(c.id) || recordedToday.has(c.id),
+  ).length;
+
+  /* Classes that have ended but are still unanswered. Surfaced in the UI so a
+   * low percentage reads as "you have not told us yet" rather than looking
+   * like the app lost the student's progress. */
+  const pendingClasses = classes.filter(
+    (c) =>
+      !attendedToday.has(c.id) &&
+      !recordedToday.has(c.id) &&
+      c.end_time &&
+      parseTime(c.end_time) < nowMin,
+  ).length;
 
   const todayStudy = studySessions.filter(s => s.scheduled_date === today);
   const totalStudy = todayStudy.length;
