@@ -1,13 +1,27 @@
 {
   "name": "Cedar Student Pilot",
   "short_name": "Cedar",
-  "description": "AI study companion for students - lecture capture, flashcards, scheduling and study tracking.",
-  "icons": [
-    { "src": "/android-chrome-192x192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
-    { "src": "/android-chrome-512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
-  ],
-  "theme_color": "#2E66FF",
-  "background_color": "#ffffff",
+  "description": "The intelligent academic operating system for university students.",
+  "start_url": "/",
   "display": "standalone",
-  "start_url": "/"
+  "background_color": "#ffffff",
+  "theme_color": "#662eff",
+  "icons": [
+    {
+      "src": "https://base44.app/api/apps/6a485105cf0a684688950256/files/mp/public/6a485105cf0a684688950256/8baa583f4_android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://base44.app/api/apps/6a485105cf0a684688950256/files/mp/public/6a485105cf0a684688950256/25d949c3b_android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "https://base44.app/api/apps/6a485105cf0a684688950256/files/mp/public/6a485105cf0a684688950256/5ce816abf_apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
 }
