@@ -22,9 +22,15 @@ const EDGE_PADDING_MIN = 60;    // extra hour beyond an out-of-range event
 const BLOCK_INSET_X = 4;        // px each side
 const BLOCK_GAP_Y = 3;          // px trimmed from the block's height
 
-// Rendered height of an hour label, used to keep the first and last ones from
-// straddling the gridlines that bound the grid.
+// Rendered height of an hour label.
 const LABEL_HEIGHT = 12;
+
+// Vertical breathing room inside the grid, above the first hour line and below
+// the last. Without it the first and last labels were clamped flush against the
+// grid's top and bottom borders — "8AM" and "5PM" touched the frame, which read
+// as unfinished. With this padding every label sits centred on its own gridline
+// instead of being clamped, first and last included.
+const GRID_PAD_Y = 14;          // px above the first line and below the last
 
 // Colors for non-class items so the grid reads consistently with the rest of
 // the app (study = violet, work = amber, etc.).
@@ -225,20 +231,22 @@ export default function WeeklyCalendar({
           </div>
         )}
 
-        {/* Timed grid */}
-        <div className="flex relative" style={{ height: totalHeight }}>
+        {/* Timed grid. Height includes GRID_PAD_Y top and bottom (border-box),
+            so the flex children still measure exactly totalHeight and every
+            absolute offset inside them stays correct. */}
+        <div
+          className="flex relative"
+          style={{ height: totalHeight + GRID_PAD_Y * 2, paddingTop: GRID_PAD_Y, paddingBottom: GRID_PAD_Y }}
+        >
           {/* Time labels */}
           <div className="w-12 flex-shrink-0 relative">
             {hours.map(m => {
               const line = ((m - startMin) / 60) * HOUR_HEIGHT;
               const h = m / 60;
-              // Labels are centred on their gridline, except the first and last
-              // — those would hang over the grid's top and bottom borders, so
-              // they're clamped to sit just inside instead.
-              const top = Math.min(
-                Math.max(line - LABEL_HEIGHT / 2, 0),
-                Math.max(0, totalHeight - LABEL_HEIGHT)
-              );
+              // Every label sits centred on its gridline. The first and last are
+              // no longer clamped to the container edges — GRID_PAD_Y gives them
+              // room to overhang into the padding instead.
+              const top = line - LABEL_HEIGHT / 2;
               return (
                 <div key={m} className="absolute right-2 text-[10px] font-medium text-muted-foreground tabular-nums leading-none" style={{ top }}>
                   {formatHour(h)}
