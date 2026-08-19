@@ -16,9 +16,12 @@
  * recording at a time, and this makes recovery lookups trivial.
  */
 
+import { getCachedUserId } from './currentUser';
+
 const DB_NAME = 'cedar-recordings';
 const STORE = 'recordings';
-const VERSION = 1;
+const USER_INDEX = 'by-user';
+const VERSION = 2;
 
 function openDB() {
   return new Promise((resolve, reject) => {
@@ -27,10 +30,17 @@ function openDB() {
       return;
     }
     const req = indexedDB.open(DB_NAME, VERSION);
-    req.onupgradeneeded = () => {
+    req.onupgradeneeded = (event) => {
       const db = req.result;
+      // Version 1 records were keyed only by classId and have no trustworthy
+      // owner. Delete that unsafe store once rather than expose it to whoever
+      // signs in next on the device.
+      if (event.oldVersion < 2 && db.objectStoreNames.contains(STORE)) {
+        db.deleteObjectStore(STORE);
+      }
       if (!db.objectStoreNames.contains(STORE)) {
-        db.createObjectStore(STORE, { keyPath: 'classId' });
+        const store = db.createObjectStore(STORE, { keyPath: ['userId', 'classId'] });
+        store.createIndex(USER_INDEX, 'userId', { unique: false });
       }
     };
     req.onsuccess = () => resolve(req.result);
@@ -50,12 +60,15 @@ function tx(db, mode) {
  */
 export async function saveRecording(classId, blob, meta = {}) {
   try {
+    const userId = getCachedUserId();
+    if (!userId) return false;
     const db = await openDB();
     await new Promise((resolve, reject) => {
       const store = tx(db, 'readwrite');
       const req = store.put({
+        userId,
         classId,
-        blob,
+        blob:
         seconds: meta.seconds ?? 0,
         timestamp: meta.timestamp ?? Date.now(),
         mimeType: blob?.type || 'audio/webm',
@@ -74,9 +87,11 @@ export async function saveRecording(classId, blob, meta = {}) {
 /** Retrieve the persisted recording for a class, or null. */
 export async function getRecording(classId) {
   try {
+    const userId = getCachedUserId();
+    if (!userId) return null;
     const db = await openDB();
     const rec = await new Promise((resolve, reject) => {
-      const req = tx(db, 'readonly').get(classId);
+      const req = tx(db, 'readonly').get([userId, classId]);
       req.onsuccess = () => resolve(req.result || null);
       req.onerror = () => reject(req.error);
     });
@@ -92,15 +107,55 @@ export async function getRecording(classId) {
 /** Remove the persisted recording for a class (after a clean save or discard). */
 export async function clearRecording(classId) {
   try {
+    const userId = getCachedUserId();
+    if (!userId) return false;
     const db = await openDB();
     await new Promise((resolve, reject) => {
-      const req = tx(db, 'readwrite').delete(classId);
+      const req = tx(db, 'readwrite').delete([userId, classId]);
       req.onsuccess = () => resolve();
       req.onerror = () => reject(req.error);
     });
     db.close();
     return true;
   } catch (e) {
+    return false;
+  }
+}
+
+/** Remove every crash-recovery recording owned by one user. */
+export async function clearAllRecordings(userId = getCachedUserId()) {
+  if (!userId) return true;
+  try {
+    const db = await openDB();
+    await new Promise((resolve, reject) => {
+      const transaction = db.transaction(STORE, 'readwrite');
+      const request = transaction.objectStore(STORE).index(USER_INDEX).openCursor(IDBKeyRange.only(userId));
+      request.onsuccess = () => {
+        const cursor = request.result;
+        if (cursor) {
+          cursor.delete();
+          cursor.continue();
+        }
+      };
+      request.onerror = () => reject(request.error);
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error);
+      transaction.onabort = () => reject(transaction.error);
+    });
+    db.close();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Open once at startup so the unsafe version-1 store is purged immediately. */
+export async function initializeRecordingStore() {
+  try {
+    const db = await openDB();
+    db.close();
+    return true;
+  } catch {
     return false;
   }
 }
