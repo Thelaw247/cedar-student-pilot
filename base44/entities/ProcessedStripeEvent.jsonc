@@ -1,6 +1,6 @@
 {
   "name": "ProcessedStripeEvent",
-  "description": "Idempotency ledger for Stripe-driven credit grants. One row per processed Stripe event or checkout session. The grant helpers in base44/shared/stripe.ts check anchor_id BEFORE granting, so the checkout redirect, the webhook, and Stripe retries can never double-grant the same purchase.",
+  "description": "Recoverability and audit ledger for Stripe-driven credit fulfillment. Atomic idempotency lives on CreditBalance.fulfilled_stripe_anchors; this entity records completed and failed attempts and can be repaired safely from that source.",
   "type": "object",
   "properties": {
     "user_id": {
@@ -19,7 +19,8 @@
         "pack",
         "subscription_renewal",
         "tier_sync",
-        "downgrade"
+        "downgrade",
+        "monthly_grant"
       ],
       "title": "Kind"
     },
@@ -35,6 +36,28 @@
       "type": "number",
       "default": 0,
       "title": "Credits Granted"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "complete",
+        "failed"
+      ],
+      "title": "Status"
+    },
+    "attempt_count": {
+      "type": "number",
+      "default": 0,
+      "title": "Attempt Count"
+    },
+    "last_error": {
+      "type": "string",
+      "title": "Last Error"
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Completed At"
     },
     "processed_at": {
       "type": "string",
