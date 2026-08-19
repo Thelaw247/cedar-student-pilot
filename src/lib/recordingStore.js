@@ -12,8 +12,8 @@
  * audio (not just a "you missed a lecture" note), and a save that failed
  * mid-upload can be retried from the persisted copy.
  *
- * One record per class (keyed by classId): a class only has one active
- * recording at a time, and this makes recovery lookups trivial.
+ * One record per user + class: a class only has one active recording at a
+ * time, while a shared device can never expose one user's audio to another.
  */
 
 import { getCachedUserId } from './currentUser';
