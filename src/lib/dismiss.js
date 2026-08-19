@@ -1,3 +1,5 @@
+import { userStorageKey } from './currentUser';
+
 /**
  * dismiss — per-day "don't show this again today" helper for alerts/banners.
  *
@@ -12,7 +14,9 @@ function todayStr() {
 
 export function isDismissedToday(key) {
   try {
-    return localStorage.getItem(`cedar-dismiss-${key}`) === todayStr();
+    const storageKey = userStorageKey(`dismiss:${key}`);
+    if (!storageKey) return false;
+    return localStorage.getItem(storageKey) === todayStr();
   } catch (e) {
     return false;
   }
@@ -20,6 +24,8 @@ export function isDismissedToday(key) {
 
 export function dismissToday(key) {
   try {
-    localStorage.setItem(`cedar-dismiss-${key}`, todayStr());
+    const storageKey = userStorageKey(`dismiss:${key}`);
+    if (!storageKey) return;
+    localStorage.setItem(storageKey, todayStr());
   } catch (e) { /* non-fatal: dismiss just won't persist this session */ }
 }
