@@ -7,6 +7,10 @@
         "admin",
         "user"
       ]
+    },
+    "avatar_url": {
+      "type": "string",
+      "description": "Optional profile photo URL, set via the user's own profile settings or first-run onboarding. Falls back to initials in the UI when unset."
     }
   },
   "required": [
