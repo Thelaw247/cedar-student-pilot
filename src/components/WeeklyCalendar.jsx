@@ -181,9 +181,16 @@ export default function WeeklyCalendar({
   const hours = [];
   for (let m = startMin; m <= endMin; m += 60) hours.push(m);
 
-  // Show only days that have something (fallback Mon–Fri), matching the base grid.
-  const activeDays = DAYS.filter(d => itemsByDay[d].length > 0);
-  const displayDays = activeDays.length > 0 ? activeDays : DAYS.slice(0, 5);
+  // Which day columns to render. Previously this dropped every empty day, which
+  // silently punched holes in the week: a week with nothing on Saturday but a
+  // church event on Sunday rendered Mon Tue Wed Thu Fri Sun, so Saturday simply
+  // vanished mid-week and the dates ran 17 18 19 20 21 23. Keep the compact
+  // behaviour of trimming empty days off each END, but never skip a day in the
+  // middle — render the contiguous span from the first active day to the last.
+  const activeIdx = DAYS.map((d, i) => (itemsByDay[d].length > 0 ? i : -1)).filter(i => i >= 0);
+  const displayDays = activeIdx.length > 0
+    ? DAYS.slice(Math.min(...activeIdx), Math.max(...activeIdx) + 1)
+    : DAYS.slice(0, 5);
 
   return (
     <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
