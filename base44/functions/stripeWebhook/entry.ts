@@ -1,125 +1,171 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 import { secrets } from 'base44:runtime';
-import { getBalance } from '../../shared/credits.ts';
 import {
-  verifyStripeSignature, grantSubscriptionInitial, grantPack,
-  grantRenewal, syncTier, downgradeAtPeriodEnd, userIdForSubscription, tierFromSubscription,
+  appId,
+  verifyStripeSignature,
+  grantSubscriptionInitial,
+  grantPack,
+  grantRenewal,
+  syncTier,
+  downgradeAtPeriodEnd,
+  subscriptionContext,
+  userIdForSubscription,
 } from '../../shared/stripe.ts';
 
 /**
- * The authoritative grant path for subscription renewals. From month two
- * onward, invoice.payment_succeeded is the ONLY signal that a student paid —
- * a renewal has no redirect. Without this, every subscriber's credits would
- * silently stop topping up while their card kept being charged.
+ * Signed, retry-safe Stripe fulfillment endpoint.
  *
- * This is a public endpoint at /functions/stripeWebhook. Every request is
- * treated as hostile: the Stripe signature is verified against
- * STRIPE_WEBHOOK_SECRET (read inside the handler, never at module top level)
- * and unsigned requests are rejected with 400. Every grant is idempotent via
- * the ProcessedStripeEvent ledger, so Stripe retries never double-grant.
+ * Initial purchases are fulfilled only from a paid Checkout Session. Renewals
+ * and paid mid-period upgrades are fulfilled from paid invoices. Every balance
+ * change and its Stripe anchor are one conditional database update, so webhook
+ * retries and the success-page confirmation safely converge.
  */
 export default async function (req: Request) {
   try {
     const base44 = createClientFromRequest(req);
     const raw = await req.text();
-    const sig = req.headers.get('stripe-signature') || '';
-    const secret = secrets.get('STRIPE_WEBHOOK_SECRET'); // per-request, never module-level
+    const signature = req.headers.get('stripe-signature') || '';
+    const secret = secrets.get('STRIPE_WEBHOOK_SECRET');
     if (!secret) {
       console.error('[stripeWebhook] STRIPE_WEBHOOK_SECRET not configured');
       return Response.json({ error: 'Webhook secret not configured' }, { status: 500 });
     }
 
-    const verified = await verifyStripeSignature(raw, sig, secret);
-    if (!verified.ok) return Response.json({ error: 'Invalid signature' }, { status: 400 });
+    const verified = await verifyStripeSignature(raw, signature, secret);
+    if (!verified.ok) {
+      return Response.json({ error: 'Invalid signature' }, { status: 400 });
+    }
 
     const event = JSON.parse(raw);
     const data = event.data?.object;
     const eventId = event.id;
-
-    // Multi-app Stripe account guard.
-    //
-    // This Stripe account (acct_1ToUnnRecX8K7mfK) is shared with the separate
-    // "Cedar Pilot" Base44 app, which has its own live webhook endpoint
-    // subscribed to checkout.session.completed. Both apps therefore receive
-    // each other's events. Everything this app creates is stamped with
-    // metadata.base44_app_id, so an event carrying a DIFFERENT app id is not
-    // ours and must be ignored.
-    //
-    // Only rejects on a positive mismatch: events with no app id (e.g. invoices,
-    // which do not inherit subscription metadata) fall through to the handlers
-    // below, which resolve ownership via our own CreditBalance table anyway.
-    const OUR_APP_ID = Deno.env.get('BASE44_APP_ID') || '';
+    const ourAppId = appId();
     const eventAppId = data?.metadata?.base44_app_id;
-    if (OUR_APP_ID && eventAppId && eventAppId !== OUR_APP_ID) {
+
+    if (eventAppId && eventAppId !== ourAppId) {
       return Response.json({ received: true, ignored: 'different_app' });
     }
 
     switch (event.type) {
-      case 'checkout.session.completed': {
+      case 'checkout.session.completed':
+      case 'checkout.session.async_payment_succeeded': {
+        // completed can precede settlement for delayed payment methods.
+        if (data?.payment_status !== 'paid') break;
+        if (data?.metadata?.base44_app_id !== ourAppId) {
+          return Response.json({ received: true, ignored: 'unscoped_checkout' });
+        }
+
         const userId = data?.metadata?.user_id;
-        if (!userId) break;
-        const anchor = data.id; // session id — shared with confirmCheckoutSession
+        if (!userId) throw new Error('Paid Cedar checkout is missing user metadata');
+
         if (data.mode === 'subscription') {
           const tier = data?.metadata?.cedar_tier || data?.metadata?.tier;
           const period = data?.metadata?.cedar_period || data?.metadata?.period;
-          if (!tier) break;
-          const bal = await getBalance(base44, userId);
-          if (data.subscription && !bal.stripe_subscription_id) {
-            await base44.asServiceRole.entities.CreditBalance.update(bal.id, { stripe_subscription_id: data.subscription });
-          }
-          await grantSubscriptionInitial(base44, userId, tier, period, anchor, data.id, eventId);
-        } else {
+          if (!tier) throw new Error('Paid Cedar subscription is missing tier metadata');
+          await grantSubscriptionInitial(
+            base44,
+            userId,
+            tier,
+            period,
+            data.id,
+            data.id,
+            eventId,
+            data.subscription || '',
+          );
+        } else if (data.mode === 'payment') {
           const credits = Number(data?.metadata?.cedar_credits || 0);
-          if (credits) await grantPack(base44, userId, credits, anchor, data.id, eventId);
+          if (!credits) throw new Error('Paid Cedar pack is missing credit metadata');
+          await grantPack(base44, userId, credits, data.id, data.id, eventId);
         }
         break;
       }
 
+      case 'checkout.session.async_payment_failed': {
+        console.warn('[stripeWebhook] delayed checkout payment failed', data?.id);
+        break;
+      }
+
+      case 'invoice.paid':
       case 'invoice.payment_succeeded': {
-        // Only subscription renewals / initial invoices. One-off packs are
-        // handled by checkout.session.completed (mode=payment has no recurring
-        // invoice with these billing reasons).
-        if (data?.billing_reason !== 'subscription_cycle' && data?.billing_reason !== 'subscription_create') break;
-        const subId = data?.subscription;
-        if (!subId) break;
-        const userId = await userIdForSubscription(base44, subId);
-        if (!userId) break; // checkout.session.completed hasn't landed yet; it will grant
-        const tier = await tierFromSubscription(base44, subId);
-        if (!tier) break;
-        await grantRenewal(base44, userId, tier, data.id, data.period_start);
+        const billingReason = data?.billing_reason;
+        // Initial access is granted from the paid Checkout Session. Handling
+        // subscription_create here as well would create a second anchor for the
+        // same first payment and could restore credits spent between events.
+        if (billingReason !== 'subscription_cycle' && billingReason !== 'subscription_update') {
+          break;
+        }
+
+        const subscriptionRef =
+          data?.subscription ||
+          data?.parent?.subscription_details?.subscription;
+        const subscriptionId = typeof subscriptionRef === 'string'
+          ? subscriptionRef
+          : subscriptionRef?.id;
+        if (!subscriptionId) break;
+
+        const context = await subscriptionContext(base44, subscriptionId);
+        const subscriptionAppId = context.subscription?.metadata?.base44_app_id;
+        if (subscriptionAppId && subscriptionAppId !== ourAppId) {
+          return Response.json({ received: true, ignored: 'different_app' });
+        }
+        if (!context.userId || !context.tier) {
+          throw new Error('Paid Cedar invoice could not be mapped to a user and tier');
+        }
+
+        if (billingReason === 'subscription_update') {
+          await syncTier(
+            base44,
+            context.userId,
+            context.tier,
+            subscriptionId,
+            data.id || eventId,
+          );
+        } else {
+          const periodStart =
+            Number(data?.period_start || 0) ||
+            Number(data?.lines?.data?.[0]?.period?.start || 0);
+          await grantRenewal(
+            base44,
+            context.userId,
+            context.tier,
+            data.id,
+            periodStart,
+            subscriptionId,
+          );
+        }
         break;
       }
 
       case 'customer.subscription.updated': {
-        const subId = data?.id;
-        const userId = await userIdForSubscription(base44, subId);
-        if (!userId) break;
-        const tier = await tierFromSubscription(base44, subId);
-        if (!tier) break;
-        await syncTier(base44, userId, tier, subId, eventId);
+        // Do not grant or change the paid tier merely because a subscription
+        // object changed. A paid subscription_update invoice is the proof for
+        // an upgrade; a later cycle invoice applies a scheduled downgrade.
         break;
       }
 
       case 'customer.subscription.deleted': {
-        const subId = data?.id;
-        const userId = await userIdForSubscription(base44, subId);
+        const subscriptionId = data?.id;
+        if (!subscriptionId) break;
+        const userId =
+          data?.metadata?.user_id ||
+          await userIdForSubscription(base44, subscriptionId);
         if (!userId) break;
-        // Stripe fires .deleted at period end for cancel_at_period_end, so
-        // this downgrade happens at period end, not at cancellation time.
-        await downgradeAtPeriodEnd(base44, userId, subId, eventId);
+        await downgradeAtPeriodEnd(base44, userId, subscriptionId, eventId);
         break;
       }
 
       case 'invoice.payment_failed': {
-        // Grace window: keep access, do not clear credits. Stripe will retry.
-        console.warn('[stripeWebhook] invoice.payment_failed for subscription', data?.subscription);
+        console.warn('[stripeWebhook] invoice.payment_failed for subscription',
+          data?.subscription || data?.parent?.subscription_details?.subscription);
         break;
       }
     }
 
     return Response.json({ received: true });
-  } catch (e) {
-    console.error('[stripeWebhook]', (e as Error).message);
-    return Response.json({ error: (e as Error).message }, { status: 500 });
+  } catch (error) {
+    // A 500 makes Stripe retry. Because fulfillment is anchored atomically on
+    // CreditBalance, a retry repairs partial audit work without double-granting.
+    console.error('[stripeWebhook]', (error as Error).message);
+    return Response.json({ error: (error as Error).message }, { status: 500 });
   }
 }
