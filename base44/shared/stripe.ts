@@ -1,39 +1,30 @@
 /**
- * Stripe REST helpers + the credit-grant logic shared by the webhook and the
- * checkout-confirmation path.
+ * Stripe REST helpers and recoverable credit fulfillment.
  *
- * Entitlement is granted ONLY here, server-side, after verifying a Stripe
- * event or a retrieved checkout session. The checkout redirect itself is
- * never trusted (anyone can paste a success URL).
- *
- * All CreditBalance writes go through asServiceRole — CreditBalance RLS
- * denies all client writes, and a user who can write their own balance has
- * an infinite plan.
+ * CreditBalance is the atomic source of truth. Each Stripe session/invoice
+ * anchor is appended to fulfilled_stripe_anchors in the SAME conditional
+ * update that changes the balance. ProcessedStripeEvent is an audit/recovery
+ * copy, not a lock. If the audit write fails, a retry sees the anchor on the
+ * balance, repairs the audit row, and never grants twice.
  */
 import { secrets } from 'base44:runtime';
 import { getBalance, TIER_GRANT, periodKey } from './credits.ts';
 
-const STRIPE_VERSION = '2025-10-29.clover';
+const STRIPE_VERSION = '2026-06-24.dahlia';
 const BASE = 'https://api.stripe.com/v1';
+const CEDAR_APP_ID = '6a485105cf0a684688950256';
 
-function appId(): string {
-  return Deno.env.get('BASE44_APP_ID') || secrets.get('BASE44_APP_ID') || '';
+export function appId(): string {
+  try {
+    return Deno.env.get('BASE44_APP_ID') || secrets.get('BASE44_APP_ID') || CEDAR_APP_ID;
+  } catch {
+    return Deno.env.get('BASE44_APP_ID') || CEDAR_APP_ID;
+  }
 }
 
 const DEFAULT_ORIGIN = 'https://cedar-student-pilot.base44.app';
 
-/**
- * Where Stripe sends the student back after checkout or the billing portal.
- *
- * Read from the APP_ORIGIN secret so moving to a custom domain is a settings
- * change, not a code change. Previously this was hardcoded to the base44.app
- * host, which would have bounced paying users back to the wrong site the
- * moment a real domain went live.
- *
- * Deliberately NOT derived from the incoming request origin: that value is
- * attacker-controllable and Stripe will happily redirect to whatever we pass,
- * which is an open redirect. A configured value or the known default only.
- */
+/** A configured, allowlisted return origin; never derive this from the request. */
 export function appOrigin(): string {
   let configured = '';
   try { configured = secrets.get('APP_ORIGIN') || ''; } catch { /* not configured */ }
@@ -45,48 +36,49 @@ export function appOrigin(): string {
   return origin;
 }
 
-/** Cancel a subscription immediately. Used by account deletion so a deleted
- *  account cannot keep being billed. */
+/** Cancel a subscription immediately during account deletion. */
 export async function stripeDelete(path: string) {
-  const SK = secrets.get('STRIPE_SECRET_KEY');
-  if (!SK) throw new Error('STRIPE_SECRET_KEY not configured');
+  const key = secrets.get('STRIPE_SECRET_KEY');
+  if (!key) throw new Error('STRIPE_SECRET_KEY not configured');
   const res = await fetch(`${BASE}/${path}`, {
     method: 'DELETE',
-    headers: { Authorization: `Bearer ${SK}`, 'Stripe-Version': STRIPE_VERSION },
+    headers: { Authorization: `Bearer ${key}`, 'Stripe-Version': STRIPE_VERSION },
   });
   const text = await res.text();
   if (!res.ok) throw new Error(`Stripe DELETE ${path} ${res.status}: ${text.slice(0, 300)}`);
   return JSON.parse(text);
 }
 
-// Flatten params into [key, value] pairs with explicit bracket notation for
-// nested hashes and indexed arrays. Empty strings are dropped so we never
-// send metadata[cedar_pack]= for a subscription, etc.
 function flatten(params: Record<string, any>): [string, string][] {
   const pairs: [string, string][] = [];
-  const walk = (prefix: string, val: any) => {
-    if (val === null || val === undefined || val === '') return;
-    if (Array.isArray(val)) { val.forEach((v, i) => walk(`${prefix}[${i}]`, v)); return; }
-    if (typeof val === 'object') { for (const [k, v] of Object.entries(val)) walk(`${prefix}[${k}]`, v); return; }
-    pairs.push([prefix, String(val)]);
+  const walk = (prefix: string, value: any) => {
+    if (value === null || value === undefined || value === '') return;
+    if (Array.isArray(value)) {
+      value.forEach((item, index) => walk(`${prefix}[${index}]`, item));
+      return;
+    }
+    if (typeof value === 'object') {
+      for (const [key, item] of Object.entries(value)) walk(`${prefix}[${key}]`, item);
+      return;
+    }
+    pairs.push([prefix, String(value)]);
   };
-  for (const [k, v] of Object.entries(params)) walk(k, v);
+  for (const [key, value] of Object.entries(params)) walk(key, value);
   return pairs;
 }
 
 export async function stripePost(path: string, params: Record<string, any>, idempotencyKey?: string) {
-  const SK = secrets.get('STRIPE_SECRET_KEY');
-  if (!SK) throw new Error('STRIPE_SECRET_KEY not configured');
-  const body = new URLSearchParams(flatten(params));
+  const key = secrets.get('STRIPE_SECRET_KEY');
+  if (!key) throw new Error('STRIPE_SECRET_KEY not configured');
   const res = await fetch(`${BASE}/${path}`, {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${SK}`,
+      Authorization: `Bearer ${key}`,
       'Stripe-Version': STRIPE_VERSION,
       'Idempotency-Key': idempotencyKey || crypto.randomUUID(),
       'Content-Type': 'application/x-www-form-urlencoded',
     },
-    body,
+    body: new URLSearchParams(flatten(params)),
   });
   const text = await res.text();
   let json: any;
@@ -96,10 +88,10 @@ export async function stripePost(path: string, params: Record<string, any>, idem
 }
 
 export async function stripeGet(path: string) {
-  const SK = secrets.get('STRIPE_SECRET_KEY');
-  if (!SK) throw new Error('STRIPE_SECRET_KEY not configured');
+  const key = secrets.get('STRIPE_SECRET_KEY');
+  if (!key) throw new Error('STRIPE_SECRET_KEY not configured');
   const res = await fetch(`${BASE}/${path}`, {
-    headers: { Authorization: `Bearer ${SK}`, 'Stripe-Version': STRIPE_VERSION },
+    headers: { Authorization: `Bearer ${key}`, 'Stripe-Version': STRIPE_VERSION },
   });
   const text = await res.text();
   if (!res.ok) throw new Error(`Stripe ${path} ${res.status}: ${text.slice(0, 300)}`);
@@ -110,273 +102,487 @@ export async function stripeGet(path: string) {
 
 export async function ensureCustomer(base44: any, user: any, balance: any): Promise<string> {
   if (balance.stripe_customer_id) return balance.stripe_customer_id;
-  const c = await stripePost('customers', {
+  const customer = await stripePost('customers', {
     email: user.email || '',
     name: user.full_name || '',
     'metadata[base44_app_id]': appId(),
     'metadata[user_id]': user.id,
-    // Deterministic idempotency key. A random key per call would defeat
-    // Stripe's idempotency entirely: two concurrent first-checkouts would
-    // create two Stripe customers for the same student.
   }, `cedar-customer-${user.id}`);
-  await base44.asServiceRole.entities.CreditBalance.update(balance.id, { stripe_customer_id: c.id });
-  return c.id;
+  // The Stripe idempotency key guarantees concurrent first checkouts receive
+  // the same customer id, so both writes converge on one value.
+  await base44.asServiceRole.entities.CreditBalance.update(balance.id, {
+    stripe_customer_id: customer.id,
+  });
+  return customer.id;
 }
 
-// ----------------------------------------------------------- idempotency ----
+// ---------------------------------------------------------- fulfillment ------
 
-export async function hasProcessed(base44: any, anchorId: string): Promise<boolean> {
-  if (!anchorId) return false;
-  const rows = await base44.asServiceRole.entities.ProcessedStripeEvent.filter({ anchor_id: anchorId });
-  return !!(rows && rows.length > 0);
+type FulfillmentKind =
+  | 'subscription_initial'
+  | 'pack'
+  | 'subscription_renewal'
+  | 'tier_sync'
+  | 'downgrade'
+  | 'monthly_grant';
+
+type FulfillmentMeta = {
+  stripe_event_id?: string;
+  stripe_session_id?: string;
+};
+
+type FulfillmentMutation = {
+  set?: Record<string, any>;
+  inc?: Record<string, number>;
+  credits: number;
+  result?: Record<string, any>;
+};
+
+const todayStr = (date?: Date) =>
+  (date ? new Date(date) : new Date()).toISOString().split('T')[0];
+
+function anchorsOf(balance: any): string[] {
+  return Array.isArray(balance?.fulfilled_stripe_anchors)
+    ? balance.fulfilled_stripe_anchors.filter(Boolean)
+    : [];
 }
 
-/**
- * Atomically-enough claim an anchor before granting.
- *
- * A plain hasProcessed() -> grant -> recordProcessed() sequence is check-then-act:
- * the webhook and the success-page confirm routinely fire within milliseconds of
- * each other, and both can pass the check before either records. There is no
- * unique index available on anchor_id, so this claims FIRST and then re-reads:
- * if two writers raced, only the lowest row id proceeds and the loser bails.
- *
- * Fails closed. If the claim cannot be written we do not grant — Stripe retries
- * the webhook, which re-enters here and self-heals. Under-granting is visible
- * and recoverable; double-granting is a silent loss of money.
- */
-export async function claimAnchor(
-  base44: any,
-  anchorId: string,
-  userId: string,
-  kind: string,
-  extra: { stripe_event_id?: string; stripe_session_id?: string } = {},
-): Promise<{ won: boolean; rowId?: string }> {
-  if (!anchorId) return { won: false };
-
-  const existing = await base44.asServiceRole.entities.ProcessedStripeEvent.filter({ anchor_id: anchorId });
-  if (existing && existing.length > 0) return { won: false };
-
-  let mine: any;
-  try {
-    mine = await base44.asServiceRole.entities.ProcessedStripeEvent.create({
-      anchor_id: anchorId,
-      user_id: userId,
-      kind,
-      stripe_event_id: extra.stripe_event_id || '',
-      stripe_session_id: extra.stripe_session_id || '',
-      credits_granted: 0,
-      processed_at: new Date().toISOString(),
-    });
-  } catch (err) {
-    console.error('[idempotency] claim failed, not granting', (err as Error).message);
-    return { won: false };
+function balanceCasQuery(balance: any, anchors: string[]) {
+  const query: Record<string, any> = {
+    id: balance.id,
+    tier: balance.tier || 'free',
+    subscription_credits: Number(balance.subscription_credits || 0),
+    purchased_credits: Number(balance.purchased_credits || 0),
+    lifetime_granted: Number(balance.lifetime_granted || 0),
+    period_key: balance.period_key || '',
+    fulfilled_stripe_anchors: anchors,
+  };
+  // Do not coerce absent optional fields to an empty string in the query:
+  // existing pre-migration rows may truly omit them.
+  if (balance.stripe_customer_id !== undefined) {
+    query.stripe_customer_id = balance.stripe_customer_id;
   }
+  if (balance.stripe_subscription_id !== undefined) {
+    query.stripe_subscription_id = balance.stripe_subscription_id;
+  }
+  return query;
+}
 
-  const rows = await base44.asServiceRole.entities.ProcessedStripeEvent.filter({ anchor_id: anchorId });
-  if (rows && rows.length > 1) {
-    const winner = rows.map((r: any) => String(r.id)).sort()[0];
-    if (winner !== String(mine.id)) {
-      console.warn('[idempotency] lost race for', anchorId, '- skipping grant');
-      return { won: false };
+async function auditRows(base44: any, anchorId: string): Promise<any[]> {
+  return await base44.asServiceRole.entities.ProcessedStripeEvent.filter({
+    anchor_id: anchorId,
+  });
+}
+
+async function writeAudit(
+  base44: any,
+  state: {
+    anchorId: string;
+    userId: string;
+    kind: FulfillmentKind;
+    credits: number;
+    status: 'complete' | 'failed';
+    error?: string;
+    meta?: FulfillmentMeta;
+  },
+) {
+  const now = new Date().toISOString();
+  try {
+    const rows = await auditRows(base44, state.anchorId);
+    const set: Record<string, any> = {
+      user_id: state.userId,
+      kind: state.kind,
+      stripe_event_id: state.meta?.stripe_event_id || '',
+      stripe_session_id: state.meta?.stripe_session_id || '',
+      credits_granted: state.credits,
+      status: state.status,
+      last_error: state.error || '',
+    };
+    if (state.status === 'complete') set.completed_at = now;
+
+    if (rows.length > 0) {
+      await base44.asServiceRole.entities.ProcessedStripeEvent.updateMany(
+        { anchor_id: state.anchorId },
+        { $set: set, $inc: { attempt_count: 1 } },
+      );
+    } else {
+      await base44.asServiceRole.entities.ProcessedStripeEvent.create({
+        anchor_id: state.anchorId,
+        ...set,
+        attempt_count: 1,
+        processed_at: now,
+      });
+    }
+  } catch (error) {
+    // The balance anchor remains authoritative. A later webhook/confirmation
+    // retry repairs this audit copy without repeating the grant.
+    console.error('[stripe] fulfillment audit write failed:', (error as Error).message);
+  }
+}
+
+/** Legacy completed rows predate balance anchors. Backfill them, never regrant. */
+async function legacyFulfilledCredits(base44: any, anchorId: string): Promise<number | null> {
+  try {
+    const rows = await auditRows(base44, anchorId);
+    const completed = rows.find((row: any) =>
+      row?.status === 'complete' || Number(row?.credits_granted || 0) > 0
+    );
+    return completed ? Number(completed.credits_granted || 0) : null;
+  } catch {
+    return null;
+  }
+}
+
+async function applyFulfillment(
+  base44: any,
+  userId: string,
+  anchorId: string,
+  kind: FulfillmentKind,
+  meta: FulfillmentMeta,
+  build: (balance: any) => FulfillmentMutation,
+) {
+  if (!anchorId) throw new Error('A stable fulfillment anchor is required');
+
+  const legacyCredits = await legacyFulfilledCredits(base44, anchorId);
+  let lastError: Error | null = null;
+
+  for (let attempt = 0; attempt < 6; attempt++) {
+    const balance = await getBalance(base44, userId);
+    const anchors = anchorsOf(balance);
+
+    if (anchors.includes(anchorId)) {
+      const mutation = build(balance);
+      await writeAudit(base44, {
+        anchorId, userId, kind,
+        credits: legacyCredits ?? mutation.credits,
+        status: 'complete',
+        meta,
+      });
+      return { already: true, ...(mutation.result || {}) };
+    }
+
+    const nextAnchors = [...anchors, anchorId].slice(-500);
+
+    // A legacy audit row with a positive grant is proof that the old code
+    // already changed the balance. Only attach the new anchor.
+    const mutation = legacyCredits !== null
+      ? { set: {}, inc: {}, credits: legacyCredits, result: { already: true } }
+      : build(balance);
+
+    const update: Record<string, any> = {
+      $set: {
+        ...(mutation.set || {}),
+        fulfilled_stripe_anchors: nextAnchors,
+      },
+    };
+    const increments = Object.fromEntries(
+      Object.entries(mutation.inc || {}).filter(([, value]) => Number(value) !== 0),
+    );
+    if (Object.keys(increments).length > 0) update.$inc = increments;
+
+    try {
+      const result = await base44.asServiceRole.entities.CreditBalance.updateMany(
+        balanceCasQuery(balance, anchors),
+        update,
+      );
+      if (Number(result?.updated || 0) === 1) {
+        await writeAudit(base44, {
+          anchorId, userId, kind,
+          credits: mutation.credits,
+          status: 'complete',
+          meta,
+        });
+        return legacyCredits !== null
+          ? { already: true, ...(mutation.result || {}) }
+          : { granted: mutation.credits, ...(mutation.result || {}) };
+      }
+    } catch (error) {
+      lastError = error as Error;
+      break;
     }
   }
-  return { won: true, rowId: mine.id };
+
+  const error = lastError || new Error('Credit balance changed repeatedly during fulfillment');
+  await writeAudit(base44, {
+    anchorId, userId, kind,
+    credits: 0,
+    status: 'failed',
+    error: error.message,
+    meta,
+  });
+  throw error;
 }
 
-/** Write the granted amount back onto a claim row. Never throws. */
-export async function finalizeClaim(base44: any, rowId: string | undefined, credits: number) {
-  if (!rowId) return;
-  try {
-    await base44.asServiceRole.entities.ProcessedStripeEvent.update(rowId, { credits_granted: credits });
-  } catch (err) {
-    console.error('[idempotency] finalize failed', (err as Error).message);
-  }
-}
-
-export async function recordProcessed(base44: any, e: {
-  anchor_id: string; user_id: string; kind: string;
-  stripe_event_id?: string; stripe_session_id?: string; credits_granted?: number;
-}) {
-  try {
-    await base44.asServiceRole.entities.ProcessedStripeEvent.create({
-      anchor_id: e.anchor_id,
-      user_id: e.user_id,
-      kind: e.kind,
-      stripe_event_id: e.stripe_event_id || '',
-      stripe_session_id: e.stripe_session_id || '',
-      credits_granted: e.credits_granted || 0,
-      processed_at: new Date().toISOString(),
-    });
-  } catch (err) {
-    // A failure to record must not fail the grant — but it risks a future
-    // double-grant. Log loudly so it is noticed.
-    console.error('[idempotency] record failed', (err as Error).message);
-  }
-}
-
-// --------------------------------------------------------------- grants -----
-
-const todayStr = (d?: Date) => (d ? new Date(d) : new Date()).toISOString().split('T')[0];
-
-/** First subscription purchase: set tier + period, grant this period's credits. */
+/** First subscription purchase: set tier + subscription id and grant the month. */
 export async function grantSubscriptionInitial(
-  base44: any, userId: string, tier: string, _period: string,
-  anchorId: string, stripeSessionId: string, stripeEventId: string,
+  base44: any,
+  userId: string,
+  tier: string,
+  _period: string,
+  anchorId: string,
+  stripeSessionId: string,
+  stripeEventId: string,
+  subscriptionId = '',
 ) {
-  const claim = await claimAnchor(base44, anchorId, userId, 'subscription_initial', {
-    stripe_event_id: stripeEventId, stripe_session_id: stripeSessionId,
-  });
-  if (!claim.won) return { already: true };
-  const balance = await getBalance(base44, userId);
   const grant = TIER_GRANT[tier] || 0;
-  await base44.asServiceRole.entities.CreditBalance.update(balance.id, {
-    tier,
-    subscription_credits: grant, // fresh period allowance; leftovers from any prior state are replaced
-    period_key: periodKey(),
-    last_grant_date: todayStr(),
-  });
-  await finalizeClaim(base44, claim.rowId, grant);
-  return { granted: grant };
+  return await applyFulfillment(
+    base44,
+    userId,
+    anchorId,
+    'subscription_initial',
+    { stripe_event_id: stripeEventId, stripe_session_id: stripeSessionId },
+    () => ({
+      set: {
+        tier,
+        subscription_credits: grant,
+        stripe_subscription_id: subscriptionId,
+        period_key: periodKey(),
+        last_grant_date: todayStr(),
+      },
+      inc: { lifetime_granted: grant },
+      credits: grant,
+    }),
+  );
 }
 
-/** One-time pack purchase: add credits to the never-expiring purchased pool. */
+/** One-time pack purchase: atomically add never-expiring credits. */
 export async function grantPack(
-  base44: any, userId: string, credits: number,
-  anchorId: string, stripeSessionId: string, stripeEventId: string,
+  base44: any,
+  userId: string,
+  credits: number,
+  anchorId: string,
+  stripeSessionId: string,
+  stripeEventId: string,
 ) {
-  const claim = await claimAnchor(base44, anchorId, userId, 'pack', {
-    stripe_event_id: stripeEventId, stripe_session_id: stripeSessionId,
-  });
-  if (!claim.won) return { already: true };
-  const balance = await getBalance(base44, userId);
-  await base44.asServiceRole.entities.CreditBalance.update(balance.id, {
-    purchased_credits: (balance.purchased_credits || 0) + credits,
-  });
-  await finalizeClaim(base44, claim.rowId, credits);
-  return { granted: credits };
+  if (!Number.isFinite(credits) || credits <= 0) throw new Error('Invalid pack credit amount');
+  return await applyFulfillment(
+    base44,
+    userId,
+    anchorId,
+    'pack',
+    { stripe_event_id: stripeEventId, stripe_session_id: stripeSessionId },
+    () => ({
+      inc: { purchased_credits: credits },
+      credits,
+    }),
+  );
 }
 
-/** Renewal (invoice.payment_succeeded): grant only if the period changed, so
- *  this and the daily cron can't double-grant the same month. */
+/** Paid invoice: grant only when its month has not already been topped up. */
 export async function grantRenewal(
-  base44: any, userId: string, tier: string, invoiceId: string, periodStart: number,
+  base44: any,
+  userId: string,
+  tier: string,
+  invoiceId: string,
+  periodStart: number,
+  subscriptionId = '',
 ) {
-  const claim = await claimAnchor(base44, invoiceId, userId, 'subscription_renewal');
-  if (!claim.won) return { already: true };
-  const balance = await getBalance(base44, userId);
-  const monthKey = periodKey(periodStart ? new Date(periodStart * 1000) : new Date());
-  if (balance.tier === tier && balance.period_key === monthKey) return { skipped: 'same_period' };
-  const grant = TIER_GRANT[tier] || 0;
-  await base44.asServiceRole.entities.CreditBalance.update(balance.id, {
-    tier,
-    subscription_credits: grant,
-    period_key: monthKey,
-    last_grant_date: todayStr(periodStart ? new Date(periodStart * 1000) : new Date()),
-  });
-  await finalizeClaim(base44, claim.rowId, grant);
-  return { granted: grant };
+  const date = periodStart ? new Date(periodStart * 1000) : new Date();
+  const monthKey = periodKey(date);
+  return await applyFulfillment(
+    base44,
+    userId,
+    invoiceId,
+    'subscription_renewal',
+    { stripe_event_id: invoiceId },
+    (balance) => {
+      if (balance.tier === tier && balance.period_key === monthKey) {
+        return {
+          set: subscriptionId ? { stripe_subscription_id: subscriptionId } : {},
+          credits: 0,
+          result: { skipped: 'same_period' },
+        };
+      }
+      const grant = TIER_GRANT[tier] || 0;
+      return {
+        set: {
+          tier,
+          subscription_credits: grant,
+          ...(subscriptionId ? { stripe_subscription_id: subscriptionId } : {}),
+          period_key: monthKey,
+          last_grant_date: todayStr(date),
+        },
+        inc: { lifetime_granted: grant },
+        credits: grant,
+      };
+    },
+  );
 }
 
-/** Plan change (subscription.updated): sync tier AND reconcile the credit
- *  allowance.
- *
- *  Previously this synced the tier only, which meant an upgrade charged the
- *  customer a prorated amount immediately while their balance stayed on the
- *  old tier's allowance until the next monthly grant — potentially weeks of
- *  paying more for nothing. grantMonthlyCredits can't rescue them either: it
- *  skips anyone whose period_key is already the current month.
- *
- *  Upgrade   — credit the DIFFERENCE in allowance, not the full new allowance.
- *              A student who has burned 40 of 60 and moves to unlimited gets
- *              20 + (400 - 60) = 360, so the credits they already spent stay
- *              spent and they can't cycle plans to farm credits.
- *  Downgrade — never claw back mid-period; they paid for this period. The
- *              next grantRenewal/cron SETS subscription_credits to the new
- *              lower allowance, so it self-corrects at the period boundary.
- *
- *  Purchased credits are never touched either way. */
-export async function syncTier(base44: any, userId: string, tier: string, subscriptionId: string, anchorId: string) {
-  const claim = anchorId ? await claimAnchor(base44, anchorId, userId, 'tier_sync') : { won: true, rowId: undefined };
-  if (!claim.won) return { already: true };
-  const balance = await getBalance(base44, userId);
-  if (balance.tier === tier && balance.stripe_subscription_id === subscriptionId) return { skipped: 'no_change' };
-
-  const patch: Record<string, any> = { tier, stripe_subscription_id: subscriptionId };
-
-  // Only reconcile on a real tier move between two paid tiers. Arriving from
-  // 'free' is a fresh subscription, which grantSubscription/grantRenewal has
-  // already granted in full — topping up here would double-grant.
-  const oldGrant = TIER_GRANT[balance.tier] || 0;
-  const newGrant = TIER_GRANT[tier] || 0;
-  const isUpgrade = balance.tier !== tier && balance.tier !== 'free' && newGrant > oldGrant;
-  const uplift = isUpgrade ? newGrant - oldGrant : 0;
-
-  if (uplift > 0) {
-    patch.subscription_credits = (balance.subscription_credits || 0) + uplift;
-    patch.lifetime_granted = (balance.lifetime_granted || 0) + uplift;
-  }
-
-  await base44.asServiceRole.entities.CreditBalance.update(balance.id, patch);
-  if (claim.rowId) await finalizeClaim(base44, claim.rowId, uplift);
-  return { synced: tier, uplift };
+/** Daily recovery sweep for semester plans whose Stripe invoice is four-monthly. */
+export async function grantScheduledMonthly(
+  base44: any,
+  userId: string,
+  tier: string,
+  subscriptionId: string,
+  monthKey = periodKey(),
+) {
+  const anchorId = `monthly:${userId}:${monthKey}`;
+  return await applyFulfillment(
+    base44,
+    userId,
+    anchorId,
+    'monthly_grant',
+    {},
+    (balance) => {
+      if (balance.period_key === monthKey) {
+        return { credits: 0, result: { skipped: 'same_period' } };
+      }
+      const grant = TIER_GRANT[tier] || 0;
+      return {
+        set: {
+          tier,
+          subscription_credits: grant,
+          stripe_subscription_id: subscriptionId,
+          period_key: monthKey,
+          last_grant_date: todayStr(),
+        },
+        inc: { lifetime_granted: grant },
+        credits: grant,
+      };
+    },
+  );
 }
 
-/** Cancellation (subscription.deleted): Stripe fires this at period end for
- *  cancel_at_period_end, so dropping to free here is "at period end". Purchased
- *  credits are never touched. */
-export async function downgradeAtPeriodEnd(base44: any, userId: string, subscriptionId: string, anchorId: string) {
-  const claim = anchorId ? await claimAnchor(base44, anchorId, userId, 'downgrade') : { won: true, rowId: undefined };
-  if (!claim.won) return { already: true };
-  const balance = await getBalance(base44, userId);
-  await base44.asServiceRole.entities.CreditBalance.update(balance.id, {
-    tier: 'free',
-    stripe_subscription_id: '',
-    subscription_credits: 0,
-  });
-  return { downgraded: true };
+/** Sync plan changes; upgrades receive only the allowance difference. */
+export async function syncTier(
+  base44: any,
+  userId: string,
+  tier: string,
+  subscriptionId: string,
+  anchorId: string,
+) {
+  return await applyFulfillment(
+    base44,
+    userId,
+    anchorId,
+    'tier_sync',
+    { stripe_event_id: anchorId },
+    (balance) => {
+      if (balance.tier === tier && balance.stripe_subscription_id === subscriptionId) {
+        return { credits: 0, result: { skipped: 'no_change' } };
+      }
+
+      const oldGrant = TIER_GRANT[balance.tier] || 0;
+      const newGrant = TIER_GRANT[tier] || 0;
+      const isUpgrade =
+        balance.tier !== tier &&
+        balance.tier !== 'free' &&
+        newGrant > oldGrant;
+      const uplift = isUpgrade ? newGrant - oldGrant : 0;
+
+      return {
+        set: {
+          tier,
+          stripe_subscription_id: subscriptionId,
+          ...(uplift > 0
+            ? { subscription_credits: Number(balance.subscription_credits || 0) + uplift }
+            : {}),
+        },
+        inc: uplift > 0 ? { lifetime_granted: uplift } : {},
+        credits: uplift,
+        result: { synced: tier, uplift },
+      };
+    },
+  );
 }
 
-// --------------------------------------------- subscription → user/tier ------
+/** Drop subscription allowance at period end; purchased credits survive. */
+export async function downgradeAtPeriodEnd(
+  base44: any,
+  userId: string,
+  subscriptionId: string,
+  anchorId: string,
+) {
+  return await applyFulfillment(
+    base44,
+    userId,
+    anchorId,
+    'downgrade',
+    { stripe_event_id: anchorId },
+    () => ({
+      set: {
+        tier: 'free',
+        stripe_subscription_id: '',
+        subscription_credits: 0,
+      },
+      credits: 0,
+      result: { downgraded: true, subscription_id: subscriptionId },
+    }),
+  );
+}
+
+// --------------------------------------------- subscription context ----------
 
 export async function userIdForSubscription(base44: any, subId: string): Promise<string | null> {
-  const rows = await base44.asServiceRole.entities.CreditBalance.filter({ stripe_subscription_id: subId });
+  const rows = await base44.asServiceRole.entities.CreditBalance.filter({
+    stripe_subscription_id: subId,
+  });
   return rows?.[0]?.user_id || null;
 }
 
+export async function subscriptionContext(base44: any, subId: string) {
+  const subscription = await stripeGet(`subscriptions/${subId}?expand[]=items.data.price`);
+  const userId = subscription?.metadata?.user_id
+    || await userIdForSubscription(base44, subId);
+  const tier = subscription?.items?.data?.[0]?.price?.metadata?.cedar_tier || null;
+  return { subscription, userId, tier };
+}
+
 export async function tierFromSubscription(base44: any, subId: string): Promise<string | null> {
-  const sub = await stripeGet(`subscriptions/${subId}?expand[]=items.data.price`);
-  return sub?.items?.data?.[0]?.price?.metadata?.cedar_tier || null;
+  const context = await subscriptionContext(base44, subId);
+  return context.tier;
 }
 
 // --------------------------------------- webhook signature verification ------
 
 async function hmacHex(secret: string, message: string): Promise<string> {
-  const enc = new TextEncoder();
-  const key = await crypto.subtle.importKey('raw', enc.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
-  const sig = await crypto.subtle.sign('HMAC', key, enc.encode(message));
-  return [...new Uint8Array(sig)].map(b => b.toString(16).padStart(2, '0')).join('');
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    'raw',
+    encoder.encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign'],
+  );
+  const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(message));
+  return [...new Uint8Array(signature)]
+    .map(byte => byte.toString(16).padStart(2, '0'))
+    .join('');
 }
 
-/** Verify a Stripe-Signature header against the raw request body. Manual HMAC
- *  via Web Crypto so we don't depend on the Stripe SDK. */
-export async function verifyStripeSignature(body: string, sigHeader: string, secret: string, toleranceSec = 300): Promise<{ ok: boolean; reason?: string }> {
-  if (!sigHeader || !secret) return { ok: false, reason: 'missing' };
-  let t: string | null = null;
-  const sigs: string[] = [];
-  for (const piece of sigHeader.split(',')) {
-    const [k, v] = piece.split('=');
-    if (k === 't') t = v;
-    else if (k === 'v1' && v) sigs.push(v);
+export async function verifyStripeSignature(
+  body: string,
+  signatureHeader: string,
+  secret: string,
+  toleranceSec = 300,
+): Promise<{ ok: boolean; reason?: string }> {
+  if (!signatureHeader || !secret) return { ok: false, reason: 'missing' };
+
+  let timestamp: string | null = null;
+  const signatures: string[] = [];
+  for (const piece of signatureHeader.split(',')) {
+    const [key, value] = piece.split('=');
+    if (key === 't') timestamp = value;
+    else if (key === 'v1' && value) signatures.push(value);
   }
-  if (!t || sigs.length === 0) return { ok: false, reason: 'malformed' };
-  const age = Math.abs(Date.now() / 1000 - Number(t));
-  if (age > toleranceSec) return { ok: false, reason: 'expired' };
-  const expected = await hmacHex(secret, `${t}.${body}`);
-  for (const s of sigs) {
-    if (s.length !== expected.length) continue;
-    let diff = 0;
-    for (let i = 0; i < s.length; i++) diff |= s.charCodeAt(i) ^ expected.charCodeAt(i);
-    if (diff === 0) return { ok: true };
+  if (!timestamp || signatures.length === 0) {
+    return { ok: false, reason: 'malformed' };
+  }
+
+  const age = Math.abs(Date.now() / 1000 - Number(timestamp));
+  if (!Number.isFinite(age) || age > toleranceSec) {
+    return { ok: false, reason: 'expired' };
+  }
+
+  const expected = await hmacHex(secret, `${timestamp}.${body}`);
+  for (const signature of signatures) {
+    if (signature.length !== expected.length) continue;
+    let difference = 0;
+    for (let index = 0; index < signature.length; index++) {
+      difference |= signature.charCodeAt(index) ^ expected.charCodeAt(index);
+    }
+    if (difference === 0) return { ok: true };
   }
   return { ok: false, reason: 'signature_mismatch' };
 }
