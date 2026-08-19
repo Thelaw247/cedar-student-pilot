@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { getInitials, getAvatarColor } from '@/lib/avatar';
-import { User, Mail, Lock, Check, Loader2, LogOut, AlertCircle, Camera, X } from 'lucide-react';
+import { Mail, Lock, Check, Loader2, LogOut, AlertCircle, Camera, X } from 'lucide-react';
 
 const MAX_PHOTO_BYTES = 5 * 1024 * 1024; // 5MB, matches the client-side cap other uploads in the app use
 
