@@ -1,10 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
-import { User, Mail, Lock, Check, Loader2, LogOut, AlertCircle } from 'lucide-react';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { getInitials, getAvatarColor } from '@/lib/avatar';
+import { User, Mail, Lock, Check, Loader2, LogOut, AlertCircle, Camera, X } from 'lucide-react';
+
+const MAX_PHOTO_BYTES = 5 * 1024 * 1024; // 5MB, matches the client-side cap other uploads in the app use
 
 /**
- * Profile management: display name, email, password, sign out.
+ * Profile management: photo, display name, email, password, sign out.
  *
  * Uses base44.auth.updateMe() and base44.auth.changePassword() from the SDK.
  * Email is read-only — it is the account identifier and changing it is an
@@ -17,6 +21,10 @@ export default function ProfileSettings() {
   const [nameSaved, setNameSaved] = useState(false);
   const [nameError, setNameError] = useState(null);
 
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const [photoError, setPhotoError] = useState(null);
+  const fileInputRef = useRef(null);
+
   const [showPw, setShowPw] = useState(false);
   const [currentPw, setCurrentPw] = useState('');
   const [newPw, setNewPw] = useState('');
@@ -26,6 +34,44 @@ export default function ProfileSettings() {
   const [pwError, setPwError] = useState(null);
 
   const dirty = name.trim() !== (user?.full_name || '').trim();
+
+  const handlePhotoChange = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // allow re-selecting the same file later
+    if (!file) return;
+    setPhotoError(null);
+    if (!file.type.startsWith('image/')) {
+      setPhotoError('Please choose an image file.');
+      return;
+    }
+    if (file.size > MAX_PHOTO_BYTES) {
+      setPhotoError('Photo is too large — please choose one under 5MB.');
+      return;
+    }
+    setPhotoBusy(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      await base44.auth.updateMe({ avatar_url: file_url });
+      await checkUserAuth();
+    } catch (err) {
+      console.error(err);
+      setPhotoError('Could not upload your photo. Please try again.');
+    }
+    setPhotoBusy(false);
+  };
+
+  const removePhoto = async () => {
+    setPhotoBusy(true);
+    setPhotoError(null);
+    try {
+      await base44.auth.updateMe({ avatar_url: null });
+      await checkUserAuth();
+    } catch (err) {
+      console.error(err);
+      setPhotoError('Could not remove your photo. Please try again.');
+    }
+    setPhotoBusy(false);
+  };
 
   const saveName = async () => {
     if (!dirty || !name.trim()) return;
@@ -67,14 +113,45 @@ export default function ProfileSettings() {
     <div className="space-y-5">
       {/* Identity */}
       <div className="flex items-center gap-3">
-        <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-          <User className="w-5 h-5 text-primary" />
+        <div className="relative flex-shrink-0">
+          <Avatar className="w-14 h-14">
+            {user?.avatar_url && <AvatarImage src={user.avatar_url} alt={user?.full_name || 'Profile photo'} />}
+            <AvatarFallback
+              style={{ backgroundColor: getAvatarColor(user?.id), color: '#fff' }}
+              className="text-base font-semibold"
+            >
+              {getInitials(user?.full_name)}
+            </AvatarFallback>
+          </Avatar>
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={photoBusy}
+            title="Change photo"
+            className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center border-2 border-background hover:bg-primary/90 disabled:opacity-50"
+          >
+            {photoBusy ? <Loader2 className="w-3 h-3 animate-spin" /> : <Camera className="w-3 h-3" />}
+          </button>
+          <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoChange} />
         </div>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <p className="text-sm font-medium truncate">{user?.full_name || 'Your account'}</p>
           <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+          {user?.avatar_url && (
+            <button
+              onClick={removePhoto}
+              disabled={photoBusy}
+              className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-destructive mt-1"
+            >
+              <X className="w-3 h-3" /> Remove photo
+            </button>
+          )}
         </div>
       </div>
+      {photoError && (
+        <p className="text-[11px] text-destructive flex items-start gap-1.5 -mt-3">
+          <AlertCircle className="w-3 h-3 mt-px flex-shrink-0" />{photoError}
+        </p>
+      )}
 
       {/* Display name */}
       <div>
