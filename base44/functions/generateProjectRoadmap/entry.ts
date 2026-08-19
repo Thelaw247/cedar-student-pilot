@@ -1,6 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
-import { invokeLLM } from '../../shared/llm.ts';
-import { secrets } from 'base44:runtime';
+import { invokeLLM, createLlmUsage } from '../../shared/llm.ts';
 import { gateFeature, settleFeature } from '../../shared/credits.ts';
 
 Deno.serve(async (req) => {
@@ -65,12 +64,14 @@ Only generate fields that are genuinely needed for THIS specific project. Do not
     // step, not the deliverable. Only the roadmap itself is billable.
     const gate = await gateFeature(base44, user.id, 'project_roadmap');
     if (!gate.ok) return gate.response!;
+    const llmUsage = createLlmUsage();
 
     const metadataStr = Object.entries(project_metadata)
       .map(([k, v]) => `- ${k}: ${v}`)
       .join('\n');
 
     const result = await invokeLLM(base44, {
+      usage: llmUsage,
       prompt: `You are a project planning assistant. Create a step-by-step roadmap for a student to complete their project.
 
 Project Description: "${description}"
@@ -113,8 +114,7 @@ Each step needs:
     });
     await settleFeature(base44, gate, {
       feature: 'project_roadmap',
-      calls: 1,
-      usedGemini: !!secrets.get('GEMINI_API_KEY'),
+      llmUsage,
     });
 
     return Response.json({ roadmap: result.roadmap || [] });
