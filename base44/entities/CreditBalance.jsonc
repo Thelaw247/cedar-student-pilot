@@ -51,6 +51,24 @@
       "default": false,
       "title": "Fair Use Flagged"
     },
+    "applied_credit_operations": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "title": "Applied Credit Operations",
+      "description": "Recent debit operation ids applied atomically to this balance. Prevents a retried settlement from charging twice."
+    },
+    "fulfilled_stripe_anchors": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "title": "Fulfilled Stripe Anchors",
+      "description": "Stripe session, invoice, and lifecycle anchors already reflected in this balance. This is the atomic idempotency source; ProcessedStripeEvent is the audit copy."
+    },
     "stripe_customer_id": {
       "type": "string",
       "title": "Stripe Customer ID",
