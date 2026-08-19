@@ -1,6 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
-import { invokeLLM } from '../../shared/llm.ts';
-import { secrets } from 'base44:runtime';
+import { invokeLLM, createLlmUsage } from '../../shared/llm.ts';
 import { gateFeature, settleFeature } from '../../shared/credits.ts';
 
 /**
@@ -145,6 +144,7 @@ Deno.serve(async (req) => {
     // a real rebuild is billable.
     const gate = await gateFeature(base44, user.id, 'handbook');
     if (!gate.ok) return gate.response!;
+    const llmUsage = createLlmUsage();
 
     // ----------------------------------------------------------- build ----
     // One query for all notes in the class, grouped in memory. This used to be
@@ -194,6 +194,7 @@ Deno.serve(async (req) => {
     await Promise.all(thin.map(async (ch: any) => {
       try {
         const res = await invokeLLM(base44, {
+          usage: llmUsage,
           prompt: `You are helping a university student study "${cls?.name || 'a class'}". Below is what was captured from one lecture. Parts of it look thinly covered — either the recording was short or some topics were only mentioned in passing.
 
 Your job: briefly fill in ONLY the clear gaps in the topics that were ALREADY introduced in this lecture. This is supplementary context to make the student's notes usable — not a rewrite.
@@ -282,8 +283,7 @@ Return ONLY the supplementary explanation text (or an empty string if none is ne
     // Charged only now that the handbook is built and cached.
     await settleFeature(base44, gate, {
       feature: 'handbook',
-      calls: 1 + Math.min(EXPANSION_CAP, lecturesWithContent.length),
-      usedGemini: !!secrets.get('GEMINI_API_KEY'),
+      llmUsage,
     });
 
     return Response.json({ ...payload, cached: false });
