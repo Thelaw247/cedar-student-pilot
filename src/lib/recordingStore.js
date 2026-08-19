@@ -68,7 +68,7 @@ export async function saveRecording(classId, blob, meta = {}) {
       const req = store.put({
         userId,
         classId,
-        blob:
+        blob,
         seconds: meta.seconds ?? 0,
         timestamp: meta.timestamp ?? Date.now(),
         mimeType: blob?.type || 'audio/webm',
