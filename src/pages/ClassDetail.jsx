@@ -225,7 +225,8 @@ function RecordModal({ classId, cls, onClose }) {
   const [recoveryAvailable, setRecoveryAvailable] = useState(null);
   const [reviewLectureId, setReviewLectureId] = useState(null);
   const [recoveredBlob, setRecoveredBlob] = useState(null);
-  const [saveError, setSaveError] = useState(false);
+  const [saveError, setSaveError] = useState('');
+  const [pendingLectureId, setPendingLectureId] = useState(null);
   const [liveNotes, setLiveNotes] = useState('');
 
   // Recording-consent gate. Every Canadian university policy requires a student
@@ -374,51 +375,72 @@ function RecordModal({ classId, cls, onClose }) {
 
   const saveAndProcess = async () => {
     setProcessing(true);
-    setSaveError(false);
+    setSaveError('');
     try {
       // Work from whichever copy we have: freshly recorded chunks, or a blob
       // recovered from a previous interrupted/failed session.
       const audioBlob = recoveredBlob || new Blob(audioChunks, { type: 'audio/webm' });
       const durationSeconds = seconds || recoveryAvailable?.seconds || 0;
+      if (!audioBlob.size) throw new Error('The recording is empty. Please record it again.');
+
+      // Check the estimated Cedar-credit cost before UploadFile. The backend
+      // independently verifies the real media duration before any AI call, so
+      // this only avoids wasting an upload when the known balance is too low.
+      await base44.functions.invoke('processLectureRecording', {
+        action: 'preflight',
+        duration_seconds: durationSeconds,
+      });
+
       // Make sure a durable copy exists before we attempt the upload, so a
       // failure (or a tab close) mid-upload never loses the audio.
       await saveRecording(classId, audioBlob, { seconds: durationSeconds, timestamp: Date.now() });
 
-      const audioFile = new File([audioBlob], `lecture-${Date.now()}.webm`, { type: 'audio/webm' });
-      const { file_url } = await base44.integrations.Core.UploadFile({ file: audioFile });
-      const today = new Date().toISOString().split('T')[0];
-      const lecture = await base44.entities.Lecture.create({
-        class_id: classId,
-        date: today,
-        recording_url: file_url,
-        duration_seconds: durationSeconds,
-        status: 'processing',
-      });
-      await base44.functions.invoke('processLectureRecording', {
-        lecture_id: lecture.id,
-        audio_url: file_url,
-      });
+      let lectureId = pendingLectureId;
+      if (!lectureId) {
+        const audioFile = new File([audioBlob], `lecture-${Date.now()}.webm`, { type: 'audio/webm' });
+        const { file_url } = await base44.integrations.Core.UploadFile({ file: audioFile });
+        const today = new Date().toISOString().split('T')[0];
+        const lecture = await base44.entities.Lecture.create({
+          class_id: classId,
+          date: today,
+          recording_url: file_url,
+          // Display estimate only. The processing function replaces this with
+          // duration parsed from the stored media before calculating the bill.
+          duration_seconds: durationSeconds,
+          status: 'processing',
+        });
+        lectureId = lecture.id;
+        setPendingLectureId(lectureId);
+      }
+
+      // The backend resolves the audio URL from the owned Lecture record; the
+      // browser no longer supplies a URL that could be swapped or forged.
+      await base44.functions.invoke('processLectureRecording', { lecture_id: lectureId });
+
       // Save any notes typed during the lecture as a separate Note record tied
       // to this lecture. Kept distinct from the transcript, and the handbook
       // already surfaces per-lecture notes alongside it.
       if (liveNotes.trim()) {
         try {
           await base44.entities.Note.create({
-            lecture_id: lecture.id,
+            lecture_id: lectureId,
             class_id: classId,
             content: liveNotes.trim(),
           });
         } catch (e) { /* non-fatal: the recording itself is safely saved */ }
       }
-      // Uploaded and handed off successfully — the durable copy is no longer
+      // Uploaded and processed successfully — the durable copy is no longer
       // needed, so clear it and move on to offer spaced reviews.
       await clearRecording(classId);
+      setPendingLectureId(null);
       setProcessing(false);
-      setReviewLectureId(lecture.id);
+      setReviewLectureId(lectureId);
       return;
     } catch (e) {
-      // Keep the durable copy so the user can retry — even after a reload.
-      setSaveError(true);
+      // Keep the durable copy and pending lecture id so a retry does not upload
+      // or create a second Lecture after a processing failure.
+      const detail = e?.response?.data?.message || e?.response?.data?.error || e?.message;
+      setSaveError(detail || 'Check your connection and try again.');
     }
     setProcessing(false);
   };
@@ -473,7 +495,7 @@ function RecordModal({ classId, cls, onClose }) {
               <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
               <div className="flex-1">
                 <p className="text-sm font-medium text-amber-700 dark:text-amber-500">Couldn’t save the recording</p>
-                <p className="text-xs text-muted-foreground mt-1">Your audio is safely stored on this device — nothing was lost. Check your connection and try again. It’ll still be here if you close and come back.</p>
+                <p className="text-xs text-muted-foreground mt-1">Your audio is safely stored on this device — nothing was lost. {saveError}</p>
                 <button onClick={saveAndProcess} disabled={processing}
                   className="mt-3 w-full py-2 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-2">
                   {processing ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Trying again…</> : 'Try again'}
