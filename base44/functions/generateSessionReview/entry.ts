@@ -1,6 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
-import { invokeLLM } from '../../shared/llm.ts';
-import { secrets } from 'base44:runtime';
+import { invokeLLM, createLlmUsage } from '../../shared/llm.ts';
 import { gateFeature, settleFeature } from '../../shared/credits.ts';
 
 Deno.serve(async (req) => {
@@ -53,6 +52,7 @@ Deno.serve(async (req) => {
     // not billable.
     const gate = await gateFeature(base44, user.id, 'session_review', { class_id });
     if (!gate.ok) return gate.response!;
+    const llmUsage = createLlmUsage();
 
     // Build context from lectures
     const lectureContext = lecturesWithContent.map(l => {
@@ -79,6 +79,7 @@ Deno.serve(async (req) => {
 - 2 one-word answer questions`;
 
     const result = await invokeLLM(base44, {
+      usage: llmUsage,
       prompt: `You are an academic tutor creating a study session review quiz for the class "${cls?.name || 'this class'}".
 
 ${questionTypeInstruction}
@@ -125,8 +126,7 @@ ${isComplex ? 'For problem questions, make them actual solvable problems based o
 
     await settleFeature(base44, gate, {
       feature: 'session_review',
-      calls: 1,
-      usedGemini: !!secrets.get('GEMINI_API_KEY'),
+      llmUsage,
       extra: { class_id },
     });
 
