@@ -1,7 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 import { parseBlob } from 'npm:music-metadata@11.15.0';
 import { secrets } from 'base44:runtime';
-import { invokeLLM, QUALITY_MODEL } from '../../shared/llm.ts';
+import { invokeLLM, createLlmUsage, QUALITY_MODEL } from '../../shared/llm.ts';
 import {
   getBalance, availableCredits, insufficientResponse, spendCredits,
   logUsage, durationCost, COST_PER_30MIN_PROCESS, groqCostCad, base44CostCad,
@@ -39,8 +39,9 @@ class RequestError extends Error {
  * arbitrary caller-supplied URL.
  */
 function trustedRecordingUrl(rawUrl: string): string {
-  const appId = Deno.env.get('BASE44_APP_ID') || secrets.get('BASE44_APP_ID') || '';
-  if (!appId) throw new RequestError('Recording validation is temporarily unavailable', 503);
+  const appId = Deno.env.get('BASE44_APP_ID')
+    || secrets.get('BASE44_APP_ID')
+    || '6a485105cf0a684688950256';
 
   let url: URL;
   try {
@@ -251,7 +252,7 @@ const EXTRACTION_SCHEMA = {
  * extra token cost), and one small final call stitches the per-chunk summaries
  * into a single coherent title + summary.
  */
-async function extractFromTranscript(base44, transcript, cls, lectureDate) {
+async function extractFromTranscript(base44, transcript, cls, lectureDate, llmUsage) {
   const className = cls?.name || 'Unknown';
   const instructor = cls?.instructor || 'Unknown instructor';
 
@@ -265,6 +266,7 @@ async function extractFromTranscript(base44, transcript, cls, lectureDate) {
     // the exam-coverage feature runs on.
     const result = await invokeLLM(base44, {
       model: QUALITY_MODEL,
+      usage: llmUsage,
       prompt: `You are an AI academic assistant analyzing a university lecture transcript. The class is "${className}" taught by ${instructor} on ${lectureDate}.
 ${scope}
 
@@ -314,6 +316,7 @@ ${text}`,
 
   try {
     const stitched = await invokeLLM(base44, {
+      usage: llmUsage,
       prompt: `These are section summaries from one university lecture in "${className}", in order. Combine them into a single coherent summary of the whole lecture (2-3 paragraphs) and give the lecture one concise descriptive title (5-8 words). Do not invent anything not present below.
 
 ${partSummaries}`,
@@ -339,7 +342,7 @@ ${partSummaries}`,
  * raw transcript. Cheaper, and it covers the entire lecture instead of only the
  * first 12,000 characters as before.
  */
-async function generateFlashcards(base44, lecture, cls, userId) {
+async function generateFlashcards(base44, lecture, cls, userId, llmUsage) {
   const concepts = (lecture.ai_concepts || []).join(', ');
   const definitions = (lecture.ai_definitions || []).map(d => `${d.term}: ${d.definition}`).join('\n');
   const formulas = (lecture.ai_formulas || []).join('\n');
@@ -348,6 +351,7 @@ async function generateFlashcards(base44, lecture, cls, userId) {
 
   // Cheap model is fine here — it reformats content that extraction already produced.
   const result = await invokeLLM(base44, {
+    usage: llmUsage,
     prompt: `Create 8 study flashcards for a university lecture in "${cls?.name || 'the class'}" titled "${lecture.ai_title || 'Untitled'}". Each flashcard has a front (question or term) and a back (answer or definition). Focus on the most important material and spread the cards across the whole lecture, not just the beginning.
 
 Lecture summary:
@@ -476,12 +480,17 @@ Deno.serve(async (req) => {
       console.error('[recording] prior usage lookup failed:', (error as Error).message);
     }
 
+    const operationId = `process:${lecture_id}`;
+    const started = Date.now();
+    const balance = await getBalance(base44, user.id);
+    // The balance ledger is the durable debit source of truth. UsageEvent is
+    // observability and may be missing if its best-effort write failed.
+    alreadyCharged = alreadyCharged
+      || (balance.applied_credit_operations || []).includes(operationId);
+
     if (alreadyCharged && existing.status === 'complete' && existing.ai_title) {
       return Response.json({ status: 'complete', lecture_id, credits_charged: 0 });
     }
-
-    const started = Date.now();
-    const balance = await getBalance(base44, user.id);
 
     // Reject zero-balance abuse before fetching a potentially large file. The
     // exact cost is checked again after duration is verified.
@@ -515,6 +524,7 @@ Deno.serve(async (req) => {
     // Every content stage remains resumable, but an existing transcript no
     // longer makes a never-charged request free: billing is keyed to the
     // successful usage ledger above.
+    const llmUsage = createLlmUsage();
     const hasTranscript = !!(existing.transcript && existing.transcript.trim());
     let transcript = hasTranscript ? existing.transcript.trim() : '';
     let transcriptionProvider: 'stored' | 'groq' | 'base44' = hasTranscript ? 'stored' : 'base44';
@@ -539,7 +549,7 @@ Deno.serve(async (req) => {
     const lecture = await base44.entities.Lecture.get(lecture_id);
 
     if (!lecture.ai_title) {
-      const analysis = await extractFromTranscript(base44, transcript, cls, lecture.date);
+      const analysis = await extractFromTranscript(base44, transcript, cls, lecture.date, llmUsage);
       await base44.entities.Lecture.update(lecture_id, {
         ai_title: analysis.title,
         ai_summary: analysis.summary,
@@ -558,36 +568,55 @@ Deno.serve(async (req) => {
       const alreadyHave = await base44.entities.Flashcard.filter({ lecture_id });
       if (!alreadyHave || alreadyHave.length === 0) {
         const fresh = await base44.entities.Lecture.get(lecture_id);
-        await generateFlashcards(base44, fresh, cls, user.id);
+        await generateFlashcards(base44, fresh, cls, user.id, llmUsage);
       }
     } catch {
       // Lecture itself is complete; cards can be regenerated on demand.
     }
 
     // ---- CHARGE + LOG (success path only) ----------------------------------
-    if (cost > 0) await spendCredits(base44, balance, cost);
+    const settled = cost > 0
+      ? await spendCredits(base44, balance, cost, operationId)
+      : { ...balance, _operationAppliedNow: false };
+    const chargedNow = settled?._operationAppliedNow === false ? 0 : cost;
 
-    const usedGroq = transcriptionProvider === 'groq';
-    const usedGemini = !!secrets.get('GEMINI_API_KEY');
-    const llmCalls = existingLecture_llmCalls(transcript);
+    const geminiCalls = Number(llmUsage.geminiCalls || 0);
+    const base44Calls = Number(llmUsage.base44Calls || 0);
+    const providers = new Set<string>();
+    if (transcriptionProvider === 'groq') providers.add('groq');
+    if (transcriptionProvider === 'base44') providers.add('base44');
+    if (geminiCalls > 0) providers.add('gemini');
+    if (base44Calls > 0) providers.add('base44');
+    const providerNames = [...providers];
+    const provider = providerNames.length > 1 ? 'mixed' : (providerNames[0] || 'base44');
+    const models = Object.keys(llmUsage.models);
+    if (transcriptionProvider === 'groq') models.unshift(GROQ_MODEL);
+    if (transcriptionProvider === 'base44') models.unshift('base44-transcribe');
+    const base44Credits = 1 + base44Calls * 3;
+
     await logUsage(base44, {
       user_id: user.id,
       feature: 'process_lecture',
       lecture_id,
-      provider: usedGemini ? 'gemini' : 'base44',
-      model: usedGemini ? QUALITY_MODEL : 'automatic',
-      call_count: llmCalls,
-      // UploadFile is charged regardless; LLM credits only when NOT on own keys.
-      base44_credits: 1 + (usedGemini ? 0 : llmCalls * 3),
+      provider,
+      model: [...new Set(models)].join(', ') || 'stored transcript',
+      call_count: geminiCalls + base44Calls,
+      // UploadFile is charged regardless; LLM credits only for actual fallback calls.
+      base44_credits: base44Credits,
+      input_tokens: llmUsage.inputTokens,
+      output_tokens: llmUsage.outputTokens,
       audio_seconds: audioSeconds,
-      cedar_credits_charged: cost,
-      cost_cad: base44CostCad(1 + (usedGemini ? 0 : llmCalls * 3)) + (usedGroq ? groqCostCad(audioSeconds) : 0),
+      cedar_credits_charged: chargedNow,
+      credit_operation_id: operationId,
+      cost_cad: base44CostCad(base44Credits)
+        + llmUsage.costCad
+        + (transcriptionProvider === 'groq' ? groqCostCad(audioSeconds) : 0),
       tier_at_time: balance.tier,
       success: true,
       latency_ms: Date.now() - started,
     });
 
-    return Response.json({ status: 'complete', lecture_id, credits_charged: cost });
+    return Response.json({ status: 'complete', lecture_id, credits_charged: chargedNow });
   } catch (error) {
     const status = Number((error as any)?.status) || 500;
     return Response.json(
