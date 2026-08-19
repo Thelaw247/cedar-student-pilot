@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { fetchWithCache } from '@/hooks/useEntityData';
-import { CEDAR_LOGO_URL } from '@/lib/brand';
+import UserMenuButton from '@/components/UserMenuButton';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useUndo, UndoToast } from '@/hooks/useUndo';
 import { Plus, Sun, Moon, GraduationCap, Calendar, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -196,16 +196,13 @@ export default function Home() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 lg:py-10 animate-fade-in">
-      {/* Brand lockup, top left. Hidden from lg up because the sidebar already
-          shows the same mark there and two logos side by side reads as a bug.
-          Uses the transparent /logo-mark.png so it sits cleanly on the page
-          background in both light and dark mode. */}
-      <div className="flex items-center gap-2.5 mb-6 lg:hidden">
-        <img src={CEDAR_LOGO_URL} alt="Cedar Student Pilot" className="w-8 h-8 object-contain" />
-        <div>
-          <p className="font-heading font-bold text-base leading-none text-foreground">Cedar</p>
-          <p className="text-[10px] text-muted-foreground mt-0.5 tracking-wide uppercase">Student Pilot</p>
-        </div>
+      {/* Profile access, top left. Hidden from lg up because the Sidebar
+          already shows the same button there and two would be a duplicate.
+          Replaces the old Cedar logo lockup here — the brand mark stays in
+          the favicon, home-screen icon, and marketing; this corner is
+          profile-only now. */}
+      <div className="mb-6 lg:hidden">
+        <UserMenuButton size="sm" />
       </div>
 
       {/* Tab bar */}
