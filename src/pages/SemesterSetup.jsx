@@ -1,10 +1,27 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { Upload, FileText, Loader2, Check, X, Plus, ChevronRight } from 'lucide-react';
+import { useAuth } from '@/lib/AuthContext';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { getInitials, getAvatarColor } from '@/lib/avatar';
+import { Upload, FileText, Loader2, Check, X, Plus, ChevronRight, Camera, AlertCircle } from 'lucide-react';
+
+const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
 
 export default function SemesterSetup() {
-  const [step, setStep] = useState(1);
+  const { user, checkUserAuth } = useAuth();
+  // Step 0 (name + optional photo) only shows for someone who has never set a
+  // name — i.e. genuinely the first time through. Nothing else in the app
+  // captures a name at signup (Register.jsx is email/password only), so this
+  // is the only place it's ever asked. An existing user setting up a SECOND
+  // semester already has a name and skips straight to step 1, unchanged from
+  // before this feature existed.
+  const [step, setStep] = useState(() => (user?.full_name ? 1 : 0));
+  const [welcomeName, setWelcomeName] = useState(user?.full_name || '');
+  const [welcomeBusy, setWelcomeBusy] = useState(false);
+  const [welcomeError, setWelcomeError] = useState(null);
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const photoInputRef = useRef(null);
   const [file, setFile] = useState(null);
   const [fileUrl, setFileUrl] = useState(null);
   const [parsing, setParsing] = useState(false);
