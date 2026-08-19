@@ -1,6 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
-import { invokeLLM, QUALITY_MODEL } from '../../shared/llm.ts';
-import { secrets } from 'base44:runtime';
+import { invokeLLM, createLlmUsage, QUALITY_MODEL } from '../../shared/llm.ts';
 import { gateFeature, settleFeature } from '../../shared/credits.ts';
 
 Deno.serve(async (req) => {
@@ -20,6 +19,7 @@ Deno.serve(async (req) => {
     // Gate after the class lookup — a missing class is not billable.
     const gate = await gateFeature(base44, user.id, 'missed_summary', { class_id });
     if (!gate.ok) return gate.response!;
+    const llmUsage = createLlmUsage();
 
     // Get previous lectures for context
     const lectures = await base44.entities.Lecture.filter({ class_id: class_id }, '-date');
@@ -37,6 +37,7 @@ Deno.serve(async (req) => {
 
     // Generate estimated lecture content
     const analysis = await invokeLLM(base44, {
+      usage: llmUsage,
       model: QUALITY_MODEL,
       prompt: `You are an AI academic assistant. A student missed a class and wants an AI-estimated summary of what was likely covered.
 
@@ -90,8 +91,7 @@ IMPORTANT: This is an estimation based on course progression. Be clear that this
 
     await settleFeature(base44, gate, {
       feature: 'missed_summary',
-      calls: 1,
-      usedGemini: !!secrets.get('GEMINI_API_KEY'),
+      llmUsage,
       extra: { class_id, lecture_id: lecture.id },
     });
 
