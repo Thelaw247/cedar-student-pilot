@@ -163,14 +163,14 @@ export async function spendCredits(
   amount: number,
   operationId = crypto.randomUUID(),
 ) {
-  if (amount <= 0) return balance;
+  if (amount <= 0) return { ...balance, _operationAppliedNow: false };
 
   let current = await ensureBalanceLedgers(base44, balance);
   for (let attempt = 0; attempt < 6; attempt++) {
     const applied = Array.isArray(current.applied_credit_operations)
       ? current.applied_credit_operations
       : [];
-    if (applied.includes(operationId)) return current;
+    if (applied.includes(operationId)) return { ...current, _operationAppliedNow: false };
 
     if (availableCredits(current) < amount) {
       const error: any = new Error('Credit balance changed before this action could be settled');
@@ -207,6 +207,7 @@ export async function spendCredits(
         subscription_credits: subscription - fromSub,
         purchased_credits: purchased - fromPurchased,
         applied_credit_operations: nextApplied,
+        _operationAppliedNow: true,
       };
     }
     current = await base44.asServiceRole.entities.CreditBalance.get(current.id);
