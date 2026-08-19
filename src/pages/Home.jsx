@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { fetchWithCache } from '@/hooks/useEntityData';
+import { CEDAR_LOGO_URL } from '@/lib/brand';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useUndo, UndoToast } from '@/hooks/useUndo';
 import { Plus, Sun, Moon, GraduationCap, Calendar, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
