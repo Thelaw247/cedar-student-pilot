@@ -131,14 +131,14 @@ export default function Timeline({ items, onAddEvent }) {
       </div>
     )}
     <div className="relative" style={{ height: totalHeight }}>
-      {/* Hour grid lines + labels — z-40 so the now line/dot skips over timestamps */}
+      {/* Hour grid lines stay behind event cards; labels remain visible in the time gutter. */}
       {hours.map((min, i) => {
         const top = ((min - startMin) / 60) * HOUR_HEIGHT;
         const h = min / 60;
         const ampm = h >= 12 ? 'PM' : 'AM';
         const dh = h === 0 ? 12 : h > 12 ? h - 12 : h;
         return (
-          <div key={i} className="absolute left-0 right-0 flex items-start" style={{ top, zIndex: 40 }}>
+          <div key={i} className="absolute left-0 right-0 flex items-start" style={{ top, zIndex: 0 }}>
             <div className="w-14 flex-shrink-0 pr-2 text-right">
               <span className="text-[10px] font-medium text-muted-foreground tabular-nums bg-background px-1 leading-tight">{dh} {ampm}</span>
             </div>
