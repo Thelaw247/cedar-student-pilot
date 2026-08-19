@@ -4,6 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { Sun, Moon, Bell, Sparkles, Clock, Palette, Check, AlertCircle, GraduationCap, BookOpen, Shield, User, Zap, LineChart, ArrowRight } from 'lucide-react';
 import { getSetting, setSetting } from '@/lib/settings';
 import ProfileSettings from '@/components/ProfileSettings';
+import DeleteAccountSection from '@/components/DeleteAccountSection';
 import SubscriptionSettings from '@/components/SubscriptionSettings';
 import ReviewScheduleSection from '@/components/ReviewScheduleSection';
 import LearningModeToggle from '@/components/LearningModeToggle';
@@ -123,9 +124,12 @@ export default function Settings() {
         <SubscriptionSettings />
       </SettingsSection>
 
-      {/* Profile: name, email, password, sign out. */}
+      {/* Profile: name, email, password, sign out, delete account. */}
       <SettingsSection icon={User} title="Account">
         <ProfileSettings />
+        <div className="mt-5 pt-4 border-t border-border">
+          <DeleteAccountSection />
+        </div>
       </SettingsSection>
 
       <p className="text-center text-xs text-muted-foreground mt-8 mb-4">Cedar Student Pilot • v1.0</p>
