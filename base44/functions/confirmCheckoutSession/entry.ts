@@ -40,13 +40,18 @@ export default async function (req: Request) {
       const period = session.metadata?.cedar_period || session.metadata?.period;
       if (!tier) return Response.json({ error: 'Missing tier metadata' }, { status: 400 });
 
-      // Persist the subscription id for later lifecycle events (renewals,
-      // updates, cancellation). Idempotent.
-      const balance = await getBalance(base44, user.id);
-      if (session.subscription && !balance.stripe_subscription_id) {
-        await base44.asServiceRole.entities.CreditBalance.update(balance.id, { stripe_subscription_id: session.subscription });
-      }
-      await grantSubscriptionInitial(base44, user.id, tier, period, sessionId, sessionId, '');
+      // The subscription id and the initial allowance are written in the same
+      // atomic fulfillment update.
+      await grantSubscriptionInitial(
+        base44,
+        user.id,
+        tier,
+        period,
+        sessionId,
+        sessionId,
+        '',
+        session.subscription || '',
+      );
     } else {
       const credits = Number(session.metadata?.cedar_credits || 0);
       if (!credits) return Response.json({ error: 'Missing pack metadata' }, { status: 400 });
