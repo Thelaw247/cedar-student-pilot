@@ -195,6 +195,18 @@ export default function Home() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 lg:py-10 animate-fade-in">
+      {/* Brand lockup, top left. Hidden from lg up because the sidebar already
+          shows the same mark there and two logos side by side reads as a bug.
+          Uses the transparent /logo-mark.png so it sits cleanly on the page
+          background in both light and dark mode. */}
+      <div className="flex items-center gap-2.5 mb-6 lg:hidden">
+        <img src={CEDAR_LOGO_URL} alt="Cedar Student Pilot" className="w-8 h-8 object-contain" />
+        <div>
+          <p className="font-heading font-bold text-base leading-none text-foreground">Cedar</p>
+          <p className="text-[10px] text-muted-foreground mt-0.5 tracking-wide uppercase">Student Pilot</p>
+        </div>
+      </div>
+
       {/* Tab bar */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex gap-1 border-b border-border">
