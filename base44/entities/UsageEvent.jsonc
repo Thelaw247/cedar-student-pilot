@@ -35,7 +35,8 @@
       "enum": [
         "base44",
         "groq",
-        "gemini"
+        "gemini",
+        "mixed"
       ],
       "title": "Provider",
       "description": "Splits shared Base44 credits from uncapped direct-API spend."
@@ -77,11 +78,16 @@
       "title": "Cedar Credits Charged",
       "description": "What the user was billed in app credits."
     },
+    "credit_operation_id": {
+      "type": "string",
+      "title": "Credit Operation ID",
+      "description": "Idempotency key for the atomic balance debit that settled this action."
+    },
     "cost_cad": {
       "type": "number",
       "default": 0,
       "title": "Cost CAD",
-      "description": "Estimated real cost to serve, computed at write time."
+      "description": "Real provider cost when token/audio usage is reported; otherwise the best available Base44 rate-card estimate."
     },
     "lecture_id": {
       "type": "string",
