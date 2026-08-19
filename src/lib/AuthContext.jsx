@@ -1,10 +1,19 @@
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
 import { appParams } from '@/lib/app-params';
-import { setCachedUserId } from '@/lib/currentUser';
+import { clearLegacyUserStorage, clearUserStorage, getCachedUserId, setCachedUserId } from '@/lib/currentUser';
+import { clearAllRecordings, initializeRecordingStore } from '@/lib/recordingStore';
 import { createAxiosClient } from '@base44/sdk/dist/utils/axios-client';
 
 const AuthContext = createContext();
+
+async function purgeUserOfflineData(userId) {
+  if (!userId) return;
+  // localStorage deletion is synchronous; wait for IndexedDB before logout can
+  // navigate away so crash-recovery audio is not left behind.
+  clearUserStorage(userId);
+  await clearAllRecordings(userId);
+}
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -16,6 +25,10 @@ export const AuthProvider = ({ children }) => {
   const [appPublicSettings, setAppPublicSettings] = useState(null); // Contains only { id, public_settings }
 
   useEffect(() => {
+    // Unscoped values from older builds have no safe owner. Remove them once,
+    // and open IndexedDB v2 so its unscoped recording store is dropped too.
+    clearLegacyUserStorage();
+    void initializeRecordingStore();
     checkAppState();
   }, []);
 
@@ -111,6 +124,10 @@ export const AuthProvider = ({ children }) => {
       // Now check if the user is authenticated
       setIsLoadingAuth(true);
       const currentUser = await base44.auth.me();
+      const previousUserId = getCachedUserId();
+      if (previousUserId && previousUserId !== currentUser.id) {
+        await purgeUserOfflineData(previousUserId);
+      }
       setUser(currentUser);
       setCachedUserId(currentUser.id);
       setIsAuthenticated(true);
@@ -122,8 +139,14 @@ export const AuthProvider = ({ children }) => {
       setIsAuthenticated(false);
       setAuthChecked(true);
       
-      // If user auth fails, it might be an expired token
+      // If user auth fails, it might be an expired token. Only purge on an
+      // authoritative auth rejection; a network outage must preserve this
+      // user's offline data so offline mode can still work.
       if (error.status === 401 || error.status === 403) {
+        const previousUserId = getCachedUserId();
+        await purgeUserOfflineData(previousUserId);
+        setCachedUserId(null);
+        setUser(null);
         setAuthError({
           type: 'auth_required',
           message: 'Authentication required'
@@ -132,20 +155,30 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
-  const logout = (shouldRedirect = true) => {
+  const clearOfflineData = useCallback(async () => {
+    const userId = user?.id || getCachedUserId();
+    await purgeUserOfflineData(userId);
+  }, [user?.id]);
+
+  const logout = useCallback(async (shouldRedirect = true) => {
+    await clearOfflineData();
     setUser(null);
     setIsAuthenticated(false);
     setCachedUserId(null);
 
-    if (shouldRedirect) {
-      // Land on the in-app login page rather than back on the page they just
-      // signed out of, which would immediately bounce them here anyway.
-      base44.auth.logout(`${window.location.origin}/login`);
-    } else {
-      // Just remove the token without redirect
-      base44.auth.logout();
+    try {
+      if (shouldRedirect) {
+        // Land on the in-app login page rather than back on the page they just
+        // signed out of, which would immediately bounce them here anyway.
+        await base44.auth.logout(`${window.location.origin}/login`);
+      } else {
+        // Just remove the token without redirect.
+        await base44.auth.logout();
+      }
+    } catch {
+      if (shouldRedirect) window.location.href = '/login';
     }
-  };
+  }, [clearOfflineData]);
 
   // The app uses its own login pages (src/pages/Login.jsx), not Base44's hosted
   // screen, so this must not call base44.auth.redirectToLogin() — doing so
@@ -168,7 +201,8 @@ export const AuthProvider = ({ children }) => {
       logout,
       navigateToLogin,
       checkUserAuth,
-      checkAppState
+      checkAppState,
+      clearOfflineData
     }}>
       {children}
     </AuthContext.Provider>
