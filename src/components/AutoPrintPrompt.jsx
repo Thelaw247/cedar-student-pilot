@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
+import { userStorageKey } from '@/lib/currentUser';
 import { Printer, X, Loader2 } from 'lucide-react';
 
 export default function AutoPrintPrompt() {
@@ -9,7 +10,8 @@ export default function AutoPrintPrompt() {
   const [printing, setPrinting] = useState(false);
 
   useEffect(() => {
-    const dismissedDate = localStorage.getItem('cedar-autoprint-dismissed');
+    const storageKey = userStorageKey('autoprint-dismissed');
+    const dismissedDate = storageKey ? localStorage.getItem(storageKey) : null;
     const today = new Date().toISOString().split('T')[0];
     if (dismissedDate === today) {
       setDismissed(true);
@@ -31,7 +33,8 @@ export default function AutoPrintPrompt() {
 
   const dismiss = () => {
     const today = new Date().toISOString().split('T')[0];
-    localStorage.setItem('cedar-autoprint-dismissed', today);
+    const storageKey = userStorageKey('autoprint-dismissed');
+    if (storageKey) localStorage.setItem(storageKey, today);
     setDismissed(true);
   };
 
