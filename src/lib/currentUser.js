@@ -31,6 +31,23 @@ export function clearUserStorage(userId = _userId) {
   }
 }
 
+/** Remove scoped values that belong to anyone except the active user. */
+export function clearOtherUserStorage(activeUserId) {
+  if (typeof localStorage === 'undefined') return;
+  const activePrefix = activeUserId
+    ? `${USER_STORAGE_PREFIX}${encodeURIComponent(activeUserId)}:`
+    : null;
+  try {
+    for (const key of Object.keys(localStorage)) {
+      if (key.startsWith(USER_STORAGE_PREFIX) && (!activePrefix || !key.startsWith(activePrefix))) {
+        localStorage.removeItem(key);
+      }
+    }
+  } catch {
+    // Best effort; active-user reads still use an isolated namespace.
+  }
+}
+
 /**
  * Old builds wrote user data without an owner. It cannot be attributed safely,
  * so remove it once instead of exposing or replaying it under the next account.
