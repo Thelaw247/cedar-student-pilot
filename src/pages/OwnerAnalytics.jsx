@@ -39,11 +39,21 @@ export default function OwnerAnalytics() {
     setLoading(true);
     setError(null);
     try {
+      // base44.functions.invoke wraps the function's JSON body in .data on
+      // success (matching every other invoke() call in this codebase — see
+      // DataExportSection, CheckoutSuccess, etc.). This page previously read
+      // `res` directly instead of `res.data`, so it stored the wrapper object
+      // instead of the payload and every data.totals/data.by_tier reference
+      // below threw on render — the page failed to load for every admin,
+      // including one who was correctly authorized.
+      //
+      // A non-2xx response (401/403/500, all returned by the function as
+      // Response.json with an error status) makes the SDK throw rather than
+      // resolve, so that path is handled in the catch block below, not here.
       const res = await base44.functions.invoke('ownerAnalytics', {});
-      if (res?.error) throw new Error(res.error);
-      setData(res);
+      setData(res?.data || null);
     } catch (e) {
-      setError(e.message || 'Failed to load analytics');
+      setError(e?.response?.data?.error || e.message || 'Failed to load analytics');
     } finally {
       setLoading(false);
     }
