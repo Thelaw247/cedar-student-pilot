@@ -149,6 +149,32 @@ export async function clearAllRecordings(userId = getCachedUserId()) {
   }
 }
 
+/** Purge recordings that do not belong to the active account. */
+export async function clearOtherRecordings(activeUserId) {
+  try {
+    const db = await openDB();
+    await new Promise((resolve, reject) => {
+      const transaction = db.transaction(STORE, 'readwrite');
+      const request = transaction.objectStore(STORE).openCursor();
+      request.onsuccess = () => {
+        const cursor = request.result;
+        if (cursor) {
+          if (!activeUserId || cursor.value?.userId !== activeUserId) cursor.delete();
+          cursor.continue();
+        }
+      };
+      request.onerror = () => reject(request.error);
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error);
+      transaction.onabort = () => reject(transaction.error);
+    });
+    db.close();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /** Open once at startup so the unsafe version-1 store is purged immediately. */
 export async function initializeRecordingStore() {
   try {
