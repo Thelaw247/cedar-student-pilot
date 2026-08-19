@@ -2,11 +2,6 @@ import React, { useState, useRef, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { X, Music, Plus, Apple, Trash2, Play, Pause, Square, ExternalLink, Pencil, Check, Loader2 } from 'lucide-react';
 
-// Where custom tracks used to live. They're stored in the CustomTrack entity
-// now so they follow the student across devices; anything still under this key
-// is migrated once on first load and then removed.
-const LEGACY_STORAGE_KEY = 'cedar-custom-music';
-
 // Video IDs supplied and confirmed playable by the user. If one ever starts
 // showing "Video unavailable" it means the upload was removed or its owner
 // turned off third-party embedding — nothing here can override that, which is
@@ -59,31 +54,14 @@ export default function MusicPlayer({ onClose }) {
   const [loadingTracks, setLoadingTracks] = useState(true);
   const [trackError, setTrackError] = useState(null);
 
-  // Load saved tracks, migrating any left in localStorage from before they
-  // were a real entity. Migration is keyed off the legacy key existing and
-  // dedupes on video_id, so a partly-completed run can't create duplicates.
+  // Saved tracks now live only in the user-scoped CustomTrack entity. Old
+  // unscoped localStorage data is deliberately purged by AuthContext because
+  // it cannot be attributed safely on a shared device.
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        let rows = await base44.entities.CustomTrack.list('created_date');
-
-        let legacy = [];
-        try {
-          legacy = JSON.parse(localStorage.getItem(LEGACY_STORAGE_KEY) || '[]');
-        } catch { legacy = []; }
-
-        if (Array.isArray(legacy) && legacy.length > 0) {
-          const existing = new Set(rows.map(r => r.video_id));
-          const toCreate = legacy
-            .filter(t => t && t.videoId && !existing.has(t.videoId))
-            .map((t, i) => ({ title: t.title || `Custom Track ${i + 1}`, video_id: t.videoId }));
-          if (toCreate.length > 0) await base44.entities.CustomTrack.bulkCreate(toCreate);
-          // Only drop the local copy once the write actually succeeded.
-          localStorage.removeItem(LEGACY_STORAGE_KEY);
-          rows = await base44.entities.CustomTrack.list('created_date');
-        }
-
+        const rows = await base44.entities.CustomTrack.list('created_date');
         if (!cancelled) setCustomTracks(rows);
       } catch (e) {
         console.error(e);
