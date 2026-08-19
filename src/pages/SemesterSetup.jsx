@@ -81,6 +81,105 @@ export default function SemesterSetup() {
     }]);
   };
 
+  const handleWelcomePhoto = async (e) => {
+    const f = e.target.files?.[0];
+    e.target.value = '';
+    if (!f) return;
+    setWelcomeError(null);
+    if (!f.type.startsWith('image/')) { setWelcomeError('Please choose an image file.'); return; }
+    if (f.size > MAX_PHOTO_BYTES) { setWelcomeError('Photo is too large — please choose one under 5MB.'); return; }
+    setPhotoBusy(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file: f });
+      await base44.auth.updateMe({ avatar_url: file_url });
+      await checkUserAuth();
+    } catch (err) {
+      console.error(err);
+      setWelcomeError('Could not upload your photo. You can add one later in Settings.');
+    }
+    setPhotoBusy(false);
+  };
+
+  const continueFromWelcome = async () => {
+    setWelcomeError(null);
+    if (welcomeName.trim()) {
+      setWelcomeBusy(true);
+      try {
+        await base44.auth.updateMe({ full_name: welcomeName.trim() });
+        await checkUserAuth();
+      } catch (err) {
+        console.error(err);
+        setWelcomeError('Could not save your name. You can set it later in Settings.');
+        setWelcomeBusy(false);
+        return;
+      }
+      setWelcomeBusy(false);
+    }
+    setStep(1);
+  };
+
+  if (step === 0) {
+    return (
+      <div className="max-w-md mx-auto px-4 sm:px-6 py-6 lg:py-12 animate-fade-in text-center">
+        <h1 className="font-heading text-2xl sm:text-3xl font-bold mb-2">Welcome to Cedar</h1>
+        <p className="text-muted-foreground text-sm mb-8">Let's set up your profile before your semester.</p>
+
+        <div className="relative inline-block mb-6">
+          <Avatar className="w-20 h-20">
+            {user?.avatar_url && <AvatarImage src={user.avatar_url} alt={welcomeName || 'Profile photo'} />}
+            <AvatarFallback
+              style={{ backgroundColor: getAvatarColor(user?.id), color: '#fff' }}
+              className="text-2xl font-semibold"
+            >
+              {getInitials(welcomeName)}
+            </AvatarFallback>
+          </Avatar>
+          <button
+            onClick={() => photoInputRef.current?.click()}
+            disabled={photoBusy}
+            title="Add photo"
+            className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center border-2 border-background hover:bg-primary/90 disabled:opacity-50"
+          >
+            {photoBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
+          </button>
+          <input ref={photoInputRef} type="file" accept="image/*" className="hidden" onChange={handleWelcomePhoto} />
+        </div>
+
+        <div className="text-left mb-2">
+          <label className="text-xs font-medium text-muted-foreground mb-1.5 block">What should we call you?</label>
+          <input
+            type="text"
+            value={welcomeName}
+            onChange={(e) => setWelcomeName(e.target.value)}
+            placeholder="Your name"
+            autoFocus
+            className="w-full px-3 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+          />
+        </div>
+        {welcomeError && (
+          <p className="text-[11px] text-destructive flex items-start gap-1.5 mt-2 text-left">
+            <AlertCircle className="w-3 h-3 mt-px flex-shrink-0" />{welcomeError}
+          </p>
+        )}
+
+        <button
+          onClick={continueFromWelcome}
+          disabled={welcomeBusy}
+          className="w-full mt-6 px-4 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-2"
+        >
+          {welcomeBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Continue <ChevronRight className="w-4 h-4" /></>}
+        </button>
+        <button
+          onClick={() => setStep(1)}
+          disabled={welcomeBusy}
+          className="w-full mt-2 px-4 py-2 text-xs font-medium text-muted-foreground hover:text-foreground"
+        >
+          Skip for now
+        </button>
+      </div>
+    );
+  }
+
   if (step === 1) {
     return (
       <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 lg:py-10 animate-fade-in">
