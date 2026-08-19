@@ -1,6 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
-import { invokeLLM } from '../../shared/llm.ts';
-import { secrets } from 'base44:runtime';
+import { invokeLLM, createLlmUsage } from '../../shared/llm.ts';
 import { gateFeature, settleFeature } from '../../shared/credits.ts';
 
 // Do not pin a `model` here. Base44 bills integration credits PER CALL, so
@@ -48,8 +47,10 @@ Deno.serve(async (req) => {
     // Gate after the content check — "nothing to generate" is not billable.
     const gate = await gateFeature(base44, user.id, 'study_material', { class_id });
     if (!gate.ok) return gate.response!;
+    const llmUsage = createLlmUsage();
 
     const material = await invokeLLM(base44, {
+      usage: llmUsage,
       prompt: `You are an AI study material generator. Based on the following university lecture content, generate study material of type "${material_type}".
 
 Lecture content:
@@ -117,8 +118,7 @@ Return the appropriate JSON structure.`,
 
     await settleFeature(base44, gate, {
       feature: 'study_material',
-      calls: 1,
-      usedGemini: !!secrets.get('GEMINI_API_KEY'),
+      llmUsage,
       extra: { class_id },
     });
 
