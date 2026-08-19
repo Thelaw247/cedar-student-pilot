@@ -1,6 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
-import { invokeLLM, QUALITY_MODEL } from '../../shared/llm.ts';
-import { secrets } from 'base44:runtime';
+import { invokeLLM, createLlmUsage, QUALITY_MODEL } from '../../shared/llm.ts';
 import { gateFeature, settleFeature } from '../../shared/credits.ts';
 
 Deno.serve(async (req) => {
@@ -66,6 +65,7 @@ Return JSON: { "results": [ { "correct": boolean, "feedback": string }, ... ] } 
     // their answers would bill the same purchase twice.
     const gate = await gateFeature(base44, user.id, 'lecture_review');
     if (!gate.ok) return gate.response!;
+    const llmUsage = createLlmUsage();
 
     let targetLectures = [];
 
@@ -144,6 +144,7 @@ ${transcriptSnippet}`;
 For every question, set correct_answer to the ideal/model answer. For short_answer, correct_answer should be a concise model answer capturing the key idea a correct response must convey.`;
 
     const result = await invokeLLM(base44, {
+      usage: llmUsage,
       prompt: `You are an academic tutor creating a review quiz that follows the EXACT teaching flow the professor used across ${sorted.length} lecture(s) for "${className}".
 
 CRITICAL: The questions MUST follow the chronological order of how topics were taught. Start with what the professor discussed FIRST in the earliest lecture, and progress through to what was discussed LAST in the most recent lecture. This creates a natural review flow that mirrors the actual learning sequence.
@@ -201,8 +202,7 @@ Return a JSON object with:
 
     await settleFeature(base44, gate, {
       feature: 'lecture_review',
-      calls: 1,
-      usedGemini: !!secrets.get('GEMINI_API_KEY'),
+      llmUsage,
     });
 
     return Response.json({
