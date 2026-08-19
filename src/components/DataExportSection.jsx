@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
+import { useAuth } from '@/lib/AuthContext';
 import { Download, Loader2, FileJson, Trash2, AlertTriangle, Shield, Check } from 'lucide-react';
 
 export default function DataExportSection() {
+  const { clearOfflineData, logout } = useAuth();
   const [exporting, setExporting] = useState(false);
   const [success, setSuccess] = useState(false);
 
@@ -58,6 +60,11 @@ export default function DataExportSection() {
         return;
       }
 
+      // Remove this user's browser cache, queued writes, settings, dismissals,
+      // and crash-recovery audio immediately. In particular, no queued mutation
+      // can recreate deleted data while the success message is visible.
+      await clearOfflineData();
+
       setDeleteResult(data);
       setConfirming(false);
       setConfirmText('');
@@ -65,9 +72,7 @@ export default function DataExportSection() {
       // Everything is gone, including the credit balance. Staying signed in
       // would show a half-empty app built on records that no longer exist, so
       // sign out and let them start clean.
-      setTimeout(() => {
-        try { base44.auth.logout(); } catch { window.location.href = '/login'; }
-      }, 4000);
+      setTimeout(() => { void logout(); }, 4000);
     } catch (e) {
       console.error(e);
       setDeleteError('Something went wrong. Please try again, or contact support if it keeps happening.');
