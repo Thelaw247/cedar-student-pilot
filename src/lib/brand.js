@@ -1,14 +1,13 @@
 // Cedar brand assets.
 //
-// CEDAR_LOGO_URL is served from /public and has a TRANSPARENT background, so
-// it sits correctly on any surface and in dark mode. It previously pointed at
-// the hosted apple-touch-icon, which is deliberately OPAQUE (Apple rejects
-// icons with an alpha channel) and therefore painted a white square wherever
-// it was used in the UI. Keep this the single source for the logo so every
-// logo spot stays in sync.
-export const CEDAR_LOGO_URL = '/logo-mark.png';
+// Both URLs point at the opaque graduation-cap icon hosted in public storage
+// (solid white background). CEDAR_LOGO_URL is used inline in the sidebar and
+// home lockup; CEDAR_ICON_URL is the square tile for app icons / external
+// consumers. Keep this the single source for the logo so every logo spot stays
+// in sync.
+export const CEDAR_LOGO_URL =
+  'https://media.base44.com/images/public/6a485105cf0a684688950256/1ce27b4c3_android-chrome-192x192.png';
 
-// Opaque square version. Correct for app icons and any place that needs a
-// solid tile; wrong for inline UI. Kept hosted for external consumers.
+// Larger 512px version for app icons and any place that needs a solid tile.
 export const CEDAR_ICON_URL =
-  'https://base44.app/api/apps/6a485105cf0a684688950256/files/mp/public/6a485105cf0a684688950256/5ce816abf_apple-touch-icon.png';
+  'https://media.base44.com/images/public/6a485105cf0a684688950256/e1d4b1a0e_android-chrome-512x512.png';
