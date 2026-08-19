@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+import { parseBlob } from 'npm:music-metadata@11.15.0';
 import { secrets } from 'base44:runtime';
 import { invokeLLM, QUALITY_MODEL } from '../../shared/llm.ts';
 import {
@@ -20,6 +21,76 @@ const GROQ_MODEL = 'whisper-large-v3-turbo';
 // Groq caps uploads at 25MB on the free tier (100MB on dev). Stay under it and
 // let anything larger fall through to Base44 rather than failing the lecture.
 const GROQ_MAX_BYTES = 24 * 1024 * 1024;
+const MAX_AUDIO_BYTES = 200 * 1024 * 1024;
+const MAX_AUDIO_SECONDS = 6 * 60 * 60;
+
+class RequestError extends Error {
+  status: number;
+
+  constructor(message: string, status = 400) {
+    super(message);
+    this.status = status;
+  }
+}
+
+/**
+ * Accept only uploads created inside this Base44 app. This prevents the
+ * function from becoming an authenticated proxy that fetches/transcribes an
+ * arbitrary caller-supplied URL.
+ */
+function trustedRecordingUrl(rawUrl: string): string {
+  const appId = Deno.env.get('BASE44_APP_ID') || secrets.get('BASE44_APP_ID') || '';
+  if (!appId) throw new RequestError('Recording validation is temporarily unavailable', 503);
+
+  let url: URL;
+  try {
+    url = new URL(rawUrl);
+  } catch {
+    throw new RequestError('The lecture does not have a valid recording URL');
+  }
+
+  const expectedPrefix = `/api/apps/${appId}/files/`;
+  if (url.protocol !== 'https:' || url.hostname !== 'base44.app' || !url.pathname.startsWith(expectedPrefix)) {
+    throw new RequestError('The recording must be an upload owned by this Cedar app');
+  }
+  return url.toString();
+}
+
+/** Fetch once, cap resource use, and derive billing duration from the media. */
+async function fetchVerifiedAudio(rawUrl: string) {
+  const audioUrl = trustedRecordingUrl(rawUrl);
+  let response: Response;
+  try {
+    response = await fetch(audioUrl, { redirect: 'error' });
+  } catch {
+    throw new RequestError('The stored recording could not be retrieved', 422);
+  }
+  if (!response.ok) throw new RequestError(`The stored recording could not be retrieved (${response.status})`, 422);
+
+  const declaredBytes = Number(response.headers.get('content-length') || 0);
+  if (declaredBytes > MAX_AUDIO_BYTES) throw new RequestError('Recordings must be 200 MB or smaller', 413);
+
+  const blob = await response.blob();
+  if (!blob.size) throw new RequestError('The stored recording is empty', 422);
+  if (blob.size > MAX_AUDIO_BYTES) throw new RequestError('Recordings must be 200 MB or smaller', 413);
+
+  let durationSeconds = 0;
+  try {
+    const metadata = await parseBlob(blob, { duration: true });
+    durationSeconds = Math.ceil(Number(metadata?.format?.duration || 0));
+  } catch (error) {
+    console.error('[recording] duration parse failed:', (error as Error).message);
+  }
+
+  if (!Number.isFinite(durationSeconds) || durationSeconds < 1) {
+    throw new RequestError('The recording duration could not be verified. Please record again or contact support.', 422);
+  }
+  if (durationSeconds > MAX_AUDIO_SECONDS) {
+    throw new RequestError('Recordings must be six hours or shorter', 413);
+  }
+
+  return { audioUrl, blob, durationSeconds };
+}
 
 // DO NOT pin a `model` on these calls.
 //
@@ -103,17 +174,13 @@ function existingLecture_llmCalls(transcript: string): number {
 }
 
 /** Transcribe via Groq. Throws on any problem so the caller can fall back. */
-async function transcribeViaGroq(audio_url: string, apiKey: string): Promise<string> {
-  const audioRes = await fetch(audio_url);
-  if (!audioRes.ok) throw new Error(`could not fetch audio (${audioRes.status})`);
-
-  const blob = await audioRes.blob();
+async function transcribeViaGroq(blob: Blob, apiKey: string): Promise<string> {
   if (blob.size > GROQ_MAX_BYTES) {
     throw new Error(`file is ${(blob.size / 1048576).toFixed(1)}MB, over the Groq limit`);
   }
 
   const form = new FormData();
-  form.append('file', blob, 'lecture.mp3');
+  form.append('file', blob, 'lecture.webm');
   form.append('model', GROQ_MODEL);
   form.append('response_format', 'json');
 
@@ -143,22 +210,23 @@ async function transcribeViaGroq(audio_url: string, apiKey: string): Promise<str
  * than an unexpected credit charge. Every fallback is logged so a misconfigured
  * key shows up in the function logs instead of silently draining the pool.
  */
-async function transcribeAudio(base44, audio_url: string): Promise<string> {
+async function transcribeAudio(base44, audioUrl: string, blob: Blob): Promise<{ text: string; provider: 'groq' | 'base44' }> {
   // secrets.get() must be called per-request, never at module load.
   const groqKey = secrets.get('GROQ_API_KEY');
 
   if (groqKey) {
     try {
-      const text = await transcribeViaGroq(audio_url, groqKey);
+      const text = await transcribeViaGroq(blob, groqKey);
       console.log('[transcribe] groq ok,', text.length, 'chars');
-      return text;
+      return { text, provider: 'groq' };
     } catch (e) {
       console.error('[transcribe] groq failed, falling back to Base44 (this costs credits):', e.message);
     }
   }
 
-  const result = await base44.asServiceRole.integrations.Core.TranscribeAudio({ audio_url });
-  return typeof result === 'string' ? result : (result.text || JSON.stringify(result));
+  const result = await base44.asServiceRole.integrations.Core.TranscribeAudio({ audio_url: audioUrl });
+  const text = typeof result === 'string' ? result : (result.text || JSON.stringify(result));
+  return { text, provider: 'base44' };
 }
 
 const EXTRACTION_SCHEMA = {
