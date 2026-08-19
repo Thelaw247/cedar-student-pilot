@@ -83,11 +83,37 @@ export const periodKey = (d = new Date()) =>
  * Load the caller's balance, creating a free-tier row on first use.
  * Always read/written as service role: the client must never write this.
  */
+async function ensureBalanceLedgers(base44: any, balance: any) {
+  const missingDebits = !Array.isArray(balance?.applied_credit_operations);
+  const missingFulfillments = !Array.isArray(balance?.fulfilled_stripe_anchors);
+  if (!missingDebits && !missingFulfillments) return balance;
+
+  const query: Record<string, any> = { id: balance.id };
+  const set: Record<string, any> = {};
+  if (missingDebits) {
+    query.applied_credit_operations = null;
+    set.applied_credit_operations = [];
+  }
+  if (missingFulfillments) {
+    query.fulfilled_stripe_anchors = null;
+    set.fulfilled_stripe_anchors = [];
+  }
+
+  // Conditional initialization means two first requests cannot overwrite an
+  // operation that the other request just appended.
+  const result = await base44.asServiceRole.entities.CreditBalance.updateMany(
+    query,
+    { $set: set },
+  );
+  if (Number(result?.updated || 0) === 1) return { ...balance, ...set };
+  return await base44.asServiceRole.entities.CreditBalance.get(balance.id);
+}
+
 export async function getBalance(base44: any, userId: string) {
   const rows = await base44.asServiceRole.entities.CreditBalance.filter({ user_id: userId });
-  if (rows && rows.length > 0) return rows[0];
+  if (rows && rows.length > 0) return await ensureBalanceLedgers(base44, rows[0]);
 
-  return await base44.asServiceRole.entities.CreditBalance.create({
+  const created = await base44.asServiceRole.entities.CreditBalance.create({
     user_id: userId,
     tier: 'free',
     subscription_credits: TIER_GRANT.free,
@@ -95,7 +121,10 @@ export async function getBalance(base44: any, userId: string) {
     lifetime_granted: TIER_GRANT.free,
     period_key: periodKey(),
     last_grant_date: new Date().toISOString().split('T')[0],
+    applied_credit_operations: [],
+    fulfilled_stripe_anchors: [],
   });
+  return created;
 }
 
 export const availableCredits = (b: any) =>
@@ -121,17 +150,72 @@ export function insufficientResponse(feature: string, required: number, balance:
 }
 
 /**
- * Deduct credits, subscription allowance first so a purchased pack is never
- * burned while a monthly grant sits unused. Service role only.
+ * Deduct credits with an optimistic compare-and-swap.
+ *
+ * updateMany applies the two bucket decrements in one database operation. The
+ * query includes the exact balance and recent-operation ledger we read; if
+ * another request spends or grants first, zero rows match and we retry from a
+ * fresh snapshot. The operation id makes a repeated settlement a no-op.
  */
-export async function spendCredits(base44: any, balance: any, amount: number) {
+export async function spendCredits(
+  base44: any,
+  balance: any,
+  amount: number,
+  operationId = crypto.randomUUID(),
+) {
   if (amount <= 0) return balance;
-  const fromSub = Math.min(balance.subscription_credits || 0, amount);
-  const fromPurchased = amount - fromSub;
-  return await base44.asServiceRole.entities.CreditBalance.update(balance.id, {
-    subscription_credits: (balance.subscription_credits || 0) - fromSub,
-    purchased_credits: (balance.purchased_credits || 0) - fromPurchased,
-  });
+
+  let current = await ensureBalanceLedgers(base44, balance);
+  for (let attempt = 0; attempt < 6; attempt++) {
+    const applied = Array.isArray(current.applied_credit_operations)
+      ? current.applied_credit_operations
+      : [];
+    if (applied.includes(operationId)) return current;
+
+    if (availableCredits(current) < amount) {
+      const error: any = new Error('Credit balance changed before this action could be settled');
+      error.status = 409;
+      error.code = 'credit_contention';
+      throw error;
+    }
+
+    const subscription = Number(current.subscription_credits || 0);
+    const purchased = Number(current.purchased_credits || 0);
+    const fromSub = Math.min(subscription, amount);
+    const fromPurchased = amount - fromSub;
+    const nextApplied = [...applied, operationId].slice(-250);
+
+    const result = await base44.asServiceRole.entities.CreditBalance.updateMany(
+      {
+        id: current.id,
+        subscription_credits: subscription,
+        purchased_credits: purchased,
+        applied_credit_operations: applied,
+      },
+      {
+        $inc: {
+          subscription_credits: -fromSub,
+          purchased_credits: -fromPurchased,
+        },
+        $set: { applied_credit_operations: nextApplied },
+      },
+    );
+
+    if (Number(result?.updated || 0) === 1) {
+      return {
+        ...current,
+        subscription_credits: subscription - fromSub,
+        purchased_credits: purchased - fromPurchased,
+        applied_credit_operations: nextApplied,
+      };
+    }
+    current = await base44.asServiceRole.entities.CreditBalance.get(current.id);
+  }
+
+  const error: any = new Error('Credit balance is busy. Please retry this action.');
+  error.status = 409;
+  error.code = 'credit_contention';
+  throw error;
 }
 
 // ------------------------------------------------------------- usage log ----
@@ -141,16 +225,22 @@ export async function spendCredits(base44: any, balance: any, amount: number) {
  * must not fail the user's request, and database writes cost 0 credits so
  * there is no reason not to call this on every path, success or failure.
  */
-export async function logUsage(base44: any, event: Record<string, any>) {
-  try {
-    await base44.asServiceRole.entities.UsageEvent.create({
-      occurred_at: new Date().toISOString(),
-      success: true,
-      ...event,
-    });
-  } catch (e) {
-    console.error('[usage] log failed (non-fatal):', (e as Error).message);
+export async function logUsage(base44: any, event: Record<string, any>): Promise<boolean> {
+  let lastError: Error | null = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      await base44.asServiceRole.entities.UsageEvent.create({
+        occurred_at: new Date().toISOString(),
+        success: true,
+        ...event,
+      });
+      return true;
+    } catch (e) {
+      lastError = e as Error;
+    }
   }
+  console.error('[usage] log failed after retries (non-fatal):', lastError?.message || 'unknown');
+  return false;
 }
 
 // ------------------------------------------------- gate / settle helper ----
@@ -176,7 +266,7 @@ export async function gateFeature(
   userId: string,
   feature: string,
   extra: Record<string, any> = {},
-): Promise<{ ok: boolean; response?: Response; balance?: any; cost?: number; startedAt?: number }> {
+): Promise<{ ok: boolean; response?: Response; balance?: any; cost?: number; startedAt?: number; operationId?: string }> {
   const cost = FEATURE_COSTS[feature] ?? 0;
   const balance = await getBalance(base44, userId);
 
@@ -186,46 +276,71 @@ export async function gateFeature(
     });
     return { ok: false, response: insufficientResponse(feature, cost, balance) };
   }
-  return { ok: true, balance, cost, startedAt: Date.now() };
+  return {
+    ok: true,
+    balance,
+    cost,
+    startedAt: Date.now(),
+    operationId: crypto.randomUUID(),
+  };
 }
 
 /**
- * The charge-after-success half. Deducts the credits and writes the ledger row
- * that the margin dashboard reads. Never throws — a logging failure must not
- * fail a request the user already paid for.
+ * The charge-after-success half. The balance debit is atomic and idempotent;
+ * the usage row is retried and carries the same operation id for recovery.
  *
- * `calls` is the number of LLM round trips made, which is what Base44 bills on
- * when GEMINI_API_KEY is absent. With the key set, those calls cost 0 Base44
- * credits and the real spend sits with Google instead.
+ * When an LLM usage tracker is supplied, provider, model, token counts and
+ * Gemini cost come from the responses that actually ran — not from the mere
+ * presence of an API key (which was wrong whenever Gemini fell back).
  */
 export async function settleFeature(
   base44: any,
-  gate: { ok: boolean; balance?: any; cost?: number; startedAt?: number },
-  opts: { feature: string; calls?: number; usedGemini?: boolean; extra?: Record<string, any> },
+  gate: { ok: boolean; balance?: any; cost?: number; startedAt?: number; operationId?: string },
+  opts: {
+    feature: string;
+    calls?: number;
+    usedGemini?: boolean;
+    llmUsage?: any;
+    extra?: Record<string, any>;
+  },
 ) {
   if (!gate?.ok || !gate.balance) return;
-  const calls = opts.calls ?? 1;
-  const gemini = !!opts.usedGemini;
-  const base44Credits = gemini ? 0 : calls * 3;
 
-  try {
-    if ((gate.cost || 0) > 0) await spendCredits(base44, gate.balance, gate.cost as number);
-  } catch (e) {
-    console.error('[credits] spend failed', (e as Error).message);
+  const usage = opts.llmUsage || null;
+  const fallbackCalls = opts.calls ?? 1;
+  const geminiCalls = usage ? Number(usage.geminiCalls || 0) : (opts.usedGemini ? fallbackCalls : 0);
+  const base44Calls = usage ? Number(usage.base44Calls || 0) : (opts.usedGemini ? 0 : fallbackCalls);
+  const calls = usage ? geminiCalls + base44Calls : fallbackCalls;
+  const base44Credits = base44Calls * 3;
+  const geminiCost = Number(usage?.costCad || 0);
+  const provider = geminiCalls > 0 && base44Calls > 0
+    ? 'mixed'
+    : geminiCalls > 0 ? 'gemini' : 'base44';
+  const models = usage?.models && typeof usage.models === 'object'
+    ? Object.keys(usage.models)
+    : [];
+  const operationId = gate.operationId || crypto.randomUUID();
+
+  let settledBalance = gate.balance;
+  if ((gate.cost || 0) > 0) {
+    settledBalance = await spendCredits(
+      base44,
+      gate.balance,
+      gate.cost as number,
+      operationId,
+    );
   }
 
-  // Soft fair-use check. Consumption this period is what the tier granted
-  // minus what is left on the subscription bucket; purchased credits are
-  // excluded because the user paid separately for those and they are already
-  // margin-positive. Flag only, never block — see FAIR_USE_CEILING.
+  // Soft fair-use check. Purchased credits are excluded because the user paid
+  // separately for those and they are already margin-positive.
   try {
-    const tier = gate.balance.tier || 'free';
+    const tier = settledBalance.tier || 'free';
     const ceiling = FAIR_USE_CEILING[tier] ?? 0;
-    if (ceiling > 0 && !gate.balance.fair_use_flagged) {
+    if (ceiling > 0 && !settledBalance.fair_use_flagged) {
       const granted = TIER_GRANT[tier] ?? 0;
-      const usedThisPeriod = granted - (gate.balance.subscription_credits || 0) + (gate.cost || 0);
+      const usedThisPeriod = granted - Number(settledBalance.subscription_credits || 0);
       if (usedThisPeriod >= ceiling) {
-        await base44.asServiceRole.entities.CreditBalance.update(gate.balance.id, {
+        await base44.asServiceRole.entities.CreditBalance.update(settledBalance.id, {
           fair_use_flagged: true,
         });
       }
@@ -237,11 +352,15 @@ export async function settleFeature(
   await logUsage(base44, {
     user_id: gate.balance.user_id,
     feature: opts.feature,
-    provider: gemini ? 'gemini' : 'base44',
+    provider,
+    model: models.join(', ') || (provider === 'gemini' ? 'gemini' : 'automatic'),
     call_count: calls,
     base44_credits: base44Credits,
+    input_tokens: Number(usage?.inputTokens || 0),
+    output_tokens: Number(usage?.outputTokens || 0),
     cedar_credits_charged: gate.cost || 0,
-    cost_cad: base44CostCad(base44Credits),
+    credit_operation_id: operationId,
+    cost_cad: base44CostCad(base44Credits) + geminiCost,
     tier_at_time: gate.balance.tier,
     latency_ms: gate.startedAt ? Date.now() - gate.startedAt : 0,
     ...(opts.extra || {}),
@@ -253,9 +372,21 @@ export const RATES = {
   cadPerBase44Credit: 120 / 20000,
   groqUsdPerAudioHour: 0.04,
   usdToCad: 1.37,
+  geminiUsdPerMillion: {
+    'gemini-2.5-flash-lite': { input: 0.10, output: 0.40 },
+    'gemini-2.5-flash': { input: 0.30, output: 2.50 },
+  },
 };
 
 export const groqCostCad = (audioSeconds: number) =>
   (audioSeconds / 3600) * RATES.groqUsdPerAudioHour * RATES.usdToCad;
 
 export const base44CostCad = (credits: number) => credits * RATES.cadPerBase44Credit;
+
+export function geminiCostCad(model: string, inputTokens: number, outputTokens: number) {
+  const key = model.includes('flash-lite') ? 'gemini-2.5-flash-lite' : 'gemini-2.5-flash';
+  const rate = RATES.geminiUsdPerMillion[key];
+  const usd = (Math.max(0, inputTokens) / 1_000_000) * rate.input
+    + (Math.max(0, outputTokens) / 1_000_000) * rate.output;
+  return usd * RATES.usdToCad;
+}
