@@ -1,6 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
-import { invokeLLM } from '../../shared/llm.ts';
-import { secrets } from 'base44:runtime';
+import { invokeLLM, createLlmUsage } from '../../shared/llm.ts';
 import { gateFeature, settleFeature } from '../../shared/credits.ts';
 
 Deno.serve(async (req) => {
@@ -19,6 +18,7 @@ Deno.serve(async (req) => {
     // Gate after the session lookup — a missing session is not billable.
     const gate = await gateFeature(base44, user.id, 'smart_rebook');
     if (!gate.ok) return gate.response!;
+    const llmUsage = createLlmUsage();
 
     // Get class context
     const cls = session.class_id ? await base44.entities.Class.get(session.class_id) : null;
@@ -45,6 +45,7 @@ Suggest a new date and time within the next 7 days that:
 Respond with ONLY a JSON object: {"new_date": "YYYY-MM-DD", "new_time": "HH:MM", "reason": "brief reason"}`;
 
     const result = await invokeLLM(base44, {
+      usage: llmUsage,
       prompt,
       response_json_schema: {
         type: 'object',
@@ -92,8 +93,7 @@ Respond with ONLY a JSON object: {"new_date": "YYYY-MM-DD", "new_time": "HH:MM",
 
     await settleFeature(base44, gate, {
       feature: 'smart_rebook',
-      calls: 1,
-      usedGemini: !!secrets.get('GEMINI_API_KEY'),
+      llmUsage,
     });
 
     return Response.json({ success: true, new_date: newDate, new_time: newTime, reason: result.reason });
