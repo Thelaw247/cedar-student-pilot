@@ -1,6 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 import { invokeLLM, createLlmUsage, QUALITY_MODEL } from '../../shared/llm.ts';
-import { gateFeature, settleFeature } from '../../shared/credits.ts';
+import { gateFeature, settleFeature, getBalance } from '../../shared/credits.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -22,6 +22,14 @@ Deno.serve(async (req) => {
     // of the underlying concept — NOT on how closely the wording matches — and
     // return a short note on what was missed. Batched into ONE call for speed.
     if (grade_answers && Array.isArray(grade_answers) && grade_answers.length > 0) {
+      const gradingUsage = createLlmUsage();
+      const gradingGate = {
+        ok: true,
+        balance: await getBalance(base44, user.id),
+        cost: 0,
+        startedAt: Date.now(),
+        operationId: crypto.randomUUID(),
+      };
       const items = grade_answers.map((g, i) => `Item ${i + 1}:
 Question: ${g.question}
 Model answer (the key idea): ${g.correct_answer || '(none provided)'}
@@ -31,6 +39,7 @@ Student's answer: ${g.student_answer || '(blank)'}`).join('\n\n');
       // correct, which feeds KnowledgeCoverage and the proficiency stats.
       const grading = await invokeLLM(base44, {
         model: QUALITY_MODEL,
+        usage: gradingUsage,
         prompt: `You are grading short-answer responses on a university review quiz. Judge each answer ONLY on whether the student demonstrates a correct grasp of the underlying concept. Do NOT require the wording to match the model answer — paraphrases, different examples, and informal phrasing are fully acceptable as long as the core understanding is right. Mark wrong only when the concept is missing, misunderstood, or materially incorrect. A blank or off-topic answer is incorrect.
 
 For each item return:
@@ -55,6 +64,10 @@ Return JSON: { "results": [ { "correct": boolean, "feedback": string }, ... ] } 
             },
           },
         },
+      });
+      await settleFeature(base44, gradingGate, {
+        feature: 'lecture_review',
+        llmUsage: gradingUsage,
       });
       return Response.json({ results: grading.results || [] });
     }
