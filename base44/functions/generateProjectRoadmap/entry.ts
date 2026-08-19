@@ -1,6 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 import { invokeLLM, createLlmUsage } from '../../shared/llm.ts';
-import { gateFeature, settleFeature } from '../../shared/credits.ts';
+import { gateFeature, settleFeature, getBalance } from '../../shared/credits.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -14,7 +14,16 @@ Deno.serve(async (req) => {
 
     // Phase 1: Determine custom fields based on description
     if (!project_metadata) {
+      const discoveryUsage = createLlmUsage();
+      const discoveryGate = {
+        ok: true,
+        balance: await getBalance(base44, user.id),
+        cost: 0,
+        startedAt: Date.now(),
+        operationId: crypto.randomUUID(),
+      };
       const result = await invokeLLM(base44, {
+        usage: discoveryUsage,
         prompt: `You are a project planning assistant for university students. A student needs to complete a project.
 
 Project Description: "${description}"
@@ -54,6 +63,10 @@ Only generate fields that are genuinely needed for THIS specific project. Do not
             }
           }
         }
+      });
+      await settleFeature(base44, discoveryGate, {
+        feature: 'project_roadmap',
+        llmUsage: discoveryUsage,
       });
       return Response.json({ fields: result.fields || [] });
     }
