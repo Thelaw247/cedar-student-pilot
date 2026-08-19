@@ -525,7 +525,9 @@ export async function subscriptionContext(base44: any, subId: string) {
   const subscription = await stripeGet(`subscriptions/${subId}?expand[]=items.data.price`);
   const userId = subscription?.metadata?.user_id
     || await userIdForSubscription(base44, subId);
-  const tier = subscription?.items?.data?.[0]?.price?.metadata?.cedar_tier || null;
+  const tier = subscription?.metadata?.cedar_tier
+    || subscription?.items?.data?.[0]?.price?.metadata?.cedar_tier
+    || null;
   return { subscription, userId, tier };
 }
 
