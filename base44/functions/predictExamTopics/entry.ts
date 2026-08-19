@@ -1,6 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
-import { invokeLLM, QUALITY_MODEL } from '../../shared/llm.ts';
-import { secrets } from 'base44:runtime';
+import { invokeLLM, createLlmUsage, QUALITY_MODEL } from '../../shared/llm.ts';
 import { gateFeature, settleFeature } from '../../shared/credits.ts';
 
 Deno.serve(async (req) => {
@@ -24,6 +23,7 @@ Deno.serve(async (req) => {
     // Gate after the data check — "not enough data yet" is not billable.
     const gate = await gateFeature(base44, user.id, 'exam_prediction', { class_id });
     if (!gate.ok) return gate.response!;
+    const llmUsage = createLlmUsage();
 
     // Aggregate concept frequency across all lectures
     const conceptFrequency = {};
@@ -75,6 +75,7 @@ Deno.serve(async (req) => {
     const lectureSummaries = lecturesWithContent.slice(-10).map(l => `[${l.date}] ${l.ai_title || 'Untitled'}: ${l.ai_summary || ''} | Concepts: ${(l.ai_concepts || []).join(', ')} | Exam mentions: ${(l.ai_exam_mentions || []).join(', ')}`).join('\n');
 
     const prediction = await invokeLLM(base44, {
+      usage: llmUsage,
       model: QUALITY_MODEL,
       prompt: `You are an academic exam predictor AI. Based on the student's lecture data, predict which topics are most likely to appear on the upcoming exam.
 
@@ -125,8 +126,7 @@ Rules:
 
     await settleFeature(base44, gate, {
       feature: 'exam_prediction',
-      calls: 1,
-      usedGemini: !!secrets.get('GEMINI_API_KEY'),
+      llmUsage,
       extra: { class_id },
     });
 
