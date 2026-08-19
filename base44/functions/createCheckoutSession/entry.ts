@@ -57,6 +57,8 @@ export default async function (req: Request) {
       params['metadata[cedar_period]'] = period;
       params['subscription_data[metadata][base44_app_id]'] = APP_ID;
       params['subscription_data[metadata][user_id]'] = user.id;
+      params['subscription_data[metadata][cedar_tier]'] = tier;
+      params['subscription_data[metadata][cedar_period]'] = period;
     } else if (pack) {
       if (!VALID_PACKS.has(pack)) return Response.json({ error: 'Invalid pack' }, { status: 400 });
       const p = PACK_PRICES[pack];
