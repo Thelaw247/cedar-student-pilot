@@ -1,4 +1,6 @@
-const SETTINGS_KEY = 'cedar-settings';
+import { userStorageKey } from './currentUser';
+
+const settingsKey = () => userStorageKey('settings');
 
 const DEFAULTS = {
   classReminders: true,
@@ -16,7 +18,9 @@ const DEFAULTS = {
 
 export function getSettings() {
   try {
-    const stored = localStorage.getItem(SETTINGS_KEY);
+    const storageKey = settingsKey();
+    if (!storageKey) return { ...DEFAULTS };
+    const stored = localStorage.getItem(storageKey);
     return { ...DEFAULTS, ...(stored ? JSON.parse(stored) : {}) };
   } catch {
     return DEFAULTS;
@@ -28,8 +32,10 @@ export function getSetting(key) {
 }
 
 export function setSetting(key, value) {
+  const storageKey = settingsKey();
+  if (!storageKey) return;
   const settings = getSettings();
   settings[key] = value;
-  localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+  localStorage.setItem(storageKey, JSON.stringify(settings));
   window.dispatchEvent(new CustomEvent('cedar-settings-change'));
 }
