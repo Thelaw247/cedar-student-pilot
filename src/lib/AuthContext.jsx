@@ -1,8 +1,8 @@
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
 import { appParams } from '@/lib/app-params';
-import { clearLegacyUserStorage, clearUserStorage, getCachedUserId, setCachedUserId } from '@/lib/currentUser';
-import { clearAllRecordings, initializeRecordingStore } from '@/lib/recordingStore';
+import { clearLegacyUserStorage, clearOtherUserStorage, clearUserStorage, getCachedUserId, setCachedUserId } from '@/lib/currentUser';
+import { clearAllRecordings, clearOtherRecordings, initializeRecordingStore } from '@/lib/recordingStore';
 import { createAxiosClient } from '@base44/sdk/dist/utils/axios-client';
 
 const AuthContext = createContext();
@@ -128,6 +128,10 @@ export const AuthProvider = ({ children }) => {
       if (previousUserId && previousUserId !== currentUser.id) {
         await purgeUserOfflineData(previousUserId);
       }
+      // A token can be switched outside this app between reloads, when the old
+      // in-memory id is unavailable. Remove any other account's scoped residue.
+      clearOtherUserStorage(currentUser.id);
+      await clearOtherRecordings(currentUser.id);
       setUser(currentUser);
       setCachedUserId(currentUser.id);
       setIsAuthenticated(true);
@@ -145,6 +149,8 @@ export const AuthProvider = ({ children }) => {
       if (error.status === 401 || error.status === 403) {
         const previousUserId = getCachedUserId();
         await purgeUserOfflineData(previousUserId);
+        clearOtherUserStorage(null);
+        await clearOtherRecordings(null);
         setCachedUserId(null);
         setUser(null);
         setAuthError({
