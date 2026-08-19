@@ -6,26 +6,33 @@
  */
 import { base44 } from '@/api/base44Client';
 import { invalidateEntity } from './cache';
+import { getCachedUserId, userStorageKey } from './currentUser';
 
-const QUEUE_KEY = 'cedar-sync-queue';
+const queueKey = (userId = getCachedUserId()) => userStorageKey('sync-queue', userId);
 
-function readQueue() {
+function readQueue(userId = getCachedUserId()) {
   try {
-    return JSON.parse(localStorage.getItem(QUEUE_KEY) || '[]');
+    const storageKey = queueKey(userId);
+    if (!storageKey) return [];
+    return JSON.parse(localStorage.getItem(storageKey) || '[]');
   } catch {
     return [];
   }
 }
 
-function writeQueue(q) {
-  localStorage.setItem(QUEUE_KEY, JSON.stringify(q));
+function writeQueue(q, userId = getCachedUserId()) {
+  const storageKey = queueKey(userId);
+  if (!storageKey) return;
+  localStorage.setItem(storageKey, JSON.stringify(q));
   window.dispatchEvent(new CustomEvent('cedar-sync-queue-changed'));
 }
 
 export function enqueueOperation(op) {
-  const q = readQueue();
-  q.push({ ...op, queuedAt: Date.now() });
-  writeQueue(q);
+  const userId = getCachedUserId();
+  if (!userId) throw new Error('Cannot queue a change before authentication is known');
+  const q = readQueue(userId);
+  q.push({ ...op, ownerUserId: userId, queuedAt: Date.now() });
+  writeQueue(q, userId);
 }
 
 export function getQueueLength() {
@@ -38,7 +45,10 @@ export function removeFromQueue(index) {
   writeQueue(q);
 }
 
-async function runOp(op) {
+async function runOp(op, userId) {
+  if (!userId || op.ownerUserId !== userId) {
+    throw new Error('Queued operation owner does not match the signed-in user');
+  }
   const { entity, operation, args } = op;
   const e = base44.entities[entity];
   if (!e) throw new Error(`Unknown entity: ${entity}`);
@@ -58,7 +68,9 @@ async function runOp(op) {
  * Returns { succeeded, failed }.
  */
 export async function replayQueue() {
-  const q = readQueue();
+  const userId = getCachedUserId();
+  if (!userId) return { succeeded: 0, failed: 0 };
+  const q = readQueue(userId);
   if (q.length === 0) return { succeeded: 0, failed: 0 };
 
   let succeeded = 0;
@@ -67,18 +79,23 @@ export async function replayQueue() {
 
   for (let i = 0; i < q.length; i++) {
     const op = q[i];
+    // Never retain or replay an operation found under the wrong user's key.
+    if (op?.ownerUserId !== userId) {
+      failed++;
+      continue;
+    }
     try {
-      await runOp(op);
+      await runOp(op, userId);
       invalidateEntity(op.entity);
       succeeded++;
     } catch {
-      // Keep failed ops in the queue for next attempt
+      // Keep same-owner failures for the next attempt.
       remaining.push(op);
       failed++;
     }
   }
 
-  writeQueue(remaining);
+  writeQueue(remaining, userId);
   return { succeeded, failed };
 }
 
