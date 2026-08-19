@@ -393,38 +393,116 @@ Deno.serve(async (req) => {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const body = await req.json();
-    const { lecture_id, audio_url } = body;
-    if (!lecture_id || !audio_url) return Response.json({ error: 'lecture_id and audio_url are required' }, { status: 400 });
+    const body = await req.json().catch(() => ({}));
 
-    // ---- CREDIT GATE -------------------------------------------------------
-    // Checked BEFORE any work and charged only AFTER success. A lecture that
-    // was already transcribed is free to resume, so a retry after a partial
-    // failure never charges twice.
+    // Cheap client preflight before UploadFile. The final gate below always
+    // uses server-verified media duration, so this is UX protection rather
+    // than a source of billing truth.
+    if (body?.action === 'preflight') {
+      const estimatedSeconds = Math.ceil(Number(body?.duration_seconds || 0));
+      if (!Number.isFinite(estimatedSeconds) || estimatedSeconds < 0 || estimatedSeconds > MAX_AUDIO_SECONDS) {
+        throw new RequestError('A valid recording duration is required');
+      }
+
+      const estimatedCost = durationCost(estimatedSeconds, COST_PER_30MIN_PROCESS);
+      const balance = await getBalance(base44, user.id);
+      if (availableCredits(balance) < estimatedCost) {
+        await logUsage(base44, {
+          user_id: user.id,
+          feature: 'process_lecture',
+          tier_at_time: balance.tier,
+          success: false,
+          audio_seconds: estimatedSeconds,
+        });
+        return insufficientResponse('process_lecture', estimatedCost, balance);
+      }
+
+      return Response.json({
+        status: 'ready',
+        estimated_credits: estimatedCost,
+        balance: availableCredits(balance),
+      });
+    }
+
+    const { lecture_id, audio_url: requestedAudioUrl } = body;
+    if (!lecture_id) throw new RequestError('lecture_id is required');
+
+    // Ownership is established before touching the URL or calling a provider.
+    // The authenticated SDK call enforces Lecture RLS; the explicit comparison
+    // is a second boundary in case those rules are ever weakened later.
+    let existing;
+    try {
+      existing = await base44.entities.Lecture.get(lecture_id);
+    } catch {
+      return Response.json({ error: 'Lecture not found' }, { status: 404 });
+    }
+    if (!existing || existing.user_id !== user.id) {
+      return Response.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    let cls = null;
+    try {
+      cls = existing.class_id ? await base44.entities.Class.get(existing.class_id) : null;
+    } catch {
+      return Response.json({ error: 'Class not found' }, { status: 404 });
+    }
+    if (!cls || cls.user_id !== user.id) {
+      return Response.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    const storedAudioUrl = existing.recording_url || '';
+    if (!storedAudioUrl) throw new RequestError('This lecture has no stored recording');
+    if (requestedAudioUrl && requestedAudioUrl !== storedAudioUrl) {
+      throw new RequestError('The requested audio does not match this lecture');
+    }
+
+    const NO_SPEECH = '[No speech detected in recording]';
+    if (existing.transcript === NO_SPEECH) {
+      return Response.json({ error: 'No speech detected' }, { status: 400 });
+    }
+
+    // A successful ledger row makes repeat invocations free and prevents a
+    // completed lecture from being charged again.
+    let alreadyCharged = false;
+    try {
+      const prior = await base44.asServiceRole.entities.UsageEvent.filter({
+        user_id: user.id,
+        feature: 'process_lecture',
+        lecture_id,
+        success: true,
+      });
+      alreadyCharged = (prior || []).some((event: any) => Number(event.cedar_credits_charged || 0) > 0);
+    } catch (error) {
+      console.error('[recording] prior usage lookup failed:', (error as Error).message);
+    }
+
+    if (alreadyCharged && existing.status === 'complete' && existing.ai_title) {
+      return Response.json({ status: 'complete', lecture_id, credits_charged: 0 });
+    }
+
     const started = Date.now();
     const balance = await getBalance(base44, user.id);
 
-    // Every stage below is resumable. Transcription and the cleaning pass are by
-    // far the most expensive work in the app, so a failure later in the pipeline
-    // must never make the caller pay for them twice. Each stage checks whether
-    // its output is already persisted and skips if so.
-    // Tolerate this lookup failing: it's only an optimisation, and the original
-    // pipeline didn't read the lecture until after transcription. A miss here
-    // must not block processing a brand-new recording.
-    let existing = null;
-    try {
-      existing = await base44.entities.Lecture.get(lecture_id);
-    } catch (e) { /* treat as a fresh lecture */ }
+    // Reject zero-balance abuse before fetching a potentially large file. The
+    // exact cost is checked again after duration is verified.
+    const minimumCost = durationCost(1, COST_PER_30MIN_PROCESS);
+    if (!alreadyCharged && availableCredits(balance) < minimumCost) {
+      await logUsage(base44, {
+        user_id: user.id, feature: 'process_lecture', lecture_id,
+        tier_at_time: balance.tier, success: false,
+      });
+      return insufficientResponse('process_lecture', minimumCost, balance);
+    }
 
-    const NO_SPEECH = '[No speech detected in recording]';
-    const hasTranscript = !!(existing?.transcript && existing.transcript.trim() && existing.transcript !== NO_SPEECH);
+    const verifiedAudio = await fetchVerifiedAudio(storedAudioUrl);
+    const audioSeconds = verifiedAudio.durationSeconds;
+    const cost = alreadyCharged ? 0 : durationCost(audioSeconds, COST_PER_30MIN_PROCESS);
 
-    let transcript = hasTranscript ? existing.transcript.trim() : '';
-
-    // Only charge for work not already done. Resuming a half-processed lecture
-    // is free because the expensive part is already paid for.
-    const audioSeconds = existing?.duration_seconds || 0;
-    const cost = hasTranscript ? 0 : durationCost(audioSeconds, COST_PER_30MIN_PROCESS);
+    // Replace the caller-written estimate with authoritative media metadata.
+    await base44.entities.Lecture.update(lecture_id, {
+      duration_seconds: audioSeconds,
+      status: 'processing',
+    });
 
     if (cost > 0 && availableCredits(balance) < cost) {
       await logUsage(base44, {
@@ -434,25 +512,31 @@ Deno.serve(async (req) => {
       return insufficientResponse('process_lecture', cost, balance);
     }
 
+    // Every content stage remains resumable, but an existing transcript no
+    // longer makes a never-charged request free: billing is keyed to the
+    // successful usage ledger above.
+    const hasTranscript = !!(existing.transcript && existing.transcript.trim());
+    let transcript = hasTranscript ? existing.transcript.trim() : '';
+    let transcriptionProvider: 'stored' | 'groq' | 'base44' = hasTranscript ? 'stored' : 'base44';
+
     if (!hasTranscript) {
-      const rawTranscript = await transcribeAudio(base44, audio_url);
+      const transcription = await transcribeAudio(base44, verifiedAudio.audioUrl, verifiedAudio.blob);
+      const rawTranscript = transcription.text;
+      transcriptionProvider = transcription.provider;
 
       if (!rawTranscript || rawTranscript.trim().length === 0) {
         await base44.entities.Lecture.update(lecture_id, { status: 'complete', transcript: NO_SPEECH });
         return Response.json({ error: 'No speech detected' }, { status: 400 });
       }
 
-      // Stored raw. The student can run cleanLectureTranscript later if this
-      // particular recording came out noisy.
       transcript = rawTranscript.trim();
 
       // Persist before any further LLM work, so a later failure resumes from
-      // here instead of paying for transcription twice.
+      // here without repeating transcription.
       await base44.entities.Lecture.update(lecture_id, { transcript, status: 'processing' });
     }
 
     const lecture = await base44.entities.Lecture.get(lecture_id);
-    const cls = lecture.class_id ? await base44.entities.Class.get(lecture.class_id) : null;
 
     if (!lecture.ai_title) {
       const analysis = await extractFromTranscript(base44, transcript, cls, lecture.date);
@@ -469,23 +553,21 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Flashcards are non-fatal and idempotent. Previously a failure here
-    // returned 500 on an otherwise-successful lecture, and the client retry
-    // re-paid for the entire pipeline AND duplicated the cards.
+    // Flashcards are non-fatal and idempotent.
     try {
       const alreadyHave = await base44.entities.Flashcard.filter({ lecture_id });
       if (!alreadyHave || alreadyHave.length === 0) {
         const fresh = await base44.entities.Lecture.get(lecture_id);
         await generateFlashcards(base44, fresh, cls, user.id);
       }
-    } catch (e) {
+    } catch {
       // Lecture itself is complete; cards can be regenerated on demand.
     }
 
     // ---- CHARGE + LOG (success path only) ----------------------------------
     if (cost > 0) await spendCredits(base44, balance, cost);
 
-    const usedGroq = !!secrets.get('GROQ_API_KEY');
+    const usedGroq = transcriptionProvider === 'groq';
     const usedGemini = !!secrets.get('GEMINI_API_KEY');
     const llmCalls = existingLecture_llmCalls(transcript);
     await logUsage(base44, {
@@ -507,6 +589,10 @@ Deno.serve(async (req) => {
 
     return Response.json({ status: 'complete', lecture_id, credits_charged: cost });
   } catch (error) {
-    return Response.json({ error: error.message }, { status: 500 });
+    const status = Number((error as any)?.status) || 500;
+    return Response.json(
+      { error: (error as Error).message || 'Recording processing failed' },
+      { status: status >= 400 && status < 600 ? status : 500 },
+    );
   }
 });
