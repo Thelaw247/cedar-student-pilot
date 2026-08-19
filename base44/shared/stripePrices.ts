@@ -71,7 +71,7 @@ const TEST_PACK_PRICES: PackMap = {
  *  handler — secrets.get() at module top level returns undefined. */
 export function isTestMode(): boolean {
   try {
-    return (secrets.get('STRIPE_SECRET_KEY') || '').startsWith('sk_test_');
+    return /^(sk|rk)_test_/.test(secrets.get('STRIPE_SECRET_KEY') || '');
   } catch {
     return false; // fail to live rather than silently selling against test prices
   }
