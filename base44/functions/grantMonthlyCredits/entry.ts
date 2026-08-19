@@ -1,6 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 import { secrets } from 'base44:runtime';
-import { TIER_GRANT, periodKey } from '../../shared/credits.ts';
+import { periodKey } from '../../shared/credits.ts';
+import { grantScheduledMonthly } from '../../shared/stripe.ts';
 
 /**
  * Daily sweep that tops up subscription credits for active subscribers whose
@@ -47,7 +48,6 @@ export default async function (req: Request) {
     if (!isBroadcast) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     const thisMonth = periodKey();
-    const today = new Date().toISOString().split('T')[0];
     const balances = await base44.asServiceRole.entities.CreditBalance.list('-updated_date', 500);
 
     let granted = 0;
@@ -57,13 +57,15 @@ export default async function (req: Request) {
       if (b.tier === 'free' || !b.stripe_subscription_id) { skipped++; continue; }
       // Already topped up this calendar month (by this job, or by an invoice).
       if (b.period_key === thisMonth) { skipped++; continue; }
-      const allowance = TIER_GRANT[b.tier] || 0;
-      await base44.asServiceRole.entities.CreditBalance.update(b.id, {
-        subscription_credits: allowance, // expire unused, grant fresh
-        period_key: thisMonth,
-        last_grant_date: today,
-      });
-      granted++;
+      const result = await grantScheduledMonthly(
+        base44,
+        b.user_id,
+        b.tier,
+        b.stripe_subscription_id,
+        thisMonth,
+      );
+      if (Number(result?.granted || 0) > 0) granted++;
+      else skipped++;
     }
 
     return Response.json({ ok: true, granted, skipped });
