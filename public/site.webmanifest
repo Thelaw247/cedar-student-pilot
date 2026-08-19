@@ -5,7 +5,7 @@
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#662eff",
+  "theme_color": "#2E66FF",
   "icons": [
     {
       "src": "https://base44.app/api/apps/6a485105cf0a684688950256/files/mp/public/6a485105cf0a684688950256/8baa583f4_android-chrome-192x192.png",
