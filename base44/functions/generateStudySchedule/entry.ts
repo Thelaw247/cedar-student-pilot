@@ -1,6 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
-import { invokeLLM } from '../../shared/llm.ts';
-import { secrets } from 'base44:runtime';
+import { invokeLLM, createLlmUsage } from '../../shared/llm.ts';
 import { gateFeature, settleFeature } from '../../shared/credits.ts';
 
 // Do not pin a `model` here. Base44 bills integration credits PER CALL, so
@@ -41,6 +40,7 @@ Deno.serve(async (req) => {
     // Gate after the assignment lookup — a missing assignment is not billable.
     const gate = await gateFeature(base44, user.id, 'study_schedule');
     if (!gate.ok) return gate.response!;
+    const llmUsage = createLlmUsage();
 
     const cls = await base44.entities.Class.get(assignment.class_id);
     const lectures = await base44.entities.Lecture.filter({ class_id: assignment.class_id }, 'date');
@@ -129,6 +129,7 @@ Deno.serve(async (req) => {
     }).join('\n');
 
     const schedule = await invokeLLM(base44, {
+      usage: llmUsage,
       prompt: `You are an AI study planner. Generate a study schedule for a student preparing for an upcoming assignment. You MUST NOT schedule sessions that overlap the student's existing commitments listed below.
 
 Assignment: ${assignment.title}
@@ -265,8 +266,7 @@ Higher-priority sessions should cover complex material or happen closer to the d
 
     await settleFeature(base44, gate, {
       feature: 'study_schedule',
-      calls: 1,
-      usedGemini: !!secrets.get('GEMINI_API_KEY'),
+      llmUsage,
     });
 
     return Response.json({ sessions_created: sessionsToCreate.length });
