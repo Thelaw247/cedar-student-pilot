@@ -1,6 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
-import { secrets } from 'base44:runtime';
-import { invokeLLM } from '../../shared/llm.ts';
+import { invokeLLM, createLlmUsage } from '../../shared/llm.ts';
 import {
   getBalance, availableCredits, insufficientResponse, spendCredits,
   logUsage, durationCost, COST_PER_30MIN_CLEAN, base44CostCad,
@@ -107,12 +106,15 @@ Deno.serve(async (req) => {
 
     const chunks = splitInto(source, CLEAN_CHUNK_SIZE);
     const cleanedParts: string[] = [];
+    const llmUsage = createLlmUsage();
+    const operationId = `clean:${lecture_id}`;
 
     for (let i = 0; i < chunks.length; i++) {
       // Cheap model by default. Note this pass is output-heavy — it emits a
       // near-verbatim rewrite — so on a per-token provider it is the most
       // expensive thing in the app. That is exactly why it is on-demand.
       const result = await invokeLLM(base44, {
+        usage: llmUsage,
         prompt: cleanPrompt(chunks[i], chunks.length > 1),
       });
       const part = asText(result).trim();
@@ -126,27 +128,38 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Cleanup produced no output. Nothing was changed.' }, { status: 502 });
     }
 
+    // Debit first with a stable operation id, then persist the deliverable.
+    // If the write fails, a retry sees the debit marker and can finish without
+    // charging twice. Concurrent double-taps can do extra provider work, but
+    // they can never double-debit the student's balance.
+    const settled = await spendCredits(base44, balance, cost, operationId);
+    const chargedNow = settled?._operationAppliedNow === false ? 0 : cost;
+
     await base44.entities.Lecture.update(lecture_id, {
       transcript_raw: source,   // preserve the original so this is reversible
       transcript: cleaned,
       transcript_cleaned: true,
     });
 
-    // Charged only now that the transcript is safely written.
-    await spendCredits(base44, balance, cost);
-
-    const usedGemini = !!secrets.get('GEMINI_API_KEY');
+    const geminiCalls = Number(llmUsage.geminiCalls || 0);
+    const base44Calls = Number(llmUsage.base44Calls || 0);
+    const provider = geminiCalls > 0 && base44Calls > 0
+      ? 'mixed'
+      : geminiCalls > 0 ? 'gemini' : 'base44';
     await logUsage(base44, {
       user_id: user.id,
       feature: 'clean_transcript',
       lecture_id,
-      provider: usedGemini ? 'gemini' : 'base44',
-      model: usedGemini ? 'gemini-2.5-flash-lite' : 'automatic',
-      call_count: chunks.length,
-      base44_credits: usedGemini ? 0 : chunks.length * 3,
+      provider,
+      model: Object.keys(llmUsage.models).join(', ') || 'automatic',
+      call_count: geminiCalls + base44Calls,
+      base44_credits: base44Calls * 3,
+      input_tokens: llmUsage.inputTokens,
+      output_tokens: llmUsage.outputTokens,
       audio_seconds: audioSeconds,
-      cedar_credits_charged: cost,
-      cost_cad: base44CostCad(usedGemini ? 0 : chunks.length * 3),
+      cedar_credits_charged: chargedNow,
+      credit_operation_id: operationId,
+      cost_cad: base44CostCad(base44Calls * 3) + llmUsage.costCad,
       tier_at_time: balance.tier,
       success: true,
       latency_ms: Date.now() - started,
@@ -155,8 +168,8 @@ Deno.serve(async (req) => {
     return Response.json({
       status: 'complete',
       calls: chunks.length,
-      charged: true,
-      credits_charged: cost,
+      charged: chargedNow > 0,
+      credits_charged: chargedNow,
       chars_before: source.length,
       chars_after: cleaned.length,
     });
