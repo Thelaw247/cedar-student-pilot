@@ -7,6 +7,7 @@ const links = [
   { label: 'Recording', href: '#recording' },
   { label: 'Test coverage', href: '#test-coverage' },
   { label: 'Study schedule', href: '#study-schedule' },
+  { label: 'Study tools', href: '#study-system' },
   { label: 'Pricing', href: '#pricing' },
 ];
 
