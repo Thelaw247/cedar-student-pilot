@@ -45,8 +45,8 @@ export default function LandingHero() {
         <div className="mx-auto max-w-4xl text-center">
           <p className="text-sm font-semibold text-blue-600">The thought that hits mid-lecture</p>
           <h1 className="mx-auto mt-3 max-w-4xl text-balance text-4xl font-bold leading-[1.02] tracking-[-0.05em] text-slate-950 sm:text-5xl lg:text-6xl">Afraid you missed something important?</h1>
-          <p className="mx-auto mt-5 max-w-3xl text-balance text-base leading-7 text-slate-600 sm:text-lg">
-            Cedar records the lecture, so you never have to wonder what you missed — then turns it into exactly what you need to study.
+          <p className="mx-auto mt-5 max-w-3xl text-balance text-base leading-7 text-slate-600 sm:text-lg">Cedar records the lecture, so you never have to wonder what you missed, then turns it into exactly what you need to study.
+
           </p>
           <p className="mx-auto mt-5 max-w-2xl text-lg font-bold tracking-[-0.02em] text-slate-950 sm:text-xl">
             Nothing gets past Cedar.
