@@ -3,8 +3,9 @@ import { Link } from 'react-router-dom';
 import { CEDAR_LOGO_URL } from '@/lib/brand';
 import LandingNav from '@/components/landing/LandingNav';
 import LandingHero from '@/components/landing/LandingHero';
-import SimpleWorkflow from '@/components/landing/SimpleWorkflow';
+import RecordingFeature from '@/components/landing/RecordingFeature';
 import StudyToolProof from '@/components/landing/StudyToolProof';
+import StudyScheduleProof from '@/components/landing/RealProductPreview';
 import LandingEnd from '@/components/landing/LandingEnd';
 
 function LandingFooter() {
@@ -16,8 +17,9 @@ function LandingFooter() {
           <p className="text-sm font-semibold text-slate-950">Cedar Student Pilot</p>
         </div>
         <div className="flex flex-wrap gap-x-5 gap-y-2 text-xs font-medium text-slate-500">
-          <a href="#how-it-works" className="hover:text-slate-950">How it works</a>
-          <a href="#see-the-app" className="hover:text-slate-950">See the app</a>
+          <a href="#recording" className="hover:text-slate-950">Recording</a>
+          <a href="#test-coverage" className="hover:text-slate-950">Test coverage</a>
+          <a href="#study-schedule" className="hover:text-slate-950">Study schedule</a>
           <a href="#pricing" className="hover:text-slate-950">Pricing</a>
           <Link to="/privacy" className="hover:text-slate-950">Privacy</Link>
           <Link to="/login" className="hover:text-slate-950">Sign in</Link>
@@ -30,7 +32,7 @@ function LandingFooter() {
 export default function Landing() {
   useEffect(() => {
     const previousTitle = document.title;
-    document.title = 'Cedar Student Pilot — Classes, Lectures & Study in One Place';
+    document.title = 'Cedar Student Pilot — Record Lectures, Cover the Test, Schedule the Study';
 
     let description = document.querySelector('meta[name="description"]');
     const previousDescription = description?.getAttribute('content') || null;
@@ -39,7 +41,7 @@ export default function Landing() {
       description.setAttribute('name', 'description');
       document.head.appendChild(description);
     }
-    description.setAttribute('content', 'Keep your classes, permitted lecture recordings, lecture notes, exam coverage, study tools, handbook, and study schedule together in Cedar Student Pilot.');
+    description.setAttribute('content', 'Record permitted university lectures, choose the exact lectures your test covers, and schedule study sessions around your real calendar with Cedar Student Pilot.');
 
     return () => {
       document.title = previousTitle;
@@ -53,8 +55,9 @@ export default function Landing() {
       <LandingNav />
       <main>
         <LandingHero />
-        <SimpleWorkflow />
+        <RecordingFeature />
         <StudyToolProof />
+        <StudyScheduleProof />
         <LandingEnd />
       </main>
       <LandingFooter />
