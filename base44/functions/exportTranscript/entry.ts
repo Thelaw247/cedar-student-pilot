@@ -1,5 +1,28 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
+/**
+ * Escapes the five HTML-significant characters. Applied to every dynamic
+ * value interpolated into the print-mode HTML template below — class name,
+ * instructor, and lecture title are student-editable, and the AI summary /
+ * concepts / transcript are model output, none of which is safe to trust as
+ * literal HTML. A prior version of this file interpolated all of these raw,
+ * which a security scan correctly flagged as a stored XSS: the frontend
+ * writes this HTML directly into a new window (window.open + document.write
+ * in TranscriptActions.jsx), so an unescaped <script> here executes for real.
+ */
+function escapeHtml(value: unknown): string {
+  return String(value ?? '').replace(/[&<>"']/g, (c) => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string
+  ));
+}
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const DAILY_EMAIL_LIMIT = 10;
+
+function todayKey(userId: string): string {
+  return `exportTranscript_email_${userId}_${new Date().toISOString().slice(0, 10)}`;
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -13,6 +36,29 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'mode must be "print" or "email"' }, { status: 400 });
     }
 
+    // Emailing a transcript to an arbitrary address (share with a study
+    // partner, send to a personal address, etc.) is an intentional feature —
+    // the fix here is NOT to force email_to to the caller's own address,
+    // which would remove that. Instead: reject malformed input, and cap
+    // volume per user per day so a signed-in account can't be turned into an
+    // open relay for mass sending. This previously had neither check.
+    if (mode === 'email') {
+      if (!email_to || !EMAIL_RE.test(String(email_to))) {
+        return Response.json({ error: 'email_to must be a valid email address' }, { status: 400 });
+      }
+      const key = todayKey(user.id);
+      const rows = await base44.asServiceRole.entities.SystemState.filter({ key });
+      const count = Number(rows?.[0]?.value || 0);
+      if (count >= DAILY_EMAIL_LIMIT) {
+        return Response.json({ error: `Daily transcript email limit reached (${DAILY_EMAIL_LIMIT}/day). Try again tomorrow.` }, { status: 429 });
+      }
+      if (rows?.[0]) {
+        await base44.asServiceRole.entities.SystemState.update(rows[0].id, { value: String(count + 1) });
+      } else {
+        await base44.asServiceRole.entities.SystemState.create({ key, value: '1' });
+      }
+    }
+
     const lecture = await base44.entities.Lecture.get(lecture_id);
     if (!lecture) return Response.json({ error: 'Lecture not found' }, { status: 404 });
 
@@ -21,14 +67,19 @@ Deno.serve(async (req) => {
       try { cls = await base44.entities.Class.get(lecture.class_id); } catch (e) { /* skip */ }
     }
 
-    const className = cls?.name || 'Unknown Class';
-    const instructor = lecture.actual_instructor || cls?.instructor || 'Unknown';
-    const topic = lecture.ai_title || `Lecture — ${lecture.date}`;
-    const date = lecture.date || 'N/A';
-    const startTime = cls?.start_time || 'N/A';
-    const endTime = cls?.end_time || 'N/A';
+    const className = escapeHtml(cls?.name || 'Unknown Class');
+    const instructor = escapeHtml(lecture.actual_instructor || cls?.instructor || 'Unknown');
+    const topic = escapeHtml(lecture.ai_title || `Lecture — ${lecture.date}`);
+    const date = escapeHtml(lecture.date || 'N/A');
+    const startTime = escapeHtml(cls?.start_time || 'N/A');
+    const endTime = escapeHtml(cls?.end_time || 'N/A');
     const durationMin = lecture.duration_seconds > 0 ? Math.round(lecture.duration_seconds / 60) : null;
-    const transcript = lecture.transcript || '[No transcript available]';
+    const aiSummary = lecture.ai_summary ? escapeHtml(lecture.ai_summary) : '';
+    const aiConcepts = Array.isArray(lecture.ai_concepts) ? lecture.ai_concepts.map(escapeHtml) : [];
+    // Plain-text email body (below) never touches this HTML var, so it needs
+    // no escaping of its own — only the print-mode HTML render does.
+    const transcriptRaw = lecture.transcript || '[No transcript available]';
+    const transcriptHtml = escapeHtml(transcriptRaw);
 
     // Build a clean, formatted HTML document for printing
     const html = `<!DOCTYPE html>
@@ -64,29 +115,32 @@ Deno.serve(async (req) => {
       ${durationMin ? `<span><strong>Duration:</strong> ${durationMin} min</span>` : ''}
     </div>
   </div>
-  ${lecture.ai_summary ? `<div class="section-label">Summary</div><div class="summary">${lecture.ai_summary}</div>` : ''}
-  ${(lecture.ai_concepts && lecture.ai_concepts.length > 0) ? `<div class="section-label">Key Concepts</div><div class="concepts">${lecture.ai_concepts.map(c => `<span class="concept-tag">${c}</span>`).join('')}</div>` : ''}
+  ${aiSummary ? `<div class="section-label">Summary</div><div class="summary">${aiSummary}</div>` : ''}
+  ${aiConcepts.length > 0 ? `<div class="section-label">Key Concepts</div><div class="concepts">${aiConcepts.map(c => `<span class="concept-tag">${c}</span>`).join('')}</div>` : ''}
   <div class="section-label">Transcript</div>
-  <div class="transcript">${transcript}</div>
+  <div class="transcript">${transcriptHtml}</div>
   <div class="footer">Generated by Cedar Student Pilot — ${new Date().toLocaleDateString()}</div>
 </body>
 </html>`;
 
     if (mode === 'email') {
-      if (!email_to) return Response.json({ error: 'email_to is required for email mode' }, { status: 400 });
-      const textBody = `${topic}
-${className} — ${instructor}
-Date: ${date} | Time: ${startTime} – ${endTime}${durationMin ? ` | Duration: ${durationMin} min` : ''}
+      // Unescaped raw values are correct and safe here — this is a plain-text
+      // email body, not HTML, so there is no injection surface to escape
+      // against, and escaping would just show literal "&amp;" etc. to the
+      // reader.
+      const textBody = `${lecture.ai_title || `Lecture — ${lecture.date}`}
+${cls?.name || 'Unknown Class'} — ${lecture.actual_instructor || cls?.instructor || 'Unknown'}
+Date: ${lecture.date || 'N/A'} | Time: ${cls?.start_time || 'N/A'} – ${cls?.end_time || 'N/A'}${durationMin ? ` | Duration: ${durationMin} min` : ''}
 
 ${lecture.ai_summary ? 'SUMMARY\n' + lecture.ai_summary + '\n\n' : ''}TRANSCRIPT
 
-${transcript}
+${transcriptRaw}
 
 — Generated by Cedar Student Pilot`;
 
       await base44.integrations.Core.SendEmail({
         to: email_to,
-        subject: `${className} — ${topic} (${date})`,
+        subject: `${cls?.name || 'Unknown Class'} — ${lecture.ai_title || `Lecture — ${lecture.date}`} (${lecture.date || 'N/A'})`,
         body: textBody,
       });
       return Response.json({ status: 'sent', mode: 'email' });
