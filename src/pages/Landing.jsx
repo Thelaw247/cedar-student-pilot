@@ -3,33 +3,21 @@ import { Link } from 'react-router-dom';
 import { CEDAR_LOGO_URL } from '@/lib/brand';
 import LandingNav from '@/components/landing/LandingNav';
 import LandingHero from '@/components/landing/LandingHero';
-import ThreePillars from '@/components/landing/ThreePillars';
-import AcademicReworkSection from '@/components/landing/AcademicReworkSection';
-import LectureToSystemDemo from '@/components/landing/LectureToSystemDemo';
-import {
-  TestCoverageSection,
-  HandbookSection,
-  StudySystemSection,
-  PlannerAndCompoundSection,
-  ComparisonSection,
-  HowItWorksSection,
-  TrustPricingFinal,
-} from '@/components/landing/LandingLowerSections';
+import SimpleWorkflow from '@/components/landing/SimpleWorkflow';
+import StudyToolProof from '@/components/landing/StudyToolProof';
+import LandingEnd from '@/components/landing/LandingEnd';
 
 function LandingFooter() {
   return (
-    <footer className="border-t border-slate-200 bg-white px-4 py-10 sm:px-6">
-      <div className="mx-auto flex max-w-6xl flex-col gap-7 sm:flex-row sm:items-center sm:justify-between">
+    <footer className="border-t border-slate-200 bg-white px-4 py-8 sm:px-6">
+      <div className="mx-auto flex max-w-6xl flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2.5">
-          <img src={CEDAR_LOGO_URL} alt="" className="h-8 w-8 object-contain" />
-          <div>
-            <p className="text-sm font-semibold tracking-[-0.02em] text-slate-950">Cedar Student Pilot</p>
-            <p className="text-[10px] text-slate-400">The academic operating system for university.</p>
-          </div>
+          <img src={CEDAR_LOGO_URL} alt="" className="h-7 w-7 object-contain" />
+          <p className="text-sm font-semibold text-slate-950">Cedar Student Pilot</p>
         </div>
-        <div className="flex flex-wrap gap-x-6 gap-y-2 text-xs font-medium text-slate-500">
-          <a href="#product" className="hover:text-slate-950">Product</a>
-          <a href="#study-system" className="hover:text-slate-950">Study system</a>
+        <div className="flex flex-wrap gap-x-5 gap-y-2 text-xs font-medium text-slate-500">
+          <a href="#how-it-works" className="hover:text-slate-950">How it works</a>
+          <a href="#see-the-app" className="hover:text-slate-950">See the app</a>
           <a href="#pricing" className="hover:text-slate-950">Pricing</a>
           <Link to="/privacy" className="hover:text-slate-950">Privacy</Link>
           <Link to="/login" className="hover:text-slate-950">Sign in</Link>
@@ -42,7 +30,7 @@ function LandingFooter() {
 export default function Landing() {
   useEffect(() => {
     const previousTitle = document.title;
-    document.title = 'Cedar Student Pilot — Make Every Class Compound';
+    document.title = 'Cedar Student Pilot — Classes, Lectures & Study in One Place';
 
     let description = document.querySelector('meta[name="description"]');
     const previousDescription = description?.getAttribute('content') || null;
@@ -51,7 +39,7 @@ export default function Landing() {
       description.setAttribute('name', 'description');
       document.head.appendChild(description);
     }
-    description.setAttribute('content', 'Cedar Student Pilot keeps lectures, class knowledge, test coverage, study tools, and your schedule connected from the first lecture to the final exam.');
+    description.setAttribute('content', 'Keep your classes, permitted lecture recordings, lecture notes, exam coverage, study tools, handbook, and study schedule together in Cedar Student Pilot.');
 
     return () => {
       document.title = previousTitle;
@@ -65,16 +53,9 @@ export default function Landing() {
       <LandingNav />
       <main>
         <LandingHero />
-        <ThreePillars />
-        <AcademicReworkSection />
-        <LectureToSystemDemo />
-        <TestCoverageSection />
-        <HandbookSection />
-        <StudySystemSection />
-        <PlannerAndCompoundSection />
-        <ComparisonSection />
-        <HowItWorksSection />
-        <TrustPricingFinal />
+        <SimpleWorkflow />
+        <StudyToolProof />
+        <LandingEnd />
       </main>
       <LandingFooter />
     </div>
