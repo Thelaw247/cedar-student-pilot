@@ -205,10 +205,38 @@ export default function StudySystemFeature() {
                   </div>
                 </div>
 
-                <div className="mt-3 grid grid-cols-3 gap-2">
-                  <div className="rounded-lg border border-slate-200 bg-white px-2 py-2 text-center"><p className="text-[9px] font-semibold text-slate-400">MON</p><div className="mt-1 rounded-md bg-blue-50 px-1.5 py-1 text-[9px] font-semibold text-blue-700">Step 1</div></div>
-                  <div className="rounded-lg border border-slate-200 bg-white px-2 py-2 text-center"><p className="text-[9px] font-semibold text-slate-400">WED</p><div className="mt-1 rounded-md bg-blue-50 px-1.5 py-1 text-[9px] font-semibold text-blue-700">Step 2</div></div>
-                  <div className="rounded-lg border border-slate-200 bg-white px-2 py-2 text-center"><p className="text-[9px] font-semibold text-slate-400">FRI</p><div className="mt-1 rounded-md bg-emerald-50 px-1.5 py-1 text-[9px] font-semibold text-emerald-700">Due</div></div>
+                <div className="mt-2.5 rounded-xl border border-slate-200 bg-slate-50 p-3.5">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-7 w-7 flex-none items-center justify-center rounded-full bg-blue-100 text-[10px] font-bold text-blue-700">3</div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-3">
+                        <p className="text-xs font-bold text-slate-900">Test, revise &amp; fill gaps</p>
+                        <span className="inline-flex flex-none items-center gap-1 text-[9px] font-semibold text-slate-500"><Clock3 className="h-3 w-3" /> 60 min</span>
+                      </div>
+                      <p className="mt-1 text-[10px] leading-4 text-slate-500">Check the work against the requirements, fix weak sections, and resolve anything still incomplete.</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-2.5 rounded-xl border border-slate-200 bg-slate-50 p-3.5">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-7 w-7 flex-none items-center justify-center rounded-full bg-blue-100 text-[10px] font-bold text-blue-700">4</div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-3">
+                        <p className="text-xs font-bold text-slate-900">Polish &amp; submit</p>
+                        <span className="inline-flex flex-none items-center gap-1 text-[9px] font-semibold text-slate-500"><Clock3 className="h-3 w-3" /> 45 min</span>
+                      </div>
+                      <p className="mt-1 text-[10px] leading-4 text-slate-500">Finish formatting, citations, final checks, and prepare the project for submission.</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-3 grid grid-cols-5 gap-1.5">
+                  <div className="rounded-lg border border-slate-200 bg-white px-1.5 py-2 text-center"><p className="text-[8px] font-semibold text-slate-400">MON</p><div className="mt-1 rounded-md bg-blue-50 px-1 py-1 text-[8px] font-semibold text-blue-700">Step 1</div></div>
+                  <div className="rounded-lg border border-slate-200 bg-white px-1.5 py-2 text-center"><p className="text-[8px] font-semibold text-slate-400">TUE</p><div className="mt-1 rounded-md bg-blue-50 px-1 py-1 text-[8px] font-semibold text-blue-700">Step 2</div></div>
+                  <div className="rounded-lg border border-slate-200 bg-white px-1.5 py-2 text-center"><p className="text-[8px] font-semibold text-slate-400">WED</p><div className="mt-1 rounded-md bg-blue-50 px-1 py-1 text-[8px] font-semibold text-blue-700">Step 3</div></div>
+                  <div className="rounded-lg border border-slate-200 bg-white px-1.5 py-2 text-center"><p className="text-[8px] font-semibold text-slate-400">THU</p><div className="mt-1 rounded-md bg-blue-50 px-1 py-1 text-[8px] font-semibold text-blue-700">Step 4</div></div>
+                  <div className="rounded-lg border border-slate-200 bg-white px-1.5 py-2 text-center"><p className="text-[8px] font-semibold text-slate-400">FRI</p><div className="mt-1 rounded-md bg-emerald-50 px-1 py-1 text-[8px] font-semibold text-emerald-700">Due</div></div>
                 </div>
 
                 <p className="mt-3 text-center text-[9px] leading-4 text-slate-400">Based directly on Cedar&rsquo;s current project setup and roadmap flow.</p>
