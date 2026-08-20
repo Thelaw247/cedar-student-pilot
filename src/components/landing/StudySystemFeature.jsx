@@ -30,6 +30,8 @@ const studyTools = [
   { icon: Target, title: 'Session review', body: 'Finish with questions and self-assessment to find what still needs work.' },
   { icon: BarChart3, title: 'Knowledge coverage', body: 'Track proficiency, course coverage, concepts seen, and concepts mastered over time.' },
   { icon: CalendarCheck2, title: 'Spaced lecture reviews', body: 'After a recorded lecture, schedule future review touchpoints instead of trusting memory.' },
+  { icon: RefreshCcw, title: 'Rebook when life changes', body: 'Move a scheduled study session when the original time no longer works.' },
+  { icon: BookOpen, title: 'Missed-lecture recovery', body: 'Create a clearly labelled estimate from previous lectures and any course guidance you provide when you miss class.' },
   { icon: Music2, title: 'Focus environment', body: 'Keep the timer, study material, and optional study music together during the session.' },
 ];
 
@@ -123,9 +125,9 @@ export default function StudySystemFeature() {
               <div className="border-t border-slate-200 bg-slate-50 p-5 sm:p-6">
                 <p className="text-xs font-semibold text-slate-700">Current Cedar presets</p>
                 <div className="mt-3 grid gap-3 sm:grid-cols-3">
-                  <div className="rounded-xl border border-slate-200 bg-white p-4"><p className="text-[10px] font-bold uppercase tracking-[0.11em] text-blue-600">Lecture review</p><p className="mt-2 text-sm font-bold text-slate-950">30 min goal</p><p className="mt-1 text-xs leading-5 text-slate-500">20-minute work intervals with 5-minute breaks.</p></div>
-                  <div className="rounded-xl border border-slate-200 bg-white p-4"><p className="text-[10px] font-bold uppercase tracking-[0.11em] text-rose-600">Exam prep</p><p className="mt-2 text-sm font-bold text-slate-950">45 min goal</p><p className="mt-1 text-xs leading-5 text-slate-500">15-minute focused intervals with 3-minute breaks.</p></div>
-                  <div className="rounded-xl border border-slate-200 bg-white p-4"><p className="text-[10px] font-bold uppercase tracking-[0.11em] text-amber-600">Deep study</p><p className="mt-2 text-sm font-bold text-slate-950">90 min goal</p><p className="mt-1 text-xs leading-5 text-slate-500">25-minute work intervals with 5-minute breaks.</p></div>
+                  <div className="rounded-xl border border-slate-200 bg-white p-4"><p className="text-[10px] font-bold uppercase tracking-[0.11em] text-blue-600">Lecture review</p><p className="mt-2 text-sm font-bold text-slate-950">30 min goal</p><p className="mt-1 text-xs leading-5 text-slate-500">20-minute work intervals with 5-minute breaks; timing stays adjustable.</p></div>
+                  <div className="rounded-xl border border-slate-200 bg-white p-4"><p className="text-[10px] font-bold uppercase tracking-[0.11em] text-rose-600">Exam prep</p><p className="mt-2 text-sm font-bold text-slate-950">45 min goal</p><p className="mt-1 text-xs leading-5 text-slate-500">15-minute focused intervals with 3-minute breaks; timing stays adjustable.</p></div>
+                  <div className="rounded-xl border border-slate-200 bg-white p-4"><p className="text-[10px] font-bold uppercase tracking-[0.11em] text-amber-600">Deep study</p><p className="mt-2 text-sm font-bold text-slate-950">90 min goal</p><p className="mt-1 text-xs leading-5 text-slate-500">25-minute work intervals with 5-minute breaks; timing stays adjustable.</p></div>
                 </div>
               </div>
             </div>
