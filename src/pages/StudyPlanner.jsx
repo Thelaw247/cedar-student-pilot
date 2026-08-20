@@ -261,7 +261,11 @@ export default function StudyPlanner() {
           {upcoming.length === 0 && completed.length === 0 ? (
             <div className="rounded-xl border border-dashed border-border p-12 text-center">
               <GraduationCap className="w-8 h-8 text-muted-foreground mx-auto mb-3" strokeWidth={1.5} />
-              <p className="text-sm text-muted-foreground">No study sessions yet. Add an exam or assignment to generate an AI study plan, or add a study block.</p>
+              <p className="text-sm text-muted-foreground mb-3">No study sessions yet. Add an exam or assignment to generate an AI study plan, or add a study block.</p>
+              <button onClick={() => setShowAdd(true)}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90">
+                Add exam or study block
+              </button>
             </div>
           ) : (
             <div className="space-y-2">
