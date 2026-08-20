@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, CalendarClock, ChevronRight, Mic, Target } from 'lucide-react';
+import { ArrowRight, Brain, CalendarClock, ChevronRight, Mic, Target } from 'lucide-react';
 
 const coreFeatures = [
   {
@@ -27,6 +27,14 @@ const coreFeatures = [
     body: 'Spread the work across the days before the test and fit it around the schedule you already have.',
     href: '#study-schedule',
   },
+  {
+    number: '04',
+    icon: Brain,
+    label: 'Study system',
+    title: 'Know what to do when study time starts.',
+    body: 'Use guided sessions, flashcards, quizzes, reviews, practice tests, study guides, focus tools, and progress tracking from the same class material.',
+    href: '#study-system',
+  },
 ];
 
 export default function LandingHero() {
@@ -40,14 +48,14 @@ export default function LandingHero() {
             You already took the class. Why are you rebuilding it before the exam?
           </h1>
           <p className="mx-auto mt-5 max-w-3xl text-balance text-base leading-7 text-slate-600 sm:text-lg">
-            Everything in between is usually your job: keep what was taught, work out exactly what the test covers, and somehow find enough time to study it properly.
+            Everything in between is usually your job: keep what was taught, work out exactly what the test covers, find enough time to study it, and know what to do once that study time starts.
           </p>
           <p className="mx-auto mt-5 max-w-2xl text-lg font-bold tracking-[-0.02em] text-slate-950 sm:text-xl">
-            Cedar handles those three jobs in one place.
+            Cedar handles those four jobs in one place.
           </p>
         </div>
 
-        <div className="mt-10 grid gap-4 lg:grid-cols-3">
+        <div className="mt-10 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {coreFeatures.map((feature) => (
             <a
               key={feature.number}
@@ -80,6 +88,8 @@ export default function LandingHero() {
             <ChevronRight className="h-4 w-4 text-slate-300" />
             <span className="rounded-lg bg-blue-50 px-3 py-2 text-blue-700">Book the study</span>
             <ChevronRight className="h-4 w-4 text-slate-300" />
+            <span className="rounded-lg bg-blue-50 px-3 py-2 text-blue-700">Run the study session</span>
+            <ChevronRight className="h-4 w-4 text-slate-300" />
             <span className="rounded-lg bg-white px-3 py-2 text-slate-950 shadow-sm">Exam</span>
           </div>
         </div>
@@ -89,7 +99,7 @@ export default function LandingHero() {
             Start free <ArrowRight className="h-4 w-4" />
           </Link>
           <a href="#recording" className="inline-flex w-full items-center justify-center rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-800 transition-colors hover:bg-slate-50 sm:w-auto">
-            See the three features
+            See the four features
           </a>
         </div>
       </div>
