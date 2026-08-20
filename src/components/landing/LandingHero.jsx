@@ -3,39 +3,39 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, Brain, CalendarClock, ChevronRight, Mic, Target } from 'lucide-react';
 
 const coreFeatures = [
-  {
-    number: '01',
-    icon: Mic,
-    label: 'Lecture recording',
-    title: 'Record the lecture.',
-    body: 'Keep the class you actually sat through — not just the notes you managed to type.',
-    href: '#recording',
-  },
-  {
-    number: '02',
-    icon: Target,
-    label: 'Exact test coverage',
-    title: 'Set what the test covers.',
-    body: 'Choose the exact lectures you are responsible for before Cedar builds anything to study.',
-    href: '#test-coverage',
-  },
-  {
-    number: '03',
-    icon: CalendarClock,
-    label: 'Study scheduling',
-    title: 'Put the studying on your calendar.',
-    body: 'Spread the work across the days before the test and fit it around the schedule you already have.',
-    href: '#study-schedule',
-  },
-  {
-    number: '04',
-    icon: Brain,
-    label: 'Study system',
-    title: 'Know what to do when study time starts.',
-    body: 'Use guided sessions, flashcards, quizzes, reviews, practice tests, study guides, focus tools, and progress tracking from the same class material.',
-    href: '#study-system',
-  },
-];
+{
+  number: '01',
+  icon: Mic,
+  label: 'Lecture recording',
+  title: 'Record the lecture.',
+  body: 'Keep the class you actually sat through — not just the notes you managed to type.',
+  href: '#recording'
+},
+{
+  number: '02',
+  icon: Target,
+  label: 'Exact test coverage',
+  title: 'Set what the test covers.',
+  body: 'Choose the exact lectures you are responsible for before Cedar builds anything to study.',
+  href: '#test-coverage'
+},
+{
+  number: '03',
+  icon: CalendarClock,
+  label: 'Study scheduling',
+  title: 'Put the studying on your calendar.',
+  body: 'Spread the work across the days before the test and fit it around the schedule you already have.',
+  href: '#study-schedule'
+},
+{
+  number: '04',
+  icon: Brain,
+  label: 'Study system',
+  title: 'Know what to do when study time starts.',
+  body: 'Use guided sessions, flashcards, quizzes, reviews, practice tests, study guides, focus tools, and progress tracking from the same class material.',
+  href: '#study-system'
+}];
+
 
 export default function LandingHero() {
   return (
@@ -44,8 +44,8 @@ export default function LandingHero() {
       <div className="mx-auto max-w-6xl">
         <div className="mx-auto max-w-4xl text-center">
           <p className="text-sm font-semibold text-blue-600">The part of university nobody does for you</p>
-          <h1 className="mx-auto mt-3 max-w-4xl text-balance text-4xl font-bold leading-[1.02] tracking-[-0.05em] text-slate-950 sm:text-5xl lg:text-6xl">
-            You already took the class. Why are you rebuilding it before the exam?
+          <h1 className="mx-auto mt-3 max-w-4xl text-balance text-4xl font-bold leading-[1.02] tracking-[-0.05em] text-slate-950 sm:text-5xl lg:text-6xl">YAfraid you 
+
           </h1>
           <p className="mx-auto mt-5 max-w-3xl text-balance text-base leading-7 text-slate-600 sm:text-lg">
             Everything in between is usually your job: keep what was taught, work out exactly what the test covers, find enough time to study it, and know what to do once that study time starts.
@@ -56,12 +56,12 @@ export default function LandingHero() {
         </div>
 
         <div className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {coreFeatures.map((feature) => (
-            <a
-              key={feature.number}
-              href={feature.href}
-              className="group relative overflow-hidden rounded-[26px] border border-slate-200 bg-white p-6 shadow-[0_18px_55px_-35px_rgba(15,23,42,0.35)] transition-all hover:-translate-y-1 hover:border-blue-200 hover:shadow-[0_24px_65px_-32px_rgba(46,102,255,0.28)] sm:p-7"
-            >
+          {coreFeatures.map((feature) =>
+          <a
+            key={feature.number}
+            href={feature.href}
+            className="group relative overflow-hidden rounded-[26px] border border-slate-200 bg-white p-6 shadow-[0_18px_55px_-35px_rgba(15,23,42,0.35)] transition-all hover:-translate-y-1 hover:border-blue-200 hover:shadow-[0_24px_65px_-32px_rgba(46,102,255,0.28)] sm:p-7">
+            
               <div className="flex items-start justify-between gap-4">
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
                   <feature.icon className="h-6 w-6" />
@@ -75,7 +75,7 @@ export default function LandingHero() {
                 See it in Cedar <ChevronRight className="h-3.5 w-3.5" />
               </span>
             </a>
-          ))}
+          )}
         </div>
 
         <div className="mx-auto mt-8 max-w-5xl rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 sm:px-6">
@@ -103,6 +103,6 @@ export default function LandingHero() {
           </a>
         </div>
       </div>
-    </section>
-  );
+    </section>);
+
 }
