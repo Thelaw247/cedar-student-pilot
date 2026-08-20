@@ -162,16 +162,60 @@ export default function StudySystemFeature() {
                 </div>
 
               <div className="mt-7 space-y-2.5">
-                  {projectSteps.map((step, index) => (
-                    <div key={step} className="flex gap-3 rounded-xl border border-white/10 bg-white/[0.06] p-3.5">
-                      <span className="flex h-6 w-6 flex-none items-center justify-center rounded-full bg-blue-500/20 text-[10px] font-bold text-blue-200">{index + 1}</span>
-                      <p className="text-xs leading-5 text-slate-200">{step}</p>
-                    </div>
-                  ))}
-                </div>
+                {projectSteps.map((step, index) => (
+                  <div key={step} className="flex gap-3 rounded-xl border border-white/10 bg-white/[0.06] p-3.5">
+                    <span className="flex h-6 w-6 flex-none items-center justify-center rounded-full bg-blue-500/20 text-[10px] font-bold text-blue-200">{index + 1}</span>
+                    <p className="text-xs leading-5 text-slate-200">{step}</p>
+                  </div>
+                ))}
               </div>
 
-              <div className="border-t border-white/10 bg-white/[0.04] px-6 py-4 sm:px-8">
+              <div className="mt-7 rounded-2xl border border-white/10 bg-white p-4 text-slate-950 shadow-[0_18px_45px_-28px_rgba(0,0,0,0.55)] sm:p-5">
+                <div className="flex items-center justify-between gap-3 border-b border-slate-200 pb-3">
+                  <div>
+                    <p className="text-[9px] font-bold uppercase tracking-[0.13em] text-blue-600">Production flow preview</p>
+                    <p className="mt-1 text-sm font-bold">Your Roadmap</p>
+                  </div>
+                  <span className="rounded-lg bg-blue-50 px-2.5 py-1 text-[10px] font-semibold text-blue-700">Project · PHYS 117</span>
+                </div>
+
+                <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3.5">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-7 w-7 flex-none items-center justify-center rounded-full bg-blue-100 text-[10px] font-bold text-blue-700">1</div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-3">
+                        <p className="text-xs font-bold text-slate-900">Research &amp; define requirements</p>
+                        <span className="inline-flex flex-none items-center gap-1 text-[9px] font-semibold text-slate-500"><Clock3 className="h-3 w-3" /> 60 min</span>
+                      </div>
+                      <p className="mt-1 text-[10px] leading-4 text-slate-500">Collect the required sources, constraints, and project criteria before building.</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-2.5 rounded-xl border border-slate-200 bg-slate-50 p-3.5">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-7 w-7 flex-none items-center justify-center rounded-full bg-blue-100 text-[10px] font-bold text-blue-700">2</div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-3">
+                        <p className="text-xs font-bold text-slate-900">Build the first working version</p>
+                        <span className="inline-flex flex-none items-center gap-1 text-[9px] font-semibold text-slate-500"><Clock3 className="h-3 w-3" /> 90 min</span>
+                      </div>
+                      <p className="mt-1 text-[10px] leading-4 text-slate-500">Complete the core deliverable before polishing details or formatting.</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-3 grid grid-cols-3 gap-2">
+                  <div className="rounded-lg border border-slate-200 bg-white px-2 py-2 text-center"><p className="text-[9px] font-semibold text-slate-400">MON</p><div className="mt-1 rounded-md bg-blue-50 px-1.5 py-1 text-[9px] font-semibold text-blue-700">Step 1</div></div>
+                  <div className="rounded-lg border border-slate-200 bg-white px-2 py-2 text-center"><p className="text-[9px] font-semibold text-slate-400">WED</p><div className="mt-1 rounded-md bg-blue-50 px-1.5 py-1 text-[9px] font-semibold text-blue-700">Step 2</div></div>
+                  <div className="rounded-lg border border-slate-200 bg-white px-2 py-2 text-center"><p className="text-[9px] font-semibold text-slate-400">FRI</p><div className="mt-1 rounded-md bg-emerald-50 px-1.5 py-1 text-[9px] font-semibold text-emerald-700">Due</div></div>
+                </div>
+
+                <p className="mt-3 text-center text-[9px] leading-4 text-slate-400">Based directly on Cedar&rsquo;s current project setup and roadmap flow.</p>
+              </div>
+            </div>
+
+            <div className="border-t border-white/10 bg-white/[0.04] px-6 py-4 sm:px-8">
                 <div className="flex items-start gap-3 text-xs leading-5 text-slate-300">
                   <CheckCircle2 className="mt-0.5 h-4 w-4 flex-none text-emerald-400" />
                   <p><span className="font-semibold text-white">If a project takes longer than expected, Cedar can recover.</span> After a project work session, you can ask for more time; Cedar checks open gaps before the due date and schedules additional project sessions there. If there is not enough free time, it shows lower-priority calendar items that could be moved or removed.</p>
