@@ -3,6 +3,7 @@ import { NavLink } from 'react-router-dom';
 import { NAV_ITEMS } from '@/lib/navItems';
 import UserMenuButton from '@/components/UserMenuButton';
 import ClassStatusBar from '@/components/ClassStatusBar';
+import { Search, Keyboard } from 'lucide-react';
 
 export default function Sidebar() {
   return (
@@ -30,6 +31,29 @@ export default function Sidebar() {
           </NavLink>
         ))}
       </nav>
+      {/* Discoverability for two things that already work but had no visible
+          entry point: Cmd+K opens the command palette (CommandPalette.jsx
+          listens for the real keydown globally, so dispatching the same
+          synthetic event here opens it with no new wiring), and "?" opens
+          the shortcuts panel (bound in useKeyboardShortcuts). */}
+      <div className="px-3 py-3 border-t border-border space-y-1">
+        <button
+          onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true }))}
+          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+        >
+          <Search className="w-3.5 h-3.5" />
+          <span className="flex-1 text-left">Search</span>
+          <kbd className="text-[10px] font-mono bg-muted px-1.5 py-0.5 rounded border border-border">⌘K</kbd>
+        </button>
+        <button
+          onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: '?' }))}
+          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+        >
+          <Keyboard className="w-3.5 h-3.5" />
+          <span className="flex-1 text-left">Shortcuts</span>
+          <kbd className="text-[10px] font-mono bg-muted px-1.5 py-0.5 rounded border border-border">?</kbd>
+        </button>
+      </div>
     </aside>
   );
 }
