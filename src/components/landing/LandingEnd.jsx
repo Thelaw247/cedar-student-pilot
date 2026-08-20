@@ -74,14 +74,27 @@ export default function LandingEnd() {
         </div>
       </section>
 
-      <section className="bg-slate-50 px-4 pb-24 sm:px-6 lg:pb-28">
-        <div className="mx-auto max-w-6xl rounded-[28px] bg-[#2E66FF] px-6 py-14 text-center text-white sm:px-10 sm:py-16">
-          <p className="text-xs font-bold uppercase tracking-[0.14em] text-blue-100">Lecture → test → study</p>
-          <h2 className="mx-auto mt-3 max-w-3xl text-3xl font-bold tracking-[-0.04em] sm:text-4xl">Keep the class. Know what matters. Make time to study it.</h2>
-          <p className="mx-auto mt-4 max-w-2xl text-sm leading-6 text-blue-100 sm:text-base">That is the job Cedar is built to do from the first lecture to the final exam.</p>
-          <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
-            <Link to="/register" className="inline-flex items-center justify-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-semibold text-blue-700 hover:bg-blue-50">Start free <ArrowRight className="h-4 w-4" /></Link>
-            <Link to="/login" className="inline-flex items-center justify-center rounded-xl border border-white/25 px-5 py-3 text-sm font-semibold text-white hover:bg-white/10">Sign in</Link>
+      <section className="relative isolate overflow-hidden bg-slate-50 px-4 pb-24 sm:px-6 lg:pb-28">
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 top-8 -z-10 overflow-hidden">
+          <div className="absolute left-[8%] top-[20%] h-56 w-56 rounded-full bg-blue-400/35 blur-[80px]" />
+          <div className="absolute right-[10%] top-[8%] h-64 w-64 rounded-full bg-cyan-300/30 blur-[90px]" />
+          <div className="absolute bottom-[-12%] left-[42%] h-72 w-72 rounded-full bg-indigo-500/28 blur-[105px]" />
+        </div>
+
+        <div className="relative mx-auto max-w-6xl overflow-hidden rounded-[34px] border border-white/40 bg-[linear-gradient(135deg,rgba(46,102,255,0.30),rgba(37,99,235,0.16)_45%,rgba(15,23,42,0.20))] px-6 py-14 text-center text-white shadow-[0_30px_90px_-35px_rgba(15,23,42,0.55),inset_0_1px_0_rgba(255,255,255,0.65),inset_0_-1px_0_rgba(255,255,255,0.10)] backdrop-blur-[32px] backdrop-saturate-[180%] sm:px-10 sm:py-16">
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_0%,rgba(255,255,255,0.42),transparent_34%),radial-gradient(circle_at_82%_100%,rgba(255,255,255,0.14),transparent_38%)]" />
+          <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-white/80 to-transparent" />
+          <div className="pointer-events-none absolute -left-20 top-8 h-44 w-72 rotate-[-14deg] rounded-[50%] bg-white/12 blur-3xl" />
+          <div className="pointer-events-none absolute -right-16 bottom-0 h-40 w-64 rotate-[18deg] rounded-[50%] bg-blue-200/10 blur-3xl" />
+
+          <div className="relative z-10">
+            <p className="text-xs font-bold uppercase tracking-[0.14em] text-white/72">Lecture → test → study</p>
+            <h2 className="mx-auto mt-3 max-w-3xl text-3xl font-bold tracking-[-0.04em] text-white drop-shadow-[0_1px_12px_rgba(15,23,42,0.18)] sm:text-4xl">Keep the class. Know what matters. Make time to study it.</h2>
+            <p className="mx-auto mt-4 max-w-2xl text-sm leading-6 text-white/76 sm:text-base">That is the job Cedar is built to do from the first lecture to the final exam.</p>
+            <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
+              <Link to="/register" className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/55 bg-white/82 px-5 py-3 text-sm font-semibold text-blue-700 shadow-[0_12px_30px_-18px_rgba(15,23,42,0.65),inset_0_1px_0_rgba(255,255,255,0.95)] backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:bg-white/92">Start free <ArrowRight className="h-4 w-4" /></Link>
+              <Link to="/login" className="inline-flex items-center justify-center rounded-2xl border border-white/35 bg-white/10 px-5 py-3 text-sm font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.20)] backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:bg-white/16">Sign in</Link>
+            </div>
           </div>
         </div>
       </section>
