@@ -21,9 +21,27 @@ import { grantScheduledMonthly } from '../../shared/stripe.ts';
  * when the secret is not configured — identical to sendStudyReminders. The
  * scheduled automation passes the token via function_args.trigger_token.
  *
+ * That token necessarily sits in plaintext in this function's committed
+ * function.jsonc — Base44 scheduled automations have no other mechanism to
+ * pass credentials (confirmed against the platform docs: a scheduled
+ * automation calls this same public endpoint with no distinguishing header or
+ * signal, so there is nothing else to gate on). Rotating the token is the
+ * available mitigation if it leaks, not elimination.
+ *
+ * COOLDOWN (this is the actual point of not fully trusting the token): even
+ * with a valid token, repeated calls cannot grant anyone twice in the same
+ * month (period_key check below already prevented that) — but they COULD
+ * previously be called an unlimited number of times a day, each one costing 1
+ * integration credit even when it grants nothing. SystemState below caps that
+ * to roughly one run per COOLDOWN_HOURS, so a leaked-but-still-valid token is
+ * worth at most ~1 extra run a day, not unlimited cost.
+ *
  * Budget: 1 integration credit per run, daily = ~30/month. Do not make this
  * hourly.
  */
+const COOLDOWN_HOURS = 20; // < 24 so the daily cron's actual fire time can drift without ever self-blocking
+const STATE_KEY = 'grantMonthlyCredits_last_run';
+
 function tokensMatch(a: string, b: string): boolean {
   if (!a || !b || a.length !== b.length) return false;
   let diff = 0;
@@ -46,6 +64,21 @@ export default async function (req: Request) {
       '';
     const isBroadcast = !!expected && tokensMatch(String(expected), String(presented));
     if (!isBroadcast) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+
+    // Cooldown: even a valid token can't trigger more than ~1 extra run per
+    // COOLDOWN_HOURS. Read-then-write is not perfectly atomic, but the worst
+    // case from a lost race is one or two extra runs, not unlimited ones —
+    // this is a cost cap, not a correctness guarantee, so that's fine.
+    const stateRows = await base44.asServiceRole.entities.SystemState.filter({ key: STATE_KEY });
+    const lastRun = stateRows?.[0]?.value ? new Date(stateRows[0].value) : null;
+    if (lastRun && Date.now() - lastRun.getTime() < COOLDOWN_HOURS * 60 * 60 * 1000) {
+      return Response.json({ ok: true, skipped_reason: 'cooldown', granted: 0, skipped: 0 });
+    }
+    if (stateRows?.[0]) {
+      await base44.asServiceRole.entities.SystemState.update(stateRows[0].id, { value: new Date().toISOString() });
+    } else {
+      await base44.asServiceRole.entities.SystemState.create({ key: STATE_KEY, value: new Date().toISOString() });
+    }
 
     const thisMonth = periodKey();
     const balances = await base44.asServiceRole.entities.CreditBalance.list('-updated_date', 500);
