@@ -183,7 +183,7 @@ export default function SemesterSetup() {
   if (step === 1) {
     return (
       <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 lg:py-10 animate-fade-in">
-        <Link to="/" className="text-sm text-muted-foreground hover:text-foreground mb-6 inline-flex items-center gap-1">
+        <Link to="/today" className="text-sm text-muted-foreground hover:text-foreground mb-6 inline-flex items-center gap-1">
           <X className="w-4 h-4" /> Cancel
         </Link>
         <h1 className="font-heading text-2xl sm:text-3xl font-bold mb-2">Set Up Your Semester</h1>
@@ -317,7 +317,7 @@ export default function SemesterSetup() {
       </div>
       <h1 className="font-heading text-2xl font-bold mb-2">Semester Created!</h1>
       <p className="text-muted-foreground text-sm mb-8">Your classes have been added and your timeline is ready.</p>
-      <Link to="/" className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-xl font-medium text-sm hover:bg-primary/90">
+      <Link to="/today" className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-xl font-medium text-sm hover:bg-primary/90">
         Go to Timeline <ChevronRight className="w-4 h-4" />
       </Link>
     </div>
