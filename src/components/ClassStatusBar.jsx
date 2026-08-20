@@ -1,14 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { fetchWithCache } from '@/hooks/useEntityData';
-import { classMeetsOnDay, getClassTimesForDay } from '@/lib/classSchedule';
-import { getCurrentClass, getNextClass } from '@/lib/currentClass';
+import { useTodaySchedule } from '@/hooks/useTodaySchedule';
 import { Mic, ChevronDown, GraduationCap, Check } from 'lucide-react';
-
-function getDayOfWeek() {
-  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  return days[new Date().getDay()];
-}
 
 /**
  * Persistent "what class am I in, and a Record button" widget. Mounted once
@@ -29,31 +22,9 @@ function getDayOfWeek() {
  */
 export default function ClassStatusBar({ variant = 'mobile' }) {
   const navigate = useNavigate();
-  const [classes, setClasses] = useState([]);
-  const [loaded, setLoaded] = useState(false);
-  const [now, setNow] = useState(new Date());
+  const { loaded, todayClasses, current, next } = useTodaySchedule();
   const [pickerOpen, setPickerOpen] = useState(false);
   const pickerRef = useRef(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const semesters = await fetchWithCache('Semester', 'filter', [{ is_active: true }]);
-        if (!semesters.length) { if (!cancelled) setLoaded(true); return; }
-        const cls = await fetchWithCache('Class', 'filter', [{ semester_id: semesters[0].id }]);
-        if (!cancelled) { setClasses(cls); setLoaded(true); }
-      } catch {
-        if (!cancelled) setLoaded(true);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, []);
-
-  useEffect(() => {
-    const t = setInterval(() => setNow(new Date()), 30000);
-    return () => clearInterval(t);
-  }, []);
 
   // Outside-click / escape close for the "not in this class?" picker.
   useEffect(() => {
@@ -65,17 +36,8 @@ export default function ClassStatusBar({ variant = 'mobile' }) {
     return () => { document.removeEventListener('mousedown', onDown); document.removeEventListener('keydown', onKey); };
   }, [pickerOpen]);
 
-  // Same per-day enrichment Home.jsx uses — a class's time can differ by day,
-  // and some classes don't meet every day at all.
-  const todayClasses = classes
-    .filter((c) => classMeetsOnDay(c, getDayOfWeek()))
-    .map((c) => {
-      const t = getClassTimesForDay(c, getDayOfWeek()) || {};
-      return { ...c, start_time: t.start_time || c.start_time, end_time: t.end_time || c.end_time };
-    });
-
-  const current = getCurrentClass(todayClasses, now);
-  const next = getNextClass(todayClasses, now);
+  // Same per-day enrichment Home.jsx uses is already applied by the shared
+  // hook — this just derives the "other classes" list for the picker.
   const otherToday = todayClasses.filter((c) => c.id !== current?.id);
 
   const startRecording = (classId) => {
