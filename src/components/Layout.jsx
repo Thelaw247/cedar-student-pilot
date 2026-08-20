@@ -3,6 +3,7 @@ import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import BottomNav from './BottomNav';
 import ClassStatusBar from './ClassStatusBar';
+import DesktopRail from './DesktopRail';
 import StudySessionNotifier from './StudySessionNotifier';
 import OfflineIndicator from './OfflineIndicator';
 import CommandPalette from './CommandPalette';
@@ -43,6 +44,7 @@ export default function Layout() {
         </main>
         <BottomNav />
       </div>
+      <DesktopRail />
       {/* The floating AI chat button is intentionally not rendered. It sat at
           the same fixed position as the Today page's quick-task button
           (both bottom-20 / lg:bottom-6, right-4, z-40) and the two overlapped.
