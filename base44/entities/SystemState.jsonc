@@ -1,0 +1,25 @@
+{
+  "name": "SystemState",
+  "description": "Internal bookkeeping rows for backend functions, e.g. rate-limiting a publicly-reachable scheduled-automation endpoint against a leaked/replayed trigger token. Never exposed to any client \u2014 RLS is fully closed, all access goes through service-role code inside functions.",
+  "type": "object",
+  "properties": {
+    "key": {
+      "type": "string",
+      "title": "Key",
+      "description": "Unique identifier for this state row, e.g. 'grantMonthlyCredits_last_run'."
+    },
+    "value": {
+      "type": "string",
+      "title": "Value"
+    }
+  },
+  "required": [
+    "key"
+  ],
+  "rls": {
+    "create": false,
+    "read": false,
+    "update": false,
+    "delete": false
+  }
+}
