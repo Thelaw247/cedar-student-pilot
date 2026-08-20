@@ -982,7 +982,10 @@ function HandbookTab({ cls, lectures }) {
             </button>
           </div>
           {lecturesWithContent.length === 0 ? (
-            <p className="text-xs text-muted-foreground text-center py-4">No chapters yet. Record and process lectures to generate the handbook.</p>
+            <div className="flex items-center gap-2 justify-center py-4">
+              <BookOpen className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" strokeWidth={1.5} />
+              <p className="text-xs text-muted-foreground">No chapters yet. Record and process lectures to generate the handbook.</p>
+            </div>
           ) : (
             <div className="space-y-1">
               {lecturesWithContent.slice(0, 5).map((lec, i) => (
