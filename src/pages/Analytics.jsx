@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts';
 import { Clock, TrendingUp, Calendar, Brain, BarChart3, Loader2, GraduationCap, Target, BookOpen, Award, Check, X } from 'lucide-react';
