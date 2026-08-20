@@ -17,7 +17,7 @@ import { CalendarDays, BookOpen, Brain, BarChart3, Settings } from 'lucide-react
  * page, so there is no separate Practice nav item anymore.
  */
 export const NAV_ITEMS = [
-  { to: '/',          label: 'Today',     icon: CalendarDays, primary: true },
+  { to: '/today',     label: 'Today',     icon: CalendarDays, primary: true },
   { to: '/classes',   label: 'Classes',   icon: BookOpen,     primary: true },
   { to: '/planner',   label: 'Study',     icon: Brain,        primary: true },
   { to: '/analytics', label: 'Analytics', icon: BarChart3,    primary: true },
