@@ -43,15 +43,13 @@ export default function LandingHero() {
       <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[620px] bg-[radial-gradient(circle_at_50%_5%,rgba(46,102,255,0.13),transparent_42%)]" />
       <div className="mx-auto max-w-6xl">
         <div className="mx-auto max-w-4xl text-center">
-          <p className="text-sm font-semibold text-blue-600">The part of university nobody does for you</p>
-          <h1 className="mx-auto mt-3 max-w-4xl text-balance text-4xl font-bold leading-[1.02] tracking-[-0.05em] text-slate-950 sm:text-5xl lg:text-6xl">Afraid you missed something important?
-
-          </h1>
+          <p className="text-sm font-semibold text-blue-600">The thought that hits mid-lecture</p>
+          <h1 className="mx-auto mt-3 max-w-4xl text-balance text-4xl font-bold leading-[1.02] tracking-[-0.05em] text-slate-950 sm:text-5xl lg:text-6xl">Afraid you missed something important?</h1>
           <p className="mx-auto mt-5 max-w-3xl text-balance text-base leading-7 text-slate-600 sm:text-lg">
-            Everything in between is usually your job: keep what was taught, work out exactly what the test covers, find enough time to study it, and know what to do once that study time starts.
+            Cedar records the lecture, so you never have to wonder what you missed — then turns it into exactly what you need to study.
           </p>
           <p className="mx-auto mt-5 max-w-2xl text-lg font-bold tracking-[-0.02em] text-slate-950 sm:text-xl">
-            Cedar handles those four jobs in one place.
+            Nothing gets past Cedar.
           </p>
         </div>
 
