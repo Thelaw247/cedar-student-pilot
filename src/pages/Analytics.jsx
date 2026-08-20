@@ -209,7 +209,10 @@ export default function Analytics() {
         <div className="rounded-xl border border-dashed border-border p-12 text-center">
           <BarChart3 className="w-10 h-10 text-muted-foreground mx-auto mb-3" strokeWidth={1.5} />
           <p className="text-sm text-muted-foreground mb-1">No study sessions recorded yet.</p>
-          <p className="text-xs text-muted-foreground">Start a focus session to see your analytics here.</p>
+          <p className="text-xs text-muted-foreground mb-4">Start a focus session to see your analytics here.</p>
+          <Link to="/focus" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90">
+            Start a focus session
+          </Link>
         </div>
       </div>
     );
