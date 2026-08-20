@@ -37,7 +37,7 @@ export default function LandingHero() {
         <div className="mx-auto max-w-4xl text-center">
           <p className="text-sm font-semibold text-blue-600">The part of university nobody does for you</p>
           <h1 className="mx-auto mt-3 max-w-4xl text-balance text-4xl font-bold leading-[1.02] tracking-[-0.05em] text-slate-950 sm:text-5xl lg:text-6xl">
-            You hear it once in class. Weeks later, you&rsquo;re tested on it.
+            You already took the class. Why are you rebuilding it before the exam?
           </h1>
           <p className="mx-auto mt-5 max-w-3xl text-balance text-base leading-7 text-slate-600 sm:text-lg">
             Everything in between is usually your job: keep what was taught, work out exactly what the test covers, and somehow find enough time to study it properly.
