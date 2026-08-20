@@ -37,7 +37,7 @@ export default function CommandPalette({ classes, lectures, assignments, onStart
 
     const actions = [];
     if (q.includes('record') || q.includes('lecture')) actions.push({ label: 'Start Recording', icon: Mic, type: 'action', run: () => { onStartRecording?.(); setOpen(false); } });
-    if (q.includes('event') || q.includes('add')) actions.push({ label: 'Add Event', icon: Calendar, type: 'action', run: () => { navigate('/'); setOpen(false); } });
+    if (q.includes('event') || q.includes('add')) actions.push({ label: 'Add Event', icon: Calendar, type: 'action', run: () => { navigate('/today'); setOpen(false); } });
 
     const matchedClasses = (classes || []).filter(c => c.name?.toLowerCase().includes(q)).slice(0, 3)
       .map(c => ({ label: c.name, sub: c.instructor || 'Class', icon: GraduationCap, type: 'class', run: () => { navigate(`/classes/${c.id}`); setOpen(false); } }));
@@ -64,7 +64,7 @@ export default function CommandPalette({ classes, lectures, assignments, onStart
 
   const defaultActions = [
     { label: 'Start Recording', icon: Mic, run: () => { onStartRecording?.(); setOpen(false); } },
-    { label: 'Go to Calendar', icon: Calendar, run: () => { navigate('/'); setOpen(false); } },
+    { label: 'Go to Calendar', icon: Calendar, run: () => { navigate('/today'); setOpen(false); } },
     { label: 'Study', icon: BookOpen, run: () => { navigate('/planner'); setOpen(false); } },
     { label: 'Analytics', icon: Clock, run: () => { navigate('/analytics'); setOpen(false); } },
   ];
