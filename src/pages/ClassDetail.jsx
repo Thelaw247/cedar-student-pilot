@@ -787,7 +787,11 @@ function AssignmentTab({ assignments, classId, cls, onUpdate, highlightAssignmen
       {activeAssignments.length === 0 && archivedAssignments.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border p-12 text-center">
           <Calendar className="w-8 h-8 text-muted-foreground mx-auto mb-3" strokeWidth={1.5} />
-          <p className="text-sm text-muted-foreground">No assignments yet. Add exams, quizzes, or deadlines to generate study plans.</p>
+          <p className="text-sm text-muted-foreground mb-3">No assignments yet. Add exams, quizzes, or deadlines to generate study plans.</p>
+          <button onClick={() => setShowAdd(true)}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90">
+            <Plus className="w-4 h-4" /> Add assignment
+          </button>
         </div>
       ) : activeAssignments.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border p-8 text-center">
