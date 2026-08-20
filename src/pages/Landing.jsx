@@ -6,6 +6,7 @@ import LandingHero from '@/components/landing/LandingHero';
 import RecordingFeature from '@/components/landing/RecordingFeature';
 import StudyToolProof from '@/components/landing/StudyToolProof';
 import StudyScheduleProof from '@/components/landing/RealProductPreview';
+import StudySystemFeature from '@/components/landing/StudySystemFeature';
 import LandingEnd from '@/components/landing/LandingEnd';
 
 function LandingFooter() {
@@ -20,6 +21,7 @@ function LandingFooter() {
           <a href="#recording" className="hover:text-slate-950">Recording</a>
           <a href="#test-coverage" className="hover:text-slate-950">Test coverage</a>
           <a href="#study-schedule" className="hover:text-slate-950">Study schedule</a>
+          <a href="#study-system" className="hover:text-slate-950">Study tools</a>
           <a href="#pricing" className="hover:text-slate-950">Pricing</a>
           <Link to="/privacy" className="hover:text-slate-950">Privacy</Link>
           <Link to="/login" className="hover:text-slate-950">Sign in</Link>
@@ -32,7 +34,7 @@ function LandingFooter() {
 export default function Landing() {
   useEffect(() => {
     const previousTitle = document.title;
-    document.title = 'Cedar Student Pilot — Record Lectures, Cover the Test, Schedule the Study';
+    document.title = 'Cedar Student Pilot — Stop Rebuilding Your Class Before Every Exam';
 
     let description = document.querySelector('meta[name="description"]');
     const previousDescription = description?.getAttribute('content') || null;
@@ -41,7 +43,7 @@ export default function Landing() {
       description.setAttribute('name', 'description');
       document.head.appendChild(description);
     }
-    description.setAttribute('content', 'Record permitted university lectures, choose the exact lectures your test covers, and schedule study sessions around your real calendar with Cedar Student Pilot.');
+    description.setAttribute('content', 'Keep the lecture, choose the exact test coverage, schedule research-backed study sessions, and use connected study tools and project plans in Cedar Student Pilot.');
 
     return () => {
       document.title = previousTitle;
@@ -58,6 +60,7 @@ export default function Landing() {
         <RecordingFeature />
         <StudyToolProof />
         <StudyScheduleProof />
+        <StudySystemFeature />
         <LandingEnd />
       </main>
       <LandingFooter />
