@@ -100,7 +100,7 @@ export default function ClassDetail() {
       </div>
 
       {tab === 'lectures' && (
-        <LectureTab lectures={lectures} coverage={coverage} classId={classId} cls={cls} onUpdate={loadData} />
+        <LectureTab lectures={lectures} coverage={coverage} classId={classId} cls={cls} onUpdate={loadData} autoRecord={searchParams.get('record') === '1'} onAutoRecordConsumed={() => { searchParams.delete('record'); setSearchParams(searchParams, { replace: true }); }} />
       )}
       {tab === 'assignments' && (
         <AssignmentTab assignments={assignments} classId={classId} cls={cls} onUpdate={loadData} highlightAssignmentId={highlightAssignmentId} />
@@ -122,8 +122,16 @@ export default function ClassDetail() {
   );
 }
 
-function LectureTab({ lectures, coverage, classId, cls, onUpdate }) {
-  const [showRecord, setShowRecord] = useState(false);
+function LectureTab({ lectures, coverage, classId, cls, onUpdate, autoRecord, onAutoRecordConsumed }) {
+  // ?record=1 is how ClassStatusBar (the persistent header widget) starts a
+  // recording from anywhere in the app: it navigates here rather than
+  // duplicating RecordModal's MediaRecorder + consent-gate logic. This opens
+  // the SAME modal a manual click on "Record" opens — no separate code path.
+  const [showRecord, setShowRecord] = useState(!!autoRecord);
+  useEffect(() => {
+    if (autoRecord) onAutoRecordConsumed?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [searchQuery, setSearchQuery] = useState('');
 
   // Build coverage map: lectureId → coverage record
