@@ -26,7 +26,7 @@
       // `base44 secrets set GRANT_TRIGGER_TOKEN`.
       "function_args": {
         "source": "automation",
-        "trigger_token": "jlsfngljnsgjnfjjgnrojnlslfaoeiraenpoianwfnaenslnjsepedsjfankleohejlapjsbtqwensk"
+        "trigger_token": "2faa0983349450e3ab0fc38b4d447136e58a31d3973e251e2645cef70918e021"
       }
     }
   ]
