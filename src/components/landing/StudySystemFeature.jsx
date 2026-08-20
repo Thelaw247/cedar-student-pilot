@@ -130,13 +130,16 @@ export default function StudySystemFeature() {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
 
-            <div className="rounded-[28px] border border-slate-200 bg-white p-5 sm:p-7">
-              <div className="max-w-2xl">
+        <div className="mt-10 grid gap-6 lg:grid-cols-2 lg:items-stretch">
+          <div className="h-full rounded-[28px] border border-slate-200 bg-white p-5 sm:p-7">
+            <div className="max-w-2xl">
                 <p className="text-xs font-bold uppercase tracking-[0.13em] text-blue-600">Every study tool in the same class</p>
                 <h3 className="mt-2 text-2xl font-bold tracking-[-0.035em] text-slate-950">Use the tool the material needs — without rebuilding the course.</h3>
               </div>
-              <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="mt-6 grid gap-3 sm:grid-cols-2">
                 {studyTools.map((tool) => (
                   <div key={tool.title} className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
                     <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white text-blue-600 shadow-sm"><tool.icon className="h-4 w-4" /></div>
@@ -147,8 +150,8 @@ export default function StudySystemFeature() {
               </div>
             </div>
 
-            <div className="overflow-hidden rounded-[28px] border border-slate-200 bg-slate-950 text-white">
-              <div className="grid gap-8 p-6 sm:p-8 lg:grid-cols-[0.82fr_1.18fr] lg:items-center">
+          <div className="h-full overflow-hidden rounded-[28px] border border-slate-200 bg-slate-950 text-white">
+            <div className="p-6 sm:p-8">
                 <div>
                   <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/10 text-blue-300"><Sparkles className="h-5 w-5" /></div>
                   <p className="mt-5 text-xs font-bold uppercase tracking-[0.13em] text-blue-300">Projects work the same way</p>
@@ -158,7 +161,7 @@ export default function StudySystemFeature() {
                   </p>
                 </div>
 
-                <div className="space-y-2.5">
+              <div className="mt-7 space-y-2.5">
                   {projectSteps.map((step, index) => (
                     <div key={step} className="flex gap-3 rounded-xl border border-white/10 bg-white/[0.06] p-3.5">
                       <span className="flex h-6 w-6 flex-none items-center justify-center rounded-full bg-blue-500/20 text-[10px] font-bold text-blue-200">{index + 1}</span>
@@ -174,7 +177,6 @@ export default function StudySystemFeature() {
                   <p><span className="font-semibold text-white">If a project takes longer than expected, Cedar can recover.</span> After a project work session, you can ask for more time; Cedar checks open gaps before the due date and schedules additional project sessions there. If there is not enough free time, it shows lower-priority calendar items that could be moved or removed.</p>
                 </div>
               </div>
-            </div>
           </div>
         </div>
       </div>
