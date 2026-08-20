@@ -76,24 +76,26 @@ export default function LandingEnd() {
 
       <section className="relative isolate overflow-hidden bg-slate-50 px-4 pb-24 sm:px-6 lg:pb-28">
         <div className="pointer-events-none absolute inset-x-0 bottom-0 top-8 -z-10 overflow-hidden">
-          <div className="absolute left-[8%] top-[20%] h-56 w-56 rounded-full bg-blue-400/35 blur-[80px]" />
-          <div className="absolute right-[10%] top-[8%] h-64 w-64 rounded-full bg-cyan-300/30 blur-[90px]" />
-          <div className="absolute bottom-[-12%] left-[42%] h-72 w-72 rounded-full bg-indigo-500/28 blur-[105px]" />
+          <div className="absolute left-[2%] top-[10%] h-72 w-72 rounded-full bg-[#2E66FF]/48 blur-[82px]" />
+          <div className="absolute left-[31%] top-[38%] h-56 w-56 rounded-full bg-blue-500/38 blur-[78px]" />
+          <div className="absolute right-[4%] top-[4%] h-72 w-72 rounded-full bg-sky-400/42 blur-[88px]" />
+          <div className="absolute bottom-[-18%] left-[47%] h-80 w-80 rounded-full bg-indigo-500/38 blur-[105px]" />
+          <div className="absolute right-[23%] bottom-[3%] h-48 w-48 rounded-full bg-[#2E66FF]/30 blur-[70px]" />
         </div>
 
-        <div className="relative mx-auto max-w-6xl overflow-hidden rounded-[34px] border border-white/40 bg-[linear-gradient(135deg,rgba(46,102,255,0.30),rgba(37,99,235,0.16)_45%,rgba(15,23,42,0.20))] px-6 py-14 text-center text-white shadow-[0_30px_90px_-35px_rgba(15,23,42,0.55),inset_0_1px_0_rgba(255,255,255,0.65),inset_0_-1px_0_rgba(255,255,255,0.10)] backdrop-blur-[32px] backdrop-saturate-[180%] sm:px-10 sm:py-16">
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_0%,rgba(255,255,255,0.42),transparent_34%),radial-gradient(circle_at_82%_100%,rgba(255,255,255,0.14),transparent_38%)]" />
-          <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-white/80 to-transparent" />
-          <div className="pointer-events-none absolute -left-20 top-8 h-44 w-72 rotate-[-14deg] rounded-[50%] bg-white/12 blur-3xl" />
-          <div className="pointer-events-none absolute -right-16 bottom-0 h-40 w-64 rotate-[18deg] rounded-[50%] bg-blue-200/10 blur-3xl" />
+        <div className="relative mx-auto max-w-6xl overflow-hidden rounded-[34px] border border-white/55 bg-[linear-gradient(135deg,rgba(255,255,255,0.58),rgba(239,246,255,0.43)_44%,rgba(219,234,254,0.38))] px-6 py-14 text-center shadow-[0_34px_95px_-38px_rgba(30,64,175,0.52),inset_0_1px_0_rgba(255,255,255,0.92),inset_0_-1px_0_rgba(255,255,255,0.24)] backdrop-blur-[34px] backdrop-saturate-[195%] sm:px-10 sm:py-16">
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_14%_2%,rgba(255,255,255,0.78),transparent_30%),radial-gradient(circle_at_78%_12%,rgba(96,165,250,0.20),transparent_34%),radial-gradient(circle_at_58%_100%,rgba(46,102,255,0.18),transparent_42%)]" />
+          <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-white to-transparent" />
+          <div className="pointer-events-none absolute left-[8%] top-[-22%] h-44 w-[42%] rotate-[-8deg] rounded-[50%] bg-white/24 blur-3xl" />
+          <div className="pointer-events-none absolute right-[2%] bottom-[-16%] h-44 w-[34%] rotate-[14deg] rounded-[50%] bg-blue-300/16 blur-3xl" />
 
           <div className="relative z-10">
-            <p className="text-xs font-bold uppercase tracking-[0.14em] text-white/72">Lecture → test → study</p>
-            <h2 className="mx-auto mt-3 max-w-3xl text-3xl font-bold tracking-[-0.04em] text-white drop-shadow-[0_1px_12px_rgba(15,23,42,0.18)] sm:text-4xl">Keep the class. Know what matters. Make time to study it.</h2>
-            <p className="mx-auto mt-4 max-w-2xl text-sm leading-6 text-white/76 sm:text-base">That is the job Cedar is built to do from the first lecture to the final exam.</p>
+            <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-blue-700/90">Lecture → test → study</p>
+            <h2 className="mx-auto mt-3 max-w-3xl text-3xl font-bold tracking-[-0.04em] text-slate-950 drop-shadow-[0_1px_0_rgba(255,255,255,0.6)] sm:text-4xl">Keep the class. Know what matters. Make time to study it.</h2>
+            <p className="mx-auto mt-4 max-w-2xl text-sm font-medium leading-6 text-slate-700 sm:text-base">That is the job Cedar is built to do from the first lecture to the final exam.</p>
             <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
-              <Link to="/register" className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/55 bg-white/82 px-5 py-3 text-sm font-semibold text-blue-700 shadow-[0_12px_30px_-18px_rgba(15,23,42,0.65),inset_0_1px_0_rgba(255,255,255,0.95)] backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:bg-white/92">Start free <ArrowRight className="h-4 w-4" /></Link>
-              <Link to="/login" className="inline-flex items-center justify-center rounded-2xl border border-white/35 bg-white/10 px-5 py-3 text-sm font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.20)] backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:bg-white/16">Sign in</Link>
+              <Link to="/register" className="inline-flex items-center justify-center gap-2 rounded-2xl border border-blue-400/45 bg-[#2E66FF]/90 px-5 py-3 text-sm font-semibold text-white shadow-[0_14px_32px_-18px_rgba(46,102,255,0.85),inset_0_1px_0_rgba(255,255,255,0.35)] backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:bg-[#2E66FF]">Start free <ArrowRight className="h-4 w-4" /></Link>
+              <Link to="/login" className="inline-flex items-center justify-center rounded-2xl border border-white/65 bg-white/34 px-5 py-3 text-sm font-semibold text-slate-900 shadow-[0_10px_28px_-20px_rgba(15,23,42,0.45),inset_0_1px_0_rgba(255,255,255,0.88)] backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:bg-white/52">Sign in</Link>
             </div>
           </div>
         </div>
