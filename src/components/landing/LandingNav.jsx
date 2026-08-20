@@ -4,8 +4,9 @@ import { Menu, X } from 'lucide-react';
 import { CEDAR_LOGO_URL } from '@/lib/brand';
 
 const links = [
-  { label: 'How it works', href: '#how-it-works' },
-  { label: 'See the app', href: '#see-the-app' },
+  { label: 'Recording', href: '#recording' },
+  { label: 'Test coverage', href: '#test-coverage' },
+  { label: 'Study schedule', href: '#study-schedule' },
   { label: 'Pricing', href: '#pricing' },
 ];
 
@@ -21,7 +22,7 @@ export default function LandingNav() {
             <span className="text-sm font-semibold text-slate-950">Cedar Student Pilot</span>
           </Link>
 
-          <div className="hidden items-center gap-7 md:flex">
+          <div className="hidden items-center gap-6 md:flex">
             {links.map((link) => (
               <a key={link.href} href={link.href} className="text-sm font-medium text-slate-600 hover:text-slate-950">{link.label}</a>
             ))}
