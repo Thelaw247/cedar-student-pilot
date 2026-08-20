@@ -70,7 +70,7 @@ export default function CheckoutSuccess() {
               <span className="text-sm text-muted-foreground">credits available</span>
             </div>
             <div className="flex gap-2 justify-center">
-              <Link to="/" className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium">Go home</Link>
+              <Link to="/today" className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium">Go home</Link>
               <Link to="/settings" className="px-4 py-2 rounded-lg border border-border text-sm font-medium">Settings</Link>
             </div>
           </>
