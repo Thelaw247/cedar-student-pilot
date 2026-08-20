@@ -1,13 +1,25 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
+import { useAuth } from '@/lib/AuthContext';
 import { Printer, Mail, Loader2, Check } from 'lucide-react';
 
+/**
+ * Print and email export for a lecture transcript.
+ *
+ * Email has no recipient field on purpose. The backend (exportTranscript)
+ * always sends to the signed-in account's own email — a security scan
+ * correctly flagged the old free-text "email to anyone" field as an open
+ * mail relay (any authenticated user could send arbitrary content to any
+ * third-party address). A UI field the backend no longer honours would be a
+ * worse bug than no field at all, so this was removed rather than left to
+ * silently misbehave.
+ */
 export default function TranscriptActions({ lecture }) {
+  const { user } = useAuth();
   const [printing, setPrinting] = useState(false);
   const [emailing, setEmailing] = useState(false);
-  const [showEmail, setShowEmail] = useState(false);
-  const [emailAddr, setEmailAddr] = useState('');
   const [emailSent, setEmailSent] = useState(false);
+  const [emailError, setEmailError] = useState(null);
 
   if (!lecture?.transcript) return null;
 
@@ -35,20 +47,18 @@ export default function TranscriptActions({ lecture }) {
     setPrinting(false);
   };
 
-  const handleEmail = async (e) => {
-    e.preventDefault();
-    if (!emailAddr) return;
+  const handleEmail = async () => {
     setEmailing(true);
+    setEmailError(null);
     try {
       await base44.functions.invoke('exportTranscript', {
         lecture_id: lecture.id,
         mode: 'email',
-        email_to: emailAddr,
       });
       setEmailSent(true);
-      setTimeout(() => { setShowEmail(false); setEmailSent(false); setEmailAddr(''); }, 2000);
+      setTimeout(() => setEmailSent(false), 3000);
     } catch (e) {
-      alert('Could not send transcript email.');
+      setEmailError(e?.response?.data?.error || 'Could not send transcript email.');
     }
     setEmailing(false);
   };
@@ -64,31 +74,15 @@ export default function TranscriptActions({ lecture }) {
         Print
       </button>
       <button
-        onClick={() => setShowEmail(!showEmail)}
-        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-card text-xs font-medium text-foreground hover:bg-muted transition-colors"
+        onClick={handleEmail}
+        disabled={emailing}
+        title={user?.email ? `Email a copy to ${user.email}` : 'Email a copy to your account'}
+        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-card text-xs font-medium text-foreground hover:bg-muted transition-colors disabled:opacity-50"
       >
-        <Mail className="w-3.5 h-3.5" /> Email
+        {emailSent ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : emailing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Mail className="w-3.5 h-3.5" />}
+        {emailSent ? 'Sent to you' : 'Email me a copy'}
       </button>
-      {showEmail && (
-        <form onSubmit={handleEmail} className="flex items-center gap-2 animate-fade-in">
-          <input
-            type="email"
-            value={emailAddr}
-            onChange={e => setEmailAddr(e.target.value)}
-            placeholder="email@example.com"
-            className="px-3 py-1.5 rounded-lg border border-input bg-background text-xs focus:outline-none focus:ring-2 focus:ring-primary/40 w-48"
-            autoFocus
-          />
-          <button
-            type="submit"
-            disabled={emailing || !emailAddr}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 disabled:opacity-50"
-          >
-            {emailSent ? <Check className="w-3.5 h-3.5" /> : emailing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
-            {emailSent ? 'Sent' : 'Send'}
-          </button>
-        </form>
-      )}
+      {emailError && <p className="text-[11px] text-destructive">{emailError}</p>}
     </div>
   );
 }
