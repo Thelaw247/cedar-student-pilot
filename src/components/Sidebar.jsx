@@ -2,6 +2,7 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { NAV_ITEMS } from '@/lib/navItems';
 import UserMenuButton from '@/components/UserMenuButton';
+import ClassStatusBar from '@/components/ClassStatusBar';
 
 export default function Sidebar() {
   return (
@@ -9,6 +10,7 @@ export default function Sidebar() {
       <div className="px-4 py-5">
         <UserMenuButton />
       </div>
+      <ClassStatusBar variant="desktop" />
       <nav className="flex flex-col gap-1 px-3 mt-2 flex-1">
         {NAV_ITEMS.map((item) => (
           <NavLink
