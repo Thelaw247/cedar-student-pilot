@@ -26,6 +26,7 @@ import LectureReview from './pages/LectureReview';
 import CheckoutSuccess from './pages/CheckoutSuccess';
 import OwnerAnalytics from './pages/OwnerAnalytics';
 import Subscription from './pages/Subscription';
+import Landing from './pages/Landing';
 
 /**
  * Sends an unauthenticated visitor to the in-app login page, remembering where
@@ -52,6 +53,7 @@ const AuthenticatedApp = () => {
   return (
     <Routes>
       {/* Public — reachable without an account. */}
+      <Route path="/" element={<Landing />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -64,7 +66,7 @@ const AuthenticatedApp = () => {
       {/* Everything below requires a signed-in user. */}
       <Route element={<ProtectedRoute unauthenticatedElement={<RedirectToLogin />} />}>
       <Route element={<Layout />}>
-        <Route path="/" element={<Home />} />
+        <Route path="/today" element={<Home />} />
         <Route path="/setup" element={<SemesterSetup />} />
         <Route path="/classes" element={<Classes />} />
         <Route path="/classes/:classId" element={<ClassDetail />} />
