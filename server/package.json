@@ -1,13 +1,14 @@
 {
   "name": "cedar-server",
   "private": true,
-  "version": "0.0.2",
+  "version": "0.0.3",
   "type": "module",
   "scripts": {
     "start": "node index.js"
   },
   "dependencies": {
     "express": "^4.19.2",
-    "pg": "^8.13.1"
+    "pg": "^8.13.1",
+    "music-metadata": "^11.15.0"
   }
 }
