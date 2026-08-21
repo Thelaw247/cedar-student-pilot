@@ -10,16 +10,16 @@ import createCheckoutSessionRouter from './routes/createCheckoutSession.js';
 import createPortalSessionRouter from './routes/createPortalSession.js';
 import confirmCheckoutSessionRouter from './routes/confirmCheckoutSession.js';
 import grantMonthlyCreditsRouter from './routes/grantMonthlyCredits.js';
+import cleanLectureTranscriptRouter from './routes/cleanLectureTranscript.js';
+import generateStudyMaterialRouter from './routes/generateStudyMaterial.js';
+import predictExamTopicsRouter from './routes/predictExamTopics.js';
+import generateStudyScheduleRouter from './routes/generateStudySchedule.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// MUST be mounted with express.raw(), before any express.json() middleware
-// on this path — Stripe signature verification needs the exact raw request
-// bytes.
 app.use('/stripe/webhook', express.raw({ type: 'application/json' }), stripeWebhookRouter);
 
-// Every route below this line gets parsed JSON bodies.
 app.use(express.json({ limit: '10mb' }));
 
 app.use('/me', meRouter);
@@ -32,6 +32,10 @@ app.use('/create-checkout-session', createCheckoutSessionRouter);
 app.use('/create-portal-session', createPortalSessionRouter);
 app.use('/confirm-checkout-session', confirmCheckoutSessionRouter);
 app.use('/grant-monthly-credits', grantMonthlyCreditsRouter);
+app.use('/clean-lecture-transcript', cleanLectureTranscriptRouter);
+app.use('/generate-study-material', generateStudyMaterialRouter);
+app.use('/predict-exam-topics', predictExamTopicsRouter);
+app.use('/generate-study-schedule', generateStudyScheduleRouter);
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', service: 'cedar-server', timestamp: new Date().toISOString() });
