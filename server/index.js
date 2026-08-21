@@ -18,6 +18,10 @@ import verifyProvidersRouter from './routes/verifyProviders.js';
 import detectAcademicRiskRouter from './routes/detectAcademicRisk.js';
 import fitProjectTimeRouter from './routes/fitProjectTime.js';
 import generateMissedLectureSummaryRouter from './routes/generateMissedLectureSummary.js';
+import generateLectureReviewRouter from './routes/generateLectureReview.js';
+import generateSessionReviewRouter from './routes/generateSessionReview.js';
+import rebookStudySessionRouter from './routes/rebookStudySession.js';
+import generateProjectRoadmapRouter from './routes/generateProjectRoadmap.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -44,6 +48,10 @@ app.use('/verify-providers', verifyProvidersRouter);
 app.use('/detect-academic-risk', detectAcademicRiskRouter);
 app.use('/fit-project-time', fitProjectTimeRouter);
 app.use('/generate-missed-lecture-summary', generateMissedLectureSummaryRouter);
+app.use('/generate-lecture-review', generateLectureReviewRouter);
+app.use('/generate-session-review', generateSessionReviewRouter);
+app.use('/rebook-study-session', rebookStudySessionRouter);
+app.use('/generate-project-roadmap', generateProjectRoadmapRouter);
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', service: 'cedar-server', timestamp: new Date().toISOString() });
