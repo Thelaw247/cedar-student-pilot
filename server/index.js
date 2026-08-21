@@ -6,6 +6,10 @@ import deleteUserDataRouter from './routes/deleteUserData.js';
 import resolveAssignmentRouter from './routes/resolveAssignment.js';
 import searchLecturesRouter from './routes/searchLectures.js';
 import parseTimetableUploadRouter from './routes/parseTimetableUpload.js';
+import createCheckoutSessionRouter from './routes/createCheckoutSession.js';
+import createPortalSessionRouter from './routes/createPortalSession.js';
+import confirmCheckoutSessionRouter from './routes/confirmCheckoutSession.js';
+import grantMonthlyCreditsRouter from './routes/grantMonthlyCredits.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -24,6 +28,10 @@ app.use('/delete-user-data', deleteUserDataRouter);
 app.use('/resolve-assignment', resolveAssignmentRouter);
 app.use('/search-lectures', searchLecturesRouter);
 app.use('/parse-timetable-upload', parseTimetableUploadRouter);
+app.use('/create-checkout-session', createCheckoutSessionRouter);
+app.use('/create-portal-session', createPortalSessionRouter);
+app.use('/confirm-checkout-session', confirmCheckoutSessionRouter);
+app.use('/grant-monthly-credits', grantMonthlyCreditsRouter);
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', service: 'cedar-server', timestamp: new Date().toISOString() });
