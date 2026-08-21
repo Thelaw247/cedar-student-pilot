@@ -14,6 +14,10 @@ import cleanLectureTranscriptRouter from './routes/cleanLectureTranscript.js';
 import generateStudyMaterialRouter from './routes/generateStudyMaterial.js';
 import predictExamTopicsRouter from './routes/predictExamTopics.js';
 import generateStudyScheduleRouter from './routes/generateStudySchedule.js';
+import verifyProvidersRouter from './routes/verifyProviders.js';
+import detectAcademicRiskRouter from './routes/detectAcademicRisk.js';
+import fitProjectTimeRouter from './routes/fitProjectTime.js';
+import generateMissedLectureSummaryRouter from './routes/generateMissedLectureSummary.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -36,6 +40,10 @@ app.use('/clean-lecture-transcript', cleanLectureTranscriptRouter);
 app.use('/generate-study-material', generateStudyMaterialRouter);
 app.use('/predict-exam-topics', predictExamTopicsRouter);
 app.use('/generate-study-schedule', generateStudyScheduleRouter);
+app.use('/verify-providers', verifyProvidersRouter);
+app.use('/detect-academic-risk', detectAcademicRiskRouter);
+app.use('/fit-project-time', fitProjectTimeRouter);
+app.use('/generate-missed-lecture-summary', generateMissedLectureSummaryRouter);
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', service: 'cedar-server', timestamp: new Date().toISOString() });
