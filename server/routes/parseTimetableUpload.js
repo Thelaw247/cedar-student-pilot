@@ -1,5 +1,6 @@
 import express from 'express';
 import { requireAuth } from '../middleware/requireAuth.js';
+import { gateFeature, settleFeature } from '../lib/credits.js';
 
 // Direct port of base44/functions/parseTimetableUpload/entry.ts, with ONE
 // real change: the original never routed through llm.ts because Base44's
@@ -12,8 +13,6 @@ import { requireAuth } from '../middleware/requireAuth.js';
 // Deliberately still gateFeature'd at cost 0, same as the original: this
 // runs during onboarding and must never be blocked, but still needs to show
 // up in usage_events so its real cost is visible in the margin numbers.
-
-import { gateFeature, settleFeature, createLlmUsageFallback } from '../lib/credits.js';
 
 const router = express.Router();
 

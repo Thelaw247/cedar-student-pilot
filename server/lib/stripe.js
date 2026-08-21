@@ -10,27 +10,10 @@ import { TIER_GRANT, periodKey } from './credits.js';
 
 const STRIPE_VERSION = '2026-06-24.dahlia';
 const BASE = 'https://api.stripe.com/v1';
-// Same literal value Base44 tagged checkout sessions with. Kept as a plain
-// app-scoping constant now, not a Base44 platform concept — it still matters:
-// this is the SAME Stripe account Cedar Mail Pilot (a separate, scrapped app)
-// also used, and this tag is what keeps their events from ever being acted on
-// here.
 const CEDAR_APP_ID = '6a485105cf0a684688950256';
 
 export function appId() {
   return process.env.CEDAR_APP_ID || CEDAR_APP_ID;
-}
-
-function flatten(params) {
-  const pairs = [];
-  const walk = (prefix, value) => {
-    if (value === null || value === undefined || value === '') return;
-    if (Array.isArray(value)) { value.forEach((item, i) => walk(`${prefix}[${i}]`, item)); return; }
-    if (typeof value === 'object') { for (const [k, v] of Object.entries(value)) walk(`${prefix}[${k}]`, v); return; }
-    pairs.push([prefix, String(value)]);
-  };
-  for (const [k, v] of Object.entries(params)) walk(k, v);
-  return pairs;
 }
 
 function requireStripeKey() {
@@ -49,12 +32,18 @@ export async function stripeGet(path) {
   return JSON.parse(text);
 }
 
+export async function stripeDelete(path) {
+  const key = requireStripeKey();
+  const res = await fetch(`${BASE}/${path}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${key}`, 'Stripe-Version': STRIPE_VERSION },
+  });
+  const text = await res.text();
+  if (!res.ok) throw new Error(`Stripe DELETE ${path} ${res.status}: ${text.slice(0, 300)}`);
+  return JSON.parse(text);
+}
+
 // ------------------------------------------ webhook signature verification --
-// Node's crypto.createHmac replaces the Deno original's crypto.subtle calls.
-// Same algorithm (HMAC-SHA256 over `${timestamp}.${body}`), same tolerance
-// window, same constant-time comparison — this is a direct translation, not
-// a redesign, since Stripe's signature scheme itself doesn't change per
-// runtime.
 export function verifyStripeSignature(body, signatureHeader, secret, toleranceSec = 300) {
   if (!signatureHeader || !secret) return { ok: false, reason: 'missing' };
 
@@ -79,18 +68,10 @@ export function verifyStripeSignature(body, signatureHeader, secret, toleranceSe
 }
 
 // ---------------------------------------------------------- fulfillment ----
-// Real Postgres transaction + row lock replaces Base44's applyFulfillment
-// CAS-retry loop (see server/lib/db.js for why). Same idempotency guarantee:
-// an anchor_id is applied to a balance exactly once, and the audit row in
-// processed_stripe_events records every attempt for recovery/inspection.
-
 async function writeAudit(state) {
   const now = new Date().toISOString();
   try {
-    const existing = await pool.query(
-      'select id from processed_stripe_events where anchor_id = $1',
-      [state.anchorId],
-    );
+    const existing = await pool.query('select id from processed_stripe_events where anchor_id = $1', [state.anchorId]);
     if (existing.rows.length > 0) {
       await pool.query(
         `update processed_stripe_events set
@@ -112,9 +93,6 @@ async function writeAudit(state) {
       );
     }
   } catch (error) {
-    // The balance anchor (inside the transaction that called this) is
-    // authoritative. A failed audit write here does not undo that, and a
-    // later retry repairs this row without repeating the grant.
     console.error('[stripe] fulfillment audit write failed:', error.message);
   }
 }
@@ -125,10 +103,7 @@ async function applyFulfillment(userId, anchorId, kind, meta, build) {
   let result;
   try {
     await client.query('BEGIN');
-    const { rows } = await client.query(
-      'select * from credit_balances where user_id = $1 for update',
-      [userId],
-    );
+    const { rows } = await client.query('select * from credit_balances where user_id = $1 for update', [userId]);
     let balance = rows[0];
     if (!balance) {
       const inserted = await client.query(
@@ -237,21 +212,14 @@ export async function downgradeAtPeriodEnd(userId, subscriptionId, anchorId) {
     () => ({ set: { tier: 'free', stripe_subscription_id: '', subscription_credits: 0 }, credits: 0, result: { downgraded: true, subscription_id: subscriptionId } }));
 }
 
-// --------------------------------------------- subscription context --------
-
 export async function userIdForSubscription(subId) {
-  const { rows } = await pool.query(
-    'select user_id from credit_balances where stripe_subscription_id = $1',
-    [subId],
-  );
+  const { rows } = await pool.query('select user_id from credit_balances where stripe_subscription_id = $1', [subId]);
   return rows[0]?.user_id || null;
 }
 
 export async function subscriptionContext(subId) {
   const subscription = await stripeGet(`subscriptions/${subId}?expand[]=items.data.price`);
   const userId = subscription?.metadata?.user_id || await userIdForSubscription(subId);
-  const tier = subscription?.metadata?.cedar_tier
-    || subscription?.items?.data?.[0]?.price?.metadata?.cedar_tier
-    || null;
+  const tier = subscription?.metadata?.cedar_tier || subscription?.items?.data?.[0]?.price?.metadata?.cedar_tier || null;
   return { subscription, userId, tier };
 }
