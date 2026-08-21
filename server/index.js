@@ -1,5 +1,6 @@
 import express from 'express';
 import stripeWebhookRouter from './routes/stripeWebhook.js';
+import meRouter from './routes/me.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -9,6 +10,8 @@ const PORT = process.env.PORT || 3000;
 // bytes. Parsing to JSON first (even to re-stringify) can change whitespace
 // and break the signature.
 app.use('/stripe/webhook', express.raw({ type: 'application/json' }), stripeWebhookRouter);
+
+app.use('/me', meRouter);
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', service: 'cedar-server', timestamp: new Date().toISOString() });
