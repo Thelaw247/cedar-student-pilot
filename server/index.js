@@ -24,6 +24,7 @@ import rebookStudySessionRouter from './routes/rebookStudySession.js';
 import generateProjectRoadmapRouter from './routes/generateProjectRoadmap.js';
 import generateClassHandbookRouter from './routes/generateClassHandbook.js';
 import ownerAnalyticsRouter from './routes/ownerAnalytics.js';
+import exportTranscriptRouter from './routes/exportTranscript.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -56,6 +57,7 @@ app.use('/rebook-study-session', rebookStudySessionRouter);
 app.use('/generate-project-roadmap', generateProjectRoadmapRouter);
 app.use('/generate-class-handbook', generateClassHandbookRouter);
 app.use('/owner-analytics', ownerAnalyticsRouter);
+app.use('/export-transcript', exportTranscriptRouter);
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', service: 'cedar-server', timestamp: new Date().toISOString() });
