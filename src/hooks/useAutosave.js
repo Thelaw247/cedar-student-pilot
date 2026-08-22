@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { base44 } from '@/api/base44Client';
 import { enqueueOperation } from '@/lib/syncQueue';
 import { invalidateEntity } from '@/lib/cache';
 
@@ -73,8 +74,6 @@ export function useAutosave({ entity, delay = 700, onSaved, onError } = {}) {
     }
 
     let failed = false;
-    const { base44 } = await import('@/api/base44Client');
-
     await Promise.all(ids.map(async (id) => {
       try {
         await base44.entities[entity].update(id, payloads[id]);

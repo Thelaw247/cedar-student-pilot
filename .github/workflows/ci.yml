@@ -27,7 +27,7 @@ jobs:
       - name: Build frontend (Base44 mode)
         run: npm run build
       - name: Build frontend (Supabase staging mode)
-        run: npm run build
+        run: npm run build -- --mode cloudflare
         env:
           VITE_BACKEND_MODE: supabase
           VITE_SUPABASE_URL: https://example.supabase.co

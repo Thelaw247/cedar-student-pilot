@@ -12,6 +12,11 @@ import FacebookIcon from "@/components/FacebookIcon";
 import { toast } from "@/components/ui/use-toast";
 import { safeReturnTo } from "@/lib/authReturnTo";
 
+const USE_SUPABASE = import.meta.env.VITE_BACKEND_MODE === "supabase";
+const APPLE_AUTH_ENABLED = !USE_SUPABASE || import.meta.env.VITE_ENABLE_APPLE_AUTH === "true";
+const FACEBOOK_AUTH_ENABLED = !USE_SUPABASE || import.meta.env.VITE_ENABLE_FACEBOOK_AUTH === "true";
+const SOCIAL_AUTH_ENABLED = APPLE_AUTH_ENABLED || FACEBOOK_AUTH_ENABLED;
+
 export default function Register() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -145,33 +150,33 @@ export default function Register() {
         </>
       }
     >
-      <div className="grid grid-cols-2 gap-3 mb-6">
-        <Button
-          variant="outline"
-          className="h-12 text-sm font-medium"
-          onClick={handleApple}
-        >
-          <AppleIcon className="w-5 h-5 mr-2" />
-          Apple
-        </Button>
-        <Button
-          variant="outline"
-          className="h-12 text-sm font-medium"
-          onClick={handleFacebook}
-        >
-          <FacebookIcon className="w-5 h-5 mr-2" />
-          Facebook
-        </Button>
-      </div>
+      {SOCIAL_AUTH_ENABLED && (
+        <>
+          <div className={`grid gap-3 mb-6 ${APPLE_AUTH_ENABLED && FACEBOOK_AUTH_ENABLED ? "grid-cols-2" : "grid-cols-1"}`}>
+            {APPLE_AUTH_ENABLED && (
+              <Button variant="outline" className="h-12 text-sm font-medium" onClick={handleApple}>
+                <AppleIcon className="w-5 h-5 mr-2" />
+                Apple
+              </Button>
+            )}
+            {FACEBOOK_AUTH_ENABLED && (
+              <Button variant="outline" className="h-12 text-sm font-medium" onClick={handleFacebook}>
+                <FacebookIcon className="w-5 h-5 mr-2" />
+                Facebook
+              </Button>
+            )}
+          </div>
 
-      <div className="relative mb-6">
-        <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-border" />
-        </div>
-        <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-card px-3 text-muted-foreground">or</span>
-        </div>
-      </div>
+          <div className="relative mb-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-border" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-card px-3 text-muted-foreground">or</span>
+            </div>
+          </div>
+        </>
+      )}
 
       {error && (
         <div className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
