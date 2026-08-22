@@ -13,9 +13,9 @@ still deploys `main`.
 | --- | --- | --- |
 | Supabase database | Strong, usable for staging | 20 public tables, RLS enabled; client grants split by operation; server-only tables locked down; FK indexes added; Base44 lifecycle timestamps restored. Eight exact post-audit migrations are committed. Six older migrations still need a schema-only export. |
 | Supabase Auth | Code complete, dashboard setup pending | Password, signup OTP, recovery, OAuth adapter, profile provisioning and session refresh are implemented. Redirect URLs, email template/provider settings, Apple/Facebook providers, and leaked-password protection need dashboard verification. |
-| Express API | Broadly ported and hardened | Health route, exact-origin CORS, session verification, ownership scoping, credit gates, Stripe idempotency, review persistence, exports, account reset, and tests are present. Hardened branch is not deployed to the API service yet. |
+| Express API | Hardened staging service is live | `cedar-api-staging` deploys the audit branch independently. Health, exact-origin CORS, hostile-origin rejection, and unauthenticated rejection are verified. Database, R2, AI, and Stripe secrets are not configured on this new service yet. The older `main` API is untouched. |
 | R2 storage | Code complete, infrastructure pending | Private presigned recording/avatar upload, confirmation, playback, ownership validation, and lifecycle deletion are implemented. Bucket, CORS, least-privilege token, and Render secrets do not exist yet. |
-| Staging frontend | Built and deployed | `cedar-staging` builds the audit branch in Supabase mode at https://cedar-staging-jeu6.onrender.com. Direct SPA-route rewrite still needs Dashboard configuration. API points at the older `main` deployment until PR review/deploy. |
+| Staging frontend | Built and deployed | `cedar-staging` builds the audit branch in Supabase mode at https://cedar-staging-jeu6.onrender.com and now targets the isolated hardened API. Direct SPA-route rewrite still needs Dashboard configuration. |
 | Full staging test | Blocked | Requires hardened API deployment, R2, provider secrets, Auth redirect/email configuration, and a test user. |
 | Cutover | Not started | No Base44 publish, DNS change, live Stripe webhook switch, or production-domain change has occurred. |
 
@@ -56,13 +56,14 @@ still deploys `main`.
 
 ### Blocking staging
 
-1. Review and deploy draft PR #1 to the API (or explicitly switch a separate
-   staging API service to the branch). Do not point real traffic at it yet.
+1. Add the server-only `DATABASE_URL` and required test provider secrets to
+   `cedar-api-staging`. It currently proves startup/security behavior but
+   database-backed feature requests intentionally cannot succeed without them.
 2. Create a private R2 bucket and a token limited to object read/write/list for
    that bucket. Configure bucket CORS for the staging origin and add the four
    `R2_*` variables to Render.
-3. Configure Render's health-check path as `/health`. The current service has a
-   blank health-check path and uses `npm install`; prefer `npm ci --prefix server`.
+3. Configure `cedar-api-staging`'s health-check path as `/health` in the Render
+   Dashboard. Its build already uses `npm ci --prefix server`.
 4. Add the staging URL and `/reset-password` to Supabase Auth redirect URLs,
    verify signup/recovery email templates, and enable leaked-password
    protection. Configure OAuth providers only if Apple/Facebook buttons remain.
@@ -98,9 +99,13 @@ still deploys `main`.
 - Workspace: `My Workspace` (`tea-da3jhu3ncjis73cmsas0`)
 - API: `cedar-server` (`srv-da451eek1f9s73ampaug`), Virginia, free plan,
   auto-deploying `main`, current live commit `78bd96f...`
+- Isolated API: `cedar-api-staging` (`srv-da4h7arbc2fs73b96pjg`), Virginia,
+  free plan, auto-deploying `codex/security-and-api-hardening`, health URL
+  https://cedar-api-staging.onrender.com/health
 - Staging frontend: `cedar-staging` (`srv-da4h138n74is73dk42o0`), auto-deploying
   `codex/security-and-api-hardening`
-- API exact allowed browser origin: `https://cedar-staging-jeu6.onrender.com`
+- Isolated API exact allowed browser origin:
+  `https://cedar-staging-jeu6.onrender.com`
 
 ## Safety boundary
 
