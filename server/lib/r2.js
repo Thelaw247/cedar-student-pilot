@@ -3,6 +3,7 @@ import {
   DeleteObjectCommand,
   DeleteObjectsCommand,
   GetObjectCommand,
+  HeadBucketCommand,
   HeadObjectCommand,
   ListObjectsV2Command,
   PutObjectCommand,
@@ -70,6 +71,11 @@ export function r2Client() {
     cachedFingerprint = fingerprint;
   }
   return { client: cachedClient, bucket: values.bucket };
+}
+
+export async function checkR2Connection() {
+  const { client, bucket } = r2Client();
+  await client.send(new HeadBucketCommand({ Bucket: bucket }));
 }
 
 function extensionFor(contentType) {
