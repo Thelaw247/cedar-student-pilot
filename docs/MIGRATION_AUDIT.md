@@ -99,10 +99,12 @@ live on `codex/security-and-api-hardening` in draft PR #1.
   isolation, but type checking is not yet a trustworthy CI gate.
 - The frontend bundle is about 1.56 MB minified (about 415 KB gzip). It works,
   but route-level code splitting should be a performance follow-up.
-- A non-breaking `npm audit fix` reduces the frontend report from 21 findings
-  (12 high) to four moderate findings. The remaining advisories are in
-  React Router 6 and the legacy React Quill/Quill 1 chain; both require tested
-  major-version migrations rather than a blind `--force` update.
+- A non-breaking `npm audit fix` plus removal of the unused legacy
+  React Quill/Quill 1 dependency reduces the frontend report from 21 findings
+  (12 high) to two moderate React Router 6 advisories. The remaining fix is a
+  React Router 7 migration that needs dedicated regression testing rather than
+  a blind `--force` update. Current redirect targets are fixed internal routes,
+  and the one query-derived post-login target is normalized by `safeReturnTo()`.
 
 ## Live staging inventory
 
