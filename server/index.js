@@ -1,5 +1,6 @@
 import express from 'express';
 import { fileURLToPath } from 'node:url';
+import { pool } from './lib/db.js';
 import { requestSecurity } from './lib/http.js';
 import stripeWebhookRouter from './routes/stripeWebhook.js';
 import meRouter from './routes/me.js';
@@ -78,6 +79,29 @@ app.use('/data', deleteAcademicDataRouter);
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', service: 'cedar-server', timestamp: new Date().toISOString() });
+});
+
+// Readiness is deliberately separate from liveness: Render can keep using
+// /health to decide whether the process is alive, while staging verification
+// can prove that the configured Postgres credentials actually work.
+app.get('/health/ready', async (req, res) => {
+  try {
+    await pool.query({ text: 'select 1', query_timeout: 5_000 });
+    res.json({
+      status: 'ready',
+      service: 'cedar-server',
+      checks: { database: 'ok' },
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error('[health] database readiness check failed', error.message);
+    res.status(503).json({
+      status: 'unavailable',
+      service: 'cedar-server',
+      checks: { database: 'error' },
+      timestamp: new Date().toISOString(),
+    });
+  }
 });
 
 app.use((req, res) => {
