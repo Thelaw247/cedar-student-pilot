@@ -28,10 +28,9 @@ import { resolveRecordingStorageRef } from '../lib/r2.js';
 //    single most important operational prerequisite before this backend can
 //    ever go live.
 //
-// 2. The recording-URL trust check no longer hardcodes base44.app. It reads
-//    TRUSTED_RECORDING_HOST from the environment and fails closed if unset.
-//    R2 storage (Phase 3) doesn't exist yet — whoever wires it up needs to
-//    set this to the real R2/CDN host once recordings actually live there.
+// 2. Recordings must be user-owned R2 storage references. Arbitrary HTTPS URLs
+//    are never fetched, even from a configured host; this prevents SSRF and
+//    prevents one user from making the server process another user's object.
 
 const router = express.Router();
 
@@ -53,21 +52,7 @@ class RequestError extends Error {
 async function trustedRecordingUrl(rawUrl, userId) {
   const r2Url = await resolveRecordingStorageRef(userId, rawUrl);
   if (r2Url) return r2Url;
-
-  const trustedHost = process.env.TRUSTED_RECORDING_HOST;
-  if (!trustedHost) {
-    throw new RequestError('Recording storage is not yet configured on this server (TRUSTED_RECORDING_HOST unset)', 500);
-  }
-  let url;
-  try {
-    url = new URL(rawUrl);
-  } catch {
-    throw new RequestError('The lecture does not have a valid recording URL');
-  }
-  if (url.protocol !== 'https:' || url.hostname !== trustedHost) {
-    throw new RequestError('The recording must be an upload owned by this app');
-  }
-  return url.toString();
+  throw new RequestError('The recording must be an R2 upload owned by this account', 422);
 }
 
 async function fetchVerifiedAudio(rawUrl, userId) {
