@@ -11,7 +11,7 @@ live on `codex/security-and-api-hardening` in draft PR #1.
 | Area | Status | Evidence / remaining work |
 | --- | --- | --- |
 | Supabase database | Ready for staging | 20 public tables; RLS enabled on every table; grants and policies verified against the live project. Client CRUD is user-scoped, privileged tables are read-only or server-only, and the database readiness probe passes. Eight exact post-audit migrations are committed; six older migrations still need a schema-only export. |
-| Supabase Auth | Ready for email/password staging | Password login, signup OTP, recovery, profile provisioning, and session refresh are implemented. Apple/Facebook controls are intentionally hidden on the isolated frontend until those providers are configured. Redirect URLs, email delivery/templates, and leaked-password protection still need dashboard verification. |
+| Supabase Auth | Ready for email/password staging | Password login, signup OTP, recovery, profile provisioning, and session refresh are implemented. Apple/Facebook controls are intentionally hidden on the isolated frontend until those providers are configured. Redirect URLs and email delivery/templates still need dashboard verification. Leaked-password protection should be enabled when the project is on a Supabase Pro plan or above. |
 | Express API | Live and infrastructure-ready | `cedar-api-staging` auto-deploys the audit branch. `/health/ready` returns HTTP 200 with independent `database: ok` and `storage: ok` checks. Exact-origin CORS, hostile-origin rejection, unauthenticated rejection, and server tests are verified. Provider-specific AI, Stripe, email, and cron secrets still need functional verification. |
 | R2 storage | Bucket and credentials verified | The private bucket is reachable from Render with the configured credentials. Presigned recording/avatar upload, confirmation, playback, ownership validation, and lifecycle deletion are implemented. A real signed PUT/confirm/GET round trip still needs an authenticated staging session. |
 | Staging frontend | Live on Cloudflare | The Cloudflare Worker static-assets deployment at https://cedar-student-pilot.dewetluus.workers.dev builds in isolated Supabase/Render mode. `/login`, `/register`, and `/forgot-password` load directly with no application console errors. The landing and auth routes no longer depend on the Base44 Vite plugin in this build. |
@@ -41,6 +41,8 @@ live on `codex/security-and-api-hardening` in draft PR #1.
 - Private R2 references never expose permanent public object URLs. Uploads use
   short-lived signed PUTs, server-confirmed metadata, user-scoped opaque keys,
   and signed GETs.
+- Lecture processing accepts only owned `r2://` references. It does not fetch
+  arbitrary HTTPS recording URLs or rely on a configurable trusted host.
 - Lecture, class, avatar, and account deletion clean up owned objects. Account
   relational deletion is transactional.
 - The prior `processSessionReview` alias bug is fixed: completed reviews are
@@ -66,7 +68,8 @@ live on `codex/security-and-api-hardening` in draft PR #1.
    create one) so authenticated API, RLS, and storage journeys can be tested.
 2. In Supabase Auth, verify the staging site URL and allowed redirects include
    the Cloudflare origin and `/reset-password`. Verify signup/recovery email
-   delivery and templates, and enable leaked-password protection.
+   delivery and templates. Enable leaked-password protection if the project is
+   on Supabase Pro or above; Supabase does not offer it on the Free plan.
 3. Inventory and functionally verify provider secrets on `cedar-api-staging`:
    `GEMINI_API_KEY`, `GROQ_API_KEY`, Stripe **test-mode** keys/webhook secret,
    email relay/provider values, and cron/trigger tokens. Database and R2
