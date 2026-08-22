@@ -155,7 +155,10 @@ export const AuthProvider = ({ children }) => {
       setIsLoadingAuth(false);
       setAuthChecked(true);
     } catch (error) {
-      console.error('User auth check failed:', error);
+      const isAuthRejection = error.status === 401 || error.status === 403;
+      // A signed-out visitor reaching a public auth page is normal state, not
+      // an application error. Keep real network/server failures visible.
+      if (!isAuthRejection) console.error('User auth check failed:', error);
       setIsLoadingAuth(false);
       setIsAuthenticated(false);
       setAuthChecked(true);
@@ -163,7 +166,7 @@ export const AuthProvider = ({ children }) => {
       // If user auth fails, it might be an expired token. Only purge on an
       // authoritative auth rejection; a network outage must preserve this
       // user's offline data so offline mode can still work.
-      if (error.status === 401 || error.status === 403) {
+      if (isAuthRejection) {
         const previousUserId = getCachedUserId();
         await purgeUserOfflineData(previousUserId);
         clearOtherUserStorage(null);
