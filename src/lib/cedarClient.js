@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient.js';
+import { functionPath } from './functionPath.js';
 
 // Compatibility layer replacing @base44/sdk. Not a 1:1 reimplementation of
 // Base44's client — a deliberately similar-enough shape (entities.X.filter/
@@ -44,12 +45,6 @@ const TABLE_MAP = {
   UsageEvent: 'usage_events',
   ProcessedStripeEvent: 'processed_stripe_events',
 };
-
-// camelCase Base44 function name -> this app's kebab-case Render route.
-// e.g. 'generateStudyMaterial' -> '/generate-study-material'
-function functionPath(name) {
-  return '/' + name.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
-}
 
 /** Parses a Base44-style sort string like '-date' or 'date' into a
  *  supabase-js .order() call. Defaults to ascending on unspecified fields. */
@@ -233,7 +228,7 @@ const integrations = {
       if (purpose === 'timetable') {
         const allowed = new Set(['image/jpeg', 'image/png', 'image/webp', 'application/pdf']);
         if (!allowed.has(file.type)) throw new TypeError('Timetable must be a PDF, JPEG, PNG, or WebP file');
-        if (file.size > 8 * 1024 * 1024) throw new RangeError('Timetable files must be 8 MB or smaller');
+        if (file.size > 7 * 1024 * 1024) throw new RangeError('Timetable files must be 7 MB or smaller');
         return { file_url: await readAsDataUrl(file) };
       }
       if (purpose === 'avatar') {

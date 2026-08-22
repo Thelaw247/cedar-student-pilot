@@ -1,7 +1,8 @@
 # Supabase migrations
 
 The connected Supabase project predates this directory. Migrations created from
-2026-08-22 onward are committed here with the exact remote migration version.
+2026-08-22 onward are committed here with the exact version and name recorded
+by the remote migration history.
 
 The six earlier migrations still need a schema-only export before this
 directory can bootstrap a brand-new project:

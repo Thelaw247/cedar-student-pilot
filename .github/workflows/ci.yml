@@ -22,6 +22,8 @@ jobs:
         run: npm ci
       - name: Lint frontend
         run: npm run lint
+      - name: Check frontend/API route contract
+        run: npm run check:api-contract
       - name: Build frontend (Base44 mode)
         run: npm run build
       - name: Build frontend (Supabase staging mode)

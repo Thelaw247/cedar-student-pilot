@@ -1,6 +1,6 @@
 # Cedar migration audit
 
-Last verified: 2026-08-21 (America/Edmonton)
+Last verified: 2026-08-22 (America/Edmonton)
 
 ## Executive status
 
@@ -11,7 +11,7 @@ still deploys `main`.
 
 | Area | Status | Evidence / remaining work |
 | --- | --- | --- |
-| Supabase database | Strong, usable for staging | 20 public tables, RLS enabled; client grants split by operation; server-only tables locked down; FK indexes added; Base44 lifecycle timestamps restored. Four exact hardening migrations are committed. Six older migrations still need a schema-only export. |
+| Supabase database | Strong, usable for staging | 20 public tables, RLS enabled; client grants split by operation; server-only tables locked down; FK indexes added; Base44 lifecycle timestamps restored. Eight exact post-audit migrations are committed. Six older migrations still need a schema-only export. |
 | Supabase Auth | Code complete, dashboard setup pending | Password, signup OTP, recovery, OAuth adapter, profile provisioning and session refresh are implemented. Redirect URLs, email template/provider settings, Apple/Facebook providers, and leaked-password protection need dashboard verification. |
 | Express API | Broadly ported and hardened | Health route, exact-origin CORS, session verification, ownership scoping, credit gates, Stripe idempotency, review persistence, exports, account reset, and tests are present. Hardened branch is not deployed to the API service yet. |
 | R2 storage | Code complete, infrastructure pending | Private presigned recording/avatar upload, confirmation, playback, ownership validation, and lifecycle deletion are implemented. Bucket, CORS, least-privilege token, and Render secrets do not exist yet. |
@@ -43,6 +43,11 @@ still deploys `main`.
   relational deletion is transactional.
 - The prior `processSessionReview` alias bug is fixed: completed reviews are
   now ownership-checked, scored deterministically, and persisted atomically.
+- The live frontend/database contract now includes review study sessions,
+  lecture-linked reviews, and validated recurring calendar series without a
+  fake date.
+- CI checks all frontend function names against Express mounts. This caught and
+  fixed the acronym route mapping for `academicAIChat`.
 - Both Base44-mode and Supabase-mode frontend builds pass. ESLint has no errors.
   Server tests currently cover HTTP/CORS, Stripe signatures, R2 validation,
   timetable input/SSRF, and review scoring.
@@ -102,4 +107,3 @@ still deploys `main`.
 The live Base44 app, production DNS, and live Stripe webhook have not been
 changed. Keep that boundary until the isolated stack passes the complete
 new-user staging journey.
-
