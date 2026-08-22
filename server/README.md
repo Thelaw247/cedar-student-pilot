@@ -25,6 +25,15 @@ Feature routes additionally fail closed when their provider-specific variables
 are absent, including Stripe, LLM, email, cron, and recording-host settings.
 Copy those values through the Render Dashboard; do not commit them.
 
+Complete runtime inventory (some are feature-specific):
+
+- AI: `GEMINI_API_KEY`, `GROQ_API_KEY`, `ACADEMIC_CHAT_ENABLED`.
+- Stripe: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `CEDAR_APP_ID`.
+- Scheduled jobs: `GRANT_TRIGGER_TOKEN`, `REMINDERS_TRIGGER_TOKEN`.
+- Email/origins: `EMAIL_FROM_ADDRESS`, `APP_ORIGIN`.
+- Legacy recording compatibility only: `TRUSTED_RECORDING_HOST`. New R2
+  recordings use stable private `r2://` references and do not need this value.
+
 ## Deployment safety
 
 Configure Render's health-check path as `/health`. Keep staging and production
