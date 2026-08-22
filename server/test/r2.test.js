@@ -41,6 +41,14 @@ test('rejects cross-user and traversal keys', () => {
   );
 });
 
+test('accepts only the exact user prefix for bulk cleanup', () => {
+  assert.equal(assertOwnedKey(USER_ID, `users/${USER_ID}/`), `users/${USER_ID}/`);
+  assert.throws(
+    () => assertOwnedKey(USER_ID, 'users/'),
+    /Invalid storage key/,
+  );
+});
+
 test('parses stable R2 storage references', () => {
   assert.deepEqual(parseStorageRef('r2://cedar-recordings/users/u/file.webm'), {
     bucket: 'cedar-recordings',

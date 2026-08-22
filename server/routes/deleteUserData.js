@@ -3,6 +3,7 @@ import { pool } from '../lib/db.js';
 import { requireAuth } from '../middleware/requireAuth.js';
 import { stripeDelete } from '../lib/stripe.js';
 import { TIER_GRANT, periodKey } from '../lib/credits.js';
+import { deleteAllOwnedObjects, r2IsConfigured } from '../lib/r2.js';
 
 // Direct port of base44/functions/deleteUserData/entry.ts. Same ordering
 // discipline as the original: cancel Stripe FIRST (see that file's preserved
@@ -74,34 +75,47 @@ router.post('/', requireAuth, async (req, res) => {
       });
     }
 
-    // ------------------------------------------------- 2. academic data ----
-    for (const table of USER_SCOPED_TABLES) {
+    // Delete private objects while their stable references still exist in the
+    // database. If storage cleanup fails, keep the academic rows intact so a
+    // retry can still discover and remove every object deterministically.
+    const hasR2Objects = Number((await pool.query(
+      `select count(*) from lectures
+       where user_id = $1 and recording_url like 'r2://%'`,
+      [userId],
+    )).rows[0].count) > 0;
+    if (hasR2Objects || r2IsConfigured()) {
       try {
-        const result = await pool.query(`delete from ${table} where user_id = $1`, [userId]);
-        summary[table] = result.rowCount;
-        totalDeleted += result.rowCount;
-      } catch (e) {
-        errors.push(`${table} — ${e.message}`);
+        summary.r2_objects = await deleteAllOwnedObjects(userId);
+        totalDeleted += summary.r2_objects;
+      } catch (error) {
+        return res.status(502).json({
+          status: 'aborted',
+          reason: 'storage_delete_failed',
+          message: 'Stored recordings could not be deleted, so your app data was left intact. Please try again.',
+          errors: [`r2:delete — ${error.message}`],
+        });
       }
     }
 
-    // ------------------------------------------- 3. billing/system data ----
-    for (const table of SERVICE_TABLES) {
-      try {
-        const result = await pool.query(`delete from ${table} where user_id = $1`, [userId]);
-        summary[table] = result.rowCount;
-        totalDeleted += result.rowCount;
-      } catch (e) {
-        errors.push(`${table} — ${e.message}`);
-      }
-    }
-
-    // credit_balances is RESET, not deleted (unique on user_id, and the
-    // auto-provisioning trigger only fires on auth.users INSERT — there's no
-    // insert here to re-trigger it, so an explicit reset is the correct
-    // equivalent of the original's delete-it-and-let-getBalance-recreate-it).
+    // All database removal is one transaction: the account is either fully
+    // reset or its relational data stays intact for a safe retry.
+    const db = await pool.connect();
     try {
-      await pool.query(
+      await db.query('begin');
+      for (const table of USER_SCOPED_TABLES) {
+        const result = await db.query(`delete from ${table} where user_id = $1`, [userId]);
+        summary[table] = result.rowCount;
+        totalDeleted += result.rowCount;
+      }
+      for (const table of SERVICE_TABLES) {
+        const result = await db.query(`delete from ${table} where user_id = $1`, [userId]);
+        summary[table] = result.rowCount;
+        totalDeleted += result.rowCount;
+      }
+
+      // credit_balances is RESET, not deleted (the auth provisioning trigger
+      // only fires on auth.users INSERT, and the login intentionally remains).
+      await db.query(
         `update credit_balances set tier = 'free', subscription_credits = $1, purchased_credits = 0,
            period_key = $2, last_grant_date = current_date, fair_use_flagged = false,
            applied_credit_operations = '{}', fulfilled_stripe_anchors = '{}',
@@ -109,8 +123,21 @@ router.post('/', requireAuth, async (req, res) => {
          where user_id = $3`,
         [TIER_GRANT.free, periodKey(), userId],
       );
-    } catch (e) {
-      errors.push(`credit_balances:reset — ${e.message}`);
+      await db.query(
+        'update profiles set full_name = null, avatar_url = null where id = $1',
+        [userId],
+      );
+      await db.query('commit');
+    } catch (error) {
+      await db.query('rollback').catch(() => {});
+      console.error('[deleteUserData] database reset failed', error);
+      return res.status(500).json({
+        status: 'aborted',
+        reason: 'database_delete_failed',
+        message: 'The database reset failed and all relational data was rolled back. Please try again.',
+      });
+    } finally {
+      db.release();
     }
 
     console.log('[deleteUserData] reset complete', JSON.stringify({
@@ -118,13 +145,13 @@ router.post('/', requireAuth, async (req, res) => {
     }));
 
     res.json({
-      status: errors.length > 0 ? 'complete_with_errors' : 'complete',
+      status: 'complete',
       total_deleted: totalDeleted,
       deleted_by_entity: summary,
       subscription_cancelled: subscriptionCancelled,
       cancelled_subscription_id: cancelledSubscriptionId,
       errors,
-      note: 'All app data has been deleted and any active subscription cancelled. No refund was issued. Your account is reset to a fresh free tier. Uploaded audio files are no longer linked to your account; contact support if you need stored files purged from backups.',
+      note: 'All app data and active stored files have been deleted, and any active subscription cancelled. No refund was issued. Your login remains available and is reset to a fresh free tier. Provider backups follow their configured retention policies.',
     });
   } catch (error) {
     res.status(500).json({ error: error.message });

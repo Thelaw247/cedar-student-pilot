@@ -1,8 +1,10 @@
 import crypto from 'node:crypto';
 import {
   DeleteObjectCommand,
+  DeleteObjectsCommand,
   GetObjectCommand,
   HeadObjectCommand,
+  ListObjectsV2Command,
   PutObjectCommand,
   S3Client,
 } from '@aws-sdk/client-s3';
@@ -25,6 +27,15 @@ const RECORDING_TYPES = new Set([
 
 let cachedClient;
 let cachedFingerprint;
+
+export function r2IsConfigured() {
+  return Boolean(
+    process.env.R2_ACCOUNT_ID
+    && process.env.R2_ACCESS_KEY_ID
+    && process.env.R2_SECRET_ACCESS_KEY
+    && process.env.R2_BUCKET_NAME
+  );
+}
 
 function config() {
   const values = {
@@ -193,6 +204,35 @@ export async function deleteOwnedObject(userId, rawKey) {
   await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
 }
 
+export async function deleteAllOwnedObjects(userId) {
+  const prefix = assertOwnedKey(userId, `users/${userId}/`);
+  const { client, bucket } = r2Client();
+  let continuationToken;
+  let deleted = 0;
+  do {
+    const page = await client.send(new ListObjectsV2Command({
+      Bucket: bucket,
+      Prefix: prefix,
+      ContinuationToken: continuationToken,
+    }));
+    const objects = (page.Contents || [])
+      .map((object) => object.Key)
+      .filter(Boolean)
+      .map((Key) => ({ Key }));
+    if (objects.length) {
+      const result = await client.send(new DeleteObjectsCommand({
+        Bucket: bucket,
+        Delete: { Objects: objects, Quiet: true },
+      }));
+      if (result.Errors?.length) throw new Error('R2 failed to delete one or more stored files');
+      deleted += objects.length;
+    }
+    continuationToken = page.IsTruncated ? page.NextContinuationToken : undefined;
+    if (page.IsTruncated && !continuationToken) throw new Error('R2 returned an invalid pagination response');
+  } while (continuationToken);
+  return deleted;
+}
+
 export async function resolveRecordingStorageRef(userId, ref) {
   const parsed = parseStorageRef(ref);
   if (!parsed) return null;
@@ -205,4 +245,3 @@ export async function resolveRecordingStorageRef(userId, ref) {
     { expiresIn: DOWNLOAD_EXPIRY_SECONDS },
   );
 }
-

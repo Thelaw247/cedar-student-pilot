@@ -384,6 +384,7 @@ function RecordModal({ classId, cls, onClose }) {
   const saveAndProcess = async () => {
     setProcessing(true);
     setSaveError('');
+    let orphanedUploadRef = null;
     try {
       // Work from whichever copy we have: freshly recorded chunks, or a blob
       // recovered from a previous interrupted/failed session.
@@ -407,6 +408,7 @@ function RecordModal({ classId, cls, onClose }) {
       if (!lectureId) {
         const audioFile = new File([audioBlob], `lecture-${Date.now()}.webm`, { type: 'audio/webm' });
         const { file_url } = await base44.integrations.Core.UploadFile({ file: audioFile, purpose: 'recording' });
+        if (String(file_url).startsWith('r2://')) orphanedUploadRef = file_url;
         const today = new Date().toISOString().split('T')[0];
         const lecture = await base44.entities.Lecture.create({
           class_id: classId,
@@ -418,6 +420,7 @@ function RecordModal({ classId, cls, onClose }) {
           status: 'processing',
         });
         lectureId = lecture.id;
+        orphanedUploadRef = null; // the Lecture now owns this object
         setPendingLectureId(lectureId);
       }
 
@@ -445,6 +448,11 @@ function RecordModal({ classId, cls, onClose }) {
       setReviewLectureId(lectureId);
       return;
     } catch (e) {
+      if (orphanedUploadRef && base44.files?.delete) {
+        await base44.files.delete(orphanedUploadRef).catch((cleanupError) => {
+          console.error('Could not clean up an unlinked recording upload', cleanupError);
+        });
+      }
       // Keep the durable copy and pending lecture id so a retry does not upload
       // or create a second Lecture after a processing failure.
       const detail = e?.response?.data?.message || e?.response?.data?.error || e?.message;

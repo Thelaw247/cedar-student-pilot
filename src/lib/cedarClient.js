@@ -63,7 +63,7 @@ function applySort(query, sort) {
   return query.order(column, { ascending: !desc });
 }
 
-function makeEntity(tableName) {
+function makeEntity(tableName, entityName) {
   return {
     async filter(match = {}, sort, limit) {
       let q = supabase.from(tableName).select('*').match(match);
@@ -111,6 +111,10 @@ function makeEntity(tableName) {
       return data;
     },
     async delete(id) {
+      if (entityName === 'Lecture' || entityName === 'Class') {
+        await apiRequest(`/data/${entityName.toLowerCase()}s/${encodeURIComponent(id)}`, { method: 'DELETE' });
+        return true;
+      }
       const { error } = await supabase.from(tableName).delete().eq('id', id);
       if (error) throw error;
       return true;
@@ -122,7 +126,7 @@ const entities = new Proxy({}, {
   get(_target, name) {
     const table = TABLE_MAP[name];
     if (!table) throw new Error(`cedarClient: no table mapping for entity "${String(name)}"`);
-    return makeEntity(table);
+    return makeEntity(table, name);
   },
 });
 
@@ -194,6 +198,14 @@ const files = {
     const key = withoutScheme.slice(slash + 1);
     const result = await apiRequest(`/files/download-url?key=${encodeURIComponent(key)}`);
     return result.data.url;
+  },
+  async delete(ref) {
+    if (!String(ref || '').startsWith('r2://')) return;
+    const withoutScheme = String(ref).slice(5);
+    const slash = withoutScheme.indexOf('/');
+    if (slash < 1) throw new TypeError('Invalid recording reference');
+    const key = withoutScheme.slice(slash + 1);
+    await apiRequest('/files', { method: 'DELETE', body: { key } });
   },
 };
 

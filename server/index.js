@@ -32,6 +32,7 @@ import processLectureRecordingRouter from './routes/processLectureRecording.js';
 import academicAIChatRouter from './routes/academicAIChat.js';
 import sendStudyRemindersRouter from './routes/sendStudyReminders.js';
 import filesRouter from './routes/files.js';
+import deleteAcademicDataRouter from './routes/deleteAcademicData.js';
 
 export const app = express();
 const PORT = process.env.PORT || 3000;
@@ -73,6 +74,7 @@ app.use('/process-lecture-recording', processLectureRecordingRouter);
 app.use('/academic-ai-chat', academicAIChatRouter);
 app.use('/send-study-reminders', sendStudyRemindersRouter);
 app.use('/files', filesRouter);
+app.use('/data', deleteAcademicDataRouter);
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', service: 'cedar-server', timestamp: new Date().toISOString() });
