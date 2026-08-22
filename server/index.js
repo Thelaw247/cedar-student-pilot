@@ -2,6 +2,7 @@ import express from 'express';
 import { fileURLToPath } from 'node:url';
 import { pool } from './lib/db.js';
 import { requestSecurity } from './lib/http.js';
+import { checkR2Connection } from './lib/r2.js';
 import stripeWebhookRouter from './routes/stripeWebhook.js';
 import meRouter from './routes/me.js';
 import exportUserDataRouter from './routes/exportUserData.js';
@@ -85,23 +86,27 @@ app.get('/health', (req, res) => {
 // /health to decide whether the process is alive, while staging verification
 // can prove that the configured Postgres credentials actually work.
 app.get('/health/ready', async (req, res) => {
-  try {
-    await pool.query({ text: 'select 1', query_timeout: 5_000 });
-    res.json({
-      status: 'ready',
-      service: 'cedar-server',
-      checks: { database: 'ok' },
-      timestamp: new Date().toISOString(),
-    });
-  } catch (error) {
-    console.error('[health] database readiness check failed', error.message);
-    res.status(503).json({
-      status: 'unavailable',
-      service: 'cedar-server',
-      checks: { database: 'error' },
-      timestamp: new Date().toISOString(),
-    });
+  const [database, storage] = await Promise.allSettled([
+    pool.query({ text: 'select 1', query_timeout: 5_000 }),
+    checkR2Connection(),
+  ]);
+  const checks = {
+    database: database.status === 'fulfilled' ? 'ok' : 'error',
+    storage: storage.status === 'fulfilled' ? 'ok' : 'error',
+  };
+  if (database.status === 'rejected') {
+    console.error('[health] database readiness check failed', database.reason?.message);
   }
+  if (storage.status === 'rejected') {
+    console.error('[health] storage readiness check failed', storage.reason?.message);
+  }
+  const ready = Object.values(checks).every((status) => status === 'ok');
+  res.status(ready ? 200 : 503).json({
+    status: ready ? 'ready' : 'unavailable',
+    service: 'cedar-server',
+    checks,
+    timestamp: new Date().toISOString(),
+  });
 });
 
 app.use((req, res) => {
