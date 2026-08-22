@@ -1,9 +1,8 @@
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
-import { appParams } from '@/lib/app-params';
+import { getAppPublicSettings, hasAppToken } from '@/lib/base44PublicSettings';
 import { clearLegacyUserStorage, clearOtherUserStorage, clearUserStorage, getCachedUserId, setCachedUserId } from '@/lib/currentUser';
 import { clearAllRecordings, clearOtherRecordings, initializeRecordingStore } from '@/lib/recordingStore';
-import { createAxiosClient } from '@base44/sdk/dist/utils/axios-client';
 import { supabase } from '@/lib/supabaseClient';
 
 const AuthContext = createContext();
@@ -56,21 +55,12 @@ export const AuthProvider = ({ children }) => {
       
       // First, check app public settings (with token if available)
       // This will tell us if auth is required, user not registered, etc.
-      const appClient = createAxiosClient({
-        baseURL: `/api/apps/public`,
-        headers: {
-          'X-App-Id': appParams.appId
-        },
-        token: appParams.token, // Include token if available
-        interceptResponses: true
-      });
-      
       try {
-        const publicSettings = await appClient.get(`/prod/public-settings/by-id/${appParams.appId}`);
+        const publicSettings = await getAppPublicSettings();
         setAppPublicSettings(publicSettings);
         
         // If we got the app public settings successfully, check if user is authenticated
-        if (appParams.token) {
+        if (hasAppToken()) {
           await checkUserAuth();
         } else {
           setIsLoadingAuth(false);

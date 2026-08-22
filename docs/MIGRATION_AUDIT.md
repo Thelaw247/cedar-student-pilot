@@ -51,6 +51,9 @@ live on `codex/security-and-api-hardening` in draft PR #1.
   frontend function names, Render routing, and R2 upload flows. This means the
   remaining frontend work is validation and targeted fixes, not 65 independent
   Base44 rewrites.
+- Cloudflare mode aliases the shared client, public-settings helper, and legacy
+  MCP consent route at build time. Its generated JavaScript no longer contains
+  the Base44 SDK/bootstrap client; the default Base44 build remains unchanged.
 - CI checks all 25 frontend function names against Express mounts. Both the
   default Base44-mode build and the Cloudflare-mode build pass; ESLint passes.
   The server suite currently passes 18/18 tests.
@@ -97,7 +100,8 @@ live on `codex/security-and-api-hardening` in draft PR #1.
   has extensive pre-existing JS/JSDoc and SDK-union typing errors; lint and both
   production builds pass, and the generated Supabase type file validates in
   isolation, but type checking is not yet a trustworthy CI gate.
-- The frontend bundle is about 1.56 MB minified (about 415 KB gzip). It works,
+- The isolated frontend bundle is about 1.43 MB minified (about 372 KB gzip).
+  It works,
   but route-level code splitting should be a performance follow-up.
 - A non-breaking `npm audit fix` plus removal of the unused legacy
   React Quill/Quill 1 dependency reduces the frontend report from 21 findings

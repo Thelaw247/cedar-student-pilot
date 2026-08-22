@@ -8,7 +8,17 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     // Base44's plugin previously supplied this implicitly. Define it here so
     // the independent Cloudflare build does not depend on that plugin.
-    alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
+    alias: {
+      // Resolve this exact path before the broad "@" alias. This prevents the
+      // Cloudflare bundle from importing @base44/sdk at all; components keep
+      // their compatibility import while receiving the Cedar client directly.
+      ...(mode === 'cloudflare' ? {
+        '@/api/base44Client': fileURLToPath(new URL('./src/api/cedarClientAdapter.js', import.meta.url)),
+        '@/lib/base44PublicSettings': fileURLToPath(new URL('./src/lib/base44PublicSettings.cloudflare.js', import.meta.url)),
+        '@/pages/OAuthConsent': fileURLToPath(new URL('./src/pages/OAuthConsentUnavailable.jsx', import.meta.url)),
+      } : {}),
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
+    },
   },
   plugins: [
     // Cloudflare is the isolated Supabase/Render staging build. Keeping the

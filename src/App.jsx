@@ -11,7 +11,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
-import OAuthConsent from './pages/OAuthConsent';
+import OAuthConsent from '@/pages/OAuthConsent';
 import Home from './pages/Home';
 import Classes from './pages/Classes';
 import ClassDetail from './pages/ClassDetail';
