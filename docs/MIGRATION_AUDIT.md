@@ -46,6 +46,8 @@ still deploys `main`.
 - The live frontend/database contract now includes review study sessions,
   lecture-linked reviews, and validated recurring calendar series without a
   fake date.
+- A generated `supabase/database.types.ts` snapshot makes remote schema drift
+  reviewable in Git even before the six historical DDL exports are recovered.
 - CI checks all frontend function names against Express mounts. This caught and
   fixed the acronym route mapping for `academicAIChat`.
 - Both Base44-mode and Supabase-mode frontend builds pass. ESLint has no errors.
@@ -91,6 +93,10 @@ still deploys `main`.
   bootstrapped reproducibly from the repository.
 - Add integration/E2E coverage against real staging services. Current automated
   tests are unit/HTTP-boundary tests and builds, not a full browser journey.
+- The repository-wide `npm run typecheck` is not clean. The raw Base44 export
+  has extensive pre-existing JS/JSDoc and SDK-union typing errors; lint and both
+  production builds pass, and the generated Supabase type file validates in
+  isolation, but type checking is not yet a trustworthy CI gate.
 - The frontend bundle is about 1.56 MB minified (about 416 KB gzip). It works,
   but route-level code splitting should be a performance follow-up.
 

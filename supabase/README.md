@@ -16,3 +16,7 @@ directory can bootstrap a brand-new project:
 
 Do not create placeholder files for those versions: that would make migration
 history look reproducible when the actual DDL is missing.
+
+`database.types.ts` is a generated snapshot of the connected project's public
+API schema. Regenerate it after every schema migration and review the diff so
+frontend/database contract drift is visible before deployment.
