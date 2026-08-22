@@ -155,8 +155,7 @@ const functions = {
   /** Mirrors base44.functions.invoke(name, args) -> { data }, matching the
    *  shape every existing call site (response.data / res?.data) expects. */
   async invoke(name, args = {}) {
-    const routeName = name === 'processSessionReview' ? 'generateSessionReview' : name;
-    return apiRequest(functionPath(routeName), { method: 'POST', body: args });
+    return apiRequest(functionPath(name), { method: 'POST', body: args });
   },
 };
 

@@ -22,6 +22,7 @@ import fitProjectTimeRouter from './routes/fitProjectTime.js';
 import generateMissedLectureSummaryRouter from './routes/generateMissedLectureSummary.js';
 import generateLectureReviewRouter from './routes/generateLectureReview.js';
 import generateSessionReviewRouter from './routes/generateSessionReview.js';
+import processSessionReviewRouter from './routes/processSessionReview.js';
 import rebookStudySessionRouter from './routes/rebookStudySession.js';
 import generateProjectRoadmapRouter from './routes/generateProjectRoadmap.js';
 import generateClassHandbookRouter from './routes/generateClassHandbook.js';
@@ -62,9 +63,7 @@ app.use('/fit-project-time', fitProjectTimeRouter);
 app.use('/generate-missed-lecture-summary', generateMissedLectureSummaryRouter);
 app.use('/generate-lecture-review', generateLectureReviewRouter);
 app.use('/generate-session-review', generateSessionReviewRouter);
-// Compatibility alias for the existing frontend call site. Keep the canonical
-// route above and remove this alias after the frontend migration is complete.
-app.use('/process-session-review', generateSessionReviewRouter);
+app.use('/process-session-review', processSessionReviewRouter);
 app.use('/rebook-study-session', rebookStudySessionRouter);
 app.use('/generate-project-roadmap', generateProjectRoadmapRouter);
 app.use('/generate-class-handbook', generateClassHandbookRouter);
