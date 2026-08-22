@@ -2,7 +2,8 @@ import React, { useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import ResolvedAvatarImage from '@/components/ResolvedAvatarImage';
 import { getInitials, getAvatarColor } from '@/lib/avatar';
 import { Upload, Loader2, Check, X, Plus, ChevronRight, Camera, AlertCircle } from 'lucide-react';
 
@@ -126,7 +127,7 @@ export default function SemesterSetup() {
 
         <div className="relative inline-block mb-6">
           <Avatar className="w-20 h-20">
-            {user?.avatar_url && <AvatarImage src={user.avatar_url} alt={welcomeName || 'Profile photo'} />}
+            {user?.avatar_url && <ResolvedAvatarImage src={user.avatar_url} alt={welcomeName || 'Profile photo'} />}
             <AvatarFallback
               style={{ backgroundColor: getAvatarColor(user?.id), color: '#fff' }}
               className="text-2xl font-semibold"

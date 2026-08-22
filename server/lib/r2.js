@@ -11,6 +11,7 @@ import {
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 const MAX_RECORDING_BYTES = 200 * 1024 * 1024;
+const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
 const UPLOAD_EXPIRY_SECONDS = 5 * 60;
 const DOWNLOAD_EXPIRY_SECONDS = 15 * 60;
 const RECORDING_TYPES = new Set([
@@ -24,6 +25,7 @@ const RECORDING_TYPES = new Set([
   'audio/x-wav',
   'video/webm',
 ]);
+const AVATAR_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
 let cachedClient;
 let cachedFingerprint;
@@ -93,10 +95,25 @@ export function validateRecordingUpload({ contentType, sizeBytes }) {
   return { contentType: normalizedType, sizeBytes: normalizedSize };
 }
 
+export function validateAvatarUpload({ contentType, sizeBytes }) {
+  const normalizedType = String(contentType || '').toLowerCase().split(';')[0].trim();
+  const normalizedSize = Number(sizeBytes);
+  if (!AVATAR_TYPES.has(normalizedType)) throw new TypeError('Profile photo must be a JPEG, PNG, or WebP image');
+  if (!Number.isSafeInteger(normalizedSize) || normalizedSize < 1) throw new TypeError('A valid profile photo size is required');
+  if (normalizedSize > MAX_AVATAR_BYTES) throw new RangeError('Profile photos must be 5 MB or smaller');
+  return { contentType: normalizedType, sizeBytes: normalizedSize };
+}
+
 export function recordingKey(userId, contentType) {
   const safeUserId = String(userId || '');
   if (!/^[0-9a-f-]{36}$/i.test(safeUserId)) throw new TypeError('Invalid user id');
   return `users/${safeUserId}/recordings/${crypto.randomUUID()}.${extensionFor(contentType)}`;
+}
+
+export function avatarKey(userId, contentType) {
+  const safeUserId = String(userId || '');
+  if (!/^[0-9a-f-]{36}$/i.test(safeUserId)) throw new TypeError('Invalid user id');
+  return `users/${safeUserId}/avatars/${crypto.randomUUID()}.${extensionFor(contentType)}`;
 }
 
 export function assertOwnedKey(userId, key) {
@@ -154,6 +171,26 @@ export async function createRecordingUpload(userId, input) {
   };
 }
 
+export async function createAvatarUpload(userId, input) {
+  const { contentType, sizeBytes } = validateAvatarUpload(input);
+  const key = avatarKey(userId, contentType);
+  const { client, bucket } = r2Client();
+  const metadata = { owner: userId, purpose: 'avatar', 'max-bytes': String(sizeBytes) };
+  const command = new PutObjectCommand({ Bucket: bucket, Key: key, ContentType: contentType, Metadata: metadata });
+  const uploadUrl = await getSignedUrl(client, command, { expiresIn: UPLOAD_EXPIRY_SECONDS });
+  return {
+    key,
+    upload_url: uploadUrl,
+    expires_at: new Date(Date.now() + UPLOAD_EXPIRY_SECONDS * 1000).toISOString(),
+    headers: {
+      'Content-Type': contentType,
+      'x-amz-meta-owner': userId,
+      'x-amz-meta-purpose': 'avatar',
+      'x-amz-meta-max-bytes': String(sizeBytes),
+    },
+  };
+}
+
 export async function confirmRecordingUpload(userId, rawKey) {
   const key = assertOwnedKey(userId, rawKey);
   const { client, bucket } = r2Client();
@@ -181,6 +218,25 @@ export async function confirmRecordingUpload(userId, rawKey) {
     size_bytes: size,
     content_type: head.ContentType || null,
   };
+}
+
+export async function confirmAvatarUpload(userId, rawKey) {
+  const key = assertOwnedKey(userId, rawKey);
+  const { client, bucket } = r2Client();
+  const head = await client.send(new HeadObjectCommand({ Bucket: bucket, Key: key }));
+  const size = Number(head.ContentLength || 0);
+  const declaredMax = Number(head.Metadata?.['max-bytes'] || 0);
+  const contentType = String(head.ContentType || '').toLowerCase();
+  if (head.Metadata?.owner !== userId || head.Metadata?.purpose !== 'avatar'
+      || !AVATAR_TYPES.has(contentType)) {
+    await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key })).catch(() => {});
+    throw new TypeError('The uploaded profile photo metadata is invalid');
+  }
+  if (!size || !declaredMax || size > declaredMax || size > MAX_AVATAR_BYTES) {
+    await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key })).catch(() => {});
+    throw new RangeError('The uploaded profile photo size is invalid');
+  }
+  return { key, storage_ref: storageRef(key), size_bytes: size, content_type: contentType };
 }
 
 export async function createDownloadUrl(userId, rawKey) {

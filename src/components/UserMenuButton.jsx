@@ -1,7 +1,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import ResolvedAvatarImage from '@/components/ResolvedAvatarImage';
 import { getInitials, getAvatarColor } from '@/lib/avatar';
 
 /**
@@ -25,7 +26,7 @@ export default function UserMenuButton({ size = 'default' }) {
       title="Profile & settings"
     >
       <Avatar className={`${dims} flex-shrink-0`}>
-        {user?.avatar_url && <AvatarImage src={user.avatar_url} alt={user?.full_name || 'Profile photo'} />}
+        {user?.avatar_url && <ResolvedAvatarImage src={user.avatar_url} alt={user?.full_name || 'Profile photo'} />}
         <AvatarFallback
           style={{ backgroundColor: getAvatarColor(user?.id), color: '#fff' }}
           className="text-xs font-semibold"

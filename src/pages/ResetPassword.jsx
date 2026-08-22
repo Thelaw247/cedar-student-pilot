@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
@@ -10,11 +10,23 @@ import AuthLayout from "@/components/AuthLayout";
 export default function ResetPassword() {
   const [searchParams] = useSearchParams();
   const resetToken = searchParams.get("token");
+  const useSupabase = import.meta.env.VITE_BACKEND_MODE === 'supabase';
+  const [recoveryReady, setRecoveryReady] = useState(!useSupabase);
+  const [hasRecoverySession, setHasRecoverySession] = useState(false);
 
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!useSupabase) return;
+    let cancelled = false;
+    base44.auth.hasRecoverySession()
+      .then((valid) => { if (!cancelled) setHasRecoverySession(valid); })
+      .finally(() => { if (!cancelled) setRecoveryReady(true); });
+    return () => { cancelled = true; };
+  }, [useSupabase]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -34,7 +46,15 @@ export default function ResetPassword() {
     }
   };
 
-  if (!resetToken) {
+  if (!recoveryReady) {
+    return (
+      <AuthLayout icon={Lock} title="Checking reset link" subtitle="Verifying your password recovery session">
+        <Loader2 className="w-6 h-6 animate-spin text-primary mx-auto" />
+      </AuthLayout>
+    );
+  }
+
+  if ((!useSupabase && !resetToken) || (useSupabase && !hasRecoverySession)) {
     return (
       <AuthLayout
         icon={AlertTriangle}

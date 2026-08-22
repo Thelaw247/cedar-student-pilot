@@ -2,9 +2,11 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   assertOwnedKey,
+  avatarKey,
   parseStorageRef,
   recordingKey,
   validateRecordingUpload,
+  validateAvatarUpload,
 } from '../lib/r2.js';
 
 const USER_ID = '11111111-1111-4111-8111-111111111111';
@@ -22,6 +24,14 @@ test('validates recording MIME type and size', () => {
     () => validateRecordingUpload({ contentType: 'audio/webm', sizeBytes: 201 * 1024 * 1024 }),
     /200 MB/,
   );
+});
+
+test('validates profile photos and generates an isolated avatar key', () => {
+  assert.deepEqual(validateAvatarUpload({ contentType: 'image/png', sizeBytes: 512 }), {
+    contentType: 'image/png', sizeBytes: 512,
+  });
+  assert.match(avatarKey(USER_ID, 'image/png'), new RegExp(`^users/${USER_ID}/avatars/[0-9a-f-]+\\.png$`));
+  assert.throws(() => validateAvatarUpload({ contentType: 'image/svg+xml', sizeBytes: 512 }), /JPEG/);
 });
 
 test('generates opaque user-scoped recording keys', () => {

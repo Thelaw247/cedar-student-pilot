@@ -190,6 +190,19 @@ const files = {
       body: { key: prepared.data.key },
     })).data;
   },
+  async uploadAvatar(file) {
+    const prepared = await apiRequest('/files/avatars/upload-url', {
+      method: 'POST',
+      body: { content_type: file.type, size_bytes: file.size },
+    });
+    const uploaded = await fetch(prepared.data.upload_url, {
+      method: 'PUT', headers: prepared.data.headers, body: file,
+    });
+    if (!uploaded.ok) throw new Error(`Profile photo upload failed (${uploaded.status})`);
+    return (await apiRequest('/files/avatars/confirm', {
+      method: 'POST', body: { key: prepared.data.key },
+    })).data;
+  },
   async getDownloadUrl(ref) {
     if (!String(ref || '').startsWith('r2://')) return ref;
     const withoutScheme = String(ref).slice(5);
@@ -223,6 +236,10 @@ const integrations = {
         if (file.size > 8 * 1024 * 1024) throw new RangeError('Timetable files must be 8 MB or smaller');
         return { file_url: await readAsDataUrl(file) };
       }
+      if (purpose === 'avatar') {
+        const result = await files.uploadAvatar(file);
+        return { file_url: result.storage_ref };
+      }
       throw new Error('This file-upload purpose has not been migrated to private storage yet');
     },
   },
@@ -248,9 +265,19 @@ const auth = {
     if (Object.hasOwn(fields, 'avatar_url')) allowed.avatar_url = fields.avatar_url;
     const unexpected = Object.keys(fields).filter((field) => !Object.hasOwn(allowed, field));
     if (unexpected.length) throw new Error(`Profile fields cannot be updated: ${unexpected.join(', ')}`);
+    let previousAvatar = null;
+    if (Object.hasOwn(allowed, 'avatar_url')) {
+      const { data: current } = await supabase.from('profiles').select('avatar_url').eq('id', user.id).single();
+      previousAvatar = current?.avatar_url || null;
+    }
     if (Object.keys(allowed).length) {
       const { error } = await supabase.from('profiles').update(allowed).eq('id', user.id);
       if (error) throw error;
+    }
+    if (previousAvatar && previousAvatar !== allowed.avatar_url && previousAvatar.startsWith('r2://')) {
+      await files.delete(previousAvatar).catch((error) => {
+        console.error('Could not remove the previous profile photo', error);
+      });
     }
     return auth.me();
   },
@@ -274,11 +301,21 @@ const auth = {
     return data;
   },
   async verifyOtp({ email, otpCode }) {
-    const { data, error } = await supabase.auth.verifyOtp({
+    let { data, error } = await supabase.auth.verifyOtp({
       email,
       token: otpCode,
-      type: 'email',
+      type: 'signup',
     });
+    // Some Supabase email templates issue the generic email OTP type. Support
+    // both without weakening verification; Supabase validates the token and
+    // intended email in either case.
+    if (error) {
+      ({ data, error } = await supabase.auth.verifyOtp({
+        email,
+        token: otpCode,
+        type: 'email',
+      }));
+    }
     if (error) throw error;
     return data.session || data;
   },
@@ -305,6 +342,30 @@ const auth = {
     const { data, error } = await supabase.auth.updateUser({ password: newPassword });
     if (error) throw error;
     return data;
+  },
+  async hasRecoverySession() {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) return true;
+    // URL-fragment recovery can finish just after the page's first render.
+    // Wait briefly for supabase-js to exchange it instead of flashing an
+    // invalid-link screen due to an initialization race.
+    return new Promise((resolve) => {
+      let settled = false;
+      let timer;
+      let subscription;
+      const finish = (value) => {
+        if (settled) return;
+        settled = true;
+        if (timer) clearTimeout(timer);
+        subscription?.unsubscribe();
+        resolve(value);
+      };
+      ({ data: { subscription } } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+        if (nextSession) finish(true);
+      }));
+      if (settled) subscription.unsubscribe();
+      else timer = setTimeout(() => finish(false), 4000);
+    });
   },
   async changePassword({ currentPassword, newPassword }) {
     const current = await auth.me();

@@ -1,7 +1,8 @@
 import React, { useState, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import ResolvedAvatarImage from '@/components/ResolvedAvatarImage';
 import { getInitials, getAvatarColor } from '@/lib/avatar';
 import { Mail, Lock, Check, Loader2, LogOut, AlertCircle, Camera, X } from 'lucide-react';
 
@@ -115,7 +116,7 @@ export default function ProfileSettings() {
       <div className="flex items-center gap-3">
         <div className="relative flex-shrink-0">
           <Avatar className="w-14 h-14">
-            {user?.avatar_url && <AvatarImage src={user.avatar_url} alt={user?.full_name || 'Profile photo'} />}
+            {user?.avatar_url && <ResolvedAvatarImage src={user.avatar_url} alt={user?.full_name || 'Profile photo'} />}
             <AvatarFallback
               style={{ backgroundColor: getAvatarColor(user?.id), color: '#fff' }}
               className="text-base font-semibold"
