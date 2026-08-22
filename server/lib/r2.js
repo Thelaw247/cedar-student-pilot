@@ -31,21 +31,25 @@ const AVATAR_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 let cachedClient;
 let cachedFingerprint;
 
+function r2Env(name) {
+  return String(process.env[name] || '').trim();
+}
+
 export function r2IsConfigured() {
   return Boolean(
-    process.env.R2_ACCOUNT_ID
-    && process.env.R2_ACCESS_KEY_ID
-    && process.env.R2_SECRET_ACCESS_KEY
-    && process.env.R2_BUCKET_NAME
+    r2Env('R2_ACCOUNT_ID')
+    && r2Env('R2_ACCESS_KEY_ID')
+    && r2Env('R2_SECRET_ACCESS_KEY')
+    && r2Env('R2_BUCKET_NAME')
   );
 }
 
 function config() {
   const values = {
-    accountId: process.env.R2_ACCOUNT_ID,
-    accessKeyId: process.env.R2_ACCESS_KEY_ID,
-    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
-    bucket: process.env.R2_BUCKET_NAME,
+    accountId: r2Env('R2_ACCOUNT_ID'),
+    accessKeyId: r2Env('R2_ACCESS_KEY_ID'),
+    secretAccessKey: r2Env('R2_SECRET_ACCESS_KEY'),
+    bucket: r2Env('R2_BUCKET_NAME'),
   };
   const missing = Object.entries(values)
     .filter(([, value]) => !value)
