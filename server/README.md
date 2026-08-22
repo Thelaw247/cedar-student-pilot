@@ -18,6 +18,8 @@ receive a Supabase service-role key in browser-facing code.
 - `SUPABASE_ANON_KEY`: publishable/anon key used to validate user sessions.
 - `ALLOWED_ORIGINS`: comma-separated exact frontend origins. Production has
   no permissive default.
+- `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, and
+  `R2_BUCKET_NAME`: least-privilege R2 object credentials and private bucket.
 
 Feature routes additionally fail closed when their provider-specific variables
 are absent, including Stripe, LLM, email, cron, and recording-host settings.

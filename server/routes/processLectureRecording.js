@@ -7,6 +7,7 @@ import {
   getBalance, availableCredits, insufficientResponse, spendCredits,
   logUsage, durationCost, COST_PER_30MIN_PROCESS, groqCostCad, base44CostCad,
 } from '../lib/credits.js';
+import { resolveRecordingStorageRef } from '../lib/r2.js';
 
 // Direct port of base44/functions/processLectureRecording/entry.ts — the
 // core pipeline: fetch the stored recording, transcribe it, extract
@@ -49,7 +50,10 @@ class RequestError extends Error {
   }
 }
 
-function trustedRecordingUrl(rawUrl) {
+async function trustedRecordingUrl(rawUrl, userId) {
+  const r2Url = await resolveRecordingStorageRef(userId, rawUrl);
+  if (r2Url) return r2Url;
+
   const trustedHost = process.env.TRUSTED_RECORDING_HOST;
   if (!trustedHost) {
     throw new RequestError('Recording storage is not yet configured on this server (TRUSTED_RECORDING_HOST unset)', 500);
@@ -66,8 +70,8 @@ function trustedRecordingUrl(rawUrl) {
   return url.toString();
 }
 
-async function fetchVerifiedAudio(rawUrl) {
-  const audioUrl = trustedRecordingUrl(rawUrl);
+async function fetchVerifiedAudio(rawUrl, userId) {
+  const audioUrl = await trustedRecordingUrl(rawUrl, userId);
   let response;
   try {
     response = await fetch(audioUrl, { redirect: 'error' });
@@ -320,7 +324,7 @@ router.post('/', requireAuth, async (req, res) => {
       return insufficientResponse(res, 'process_lecture', minimumCost, balance);
     }
 
-    const verifiedAudio = await fetchVerifiedAudio(storedAudioUrl);
+    const verifiedAudio = await fetchVerifiedAudio(storedAudioUrl, userId);
     const audioSeconds = verifiedAudio.durationSeconds;
     const cost = alreadyCharged ? 0 : durationCost(audioSeconds, COST_PER_30MIN_PROCESS);
 
