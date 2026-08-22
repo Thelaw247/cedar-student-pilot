@@ -1,0 +1,3 @@
+# Cloudflare Pages SPA fallback. Static assets are served normally; all other
+# paths render React Router's entry point so auth/deep links survive refreshes.
+/* /index.html 200

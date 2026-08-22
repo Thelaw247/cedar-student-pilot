@@ -15,7 +15,7 @@ still deploys `main`.
 | Supabase Auth | Code complete, dashboard setup pending | Password, signup OTP, recovery, OAuth adapter, profile provisioning and session refresh are implemented. Redirect URLs, email template/provider settings, Apple/Facebook providers, and leaked-password protection need dashboard verification. |
 | Express API | Hardened staging service is live | `cedar-api-staging` deploys the audit branch independently. Health, exact-origin CORS, hostile-origin rejection, and unauthenticated rejection are verified. Database, R2, AI, and Stripe secrets are not configured on this new service yet. The older `main` API is untouched. |
 | R2 storage | Code complete, infrastructure pending | Private presigned recording/avatar upload, confirmation, playback, ownership validation, and lifecycle deletion are implemented. Bucket, CORS, least-privilege token, and Render secrets do not exist yet. |
-| Staging frontend | Built and deployed | `cedar-staging` builds the audit branch in Supabase mode at https://cedar-staging-jeu6.onrender.com and now targets the isolated hardened API. Direct SPA-route rewrite still needs Dashboard configuration. |
+| Staging frontend | Built and deployed | `cedar-staging` builds the audit branch in Supabase mode at https://cedar-staging-jeu6.onrender.com and now targets the isolated hardened API. A Cloudflare Pages `_redirects` fallback is committed; the temporary Render site still needs its Dashboard rewrite. |
 | Full staging test | Blocked | Requires hardened API deployment, R2, provider secrets, Auth redirect/email configuration, and a test user. |
 | Cutover | Not started | No Base44 publish, DNS change, live Stripe webhook switch, or production-domain change has occurred. |
 
