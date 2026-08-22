@@ -99,6 +99,10 @@ live on `codex/security-and-api-hardening` in draft PR #1.
   isolation, but type checking is not yet a trustworthy CI gate.
 - The frontend bundle is about 1.56 MB minified (about 415 KB gzip). It works,
   but route-level code splitting should be a performance follow-up.
+- A non-breaking `npm audit fix` reduces the frontend report from 21 findings
+  (12 high) to four moderate findings. The remaining advisories are in
+  React Router 6 and the legacy React Quill/Quill 1 chain; both require tested
+  major-version migrations rather than a blind `--force` update.
 
 ## Live staging inventory
 
@@ -109,7 +113,7 @@ live on `codex/security-and-api-hardening` in draft PR #1.
   (`srv-da4h7arbc2fs73b96pjg`), Virginia, free plan, auto-deploying
   `codex/security-and-api-hardening`
 - API readiness: https://cedar-api-staging.onrender.com/health/ready
-- Latest verified staging commit: `02870e677a303e06dad630e9599d0d3aa093be9e`
+- Deployment source: the head of `codex/security-and-api-hardening` (draft PR #1)
 - Older API: `cedar-server` (`srv-da451eek1f9s73ampaug`), still deploying
   `main`; it is not the isolated migration target.
 
