@@ -1,4 +1,6 @@
 import express from 'express';
+import { fileURLToPath } from 'node:url';
+import { requestSecurity } from './lib/http.js';
 import stripeWebhookRouter from './routes/stripeWebhook.js';
 import meRouter from './routes/me.js';
 import exportUserDataRouter from './routes/exportUserData.js';
@@ -29,8 +31,11 @@ import processLectureRecordingRouter from './routes/processLectureRecording.js';
 import academicAIChatRouter from './routes/academicAIChat.js';
 import sendStudyRemindersRouter from './routes/sendStudyReminders.js';
 
-const app = express();
+export const app = express();
 const PORT = process.env.PORT || 3000;
+
+app.disable('x-powered-by');
+app.use(requestSecurity);
 
 app.use('/stripe/webhook', express.raw({ type: 'application/json' }), stripeWebhookRouter);
 
@@ -56,6 +61,9 @@ app.use('/fit-project-time', fitProjectTimeRouter);
 app.use('/generate-missed-lecture-summary', generateMissedLectureSummaryRouter);
 app.use('/generate-lecture-review', generateLectureReviewRouter);
 app.use('/generate-session-review', generateSessionReviewRouter);
+// Compatibility alias for the existing frontend call site. Keep the canonical
+// route above and remove this alias after the frontend migration is complete.
+app.use('/process-session-review', generateSessionReviewRouter);
 app.use('/rebook-study-session', rebookStudySessionRouter);
 app.use('/generate-project-roadmap', generateProjectRoadmapRouter);
 app.use('/generate-class-handbook', generateClassHandbookRouter);
@@ -69,6 +77,12 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', service: 'cedar-server', timestamp: new Date().toISOString() });
 });
 
-app.listen(PORT, () => {
-  console.log(`cedar-server listening on port ${PORT}`);
+app.use((req, res) => {
+  res.status(404).json({ error: 'Not found' });
 });
+
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`cedar-server listening on port ${PORT}`);
+  });
+}

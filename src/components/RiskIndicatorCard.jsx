@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { AlertTriangle, Loader2, Flame, TrendingDown, BookX, CalendarClock, ChevronRight, X } from 'lucide-react';
+import { AlertTriangle, Flame, TrendingDown, BookX, CalendarClock, ChevronRight, X } from 'lucide-react';
 import { isDismissedToday, dismissToday } from '@/lib/dismiss';
 
 const riskIcons = {
@@ -134,3 +134,4 @@ export default function RiskIndicatorCard() {
     </div>
   );
 }
+

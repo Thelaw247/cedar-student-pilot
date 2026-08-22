@@ -27,6 +27,8 @@ function tokensMatch(a, b) {
 const router = express.Router();
 
 router.post('/', async (req, res) => {
+  let lockClient;
+  let lockHeld = false;
   try {
     const expected = process.env.GRANT_TRIGGER_TOKEN;
     const presented = req.headers['x-cedar-trigger-token'] || req.body?.trigger_token || '';
@@ -34,34 +36,74 @@ router.post('/', async (req, res) => {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
+    // A session-level advisory lock prevents overlapping scheduler requests.
+    // It is automatically released if the connection dies.
+    lockClient = await pool.connect();
+    const lock = await lockClient.query(
+      'select pg_try_advisory_lock(hashtext($1)) as acquired',
+      [STATE_KEY],
+    );
+    lockHeld = lock.rows[0]?.acquired === true;
+    if (!lockHeld) {
+      return res.status(409).json({ error: 'Monthly grant sweep already running' });
+    }
+
     const stateRows = await pool.query('select * from system_state where key = $1', [STATE_KEY]);
     const lastRun = stateRows.rows[0]?.value ? new Date(stateRows.rows[0].value) : null;
     if (lastRun && Date.now() - lastRun.getTime() < COOLDOWN_HOURS * 60 * 60 * 1000) {
       return res.json({ ok: true, skipped_reason: 'cooldown', granted: 0, skipped: 0 });
     }
-    if (stateRows.rows[0]) {
-      await pool.query('update system_state set value = $1 where key = $2', [new Date().toISOString(), STATE_KEY]);
-    } else {
-      await pool.query('insert into system_state (key, value) values ($1, $2)', [STATE_KEY, new Date().toISOString()]);
-    }
-
     const thisMonth = periodKey();
-    const { rows: balances } = await pool.query('select * from credit_balances order by updated_at desc limit 500');
+    const { rows: balances } = await pool.query('select * from credit_balances order by updated_at');
 
     let granted = 0;
     let skipped = 0;
+    const failures = [];
     for (const b of balances) {
       if (b.tier === 'free' || !b.stripe_subscription_id) { skipped++; continue; }
       if (b.period_key === thisMonth) { skipped++; continue; }
-      const result = await grantScheduledMonthly(b.user_id, b.tier, b.stripe_subscription_id, thisMonth);
-      if (Number(result?.granted || 0) > 0) granted++;
-      else skipped++;
+      try {
+        const result = await grantScheduledMonthly(b.user_id, b.tier, b.stripe_subscription_id, thisMonth);
+        if (Number(result?.granted || 0) > 0) granted++;
+        else skipped++;
+      } catch (error) {
+        failures.push({ user_id: b.user_id, error: error.message });
+      }
     }
 
-    res.json({ ok: true, granted, skipped });
+    // Stamp completion only after every account succeeds. If a partial sweep
+    // fails, the scheduler may retry immediately; per-user grant anchors and
+    // period keys make already-completed accounts idempotent.
+    if (failures.length > 0) {
+      console.error('[grantMonthlyCredits] partial sweep failure', failures);
+      return res.status(500).json({
+        error: 'Monthly grant sweep incomplete',
+        granted,
+        skipped,
+        failed: failures.length,
+      });
+    }
+
+    await pool.query(
+      `insert into system_state (key, value) values ($1, $2)
+       on conflict (key) do update set value = excluded.value`,
+      [STATE_KEY, new Date().toISOString()],
+    );
+
+    res.json({ ok: true, granted, skipped, failed: 0 });
   } catch (error) {
     console.error('[grantMonthlyCredits]', error.message);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Monthly grant sweep failed' });
+  } finally {
+    if (lockClient) {
+      if (lockHeld) {
+        await lockClient.query(
+          'select pg_advisory_unlock(hashtext($1))',
+          [STATE_KEY],
+        ).catch(() => {});
+      }
+      lockClient.release();
+    }
   }
 });
 

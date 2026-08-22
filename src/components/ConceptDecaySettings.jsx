@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { getSetting, setSetting } from '@/lib/settings';
-import { DECAY_PRESETS } from '@/lib/conceptDecay';
 import { Check, Zap, Clock, TrendingDown } from 'lucide-react';
 
 const OPTIONS = [

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useTodaySchedule } from '@/hooks/useTodaySchedule';
-import { Zap, Clock, MapPin, GraduationCap, Users } from 'lucide-react';
+import { Zap, Clock, MapPin, GraduationCap } from 'lucide-react';
 
 function formatTime(t) {
   if (!t) return '';
@@ -100,3 +100,4 @@ export default function DesktopRail() {
     </aside>
   );
 }
+

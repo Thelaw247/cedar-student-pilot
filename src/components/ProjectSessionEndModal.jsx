@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Check, Clock, Trash2, Loader2, AlertTriangle, Calendar, X, Plus } from 'lucide-react';
+import { Check, Clock, Trash2, Loader2, AlertTriangle, Calendar } from 'lucide-react';
 
 export default function ProjectSessionEndModal({ assignmentId, onClose }) {
   const [phase, setPhase] = useState('ask'); // ask → time → fitting → scheduled → full → done

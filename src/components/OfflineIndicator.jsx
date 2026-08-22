@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Wifi, WifiOff, RefreshCw, Check } from 'lucide-react';
+import { WifiOff, RefreshCw, Check } from 'lucide-react';
 import { getQueueLength, replayQueue, hasPending } from '@/lib/syncQueue';
 
 export default function OfflineIndicator() {

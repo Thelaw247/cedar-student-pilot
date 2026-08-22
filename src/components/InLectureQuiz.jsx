@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { X, Loader2, Check, Clock, Brain, ArrowRight, RotateCcw } from 'lucide-react';
+import { X, Loader2, Check, Clock, Brain, ArrowRight } from 'lucide-react';
 
 const QUIZ_DURATION = 300; // 5 minutes in seconds
 

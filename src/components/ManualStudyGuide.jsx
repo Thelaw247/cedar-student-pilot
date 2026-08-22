@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Loader2, X, BookOpen, FileText, List, AlertCircle, Clipboard } from 'lucide-react';
+import { Loader2, X, BookOpen, List, Clipboard } from 'lucide-react';
 
 export default function ManualStudyGuide({ classId, studyMode, lectureIds, assignmentId, onClose, onLoad }) {
   const [guide, setGuide] = useState(null);

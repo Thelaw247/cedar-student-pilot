@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { X, Music, Play, Pause, Square, Brain, Coffee, Check, BarChart3, Loader2, MessageCircle, Clock } from 'lucide-react';
+import { X, Music, Play, Pause, Square, Brain, Check, BarChart3, Loader2, Clock } from 'lucide-react';
 import MusicPlayer from '@/components/MusicPlayer';
 // AI Study Chat is WITHDRAWN pending a per-message price and a working
 // implementation. The component is left on disk — re-add the import plus the

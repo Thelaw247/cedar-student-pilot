@@ -1,10 +1,10 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { getInitials, getAvatarColor } from '@/lib/avatar';
-import { Upload, FileText, Loader2, Check, X, Plus, ChevronRight, Camera, AlertCircle } from 'lucide-react';
+import { Upload, Loader2, Check, X, Plus, ChevronRight, Camera, AlertCircle } from 'lucide-react';
 
 const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
 

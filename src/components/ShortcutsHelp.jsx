@@ -1,5 +1,5 @@
 import React from 'react';
-import { Command, Calendar, Mic, Search, ArrowLeft, ArrowRight, HelpCircle } from 'lucide-react';
+import { Command, Calendar, Mic, Search, ArrowLeft, HelpCircle } from 'lucide-react';
 
 const SHORTCUTS = [
   { keys: ['⌘', 'K'], label: 'Open command palette', icon: Command },

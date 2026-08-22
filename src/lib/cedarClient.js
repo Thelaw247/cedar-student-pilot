@@ -56,7 +56,10 @@ function functionPath(name) {
 function applySort(query, sort) {
   if (!sort) return query;
   const desc = sort.startsWith('-');
-  const column = desc ? sort.slice(1) : sort;
+  const requested = desc ? sort.slice(1) : sort;
+  const column = requested === 'created_date' ? 'created_at'
+    : requested === 'updated_date' ? 'updated_at'
+      : requested;
   return query.order(column, { ascending: !desc });
 }
 
@@ -88,14 +91,16 @@ function makeEntity(tableName) {
       // Base44 stamped this automatically, so callers here rarely set it
       // explicitly either. Fill it in from the current session if missing.
       const { data: { user } } = await supabase.auth.getUser();
-      const payload = { user_id: user?.id, ...fields };
+      if (!user) throw new Error('Not signed in');
+      const payload = { ...fields, user_id: user.id };
       const { data, error } = await supabase.from(tableName).insert(payload).select().single();
       if (error) throw error;
       return data;
     },
     async bulkCreate(rows) {
       const { data: { user } } = await supabase.auth.getUser();
-      const payload = rows.map((r) => ({ user_id: user?.id, ...r }));
+      if (!user) throw new Error('Not signed in');
+      const payload = rows.map((r) => ({ ...r, user_id: user.id }));
       const { data, error } = await supabase.from(tableName).insert(payload).select();
       if (error) throw error;
       return data;
@@ -131,7 +136,8 @@ const functions = {
    *  shape every existing call site (response.data / res?.data) expects. */
   async invoke(name, args = {}) {
     const headers = { 'Content-Type': 'application/json', ...(await authHeaders()) };
-    const res = await fetch(`${RENDER_API_URL}${functionPath(name)}`, {
+    const routeName = name === 'processSessionReview' ? 'generateSessionReview' : name;
+    const res = await fetch(`${RENDER_API_URL}${functionPath(routeName)}`, {
       method: 'POST',
       headers,
       body: JSON.stringify(args),
@@ -156,16 +162,84 @@ const auth = {
   async updateMe(fields) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Not signed in');
-    // full_name/email-adjacent fields go to Supabase Auth's own user_metadata;
-    // everything else (role, avatar_url) goes to the profiles extension table.
-    const { full_name, ...profileFields } = fields;
-    if (full_name !== undefined) {
-      await supabase.auth.updateUser({ data: { full_name } });
-    }
-    if (Object.keys(profileFields).length > 0) {
-      await supabase.from('profiles').update(profileFields).eq('id', user.id);
+    const allowed = {};
+    if (Object.hasOwn(fields, 'full_name')) allowed.full_name = fields.full_name;
+    if (Object.hasOwn(fields, 'avatar_url')) allowed.avatar_url = fields.avatar_url;
+    const unexpected = Object.keys(fields).filter((field) => !Object.hasOwn(allowed, field));
+    if (unexpected.length) throw new Error(`Profile fields cannot be updated: ${unexpected.join(', ')}`);
+    if (Object.keys(allowed).length) {
+      const { error } = await supabase.from('profiles').update(allowed).eq('id', user.id);
+      if (error) throw error;
     }
     return auth.me();
+  },
+  async loginViaEmailPassword(email, password) {
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+    return data;
+  },
+  async loginWithProvider(provider, returnTo = '/today') {
+    const redirectTo = new URL(returnTo, window.location.origin).toString();
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: { redirectTo },
+    });
+    if (error) throw error;
+    return data;
+  },
+  async register({ email, password }) {
+    const { data, error } = await supabase.auth.signUp({ email, password });
+    if (error) throw error;
+    return data;
+  },
+  async verifyOtp({ email, otpCode }) {
+    const { data, error } = await supabase.auth.verifyOtp({
+      email,
+      token: otpCode,
+      type: 'email',
+    });
+    if (error) throw error;
+    return data.session || data;
+  },
+  async resendOtp(email) {
+    const { data, error } = await supabase.auth.resend({ type: 'signup', email });
+    if (error) throw error;
+    return data;
+  },
+  async resetPasswordRequest(email) {
+    const redirectTo = `${window.location.origin}/reset-password`;
+    const { data, error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+    if (error) throw error;
+    return data;
+  },
+  async resetPassword({ resetToken, newPassword }) {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session && resetToken) {
+      const { error: verifyError } = await supabase.auth.verifyOtp({
+        token_hash: resetToken,
+        type: 'recovery',
+      });
+      if (verifyError) throw verifyError;
+    }
+    const { data, error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) throw error;
+    return data;
+  },
+  async changePassword({ currentPassword, newPassword }) {
+    const current = await auth.me();
+    if (!current?.email) throw new Error('Not signed in');
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: current.email,
+      password: currentPassword,
+    });
+    if (signInError) throw signInError;
+    const { data, error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) throw error;
+    return data;
+  },
+  async setToken() {
+    // verifyOtp already persists the returned session in supabase-js.
+    return supabase.auth.getSession();
   },
   async logout() {
     await supabase.auth.signOut();

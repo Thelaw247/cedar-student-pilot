@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { ChevronLeft, Plus, GraduationCap, Clock, MapPin, Mic, FileText, Loader2, Calendar, AlertCircle, Brain, Headphones, Pencil, AlertTriangle, Search, X, BookOpen, FolderPlus, Pause, Play, Shield, Mail, Check, Archive, RotateCcw, CheckCircle2 } from 'lucide-react';
 import EditClassModal from '@/components/EditClassModal';
@@ -1062,3 +1062,4 @@ function AddAssignmentModal({ classId, onClose }) {
     </div>
   );
 }
+

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { MapPin, GraduationCap, Clock, Sparkles, Plus, Briefcase, Calendar, AlertCircle } from 'lucide-react';
+import { MapPin, GraduationCap, Clock, Sparkles, Briefcase, Calendar, AlertCircle } from 'lucide-react';
 import EmptyTimeSuggestion from '@/components/EmptyTimeSuggestion';
 
 const eventTypeConfig = {

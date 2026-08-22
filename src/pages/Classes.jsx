@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { Plus, Search, GraduationCap, ChevronRight, MapPin, Pencil } from 'lucide-react';
+import { Plus, Search, GraduationCap, ChevronRight, Pencil } from 'lucide-react';
 import LectureSearch from '@/components/LectureSearch';
 import WeeklyCalendar from '@/components/WeeklyCalendar';
 import EditClassModal from '@/components/EditClassModal';
@@ -182,3 +182,4 @@ export default function Classes() {
     </div>
   );
 }
+

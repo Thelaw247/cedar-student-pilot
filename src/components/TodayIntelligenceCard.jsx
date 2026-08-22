@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { base44 } from '@/api/base44Client';
 import { GraduationCap, BookOpen, AlertCircle, AlertTriangle, Plus, CalendarClock, X } from 'lucide-react';
 import UpNextCard from '@/components/UpNextCard';
 import RebookSessionModal from '@/components/RebookSessionModal';
@@ -230,3 +229,4 @@ function getTodayPlusDays(days) {
   d.setDate(d.getDate() + days);
   return d.toISOString().split('T')[0];
 }
+

@@ -1,7 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import LectureItem from '@/components/LectureItem';
-import FreshnessBadge from '@/components/FreshnessBadge';
 import { getDecayState, getWorstState, DECAY_STATES } from '@/lib/conceptDecay';
 
 function getMondayOfWeek(dateStr) {

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { getSetting } from '@/lib/settings';
 import { getDecayPreset } from '@/lib/conceptDecay';
-import { CalendarCheck, Check, Loader2, Brain } from 'lucide-react';
+import { CalendarCheck, Loader2, Brain } from 'lucide-react';
 
 /**
  * Shown right after a lecture recording finishes processing.
@@ -140,3 +140,4 @@ export default function PostRecordingReviewPrompt({ classId, lectureId, onDone }
     </div>
   );
 }
+

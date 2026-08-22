@@ -3,8 +3,12 @@
   "private": true,
   "version": "0.0.3",
   "type": "module",
+  "engines": {
+    "node": ">=22 <25"
+  },
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "test": "node --test"
   },
   "dependencies": {
     "express": "^4.19.2",

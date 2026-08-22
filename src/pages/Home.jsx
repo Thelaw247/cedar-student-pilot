@@ -17,7 +17,7 @@ import AttendancePrompt from '@/components/AttendancePrompt';
 import WeeklyCalendar from '@/components/WeeklyCalendar';
 import AddEventModal from '@/components/AddEventModal';
 import { classMeetsOnDay, getClassTimesForDay } from '@/lib/classSchedule';
-import { eventsOnDate, weekDates } from '@/lib/eventSchedule';
+import { eventsOnDate } from '@/lib/eventSchedule';
 import { sessionTitle, sessionDescription } from '@/lib/sessionTitle';
 
 function getTodayString() {
@@ -342,3 +342,4 @@ function ThemeToggle() {
     </button>
   );
 }
+

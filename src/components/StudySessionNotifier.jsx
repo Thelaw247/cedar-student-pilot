@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useNavigate } from 'react-router-dom';
-import { Headphones, RefreshCw, X, Loader2 } from 'lucide-react';
+import { Headphones, RefreshCw, Loader2 } from 'lucide-react';
 import { getSetting } from '@/lib/settings';
 
 export default function StudySessionNotifier() {

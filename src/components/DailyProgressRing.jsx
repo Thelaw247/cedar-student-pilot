@@ -1,5 +1,5 @@
 import React from 'react';
-import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
+import { PieChart, Pie, ResponsiveContainer } from 'recharts';
 import { Check, Clock } from 'lucide-react';
 
 function parseTime(t) {
@@ -130,3 +130,4 @@ export default function DailyProgressRing({ classes, events, studySessions, atte
     </div>
   );
 }
+

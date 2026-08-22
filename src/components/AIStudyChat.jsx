@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Loader2, Send, X, Brain } from 'lucide-react';
+import { Loader2, Send, Brain } from 'lucide-react';
 
 export default function AIStudyChat({ classId, className, onInteractionsChange }) {
   const [messages, setMessages] = useState([]);

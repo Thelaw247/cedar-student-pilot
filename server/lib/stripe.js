@@ -148,6 +148,17 @@ async function applyFulfillment(userId, anchorId, kind, meta, build) {
   let result;
   try {
     await client.query('BEGIN');
+    const existingAudit = await client.query(
+      `select status from processed_stripe_events
+       where anchor_id = $1
+       for update`,
+      [anchorId],
+    );
+    if (existingAudit.rows[0]?.status === 'complete') {
+      await client.query('COMMIT');
+      return { already: true };
+    }
+
     const { rows } = await client.query('select * from credit_balances where user_id = $1 for update', [userId]);
     let balance = rows[0];
     if (!balance) {
@@ -159,10 +170,20 @@ async function applyFulfillment(userId, anchorId, kind, meta, build) {
     }
     const anchors = balance.fulfilled_stripe_anchors || [];
     if (anchors.includes(anchorId)) {
+      await client.query(
+        `insert into processed_stripe_events (
+           user_id, anchor_id, kind, stripe_event_id, stripe_session_id,
+           credits_granted, status, last_error, attempt_count, completed_at, processed_at
+         ) values ($1, $2, $3, $4, $5, 0, 'complete', '', 1, now(), now())
+         on conflict (anchor_id) do update set
+           status = 'complete',
+           last_error = '',
+           attempt_count = processed_stripe_events.attempt_count + 1,
+           completed_at = now()`,
+        [userId, anchorId, kind, meta?.stripe_event_id || '', meta?.stripe_session_id || ''],
+      );
       await client.query('COMMIT');
-      result = { already: true };
-      await writeAudit({ anchorId, userId, kind, credits: 0, status: 'complete', meta });
-      return result;
+      return { already: true };
     }
     const mutation = build(balance);
     const nextAnchors = [...anchors, anchorId].slice(-500);
@@ -176,9 +197,26 @@ async function applyFulfillment(userId, anchorId, kind, meta, build) {
     clauses.push(`fulfilled_stripe_anchors = $${params.length}`);
     clauses.push('updated_at = now()');
     await client.query(`update credit_balances set ${clauses.join(', ')} where id = $1`, params);
+    await client.query(
+      `insert into processed_stripe_events (
+         user_id, anchor_id, kind, stripe_event_id, stripe_session_id,
+         credits_granted, status, last_error, attempt_count, completed_at, processed_at
+       ) values ($1, $2, $3, $4, $5, $6, 'complete', '', 1, now(), now())
+       on conflict (anchor_id) do update set
+         user_id = excluded.user_id,
+         kind = excluded.kind,
+         stripe_event_id = excluded.stripe_event_id,
+         stripe_session_id = excluded.stripe_session_id,
+         credits_granted = excluded.credits_granted,
+         status = 'complete',
+         last_error = '',
+         attempt_count = processed_stripe_events.attempt_count + 1,
+         completed_at = now()`,
+      [userId, anchorId, kind, meta?.stripe_event_id || '',
+       meta?.stripe_session_id || '', mutation.credits],
+    );
     await client.query('COMMIT');
     result = { granted: mutation.credits, ...(mutation.result || {}) };
-    await writeAudit({ anchorId, userId, kind, credits: mutation.credits, status: 'complete', meta });
     return result;
   } catch (error) {
     await client.query('ROLLBACK').catch(() => {});
