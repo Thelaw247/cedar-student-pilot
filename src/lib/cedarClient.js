@@ -131,32 +131,102 @@ async function authHeaders() {
   return session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {};
 }
 
+async function apiRequest(path, { method = 'GET', body, headers = {} } = {}) {
+  if (!RENDER_API_URL) throw new Error('The Cedar API URL is not configured');
+  const response = await fetch(`${RENDER_API_URL}${path}`, {
+    method,
+    headers: {
+      ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
+      ...(await authHeaders()),
+      ...headers,
+    },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  const data = response.status === 204 ? null : await response.json().catch(() => null);
+  if (!response.ok) {
+    const error = new Error(data?.message || data?.error || `API request failed (${response.status})`);
+    error.response = { data, status: response.status };
+    throw error;
+  }
+  return { data, status: response.status };
+}
+
 const functions = {
   /** Mirrors base44.functions.invoke(name, args) -> { data }, matching the
    *  shape every existing call site (response.data / res?.data) expects. */
   async invoke(name, args = {}) {
-    const headers = { 'Content-Type': 'application/json', ...(await authHeaders()) };
     const routeName = name === 'processSessionReview' ? 'generateSessionReview' : name;
-    const res = await fetch(`${RENDER_API_URL}${functionPath(routeName)}`, {
+    return apiRequest(functionPath(routeName), { method: 'POST', body: args });
+  },
+};
+
+function readAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(reader.error || new Error('Could not read the selected file'));
+    reader.readAsDataURL(file);
+  });
+}
+
+const files = {
+  async uploadRecording(file) {
+    if (!(file instanceof Blob) || !file.size) throw new TypeError('A non-empty recording is required');
+    const prepared = await apiRequest('/files/recordings/upload-url', {
       method: 'POST',
-      headers,
-      body: JSON.stringify(args),
+      body: { content_type: file.type, size_bytes: file.size },
     });
-    const data = await res.json().catch(() => null);
-    if (!res.ok) {
-      const err = new Error(data?.error || `Request to ${name} failed (${res.status})`);
-      err.response = { data, status: res.status };
-      throw err;
-    }
-    return { data, status: res.status };
+    const uploaded = await fetch(prepared.data.upload_url, {
+      method: 'PUT',
+      headers: prepared.data.headers,
+      body: file,
+    });
+    if (!uploaded.ok) throw new Error(`Recording upload failed (${uploaded.status})`);
+    return (await apiRequest('/files/recordings/confirm', {
+      method: 'POST',
+      body: { key: prepared.data.key },
+    })).data;
+  },
+  async getDownloadUrl(ref) {
+    if (!String(ref || '').startsWith('r2://')) return ref;
+    const withoutScheme = String(ref).slice(5);
+    const slash = withoutScheme.indexOf('/');
+    if (slash < 1) throw new TypeError('Invalid recording reference');
+    const key = withoutScheme.slice(slash + 1);
+    const result = await apiRequest(`/files/download-url?key=${encodeURIComponent(key)}`);
+    return result.data.url;
+  },
+};
+
+const integrations = {
+  Core: {
+    async UploadFile({ file, purpose }) {
+      if (!(file instanceof Blob) || !file.size) throw new TypeError('A non-empty file is required');
+      if (purpose === 'recording') {
+        const result = await files.uploadRecording(file);
+        return { file_url: result.storage_ref, playback_url: result.playback_url };
+      }
+      if (purpose === 'timetable') {
+        const allowed = new Set(['image/jpeg', 'image/png', 'image/webp', 'application/pdf']);
+        if (!allowed.has(file.type)) throw new TypeError('Timetable must be a PDF, JPEG, PNG, or WebP file');
+        if (file.size > 8 * 1024 * 1024) throw new RangeError('Timetable files must be 8 MB or smaller');
+        return { file_url: await readAsDataUrl(file) };
+      }
+      throw new Error('This file-upload purpose has not been migrated to private storage yet');
+    },
   },
 };
 
 const auth = {
   async me() {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return null;
-    const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+    if (!user) {
+      const error = new Error('Unauthorized');
+      error.status = 401;
+      throw error;
+    }
+    const { data: profile, error } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+    if (error) throw error;
     return { id: user.id, email: user.email, ...profile };
   },
   async updateMe(fields) {
@@ -254,4 +324,4 @@ const auth = {
 // instead. If any of the 60 files hit this, that's a real thing to fix, not
 // paper over.
 
-export const cedar = { entities, functions, auth };
+export const cedar = { entities, functions, auth, files, integrations };

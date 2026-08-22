@@ -46,37 +46,42 @@ export default function SessionReview({ classId, className, lectureId, lectureId
   const submitReview = async () => {
     setGenerating(true);
     try {
-      // Evaluate answers using AI
-      const evaluatedQuestions = await Promise.all(questions.map(async (q, idx) => {
+      // Grade objective questions locally, then send all written answers in a
+      // single authenticated backend request. LLM credentials and grading
+      // prompts never belong in the browser.
+      const written = [];
+      const evaluatedQuestions = questions.map((q, idx) => {
         const userAnswer = answers[idx] || '';
         if (!userAnswer) return { ...q, user_answer: '', is_correct: false };
 
-        if (q.type === 'multiple_choice') {
+        if (q.type === 'multiple_choice' || q.type === 'true_false') {
           return { ...q, user_answer: userAnswer, is_correct: userAnswer === q.correct_answer };
         }
-
-        // Use LLM to evaluate short answer and one word
-        const evalRes = await base44.integrations.Core.InvokeLLM({
-          prompt: `You are grading a student's answer. Determine if it is correct.
-
-Question: ${q.question}
-Correct Answer: ${q.correct_answer}
-Student Answer: ${userAnswer}
-
-Be lenient with wording but strict on correctness. For one-word answers, the student's answer must match the concept (synonyms ok, wrong concepts are not).
-
-Return JSON: { "is_correct": boolean, "reasoning": string }`,
-          response_json_schema: {
-            type: 'object',
-            properties: {
-              is_correct: { type: 'boolean' },
-              reasoning: { type: 'string' }
-            }
-          }
+        written.push({
+          index: idx,
+          question: q.question,
+          correct_answer: q.correct_answer,
+          student_answer: userAnswer,
         });
+        return { ...q, user_answer: userAnswer, is_correct: false };
+      });
 
-        return { ...q, user_answer: userAnswer, is_correct: evalRes.is_correct };
-      }));
+      if (written.length) {
+        const gradeRes = await base44.functions.invoke('generateLectureReview', {
+          grade_answers: written.map(({ question, correct_answer, student_answer }) => ({
+            question, correct_answer, student_answer,
+          })),
+        });
+        const grades = gradeRes.data?.results || [];
+        if (grades.length !== written.length) throw new Error('The grading service returned an incomplete result');
+        written.forEach(({ index }, gradeIndex) => {
+          evaluatedQuestions[index] = {
+            ...evaluatedQuestions[index],
+            is_correct: grades[gradeIndex].correct === true,
+            feedback: grades[gradeIndex].feedback || '',
+          };
+        });
+      }
 
       const selfAssessment = selfAssessmentTopics.map((topic, idx) => ({
         topic: topic.topic,

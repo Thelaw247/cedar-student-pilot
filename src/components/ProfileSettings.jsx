@@ -50,7 +50,7 @@ export default function ProfileSettings() {
     }
     setPhotoBusy(true);
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const { file_url } = await base44.integrations.Core.UploadFile({ file, purpose: 'avatar' });
       await base44.auth.updateMe({ avatar_url: file_url });
       await checkUserAuth();
     } catch (err) {

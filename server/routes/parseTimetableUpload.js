@@ -1,6 +1,7 @@
 import express from 'express';
 import { requireAuth } from '../middleware/requireAuth.js';
 import { gateFeature, settleFeature } from '../lib/credits.js';
+import { parseTimetableDataUrl } from '../lib/timetableFile.js';
 
 // Direct port of base44/functions/parseTimetableUpload/entry.ts, with ONE
 // real change: the original never routed through llm.ts because Base44's
@@ -70,10 +71,10 @@ router.post('/', requireAuth, async (req, res) => {
     const key = process.env.GEMINI_API_KEY;
     if (!key) return res.status(500).json({ error: 'GEMINI_API_KEY not configured' });
 
-    const fileRes = await fetch(file_url);
-    if (!fileRes.ok) return res.status(400).json({ error: 'Could not fetch the uploaded file' });
-    const mimeType = fileRes.headers.get('content-type') || 'application/octet-stream';
-    const buffer = Buffer.from(await fileRes.arrayBuffer());
+    // The browser sends the selected file inline. Never fetch a caller-supplied
+    // URL here: doing so would turn this authenticated endpoint into an SSRF
+    // primitive against Render's internal network and cloud metadata services.
+    const { mimeType, buffer } = parseTimetableDataUrl(file_url);
     const base64 = buffer.toString('base64');
 
     const body = {
@@ -97,6 +98,8 @@ router.post('/', requireAuth, async (req, res) => {
 
     res.json({ classes: result.classes || [] });
   } catch (error) {
+    if (error instanceof TypeError) return res.status(400).json({ error: error.message });
+    if (error instanceof RangeError) return res.status(413).json({ error: error.message });
     res.status(500).json({ error: error.message });
   }
 });

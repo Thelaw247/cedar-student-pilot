@@ -4,8 +4,10 @@ import { appParams } from '@/lib/app-params';
 import { clearLegacyUserStorage, clearOtherUserStorage, clearUserStorage, getCachedUserId, setCachedUserId } from '@/lib/currentUser';
 import { clearAllRecordings, clearOtherRecordings, initializeRecordingStore } from '@/lib/recordingStore';
 import { createAxiosClient } from '@base44/sdk/dist/utils/axios-client';
+import { supabase } from '@/lib/supabaseClient';
 
 const AuthContext = createContext();
+const USE_SUPABASE = import.meta.env.VITE_BACKEND_MODE === 'supabase';
 
 async function purgeUserOfflineData(userId) {
   if (!userId) return;
@@ -29,10 +31,25 @@ export const AuthProvider = ({ children }) => {
     // and open IndexedDB v2 so its unscoped recording store is dropped too.
     clearLegacyUserStorage();
     void initializeRecordingStore();
+    if (USE_SUPABASE) {
+      setAppPublicSettings({ id: 'cedar-student-pilot', public_settings: {} });
+      setIsLoadingPublicSettings(false);
+      void checkUserAuth();
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+        void checkUserAuth();
+      });
+      return () => subscription.unsubscribe();
+    }
     checkAppState();
   }, []);
 
   const checkAppState = async () => {
+    if (USE_SUPABASE) {
+      setAppPublicSettings({ id: 'cedar-student-pilot', public_settings: {} });
+      setIsLoadingPublicSettings(false);
+      await checkUserAuth();
+      return;
+    }
     try {
       setIsLoadingPublicSettings(true);
       setAuthError(null);

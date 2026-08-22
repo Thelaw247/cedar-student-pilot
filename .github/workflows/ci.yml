@@ -22,8 +22,15 @@ jobs:
         run: npm ci
       - name: Lint frontend
         run: npm run lint
-      - name: Build frontend
+      - name: Build frontend (Base44 mode)
         run: npm run build
+      - name: Build frontend (Supabase staging mode)
+        run: npm run build
+        env:
+          VITE_BACKEND_MODE: supabase
+          VITE_SUPABASE_URL: https://example.supabase.co
+          VITE_SUPABASE_ANON_KEY: ci-placeholder
+          VITE_RENDER_API_URL: https://api.example.test
       - name: Install server dependencies
         run: npm ci --prefix server
       - name: Test server

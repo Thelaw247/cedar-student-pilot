@@ -13,6 +13,8 @@ export default function LectureDetail() {
   const { lectureId } = useParams();
   const navigate = useNavigate();
   const [lecture, setLecture] = useState(null);
+  const [recordingPlaybackUrl, setRecordingPlaybackUrl] = useState(null);
+  const [recordingPlaybackError, setRecordingPlaybackError] = useState(null);
   const [cls, setCls] = useState(null);
   const [note, setNote] = useState('');
   const [noteId, setNoteId] = useState(null);
@@ -60,6 +62,28 @@ export default function LectureDetail() {
   }, [lectureId]);
 
   useEffect(() => { loadData(); }, [loadData]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const recordingRef = lecture?.recording_url;
+    setRecordingPlaybackError(null);
+    if (!recordingRef) {
+      setRecordingPlaybackUrl(null);
+      return () => { cancelled = true; };
+    }
+    if (!String(recordingRef).startsWith('r2://')) {
+      setRecordingPlaybackUrl(recordingRef);
+      return () => { cancelled = true; };
+    }
+    setRecordingPlaybackUrl(null);
+    base44.files.getDownloadUrl(recordingRef)
+      .then((url) => { if (!cancelled) setRecordingPlaybackUrl(url); })
+      .catch((error) => {
+        console.error(error);
+        if (!cancelled) setRecordingPlaybackError('The recording could not be loaded. Please try again.');
+      });
+    return () => { cancelled = true; };
+  }, [lecture?.recording_url]);
 
   // Refetch when sync completes after reconnection
   useEffect(() => {
@@ -254,7 +278,15 @@ export default function LectureDetail() {
       {/* Audio player */}
       {lecture.recording_url && !lecture.is_missed && (
         <div className="rounded-xl border border-border bg-card p-4 mb-6">
-          <audio controls className="w-full" src={lecture.recording_url}></audio>
+          {recordingPlaybackUrl ? (
+            <audio controls className="w-full" src={recordingPlaybackUrl}></audio>
+          ) : recordingPlaybackError ? (
+            <p className="text-sm text-destructive">{recordingPlaybackError}</p>
+          ) : (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="w-4 h-4 animate-spin" /> Loading recording…
+            </div>
+          )}
         </div>
       )}
 

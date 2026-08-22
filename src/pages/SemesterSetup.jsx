@@ -36,7 +36,7 @@ export default function SemesterSetup() {
     setError('');
     setParsing(true);
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file: f });
+      const { file_url } = await base44.integrations.Core.UploadFile({ file: f, purpose: 'timetable' });
       setFileUrl(file_url);
       const response = await base44.functions.invoke('parseTimetableUpload', { file_url });
       setParsedClasses(response.data?.classes || []);
@@ -90,7 +90,7 @@ export default function SemesterSetup() {
     if (f.size > MAX_PHOTO_BYTES) { setWelcomeError('Photo is too large — please choose one under 5MB.'); return; }
     setPhotoBusy(true);
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file: f });
+      const { file_url } = await base44.integrations.Core.UploadFile({ file: f, purpose: 'avatar' });
       await base44.auth.updateMe({ avatar_url: file_url });
       await checkUserAuth();
     } catch (err) {

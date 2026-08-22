@@ -23,12 +23,11 @@ export default function AIStudyChat({ classId, className, onInteractionsChange }
     setMessages(prev => [...prev, { role: 'user', content: question }]);
     setLoading(true);
     try {
-      const res = await base44.integrations.Core.InvokeLLM({
-        prompt: `You are a helpful study tutor. A student is currently in a focus/study session${className ? ` for ${className}` : ''}. Answer their question clearly and concisely to help them understand the material.
-
-Student question: ${question}`,
+      const res = await base44.functions.invoke('academicAIChat', {
+        message: question,
+        class_id: classId,
       });
-      const answer = typeof res === 'string' ? res : (res.text || JSON.stringify(res));
+      const answer = res.data?.answer || 'I could not process that question.';
       setMessages(prev => [...prev, { role: 'assistant', content: answer }]);
       const newInteraction = { question, answer };
       const updated = [...interactions, newInteraction];

@@ -1,6 +1,7 @@
 import { createClient } from '@base44/sdk';
 import { appParams } from '@/lib/app-params';
 import { getCachedUserId } from '@/lib/currentUser';
+import { cedar } from '@/lib/cedarClient';
 
 const { appId, token, functionsVersion, appBaseUrl } = appParams;
 
@@ -76,7 +77,7 @@ const entitiesProxy = new Proxy({}, {
 // not depend on that property being writable. Everything except `entities` is
 // forwarded untouched — including `asServiceRole`, whose backend callers set
 // `user_id` explicitly in the Deno functions.
-export const base44 = new Proxy(rawClient, {
+const base44Sdk = new Proxy(rawClient, {
   get(target, prop) {
     if (prop === 'entities') return entitiesProxy;
     const value = target[prop];
@@ -84,3 +85,10 @@ export const base44 = new Proxy(rawClient, {
     return typeof value === 'function' ? value.bind(target) : value;
   },
 });
+
+// The live Base44 build keeps its existing behavior unless this explicit
+// staging flag is present. Cloudflare Pages can therefore exercise the new
+// stack without changing or republishing the live Base44 application.
+export const base44 = import.meta.env.VITE_BACKEND_MODE === 'supabase'
+  ? cedar
+  : base44Sdk;

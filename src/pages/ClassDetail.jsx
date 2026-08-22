@@ -406,7 +406,7 @@ function RecordModal({ classId, cls, onClose }) {
       let lectureId = pendingLectureId;
       if (!lectureId) {
         const audioFile = new File([audioBlob], `lecture-${Date.now()}.webm`, { type: 'audio/webm' });
-        const { file_url } = await base44.integrations.Core.UploadFile({ file: audioFile });
+        const { file_url } = await base44.integrations.Core.UploadFile({ file: audioFile, purpose: 'recording' });
         const today = new Date().toISOString().split('T')[0];
         const lecture = await base44.entities.Lecture.create({
           class_id: classId,
@@ -1062,4 +1062,3 @@ function AddAssignmentModal({ classId, onClose }) {
     </div>
   );
 }
-
