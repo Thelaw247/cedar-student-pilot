@@ -9,6 +9,15 @@ import { Upload, Loader2, Check, X, Plus, ChevronRight, Camera, AlertCircle } fr
 
 const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
 
+function deriveSemesterRange(classes) {
+  const starts = classes.map(cls => cls.class_start_date).filter(Boolean).sort();
+  const ends = classes.map(cls => cls.class_end_date).filter(Boolean).sort();
+  return {
+    start_date: starts[0] || '',
+    end_date: ends.at(-1) || '',
+  };
+}
+
 function timetableErrorMessage(error) {
   if (error?.code === 'GEMINI_NOT_CONFIGURED') {
     return 'Timetable analysis is not configured yet. You can add classes manually for now.';
@@ -55,7 +64,14 @@ export default function SemesterSetup() {
       const { file_url } = await base44.integrations.Core.UploadFile({ file: f, purpose: 'timetable' });
       setFileUrl(file_url);
       const response = await base44.functions.invoke('parseTimetableUpload', { file_url });
-      setParsedClasses(response.data?.classes || []);
+      const classes = response.data?.classes || [];
+      setParsedClasses(classes);
+      const parsedRange = deriveSemesterRange(classes);
+      setSemesterInfo(previous => ({
+        ...previous,
+        start_date: previous.start_date || parsedRange.start_date,
+        end_date: previous.end_date || parsedRange.end_date,
+      }));
       setStep(2);
     } catch (e) {
       setError(timetableErrorMessage(e));
@@ -67,6 +83,24 @@ export default function SemesterSetup() {
     setParsing(true);
     setError('');
     try {
+      if (semesterInfo.start_date > semesterInfo.end_date) {
+        throw new Error('Semester start date must be on or before its end date.');
+      }
+      const invalidClass = parsedClasses.find(cls => (
+        cls.class_start_date
+        && cls.class_end_date
+        && cls.class_start_date > cls.class_end_date
+      ));
+      if (invalidClass) {
+        throw new Error(`${invalidClass.name || 'A class'} has an end date before its start date.`);
+      }
+      const outsideSemester = parsedClasses.find(cls => (
+        (cls.class_start_date && cls.class_start_date < semesterInfo.start_date)
+        || (cls.class_end_date && cls.class_end_date > semesterInfo.end_date)
+      ));
+      if (outsideSemester) {
+        throw new Error(`${outsideSemester.name || 'A class'} has dates outside the semester range.`);
+      }
       const semester = await base44.entities.Semester.create({
         ...semesterInfo,
         is_active: true,
@@ -76,11 +110,13 @@ export default function SemesterSetup() {
           ...cls,
           semester_id: semester.id,
           color: cls.color || '#3B82F6',
+          class_start_date: cls.class_start_date || semesterInfo.start_date,
+          class_end_date: cls.class_end_date || semesterInfo.end_date,
         });
       }
       setStep(3);
     } catch (e) {
-      setError('Failed to create semester. Please try again.');
+      setError(e.message || 'Failed to create semester. Please try again.');
     }
     setParsing(false);
   };
@@ -93,7 +129,8 @@ export default function SemesterSetup() {
 
   const addManualClass = () => {
     setParsedClasses([...parsedClasses, {
-      name: '', instructor: '', room: '', days_of_week: ['Mon'], start_time: '09:00', end_time: '10:00', color: '#3B82F6'
+      name: '', instructor: '', room: '', days_of_week: ['Mon'], start_time: '09:00', end_time: '10:00',
+      class_start_date: '', class_end_date: '', color: '#3B82F6'
     }]);
   };
 
@@ -252,7 +289,7 @@ export default function SemesterSetup() {
           <X className="w-4 h-4" /> Back
         </Link>
         <h1 className="font-heading text-2xl sm:text-3xl font-bold mb-2">Review Your Classes</h1>
-        <p className="text-muted-foreground text-sm mb-6">Confirm the extracted information and set your semester dates.</p>
+        <p className="text-muted-foreground text-sm mb-6">Confirm the extracted information. Each class can have its own date range; blank class dates use the semester dates.</p>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
           <input type="text" placeholder="Semester Name" value={semesterInfo.name}
@@ -294,6 +331,24 @@ export default function SemesterSetup() {
                 <input type="time" value={cls.end_time || ''}
                   onChange={e => updateClass(i, 'end_time', e.target.value)}
                   className="px-3 py-2 rounded-lg border border-input bg-background text-xs focus:outline-none focus:ring-2 focus:ring-primary/40" />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <label className="text-xs text-muted-foreground">
+                  <span className="mb-1 block font-medium">Class start date</span>
+                  <input type="date" value={cls.class_start_date || ''}
+                    min={semesterInfo.start_date || undefined}
+                    max={cls.class_end_date || semesterInfo.end_date || undefined}
+                    onChange={e => updateClass(i, 'class_start_date', e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-input bg-background text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40" />
+                </label>
+                <label className="text-xs text-muted-foreground">
+                  <span className="mb-1 block font-medium">Class end date</span>
+                  <input type="date" value={cls.class_end_date || ''}
+                    min={cls.class_start_date || semesterInfo.start_date || undefined}
+                    max={semesterInfo.end_date || undefined}
+                    onChange={e => updateClass(i, 'class_end_date', e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-input bg-background text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40" />
+                </label>
               </div>
               <div className="flex gap-1.5 flex-wrap">
                 {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(day => {
