@@ -69,7 +69,13 @@ router.post('/', requireAuth, async (req, res) => {
     if (!gate.ok) return; // gateFeature already sent the 402
 
     const key = process.env.GEMINI_API_KEY;
-    if (!key) return res.status(500).json({ error: 'GEMINI_API_KEY not configured' });
+    if (!key) {
+      console.error('[parse-timetable-upload] Gemini is not configured');
+      return res.status(503).json({
+        code: 'GEMINI_NOT_CONFIGURED',
+        error: 'Timetable analysis is not configured yet',
+      });
+    }
 
     // The browser sends the selected file inline. Never fetch a caller-supplied
     // URL here: doing so would turn this authenticated endpoint into an SSRF
@@ -88,7 +94,10 @@ router.post('/', requireAuth, async (req, res) => {
     );
     if (!geminiRes.ok) {
       const detail = await geminiRes.text().catch(() => '');
-      throw new Error(`Gemini ${geminiRes.status}: ${detail.slice(0, 300)}`);
+      const providerError = new Error(`Gemini ${geminiRes.status}: ${detail.slice(0, 300)}`);
+      providerError.code = 'GEMINI_REQUEST_FAILED';
+      providerError.providerStatus = geminiRes.status;
+      throw providerError;
     }
     const data = await geminiRes.json();
     const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
@@ -100,7 +109,20 @@ router.post('/', requireAuth, async (req, res) => {
   } catch (error) {
     if (error instanceof TypeError) return res.status(400).json({ error: error.message });
     if (error instanceof RangeError) return res.status(413).json({ error: error.message });
-    res.status(500).json({ error: error.message });
+    console.error('[parse-timetable-upload] failed', {
+      code: error.code || 'TIMETABLE_PARSE_FAILED',
+      providerStatus: error.providerStatus || null,
+      message: error.message,
+    });
+    if (error.code === 'GEMINI_REQUEST_FAILED') {
+      return res.status(502).json({
+        code: error.code,
+        error: error.providerStatus === 429
+          ? 'Timetable analysis is temporarily rate-limited. Please try again shortly.'
+          : 'The timetable analysis provider rejected the request. Please try another file or try again shortly.',
+      });
+    }
+    res.status(500).json({ code: 'TIMETABLE_PARSE_FAILED', error: 'Could not parse the timetable' });
   }
 });
 
