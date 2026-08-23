@@ -1,6 +1,6 @@
 import React from 'react';
 import { Clock } from 'lucide-react';
-import { getClassMeetings } from '@/lib/classSchedule';
+import { getClassMeetings, getClassMeetingsForDate } from '@/lib/classSchedule';
 import { weekDates, expandEventsInRange, parseLocalDate } from '@/lib/eventSchedule';
 import { sessionTitle } from '@/lib/sessionTitle';
 
@@ -105,13 +105,16 @@ export default function WeeklyCalendar({
   for (const day of DAYS) {
     const items = [];
     for (const c of classes) {
-      for (const m of getClassMeetings(c).filter(mm => mm.day === day)) {
+      const classMeetings = dateAware
+        ? getClassMeetingsForDate(c, dayToDate[day])
+        : getClassMeetings(c).filter(mm => mm.day === day && !mm.specific_date);
+      classMeetings.forEach((m, index) => {
         items.push({
-          key: `c-${c.id}-${day}`, kind: 'class', title: c.name,
+          key: `c-${c.id}-${day}-${index}`, kind: 'class', title: c.name,
           start: m.start_time, end: m.end_time, color: c.color || '#3B82F6',
-          room: c.room, onClick: onEditClass ? () => onEditClass(c) : null,
+          room: m.room || c.room, onClick: onEditClass ? () => onEditClass(c) : null,
         });
-      }
+      });
     }
     if (dateAware) {
       const dstr = dayToDate[day];
