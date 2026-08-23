@@ -190,6 +190,7 @@ export type Database = {
           class_end_date: string | null
           class_start_date: string | null
           color: string
+          course_code: string | null
           created_at: string
           days_of_week: string[]
           end_time: string | null
@@ -209,6 +210,7 @@ export type Database = {
           class_end_date?: string | null
           class_start_date?: string | null
           color?: string
+          course_code?: string | null
           created_at?: string
           days_of_week?: string[]
           end_time?: string | null
@@ -228,6 +230,7 @@ export type Database = {
           class_end_date?: string | null
           class_start_date?: string | null
           color?: string
+          course_code?: string | null
           created_at?: string
           days_of_week?: string[]
           end_time?: string | null
@@ -1214,4 +1217,3 @@ export const Constants = {
     Enums: {},
   },
 } as const
-
