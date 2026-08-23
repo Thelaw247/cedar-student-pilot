@@ -1,6 +1,6 @@
 # Cedar migration audit
 
-Last verified: 2026-08-22 (America/Edmonton)
+Last verified: 2026-08-22 (America/Edmonton; 2026-08-23 UTC)
 
 ## Executive status
 
@@ -11,7 +11,7 @@ live on `codex/security-and-api-hardening` in draft PR #1.
 | Area | Status | Evidence / remaining work |
 | --- | --- | --- |
 | Supabase database | Ready for staging | 20 public tables; RLS enabled on every table; grants and policies verified against the live project. Client CRUD is user-scoped, privileged tables are read-only or server-only, and the database readiness probe passes. Eight exact post-audit migrations are committed; six older migrations still need a schema-only export. |
-| Supabase Auth | Ready for email/password staging | Password login, signup OTP, recovery, profile provisioning, and session refresh are implemented. Apple/Facebook controls are intentionally hidden on the isolated frontend until those providers are configured. Redirect URLs and email delivery/templates still need dashboard verification. Leaked-password protection should be enabled when the project is on a Supabase Pro plan or above. |
+| Supabase Auth | Signup trigger repaired; ready to retest | The first real signup exposed an invalid `pg_catalog.current_date` expression in `handle_new_user()`. Migration `20260823002000_fix_signup_provisioning.sql` replaces it with `pg_catalog.now()::date`; a rollback-only trigger smoke test verified both the profile and initial 20-credit row. Password login, signup OTP, recovery, and session refresh are implemented. Apple/Facebook controls remain hidden until configured. Redirect URLs and email delivery/templates still need dashboard verification. |
 | Express API | Live and infrastructure-ready | `cedar-api-staging` auto-deploys the audit branch. `/health/ready` returns HTTP 200 with independent `database: ok` and `storage: ok` checks. Exact-origin CORS, hostile-origin rejection, unauthenticated rejection, and server tests are verified. Provider-specific AI, Stripe, email, and cron secrets still need functional verification. |
 | R2 storage | Bucket and credentials verified | The private bucket is reachable from Render with the configured credentials. Presigned recording/avatar upload, confirmation, playback, ownership validation, and lifecycle deletion are implemented. A real signed PUT/confirm/GET round trip still needs an authenticated staging session. |
 | Staging frontend | Live on Cloudflare | The Cloudflare Worker static-assets deployment at https://cedar-student-pilot.dewetluus.workers.dev builds in isolated Supabase/Render mode. `/login`, `/register`, and `/forgot-password` load directly with no application console errors. The landing and auth routes no longer depend on the Base44 Vite plugin in this build. |
@@ -27,6 +27,10 @@ live on `codex/security-and-api-hardening` in draft PR #1.
 - Every public table has RLS enabled. `anon` has no access to user tables.
   `authenticated` grants match the intended policy surface, including
   read-only credit, handbook, usage, and Stripe-ledger data.
+- The `auth.users` provisioning trigger has been executed in a rollback-only
+  smoke test after its date-expression repair. It created the expected owned
+  profile and free-tier balance with 20 initial credits, and the transaction
+  left no test user or application rows behind.
 - Browser CRUD uses the caller's Supabase session and Postgres RLS. Render
   function calls verify the Supabase session and use explicit ownership
   predicates.
@@ -64,8 +68,9 @@ live on `codex/security-and-api-hardening` in draft PR #1.
 
 ### Blocking full staging verification
 
-1. Sign in to the Cloudflare staging URL with an existing staging account (or
-   create one) so authenticated API, RLS, and storage journeys can be tested.
+1. Retry registration on the Cloudflare staging URL after the signup-trigger
+   repair, complete the email OTP flow, and then use that authenticated session
+   for API, RLS, and storage journeys.
 2. In Supabase Auth, verify the staging site URL and allowed redirects include
    the Cloudflare origin and `/reset-password`. Verify signup/recovery email
    delivery and templates. Enable leaked-password protection if the project is
