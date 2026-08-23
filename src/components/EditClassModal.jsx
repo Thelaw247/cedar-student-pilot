@@ -12,6 +12,9 @@ const sortByDay = (arr) => [...arr].sort((a, b) => dayIndex(a.day) - dayIndex(b.
 // Decide which mode a class opens in: per-day when it has a meetings[] list,
 // otherwise the simpler same-time-each-day mode.
 function initialMode(classData) {
+  const meetings = classData?.meetings || [];
+  const duplicateDays = new Set(meetings.map(m => m.day)).size < meetings.length;
+  if (meetings.some(m => m.specific_date || m.start_date || m.end_date || m.component || m.section) || duplicateDays) return 'rules';
   return classData?.meetings && classData.meetings.length > 0 ? 'perday' : 'same';
 }
 
@@ -20,6 +23,7 @@ export default function EditClassModal({ classData, semesterId, onDeleteClass, o
 
   const buildForm = (data) => ({
     name: '',
+    course_code: '',
     instructor: '',
     room: '',
     days_of_week: [],
@@ -85,9 +89,33 @@ export default function EditClassModal({ classData, semesterId, onDeleteClass, o
     }));
   };
 
+  const updateRule = (index, field, value) => {
+    setForm(prev => ({
+      ...prev,
+      meetings: prev.meetings.map((meeting, i) => i === index ? { ...meeting, [field]: value } : meeting),
+    }));
+  };
+
+  const addRule = () => setForm(prev => ({
+    ...prev,
+    meetings: [...(prev.meetings || []), {
+      day: 'Mon', component: '', start_time: '09:00', end_time: '10:00',
+      start_date: prev.class_start_date || '', end_date: prev.class_end_date || '',
+    }],
+  }));
+
+  const removeRule = (index) => setForm(prev => ({
+    ...prev,
+    meetings: prev.meetings.filter((_, i) => i !== index),
+  }));
+
   // Switching modes carries the schedule across so nothing is lost.
   const switchMode = (mode) => {
     if (mode === scheduleMode) return;
+    if (mode === 'rules') {
+      setScheduleMode('rules');
+      return;
+    }
     if (mode === 'perday') {
       // Seed per-day rows from the currently selected days + shared time.
       setForm(prev => {
@@ -118,9 +146,10 @@ export default function EditClassModal({ classData, semesterId, onDeleteClass, o
   const buildPayload = useCallback(() => {
     let payload;
     {
-      if (scheduleMode === 'perday') {
+      if (scheduleMode === 'perday' || scheduleMode === 'rules') {
         const meetings = sortByDay((form.meetings || []).filter(m => m.day));
         const earliest = [...meetings].sort((a, b) => (a.start_time || '99').localeCompare(b.start_time || '99'))[0];
+        const dates = meetings.flatMap(m => [m.start_date, m.end_date, m.specific_date]).filter(Boolean).sort();
         payload = {
           ...form,
           semester_id: semesterId,
@@ -130,6 +159,8 @@ export default function EditClassModal({ classData, semesterId, onDeleteClass, o
           days_of_week: meetings.map(m => m.day),
           start_time: earliest?.start_time || '',
           end_time: earliest?.end_time || '',
+          class_start_date: dates[0] || form.class_start_date || '',
+          class_end_date: dates.at(-1) || form.class_end_date || '',
         };
       } else {
         payload = {
@@ -222,6 +253,9 @@ export default function EditClassModal({ classData, semesterId, onDeleteClass, o
           </div>
         ) : (
         <form onSubmit={handleSubmit} className="space-y-3">
+          <input type="text" placeholder="Course code" value={form.course_code || ''}
+            onChange={e => setForm({ ...form, course_code: e.target.value })}
+            className="w-full px-3 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40" />
           <input type="text" placeholder="Class name" value={form.name || ''}
             onChange={e => setForm({ ...form, name: e.target.value })}
             className="w-full px-3 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40" autoFocus />
@@ -246,11 +280,15 @@ export default function EditClassModal({ classData, semesterId, onDeleteClass, o
                 className={`flex-1 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${scheduleMode === 'perday' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'}`}>
                 Different times per day
               </button>
+              <button type="button" onClick={() => switchMode('rules')}
+                className={`flex-1 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${scheduleMode === 'rules' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'}`}>
+                Flexible dates
+              </button>
             </div>
           </div>
 
           {/* Days */}
-          <div>
+          {scheduleMode !== 'rules' && <div>
             <p className="text-xs font-medium text-muted-foreground mb-1.5">Days</p>
             <div className="flex gap-1.5 flex-wrap">
               {ALL_DAYS.map(d => {
@@ -265,7 +303,7 @@ export default function EditClassModal({ classData, semesterId, onDeleteClass, o
                 );
               })}
             </div>
-          </div>
+          </div>}
 
           {/* Times — shared (same mode) */}
           {scheduleMode === 'same' && (
@@ -309,6 +347,51 @@ export default function EditClassModal({ classData, semesterId, onDeleteClass, o
                   ))}
                 </div>
               )}
+            </div>
+          )}
+
+          {scheduleMode === 'rules' && (
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground">Schedule rules</p>
+              {(form.meetings || []).map((meeting, index) => {
+                const specific = Boolean(meeting.specific_date);
+                return (
+                  <div key={index} className="rounded-lg border border-border bg-muted/20 p-3 space-y-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      <input type="text" placeholder="Component" value={meeting.component || ''}
+                        onChange={e => updateRule(index, 'component', e.target.value)}
+                        className="px-2.5 py-2 rounded-lg border border-input bg-background text-xs" />
+                      <select value={meeting.day || 'Mon'} onChange={e => updateRule(index, 'day', e.target.value)}
+                        className="px-2.5 py-2 rounded-lg border border-input bg-background text-xs">
+                        {ALL_DAYS.map(day => <option key={day} value={day}>{day}</option>)}
+                      </select>
+                      <input type="time" value={meeting.start_time || ''} onChange={e => updateRule(index, 'start_time', e.target.value)}
+                        className="px-2.5 py-2 rounded-lg border border-input bg-background text-xs" />
+                      <input type="time" value={meeting.end_time || ''} onChange={e => updateRule(index, 'end_time', e.target.value)}
+                        className="px-2.5 py-2 rounded-lg border border-input bg-background text-xs" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {specific ? (
+                        <input type="date" value={meeting.specific_date || ''} onChange={e => updateRule(index, 'specific_date', e.target.value)}
+                          className="col-span-2 px-2.5 py-2 rounded-lg border border-input bg-background text-xs" />
+                      ) : (
+                        <>
+                          <input type="date" value={meeting.start_date || ''} onChange={e => updateRule(index, 'start_date', e.target.value)}
+                            className="px-2.5 py-2 rounded-lg border border-input bg-background text-xs" />
+                          <input type="date" value={meeting.end_date || ''} onChange={e => updateRule(index, 'end_date', e.target.value)}
+                            className="px-2.5 py-2 rounded-lg border border-input bg-background text-xs" />
+                        </>
+                      )}
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <button type="button" onClick={() => updateRule(index, 'specific_date', specific ? '' : (meeting.start_date || form.class_start_date || ''))}
+                        className="text-[10px] text-primary hover:underline">{specific ? 'Use recurring range' : 'Use specific date'}</button>
+                      <button type="button" onClick={() => removeRule(index)} className="text-[10px] text-destructive hover:underline">Remove</button>
+                    </div>
+                  </div>
+                );
+              })}
+              <button type="button" onClick={addRule} className="text-xs text-primary font-medium hover:underline">+ Add schedule rule</button>
             </div>
           )}
 
