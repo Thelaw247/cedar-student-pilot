@@ -1,12 +1,12 @@
 import express from 'express';
 import { pool } from '../lib/db.js';
 import { requireAuth } from '../middleware/requireAuth.js';
+import { getClassMeetingsForDate } from '../../src/lib/classSchedule.js';
 
 // Direct port of base44/functions/detectAcademicRisk/entry.ts. Pure read +
 // compute, no writes, no LLM calls — not credit-gated in the original either.
 
 const router = express.Router();
-const DAY_MAP = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const daysAgo = (n) => new Date(Date.now() - n * 86400000).toISOString().split('T')[0];
 
 router.post('/', requireAuth, async (req, res) => {
@@ -78,9 +78,8 @@ router.post('/', requireAuth, async (req, res) => {
     const studyFrequency = allStudyRecords.filter((r) => ds(r.date) >= fourteenDaysAgo).length;
     if (studyFrequency > 14) burnoutScore += 3;
 
-    const todayLabel = DAY_MAP[new Date().getDay()];
-    const todayClasses = classes.filter((c) => (c.days_of_week || []).includes(todayLabel));
-    if (todayClasses.length > 4) burnoutScore += 2;
+    const todayMeetingCount = classes.reduce((count, cls) => count + getClassMeetingsForDate(cls, today).length, 0);
+    if (todayMeetingCount > 4) burnoutScore += 2;
 
     let burnoutLevel = 'none', burnoutAdvice = '';
     if (burnoutScore >= 12) { burnoutLevel = 'high'; burnoutAdvice = 'You are showing signs of high study load. Consider taking a rest day and reducing study intensity.'; }
