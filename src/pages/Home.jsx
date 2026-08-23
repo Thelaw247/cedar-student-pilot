@@ -16,18 +16,13 @@ import AutoPrintPrompt from '@/components/AutoPrintPrompt';
 import AttendancePrompt from '@/components/AttendancePrompt';
 import WeeklyCalendar from '@/components/WeeklyCalendar';
 import AddEventModal from '@/components/AddEventModal';
-import { classMeetsOnDay, getClassTimesForDay } from '@/lib/classSchedule';
+import { classesOnDate } from '@/lib/classSchedule';
 import { eventsOnDate } from '@/lib/eventSchedule';
 import { sessionTitle, sessionDescription } from '@/lib/sessionTitle';
 
 function getTodayString() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
-
-function getDayOfWeek() {
-  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  return days[new Date().getDay()];
 }
 
 export default function Home() {
@@ -121,20 +116,15 @@ export default function Home() {
 
   const today = getTodayString();
 
-  // Today's classes, enriched with today's actual times (per-day aware).
-  const todayClasses = classes
-    .filter(c => classMeetsOnDay(c, getDayOfWeek()))
-    .map(c => {
-      const t = getClassTimesForDay(c, getDayOfWeek()) || {};
-      return { ...c, start_time: t.start_time || c.start_time, end_time: t.end_time || c.end_time };
-    });
+  // Concrete occurrences for today, including date ranges and one-off changes.
+  const todayClasses = classesOnDate(classes, today);
 
   // Today's event occurrences (expands recurring events onto today).
   const todayEvents = eventsOnDate(events, today);
 
   const allItems = [
     ...todayClasses.map(c => ({
-      id: c.id,
+      id: c._occurrence_key || c.id,
       title: c.name,
       time: c.start_time,
       endTime: c.end_time,
@@ -342,4 +332,3 @@ function ThemeToggle() {
     </button>
   );
 }
-
