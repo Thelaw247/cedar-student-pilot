@@ -11,9 +11,12 @@ import { getClassMeetings } from '@/lib/classSchedule';
 function scheduleSummary(c) {
   const meetings = getClassMeetings(c);
   if (meetings.length === 0) return 'No schedule set';
+  if (meetings.some(m => m.specific_date || m.start_date || m.end_date)) {
+    return `${meetings.length} schedule rule${meetings.length !== 1 ? 's' : ''}`;
+  }
   // If every meeting shares the same time, show "Mon, Wed · 9:00–10:00".
   const times = new Set(meetings.map(m => `${m.start_time}-${m.end_time}`));
-  const days = meetings.map(m => m.day).join(', ');
+  const days = [...new Set(meetings.map(m => m.day))].join(', ');
   if (times.size === 1) {
     const { start_time, end_time } = meetings[0];
     return `${days} · ${start_time || '?'}–${end_time || '?'}`;
@@ -79,6 +82,7 @@ export default function Classes() {
 
   const filtered = classes.filter(c =>
     c.name?.toLowerCase().includes(search.toLowerCase()) ||
+    c.course_code?.toLowerCase().includes(search.toLowerCase()) ||
     c.instructor?.toLowerCase().includes(search.toLowerCase())
   );
   const searching = search.trim().length > 0;
@@ -142,7 +146,7 @@ export default function Classes() {
                   <GraduationCap className="w-6 h-6" strokeWidth={1.5} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-medium text-foreground text-sm">{c.name}</h3>
+                  <h3 className="font-medium text-foreground text-sm">{c.course_code ? `${c.course_code} · ` : ''}{c.name}</h3>
                   <p className="text-xs text-muted-foreground mt-0.5 truncate">
                     {scheduleSummary(c)}
                     {c.instructor && ` • ${c.instructor}`}
@@ -182,4 +186,3 @@ export default function Classes() {
     </div>
   );
 }
-
