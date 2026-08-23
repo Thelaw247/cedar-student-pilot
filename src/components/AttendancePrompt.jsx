@@ -2,8 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
 import { fetchWithCache } from '@/hooks/useEntityData';
 import { GraduationCap, Check, X, Loader2, Clock } from 'lucide-react';
-
-const DAY_MAP = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+import { getClassMeetingsForDate } from '@/lib/classSchedule';
 
 function formatDate(dateStr) {
   const d = new Date(dateStr + 'T00:00:00');
@@ -38,46 +37,37 @@ function findPastUnconfirmedSessions(classes, lectures, attendance) {
   for (let i = 1; i <= 3; i++) {
     const checkDate = new Date(now);
     checkDate.setDate(checkDate.getDate() - i);
-    const dayNum = checkDate.getDay();
     const dateStr = `${checkDate.getFullYear()}-${String(checkDate.getMonth() + 1).padStart(2, '0')}-${String(checkDate.getDate()).padStart(2, '0')}`;
 
     for (const cls of classes) {
-      const classDays = (cls.days_of_week || []).map(d => DAY_MAP[d]);
-      if (!classDays.includes(dayNum)) continue;
-
-      // Only include if within class date range
-      if (cls.class_start_date && dateStr < cls.class_start_date) continue;
-      if (cls.class_end_date && dateStr > cls.class_end_date) continue;
+      const meetings = getClassMeetingsForDate(cls, dateStr);
+      if (meetings.length === 0) continue;
 
       // For yesterday and earlier, the class has definitely ended
       const key = `${cls.id}|${dateStr}`;
       if (!lectureKeys.has(key) && !attendanceKeys.has(key)) {
-        results.push({ classObj: cls, date: dateStr });
+        results.push({ classObj: { ...cls, start_time: meetings[0].start_time || cls.start_time }, date: dateStr });
       }
     }
   }
 
   // Also check today if class end time has passed
-  const todayNum = now.getDay();
   const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
 
   for (const cls of classes) {
-    const classDays = (cls.days_of_week || []).map(d => DAY_MAP[d]);
-    if (!classDays.includes(todayNum)) continue;
-    if (cls.class_start_date && todayStr < cls.class_start_date) continue;
-    if (cls.class_end_date && todayStr > cls.class_end_date) continue;
+    const meetings = getClassMeetingsForDate(cls, todayStr);
+    if (meetings.length === 0) continue;
 
-    // Parse end time
-    if (cls.end_time) {
-      const [h, m] = cls.end_time.split(':').map(Number);
-      const endMinutes = h * 60 + m;
-      if (nowMinutes <= endMinutes) continue; // class hasn't ended yet
+    const latestEnd = meetings.map(m => m.end_time || cls.end_time || '').sort().at(-1);
+    if (latestEnd) {
+      const [h, m] = latestEnd.split(':').map(Number);
+      if (nowMinutes <= h * 60 + m) continue;
     }
 
     const key = `${cls.id}|${todayStr}`;
     if (!lectureKeys.has(key) && !attendanceKeys.has(key)) {
-      results.push({ classObj: cls, date: todayStr });
+      results.push({ classObj: { ...cls, start_time: meetings[0].start_time || cls.start_time }, date: todayStr });
     }
   }
 
