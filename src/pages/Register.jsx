@@ -17,6 +17,13 @@ const APPLE_AUTH_ENABLED = !USE_SUPABASE || import.meta.env.VITE_ENABLE_APPLE_AU
 const FACEBOOK_AUTH_ENABLED = !USE_SUPABASE || import.meta.env.VITE_ENABLE_FACEBOOK_AUTH === "true";
 const SOCIAL_AUTH_ENABLED = APPLE_AUTH_ENABLED || FACEBOOK_AUTH_ENABLED;
 
+function registrationErrorMessage(error) {
+  const message = typeof error?.message === "string" ? error.message.trim() : "";
+  if (message && message !== "{}" && message !== "[object Object]") return message;
+  if (error?.status >= 500) return "Registration is temporarily unavailable. Please try again shortly.";
+  return "Registration failed. Please try again.";
+}
+
 export default function Register() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -38,7 +45,7 @@ export default function Register() {
       await base44.auth.register({ email, password });
       setShowOtp(true);
     } catch (err) {
-      setError(err.message || "Registration failed");
+      setError(registrationErrorMessage(err));
     } finally {
       setLoading(false);
     }
