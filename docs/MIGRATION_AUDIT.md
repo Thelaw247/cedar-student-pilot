@@ -11,11 +11,11 @@ live on `codex/security-and-api-hardening` in draft PR #1.
 | Area | Status | Evidence / remaining work |
 | --- | --- | --- |
 | Supabase database | Ready for staging | 20 public tables; RLS enabled on every table; grants and policies verified against the live project. Client CRUD is user-scoped, privileged tables are read-only or server-only, and the database readiness probe passes. Eight exact post-audit migrations are committed; six older migrations still need a schema-only export. |
-| Supabase Auth | Signup trigger repaired; ready to retest | The first real signup exposed an invalid `pg_catalog.current_date` expression in `handle_new_user()`. Migration `20260823002000_fix_signup_provisioning.sql` replaces it with `pg_catalog.now()::date`; a rollback-only trigger smoke test verified both the profile and initial 20-credit row. Password login, signup OTP, recovery, and session refresh are implemented. Apple/Facebook controls remain hidden until configured. Redirect URLs and email delivery/templates still need dashboard verification. |
+| Supabase Auth | Authenticated staging verified | A real user completed signup, email confirmation, password login, profile onboarding, and initial 20-credit provisioning on Cloudflare staging. The signup-trigger repair is confirmed under real traffic. Apple/Facebook remain hidden until configured; custom SMTP and password-recovery delivery still need production-grade verification. |
 | Express API | Live and infrastructure-ready | `cedar-api-staging` auto-deploys the audit branch. `/health/ready` returns HTTP 200 with independent `database: ok` and `storage: ok` checks. Exact-origin CORS, hostile-origin rejection, unauthenticated rejection, and server tests are verified. Provider-specific AI, Stripe, email, and cron secrets still need functional verification. |
 | R2 storage | Bucket and credentials verified | The private bucket is reachable from Render with the configured credentials. Presigned recording/avatar upload, confirmation, playback, ownership validation, and lifecycle deletion are implemented. A real signed PUT/confirm/GET round trip still needs an authenticated staging session. |
 | Staging frontend | Live on Cloudflare | The Cloudflare Worker static-assets deployment at https://cedar-student-pilot.dewetluus.workers.dev builds in isolated Supabase/Render mode. `/login`, `/register`, and `/forgot-password` load directly with no application console errors. The landing and auth routes no longer depend on the Base44 Vite plugin in this build. |
-| Full staging test | Next gate | Requires signing in as a staging user, then exercising entity CRUD, R2 upload/playback, AI flows, Stripe test mode, email recovery/relay, and scheduled credits. |
+| Full staging test | In progress | Real signup, confirmation, login, profile onboarding, and initial credits pass. The first timetable attempt exposed that the deployed Cloudflare bundle was compiled against the older Render service; `VITE_RENDER_API_URL` has now been corrected and needs a fresh Cloudflare build before AI/provider diagnosis continues. |
 | Cutover | Not started | No Base44 publish, DNS change, live Stripe webhook switch, or production-domain change has occurred. |
 
 ## Verified controls
@@ -68,9 +68,9 @@ live on `codex/security-and-api-hardening` in draft PR #1.
 
 ### Blocking full staging verification
 
-1. Retry registration on the Cloudflare staging URL after the signup-trigger
-   repair, complete the email OTP flow, and then use that authenticated session
-   for API, RLS, and storage journeys.
+1. Rebuild Cloudflare after correcting `VITE_RENDER_API_URL` to the isolated
+   `cedar-api-staging` service, then verify authenticated `/me`, timetable import,
+   API/RLS access, and storage journeys.
 2. In Supabase Auth, verify the staging site URL and allowed redirects include
    the Cloudflare origin and `/reset-password`. Verify signup/recovery email
    delivery and templates. Enable leaked-password protection if the project is
