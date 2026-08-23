@@ -2,7 +2,8 @@
  * classSchedule — one place that understands both ways a class can be scheduled.
  *
  * A class is either:
- *   - per-day: has a meetings[] list of { day, start_time, end_time }, or
+ *   - rule-based: has meetings[] entries with day/time and optional date range,
+ *     specific_date, component, room/instructor overrides, and exclusions, or
  *   - legacy/same-time: has days_of_week[] plus a single start_time/end_time.
  *
  * Every view (weekly grid, today's list, etc.) should read schedule through
@@ -17,6 +18,16 @@ const JS_DAY_TO_LABEL = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 export function dayLabelFromDate(date = new Date()) {
   return JS_DAY_TO_LABEL[date.getDay()];
+}
+
+export function localDateString(value = new Date()) {
+  if (typeof value === 'string') return value.slice(0, 10);
+  return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}`;
+}
+
+function dateDayLabel(dateStr) {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  return JS_DAY_TO_LABEL[new Date(year, month - 1, day).getDay()];
 }
 
 /**
@@ -37,6 +48,42 @@ export function getClassMeetings(cls) {
     .slice()
     .sort((a, b) => ALL_DAYS.indexOf(a) - ALL_DAYS.indexOf(b))
     .map(day => ({ day, start_time: cls.start_time || '', end_time: cls.end_time || '' }));
+}
+
+function meetingAppliesOnDate(cls, meeting, dateStr) {
+  if (!meeting) return false;
+  if (meeting.specific_date) return meeting.specific_date === dateStr;
+  if (Array.isArray(meeting.specific_dates) && meeting.specific_dates.length > 0) {
+    return meeting.specific_dates.includes(dateStr);
+  }
+  if (Array.isArray(meeting.excluded_dates) && meeting.excluded_dates.includes(dateStr)) return false;
+  const rangeStart = meeting.start_date || cls.class_start_date;
+  const rangeEnd = meeting.end_date || cls.class_end_date;
+  if (rangeStart && dateStr < rangeStart) return false;
+  if (rangeEnd && dateStr > rangeEnd) return false;
+  return meeting.day === dateDayLabel(dateStr);
+}
+
+function componentKey(meeting) {
+  return `${(meeting.component || '').trim().toLowerCase()}|${(meeting.section || '').trim().toLowerCase()}`;
+}
+
+/** Return every actual occurrence for one class on one concrete date. */
+export function getClassMeetingsForDate(cls, date = new Date()) {
+  const dateStr = localDateString(date);
+  const applicable = getClassMeetings(cls).filter((meeting) => meetingAppliesOnDate(cls, meeting, dateStr));
+  const replacementKeys = new Set(
+    applicable
+      .filter((meeting) => meeting.specific_date && meeting.replaces_regular_time === true)
+      .map(componentKey),
+  );
+  return applicable
+    .filter((meeting) => meeting.specific_date || !replacementKeys.has(componentKey(meeting)))
+    .sort((a, b) => (a.start_time || '99:99').localeCompare(b.start_time || '99:99'));
+}
+
+export function classMeetsOnDate(cls, date = new Date()) {
+  return getClassMeetingsForDate(cls, date).length > 0;
 }
 
 /** All day labels a class meets on (works for both schedule styles). */
@@ -70,4 +117,25 @@ export function classesOnDay(classes, dayLabel) {
     if (t) out.push({ ...cls, _day: dayLabel, _start: t.start_time, _end: t.end_time });
   }
   return out;
+}
+
+/** Flatten classes into concrete meeting occurrences on a specific date. */
+export function classesOnDate(classes, date = new Date()) {
+  const dateStr = localDateString(date);
+  const out = [];
+  for (const cls of classes || []) {
+    getClassMeetingsForDate(cls, dateStr).forEach((meeting, index) => {
+      out.push({
+        ...cls,
+        start_time: meeting.start_time || cls.start_time,
+        end_time: meeting.end_time || cls.end_time,
+        room: meeting.room || cls.room,
+        instructor: meeting.instructor || cls.instructor,
+        component: meeting.component || '',
+        _meeting: meeting,
+        _occurrence_key: `${cls.id || 'class'}-${dateStr}-${index}-${meeting.start_time || ''}`,
+      });
+    });
+  }
+  return out.sort((a, b) => (a.start_time || '99:99').localeCompare(b.start_time || '99:99'));
 }
