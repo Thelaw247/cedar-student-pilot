@@ -1,12 +1,7 @@
 import { useState, useEffect } from 'react';
 import { fetchWithCache } from '@/hooks/useEntityData';
-import { classMeetsOnDay, getClassTimesForDay } from '@/lib/classSchedule';
+import { classesOnDate } from '@/lib/classSchedule';
 import { getCurrentClass, getNextClass } from '@/lib/currentClass';
-
-function getDayOfWeek() {
-  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  return days[new Date().getDay()];
-}
 
 /**
  * Today's schedule, shared by every piece of persistent chrome that needs it
@@ -41,13 +36,7 @@ export function useTodaySchedule() {
     return () => clearInterval(t);
   }, []);
 
-  const todayClasses = classes
-    .filter((c) => classMeetsOnDay(c, getDayOfWeek()))
-    .map((c) => {
-      const t = getClassTimesForDay(c, getDayOfWeek()) || {};
-      return { ...c, start_time: t.start_time || c.start_time, end_time: t.end_time || c.end_time };
-    })
-    .sort((a, b) => (a.start_time || '').localeCompare(b.start_time || ''));
+  const todayClasses = classesOnDate(classes, now);
 
   const current = getCurrentClass(todayClasses, now);
   const next = getNextClass(todayClasses, now);
