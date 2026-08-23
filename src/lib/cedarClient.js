@@ -144,6 +144,8 @@ async function apiRequest(path, { method = 'GET', body, headers = {} } = {}) {
   const data = response.status === 204 ? null : await response.json().catch(() => null);
   if (!response.ok) {
     const error = new Error(data?.message || data?.error || `API request failed (${response.status})`);
+    error.code = data?.code;
+    error.status = response.status;
     error.response = { data, status: response.status };
     throw error;
   }
