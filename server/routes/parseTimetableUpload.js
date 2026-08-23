@@ -2,7 +2,7 @@ import express from 'express';
 import { requireAuth } from '../middleware/requireAuth.js';
 import { gateFeature, settleFeature } from '../lib/credits.js';
 import { parseTimetableDataUrl } from '../lib/timetableFile.js';
-import { normalizeTimetableClasses } from '../lib/timetableResult.js';
+import { consolidateTimetableClasses } from '../lib/timetableResult.js';
 
 // Direct port of base44/functions/parseTimetableUpload/entry.ts, with ONE
 // real change: the original never routed through llm.ts because Base44's
@@ -26,16 +26,21 @@ const SCHEMA = {
       items: {
         type: 'object',
         properties: {
+          course_code: { type: 'string' },
           name: { type: 'string' },
+          section: { type: 'string' },
+          component: { type: 'string' },
           instructor: { type: 'string' },
           room: { type: 'string' },
           days_of_week: { type: 'array', items: { type: 'string' } },
           start_time: { type: 'string' },
           end_time: { type: 'string' },
-          class_start_date: { type: 'string' },
-          class_end_date: { type: 'string' },
+          start_date: { type: 'string' },
+          end_date: { type: 'string' },
+          specific_dates: { type: 'array', items: { type: 'string' } },
+          replaces_regular_time: { type: 'boolean' },
         },
-        required: ['name', 'instructor', 'room', 'days_of_week', 'start_time', 'end_time', 'class_start_date', 'class_end_date'],
+        required: ['course_code', 'name', 'section', 'component', 'instructor', 'room', 'days_of_week', 'start_time', 'end_time', 'start_date', 'end_date', 'specific_dates', 'replaces_regular_time'],
       },
     },
   },
@@ -52,20 +57,27 @@ function toGeminiSchema(node) {
 const PROMPT = `You are an expert at reading university class timetables. Analyze the provided timetable image or document and extract ALL classes/courses shown.
 
 For each class, extract:
+- course_code: The stable catalog code, such as "CHEM 112" or "ENGR 120". Use an empty string only when none is visible.
 - name: The course name (e.g. "Introduction to Biology")
+- section: The section identifier if shown
+- component: Lecture, Lab, Tutorial, Seminar, Practicum, or another printed component label
 - instructor: The professor/instructor name if available
 - room: The classroom or location if available
 - days_of_week: Array of days the class meets (use abbreviations: Mon, Tue, Wed, Thu, Fri, Sat, Sun)
 - start_time: Start time in 24-hour HH:MM format
 - end_time: End time in 24-hour HH:MM format
-- class_start_date: The first date this specific class meets, in YYYY-MM-DD format
-- class_end_date: The last date this specific class meets, in YYYY-MM-DD format
+- start_date: First date this exact schedule pattern applies, in YYYY-MM-DD format
+- end_date: Last date this exact schedule pattern applies, in YYYY-MM-DD format
+- specific_dates: Exact YYYY-MM-DD dates when this is a one-off or irregular meeting; otherwise []
+- replaces_regular_time: true only when a specific-date entry replaces that component's normal meeting on that date; false when it is additional
 
 Return a JSON object with a "classes" array containing all extracted classes. If you cannot read the timetable or it's unclear, return an empty array.
 
 Be thorough — capture every class on the timetable. If days aren't explicitly listed but the class appears to recur, infer standard weekday patterns.
 
-Dates are per class, not global. Read each class's own date range when one is printed. Return an empty string for a class date that is not visible; never invent a date and never use the timetable's print/generated date. If one course has independently scheduled components (for example a lecture and a lab) with different times, rooms, days, or date ranges, return separate entries and identify the component in the name.`;
+Repeated rows with the same course code or course name are normally schedule patterns for ONE logical course, not separate courses. Preserve the same course_code and name on those rows so they can be consolidated. Return a separate entry for every distinct time, room, component, date range, or explicit-date pattern; the server will merge those entries safely.
+
+Dates are per schedule pattern, not global. Read the exact range or dates printed beside that pattern. Return empty strings/arrays when dates are not visible; never invent a date and never use the timetable's print/generated date.`;
 
 router.post('/', requireAuth, async (req, res) => {
   try {
@@ -110,7 +122,7 @@ router.post('/', requireAuth, async (req, res) => {
     const data = await geminiRes.json();
     const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
     const result = text ? JSON.parse(text) : { classes: [] };
-    const classes = normalizeTimetableClasses(result.classes);
+    const classes = consolidateTimetableClasses(result.classes);
 
     await settleFeature(gate, { feature: 'timetable_import', calls: 1, usedGemini: true });
 
