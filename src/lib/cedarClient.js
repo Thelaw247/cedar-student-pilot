@@ -291,7 +291,12 @@ const auth = {
     return data;
   },
   async register({ email, password }) {
-    const { data, error } = await supabase.auth.signUp({ email, password });
+    const emailRedirectTo = `${window.location.origin}/today`;
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { emailRedirectTo },
+    });
     if (error) throw error;
     return data;
   },
@@ -315,7 +320,11 @@ const auth = {
     return data.session || data;
   },
   async resendOtp(email) {
-    const { data, error } = await supabase.auth.resend({ type: 'signup', email });
+    const { data, error } = await supabase.auth.resend({
+      type: 'signup',
+      email,
+      options: { emailRedirectTo: `${window.location.origin}/today` },
+    });
     if (error) throw error;
     return data;
   },
