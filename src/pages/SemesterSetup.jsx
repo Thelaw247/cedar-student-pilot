@@ -9,6 +9,21 @@ import { Upload, Loader2, Check, X, Plus, ChevronRight, Camera, AlertCircle } fr
 
 const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
 
+function timetableErrorMessage(error) {
+  if (error?.code === 'GEMINI_NOT_CONFIGURED') {
+    return 'Timetable analysis is not configured yet. You can add classes manually for now.';
+  }
+  if (error?.code === 'GEMINI_REQUEST_FAILED') {
+    return error.message || 'The timetable analysis provider could not process this file.';
+  }
+  if (error?.status === 401) return 'Your session expired. Please log in and try again.';
+  if (error?.status === 413 || /7 MB|too large/i.test(error?.message || '')) {
+    return 'The timetable file is too large. Please choose a file no larger than 7 MB.';
+  }
+  if (error?.status === 400 && error?.message) return error.message;
+  return 'Could not parse the timetable. You can add classes manually instead.';
+}
+
 export default function SemesterSetup() {
   const { user, checkUserAuth } = useAuth();
   // Step 0 (name + optional photo) only shows for someone who has never set a
@@ -43,7 +58,7 @@ export default function SemesterSetup() {
       setParsedClasses(response.data?.classes || []);
       setStep(2);
     } catch (e) {
-      setError('Could not parse the timetable. You can add classes manually instead.');
+      setError(timetableErrorMessage(e));
     }
     setParsing(false);
   };
