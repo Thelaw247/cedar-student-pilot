@@ -73,8 +73,8 @@ export default function Register() {
     try {
       await base44.auth.resendOtp(email);
       toast({
-        title: "Code sent",
-        description: "Check your email for the new code.",
+        title: "Confirmation sent",
+        description: "Check your email for the new confirmation message.",
       });
     } catch (err) {
       setError(err.message || "Failed to resend code");
@@ -93,13 +93,19 @@ export default function Register() {
     return (
       <AuthLayout
         icon={Mail}
-        title="Verify your email"
-        subtitle={`We sent a code to ${email}`}
+        title="Check your email"
+        subtitle={`We sent a confirmation message to ${email}`}
       >
         {error && (
           <div className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
             {error}
           </div>
+        )}
+        {USE_SUPABASE && (
+          <p className="mb-5 text-center text-sm text-muted-foreground">
+            Open the confirmation link in the email. If the message contains a six-digit code instead,
+            enter it below.
+          </p>
         )}
         <div className="flex justify-center mb-6">
           <InputOTP
@@ -139,6 +145,14 @@ export default function Register() {
             Resend
           </button>
         </p>
+        {USE_SUPABASE && (
+          <p className="text-center text-sm text-muted-foreground mt-3">
+            Already confirmed?{" "}
+            <Link to="/login" className="text-primary font-medium hover:underline">
+              Continue to log in
+            </Link>
+          </p>
+        )}
       </AuthLayout>
     );
   }
