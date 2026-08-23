@@ -3,6 +3,7 @@ import { pool } from '../lib/db.js';
 import { requireAuth } from '../middleware/requireAuth.js';
 import { invokeLLM, createLlmUsage } from '../lib/llm.js';
 import { gateFeature, settleFeature } from '../lib/credits.js';
+import { getClassMeetingsForDate } from '../../src/lib/classSchedule.js';
 
 // Direct port of base44/functions/generateStudySchedule/entry.ts. The
 // busy-block conflict resolution is pure deterministic JS (dates/arrays) and
@@ -52,14 +53,10 @@ router.post('/', requireAuth, async (req, res) => {
     const windowDates = [];
     for (let i = 0; i <= daysUntil; i++) { const d = new Date(today); d.setDate(today.getDate() + i); windowDates.push({ ds: dateStr(d), label: DAY_LABELS[d.getDay()] }); }
 
-    const classMeetsOn = (c, label) => {
-      if (Array.isArray(c.meetings) && c.meetings.length > 0) return c.meetings.filter((m) => m.day === label).map((m) => ({ start: toMin(m.start_time), end: toMin(m.end_time) }));
-      if ((c.days_of_week || []).includes(label)) return [{ start: toMin(c.start_time), end: toMin(c.end_time) }];
-      return [];
-    };
-    for (const { ds, label } of windowDates) {
+    for (const { ds } of windowDates) {
       for (const c of allClasses) {
-        for (const slot of classMeetsOn(c, label)) {
+        for (const meeting of getClassMeetingsForDate(c, ds)) {
+          const slot = { start: toMin(meeting.start_time || c.start_time), end: toMin(meeting.end_time || c.end_time) };
           if (slot.start != null) addBusy(ds, slot.start, (slot.end || slot.start + 60) - slot.start, `class:${c.name}`);
         }
       }
