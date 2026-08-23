@@ -75,6 +75,7 @@ export default function ClassDetail() {
           <GraduationCap className="w-7 h-7" strokeWidth={1.5} />
         </div>
         <div className="flex-1">
+          {cls.course_code && <p className="text-xs font-semibold text-primary mb-0.5">{cls.course_code}</p>}
           <h1 className="font-heading text-xl sm:text-2xl font-bold">{cls.name}</h1>
           <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-xs text-muted-foreground">
             {cls.instructor && <span>{cls.instructor}</span>}
