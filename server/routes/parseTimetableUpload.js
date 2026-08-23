@@ -2,6 +2,7 @@ import express from 'express';
 import { requireAuth } from '../middleware/requireAuth.js';
 import { gateFeature, settleFeature } from '../lib/credits.js';
 import { parseTimetableDataUrl } from '../lib/timetableFile.js';
+import { normalizeTimetableClasses } from '../lib/timetableResult.js';
 
 // Direct port of base44/functions/parseTimetableUpload/entry.ts, with ONE
 // real change: the original never routed through llm.ts because Base44's
@@ -31,7 +32,10 @@ const SCHEMA = {
           days_of_week: { type: 'array', items: { type: 'string' } },
           start_time: { type: 'string' },
           end_time: { type: 'string' },
+          class_start_date: { type: 'string' },
+          class_end_date: { type: 'string' },
         },
+        required: ['name', 'instructor', 'room', 'days_of_week', 'start_time', 'end_time', 'class_start_date', 'class_end_date'],
       },
     },
   },
@@ -54,10 +58,14 @@ For each class, extract:
 - days_of_week: Array of days the class meets (use abbreviations: Mon, Tue, Wed, Thu, Fri, Sat, Sun)
 - start_time: Start time in 24-hour HH:MM format
 - end_time: End time in 24-hour HH:MM format
+- class_start_date: The first date this specific class meets, in YYYY-MM-DD format
+- class_end_date: The last date this specific class meets, in YYYY-MM-DD format
 
 Return a JSON object with a "classes" array containing all extracted classes. If you cannot read the timetable or it's unclear, return an empty array.
 
-Be thorough — capture every class on the timetable. If days aren't explicitly listed but the class appears to recur, infer standard weekday patterns.`;
+Be thorough — capture every class on the timetable. If days aren't explicitly listed but the class appears to recur, infer standard weekday patterns.
+
+Dates are per class, not global. Read each class's own date range when one is printed. Return an empty string for a class date that is not visible; never invent a date and never use the timetable's print/generated date. If one course has independently scheduled components (for example a lecture and a lab) with different times, rooms, days, or date ranges, return separate entries and identify the component in the name.`;
 
 router.post('/', requireAuth, async (req, res) => {
   try {
@@ -102,10 +110,11 @@ router.post('/', requireAuth, async (req, res) => {
     const data = await geminiRes.json();
     const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
     const result = text ? JSON.parse(text) : { classes: [] };
+    const classes = normalizeTimetableClasses(result.classes);
 
     await settleFeature(gate, { feature: 'timetable_import', calls: 1, usedGemini: true });
 
-    res.json({ classes: result.classes || [] });
+    res.json({ classes });
   } catch (error) {
     if (error instanceof TypeError) return res.status(400).json({ error: error.message });
     if (error instanceof RangeError) return res.status(413).json({ error: error.message });
