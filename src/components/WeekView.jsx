@@ -1,10 +1,8 @@
 import React from 'react';
 import { GraduationCap, Briefcase, BookOpen, Bell, Calendar as CalIcon, Clock, MapPin } from 'lucide-react';
-import { getClassTimesForDay } from '@/lib/classSchedule';
+import { getClassMeetingsForDate } from '@/lib/classSchedule';
 import { expandEventsInRange, weekDates, parseLocalDate } from '@/lib/eventSchedule';
 import { sessionTitle } from '@/lib/sessionTitle';
-
-const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 const TYPE_META = {
   class:       { icon: GraduationCap, color: '#3B82F6', label: 'Class' },
@@ -21,11 +19,6 @@ function fmtTime(t) {
   const period = h >= 12 ? 'PM' : 'AM';
   const hr = h % 12 || 12;
   return `${hr}:${String(m || 0).padStart(2, '0')} ${period}`;
-}
-
-function labelForDate(dateStr) {
-  const d = parseLocalDate(dateStr);
-  return DAY_LABELS[d.getDay()];
 }
 
 /**
@@ -46,19 +39,17 @@ export default function WeekView({ classes = [], events = [], studySessions = []
   const weekEvents = expandEventsInRange(events, rangeStart, rangeEnd);
 
   const itemsForDate = (dateStr) => {
-    const dayLabel = labelForDate(dateStr);
     const items = [];
 
-    // Class meetings on this weekday, with that day's times.
+    // Actual class occurrences on this date, including irregular rules.
     for (const c of classes) {
-      const t = getClassTimesForDay(c, dayLabel);
-      if (t) {
+      getClassMeetingsForDate(c, dateStr).forEach((meeting, index) => {
         items.push({
-          key: `c-${c.id}`, kind: 'class', title: c.name,
-          start: t.start_time, end: t.end_time, color: c.color || '#3B82F6',
-          room: c.room, meta: c.instructor,
+          key: `c-${c.id}-${dateStr}-${index}`, kind: 'class', title: c.name,
+          start: meeting.start_time || c.start_time, end: meeting.end_time || c.end_time, color: c.color || '#3B82F6',
+          room: meeting.room || c.room, meta: meeting.component || meeting.instructor || c.instructor,
         });
-      }
+      });
     }
     // Study sessions scheduled on this date.
     for (const s of studySessions.filter(ss => ss.scheduled_date === dateStr)) {
