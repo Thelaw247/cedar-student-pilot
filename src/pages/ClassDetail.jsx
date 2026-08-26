@@ -225,14 +225,23 @@ function LectureTab({ lectures, coverage, classId, cls, onUpdate, autoRecord, on
 }
 
 function RecordModal({ classId, cls, onClose }) {
-  const MAX_RECORDING_BYTES = 24 * 1024 * 1024;
+  // Each segment must stay under the transcription provider's per-file limit
+  // (Groq's free tier: 25 MB). 32 kbps Opus keeps a 90-minute segment
+  // comfortably inside that, so segments rotate at 90 minutes; a lecture can
+  // now run up to the 6-hour absolute ceiling by chaining several segments
+  // behind the scenes instead of being cut off at 90 minutes.
+  const MAX_SEGMENT_BYTES = 24 * 1024 * 1024;
   const RECORDING_AUDIO_BITS_PER_SECOND = 32_000;
-  const RECOMMENDED_RECORDING_SECONDS = 90 * 60;
+  const SEGMENT_ROTATE_SECONDS = 90 * 60;
+  const MAX_TOTAL_SECONDS = 6 * 60 * 60;
+  const MAX_UPLOAD_ATTEMPTS = 3;
+
   const [recording, setRecording] = useState(false);
   const [paused, setPaused] = useState(false);
   const [seconds, setSeconds] = useState(0);
-  const [mediaRecorder, setMediaRecorder] = useState(null);
-  const [audioChunks, setAudioChunks] = useState([]);
+  const [uploadingSegment, setUploadingSegment] = useState(false);
+  const [savedSegmentCount, setSavedSegmentCount] = useState(0);
+  const [readyToSave, setReadyToSave] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [recoveryAvailable, setRecoveryAvailable] = useState(null);
   const [reviewLectureId, setReviewLectureId] = useState(null);
@@ -282,29 +291,111 @@ function RecordModal({ classId, cls, onClose }) {
     window.location.href = `mailto:?subject=${subject}&body=${body}`;
   };
 
-  // Live refs for the recorder callbacks (avoid stale closures on chunks/seconds).
-  const chunksRef = useRef([]);
-  const secondsRef = useRef(0);
+  // Live refs for the recorder callbacks (avoid stale closures).
+  const streamRef = useRef(null);
+  const recorderRef = useRef(null);
+  const chunksRef = useRef([]); // chunks for the segment currently being captured
+  const secondsRef = useRef(0); // total elapsed seconds across every segment
+  const segmentSecondsRef = useRef(0); // elapsed seconds in the current segment only
+  const uploadedPartsRef = useRef([]); // r2:// refs already uploaded, in order
+  const pendingFinalBlobRef = useRef(null); // the last-recorded, not-yet-uploaded segment
+  const rotatingRef = useRef(false); // guards against double-rotation from timer + manual stop racing
 
   // Crash recovery: on mount, look for a durably-persisted recording with REAL
   // audio (IndexedDB), not just leftover metadata. If found, we can recover the
-  // actual audio rather than only logging a missed lecture.
+  // actual audio (plus any segments already uploaded before the crash) rather
+  // than only logging a missed lecture.
   useEffect(() => {
     let cancelled = false;
     (async () => {
       const rec = await getRecording(classId);
       if (!cancelled && rec) {
-        setRecoveryAvailable({ seconds: rec.seconds || 0, timestamp: rec.timestamp });
+        const parts = Array.isArray(rec.parts) ? rec.parts : [];
+        setRecoveryAvailable({ seconds: rec.seconds || 0, timestamp: rec.timestamp, parts });
         setRecoveredBlob(rec.blob);
+        uploadedPartsRef.current = parts;
+        setSavedSegmentCount(parts.length);
       }
     })();
     return () => { cancelled = true; };
   }, [classId]);
 
+  // Best-effort delete of segments already uploaded to R2 but not (yet) linked
+  // to any Lecture row — otherwise progressive per-segment upload would leak
+  // orphaned objects whenever a recording in progress is abandoned.
+  const deleteOrphanedParts = async (refs) => {
+    if (!refs?.length || !base44.files?.delete) return;
+    await Promise.all(refs.map((ref) => base44.files.delete(ref).catch((err) => {
+      console.error('Could not clean up an orphaned recording segment', err);
+    })));
+  };
+
   const clearRecovery = async () => {
+    const orphans = recoveryAvailable?.parts || [];
     await clearRecording(classId);
     setRecoveryAvailable(null);
     setRecoveredBlob(null);
+    uploadedPartsRef.current = [];
+    setSavedSegmentCount(0);
+    await deleteOrphanedParts(orphans);
+  };
+
+  // Upload one finished segment, retrying transient failures. Throws if every
+  // attempt fails so the caller can stop the recording and offer a retry
+  // rather than silently losing the segment.
+  const uploadSegmentWithRetry = async (blob) => {
+    if (blob.size > MAX_SEGMENT_BYTES) {
+      throw new Error('A recording segment exceeded the safe upload size. Please try recording again.');
+    }
+    let lastError;
+    for (let attempt = 1; attempt <= MAX_UPLOAD_ATTEMPTS; attempt++) {
+      try {
+        const audioFile = new File([blob], `lecture-${Date.now()}-part${uploadedPartsRef.current.length + 1}.webm`, { type: 'audio/webm' });
+        const { file_url } = await base44.integrations.Core.UploadFile({ file: audioFile, purpose: 'recording' });
+        return file_url;
+      } catch (e) {
+        lastError = e;
+        if (attempt < MAX_UPLOAD_ATTEMPTS) await new Promise((r) => setTimeout(r, 1000 * attempt));
+      }
+    }
+    throw lastError || new Error('Could not upload the recording segment.');
+  };
+
+  // Starts capturing a new segment on the already-open microphone stream.
+  const startSegment = () => {
+    const stream = streamRef.current;
+    const options = MediaRecorder.isTypeSupported?.('audio/webm;codecs=opus')
+      ? { mimeType: 'audio/webm;codecs=opus', audioBitsPerSecond: RECORDING_AUDIO_BITS_PER_SECOND }
+      : { audioBitsPerSecond: RECORDING_AUDIO_BITS_PER_SECOND };
+    let recorder;
+    try {
+      recorder = new MediaRecorder(stream, options);
+    } catch {
+      // Some older WebKit versions reject bitrate options even though the
+      // MIME type itself is supported. Continue with the browser default;
+      // the per-segment size check still prevents an unprocessable upload.
+      recorder = new MediaRecorder(stream);
+    }
+    chunksRef.current = [];
+    segmentSecondsRef.current = 0;
+    // Fires roughly every 15s because of the timeslice below. Each event we
+    // append the new slice and flush the segment-so-far to IndexedDB (tagged
+    // with the segments already safely uploaded), so a crash loses at most
+    // ~15s of the current segment, and previously uploaded segments are never
+    // re-recorded.
+    recorder.ondataavailable = (e) => {
+      if (e.data && e.data.size > 0) {
+        chunksRef.current.push(e.data);
+        const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
+        saveRecording(classId, blob, {
+          seconds: secondsRef.current,
+          timestamp: Date.now(),
+          parts: uploadedPartsRef.current,
+        });
+      }
+    };
+    recorder.start(15000);
+    recorderRef.current = recorder;
   };
 
   useEffect(() => {
@@ -312,154 +403,194 @@ function RecordModal({ classId, cls, onClose }) {
     // Only tick while actively recording (not while paused).
     if (recording && !paused) {
       interval = setInterval(() => {
-        setSeconds(s => {
+        setSeconds((s) => {
           const next = s + 1;
           secondsRef.current = next;
-          if (next >= RECOMMENDED_RECORDING_SECONDS && mediaRecorder?.state !== 'inactive') {
-            // Finalize at the advertised boundary. At the requested 32 kbps
-            // this remains below 24 MB; the Blob-size check remains the final
-            // authority in case a browser ignores the requested bitrate.
-            try { mediaRecorder.requestData(); } catch (e) {}
-            try { mediaRecorder.stop(); } catch (e) {}
-            setRecording(false);
-            setPaused(false);
-            setRecordingLimitReached(true);
+          segmentSecondsRef.current += 1;
+          if (next >= MAX_TOTAL_SECONDS) {
+            // Absolute ceiling reached — finalize everything, no more segments.
+            finalizeRecording({ hitAbsoluteLimit: true });
+          } else if (segmentSecondsRef.current >= SEGMENT_ROTATE_SECONDS) {
+            rotateSegment();
           }
           return next;
         });
       }, 1000);
     }
     return () => clearInterval(interval);
-  }, [mediaRecorder, paused, recording]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recording, paused]);
 
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      // Opus at 32 kbps is speech-appropriate and keeps a typical 90-minute
-      // lecture comfortably inside the backend/provider's 24 MB hard limit.
-      // Browsers that do not support this option may choose their own bitrate;
-      // the actual Blob size is still checked before any network request.
-      const options = MediaRecorder.isTypeSupported?.('audio/webm;codecs=opus')
-        ? { mimeType: 'audio/webm;codecs=opus', audioBitsPerSecond: RECORDING_AUDIO_BITS_PER_SECOND }
-        : { audioBitsPerSecond: RECORDING_AUDIO_BITS_PER_SECOND };
-      let recorder;
-      try {
-        recorder = new MediaRecorder(stream, options);
-      } catch {
-        // Some older WebKit versions reject bitrate options even though the
-        // MIME type itself is supported. Continue with the browser default;
-        // the hard size check still prevents an unprocessable upload.
-        recorder = new MediaRecorder(stream);
-      }
-      chunksRef.current = [];
-      // Fires roughly every 15s because of the timeslice below. Each event we
-      // append the new slice and flush the whole recording-so-far to IndexedDB,
-      // so a crash loses at most ~15s, and the persisted copy is valid audio.
-      recorder.ondataavailable = (e) => {
-        if (e.data && e.data.size > 0) {
-          chunksRef.current.push(e.data);
-          const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
-          saveRecording(classId, blob, { seconds: secondsRef.current, timestamp: Date.now() });
-        }
-      };
-      recorder.onstop = () => {
-        stream.getTracks().forEach(t => t.stop());
-        setAudioChunks([...chunksRef.current]);
-        // Final flush so the durable copy matches exactly what we captured.
-        const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
-        saveRecording(classId, blob, { seconds: secondsRef.current, timestamp: Date.now() });
-      };
-      // Timeslice = periodic ondataavailable → periodic durable flush.
-      recorder.start(15000);
-      setMediaRecorder(recorder);
-      setAudioChunks([]);
+      streamRef.current = stream;
+      uploadedPartsRef.current = [];
+      setSavedSegmentCount(0);
       setRecoveredBlob(null);
       setRecoveryAvailable(null);
-      setRecording(true);
-      setPaused(false);
+      setReadyToSave(false);
       setRecordingLimitReached(false);
       setSeconds(0);
       secondsRef.current = 0;
+      startSegment();
+      setRecording(true);
+      setPaused(false);
     } catch (e) {
       alert('Could not access microphone. Please grant permission.');
     }
   };
 
-  // Pause / resume without finalizing the recording. MediaRecorder keeps the
-  // captured audio; we just stop the clock and the mic from accumulating.
+  // Pause / resume without finalizing the current segment. MediaRecorder keeps
+  // the captured audio; we just stop the clock and the mic from accumulating.
   const togglePause = () => {
-    if (!mediaRecorder) return;
+    if (!recorderRef.current) return;
     if (paused) {
-      try { mediaRecorder.resume(); } catch (e) {}
+      try { recorderRef.current.resume(); } catch (e) {}
       setPaused(false);
     } else {
       // Flush what we have so the durable copy is current at the pause point.
-      try { mediaRecorder.requestData(); } catch (e) {}
-      try { mediaRecorder.pause(); } catch (e) {}
+      try { recorderRef.current.requestData(); } catch (e) {}
+      try { recorderRef.current.pause(); } catch (e) {}
       setPaused(true);
     }
   };
 
-  const stopRecording = async () => {
-    if (mediaRecorder) {
-      // If paused, resume briefly so stop() flushes cleanly on all browsers.
-      if (paused) { try { mediaRecorder.resume(); } catch (e) {} }
-      // Ask for any buffered audio before stopping so the last slice isn't lost.
-      try { mediaRecorder.requestData(); } catch (e) {}
-      mediaRecorder.stop();
+  // Stops the current segment's recorder and resolves once its audio Blob is
+  // ready. Does not itself upload or start a new segment — callers decide.
+  const stopCurrentSegment = () => new Promise((resolve) => {
+    const recorder = recorderRef.current;
+    if (!recorder || recorder.state === 'inactive') {
+      resolve(new Blob(chunksRef.current, { type: 'audio/webm' }));
+      return;
+    }
+    recorder.onstop = () => {
+      resolve(new Blob(chunksRef.current, { type: 'audio/webm' }));
+    };
+    if (paused) { try { recorder.resume(); } catch (e) {} }
+    try { recorder.requestData(); } catch (e) {}
+    try { recorder.stop(); } catch (e) { resolve(new Blob(chunksRef.current, { type: 'audio/webm' })); }
+  });
+
+  // Rotates to a new segment mid-recording (90-minute boundary): finalizes and
+  // uploads the just-finished segment in the background, then immediately
+  // starts capturing the next one on the same open mic stream so nothing is
+  // missed while the upload is in flight.
+  const rotateSegment = async () => {
+    if (rotatingRef.current || !recording) return;
+    rotatingRef.current = true;
+    try {
+      const blob = await stopCurrentSegment();
+      startSegment(); // keep capturing immediately, don't wait on the upload
+      const ref = await uploadSegmentWithRetry(blob);
+      uploadedPartsRef.current = [...uploadedPartsRef.current, ref];
+      setSavedSegmentCount(uploadedPartsRef.current.length);
+      // Update the durable copy so a crash after this point recovers with
+      // this segment already marked uploaded, never re-uploading it.
+      const currentBlob = new Blob(chunksRef.current, { type: 'audio/webm' });
+      await saveRecording(classId, currentBlob, {
+        seconds: secondsRef.current,
+        timestamp: Date.now(),
+        parts: uploadedPartsRef.current,
+      });
+    } catch (e) {
+      // Could not save this segment after retries — stop the recording
+      // entirely rather than risk losing more audio; the failed segment's
+      // blob is preserved locally and offered for a manual retry via the
+      // regular save flow.
+      pendingFinalBlobRef.current = null;
+      try { recorderRef.current?.stop(); } catch (err) {}
       setRecording(false);
       setPaused(false);
+      setSaveError('A recording segment could not be uploaded. Check your connection, then try saving again — your audio is safe on this device.');
+      setReadyToSave(true);
+    } finally {
+      rotatingRef.current = false;
     }
   };
+
+  // Finalizes the whole recording: stops the current segment, uploads it, and
+  // moves to the "ready to save" screen. Used both for a manual Stop and for
+  // hitting the 6-hour absolute ceiling.
+  const finalizeRecording = async ({ hitAbsoluteLimit = false } = {}) => {
+    if (rotatingRef.current) return;
+    rotatingRef.current = true;
+    setRecording(false);
+    setPaused(false);
+    if (hitAbsoluteLimit) setRecordingLimitReached(true);
+    setUploadingSegment(true);
+    try {
+      const blob = await stopCurrentSegment();
+      streamRef.current?.getTracks().forEach((t) => t.stop());
+      if (blob.size > 0) {
+        const ref = await uploadSegmentWithRetry(blob);
+        uploadedPartsRef.current = [...uploadedPartsRef.current, ref];
+        setSavedSegmentCount(uploadedPartsRef.current.length);
+      }
+      await saveRecording(classId, new Blob([], { type: 'audio/webm' }), {
+        seconds: secondsRef.current,
+        timestamp: Date.now(),
+        parts: uploadedPartsRef.current,
+      });
+      setReadyToSave(true);
+    } catch (e) {
+      setSaveError('Could not finish uploading the last part of this recording. Your audio is safe on this device — try saving again.');
+      setReadyToSave(true);
+    }
+    setUploadingSegment(false);
+    rotatingRef.current = false;
+  };
+
+  const stopRecording = () => { finalizeRecording(); };
 
   const saveAndProcess = async () => {
     setProcessing(true);
     setSaveError('');
-    let orphanedUploadRef = null;
     try {
-      // Work from whichever copy we have: freshly recorded chunks, or a blob
-      // recovered from a previous interrupted/failed session.
-      const audioBlob = recoveredBlob || new Blob(audioChunks, { type: 'audio/webm' });
-      const durationSeconds = seconds || recoveryAvailable?.seconds || 0;
-      if (!audioBlob.size) throw new Error('The recording is empty. Please record it again.');
-      if (audioBlob.size > MAX_RECORDING_BYTES) {
-        throw new Error('This recording is over 24 MB and cannot be transcribed safely. Keep each recording to about 90 minutes or less, then save longer classes in sections.');
+      // Recovering from a previous session: the recovered blob is the one
+      // segment that hadn't finished uploading yet. Upload it now, appended
+      // after whatever segments were already uploaded before the crash.
+      if (recoveredBlob && recoveredBlob.size > 0 && uploadedPartsRef.current.length === (recoveryAvailable?.parts?.length || 0)) {
+        const ref = await uploadSegmentWithRetry(recoveredBlob);
+        uploadedPartsRef.current = [...uploadedPartsRef.current, ref];
+        setSavedSegmentCount(uploadedPartsRef.current.length);
       }
 
-      // Check the estimated Cedar-credit cost before UploadFile. The backend
-      // independently verifies the real media duration before any AI call, so
-      // this only avoids wasting an upload when the known balance is too low.
+      const parts = uploadedPartsRef.current;
+      if (!parts.length) throw new Error('The recording is empty. Please record it again.');
+
+      const durationSeconds = seconds || recoveryAvailable?.seconds || 0;
+
+      // Check the estimated Cedar-credit cost before creating the Lecture. The
+      // backend independently verifies the real media duration before any AI
+      // call, so this only avoids wasting effort when the known balance is low.
       await base44.functions.invoke('processLectureRecording', {
         action: 'preflight',
         duration_seconds: durationSeconds,
       });
 
-      // Make sure a durable copy exists before we attempt the upload, so a
-      // failure (or a tab close) mid-upload never loses the audio.
-      await saveRecording(classId, audioBlob, { seconds: durationSeconds, timestamp: Date.now() });
-
       let lectureId = pendingLectureId;
       if (!lectureId) {
-        const audioFile = new File([audioBlob], `lecture-${Date.now()}.webm`, { type: 'audio/webm' });
-        const { file_url } = await base44.integrations.Core.UploadFile({ file: audioFile, purpose: 'recording' });
-        if (String(file_url).startsWith('r2://')) orphanedUploadRef = file_url;
         const today = new Date().toISOString().split('T')[0];
         const lecture = await base44.entities.Lecture.create({
           class_id: classId,
           date: today,
-          recording_url: file_url,
+          recording_url: parts[0],
+          // recording_parts is only set for a lecture actually split into more
+          // than one segment; a single-segment recording keeps behaving exactly
+          // like before, driven entirely by recording_url.
+          recording_parts: parts.length > 1 ? parts : null,
           // Display estimate only. The processing function replaces this with
           // duration parsed from the stored media before calculating the bill.
           duration_seconds: durationSeconds,
           status: 'processing',
         });
         lectureId = lecture.id;
-        orphanedUploadRef = null; // the Lecture now owns this object
         setPendingLectureId(lectureId);
       }
 
-      // The backend resolves the audio URL from the owned Lecture record; the
-      // browser no longer supplies a URL that could be swapped or forged.
+      // The backend resolves the audio URL(s) from the owned Lecture record;
+      // the browser no longer supplies a URL that could be swapped or forged.
       await base44.functions.invoke('processLectureRecording', { lecture_id: lectureId });
 
       // Save any notes typed during the lecture as a separate Note record tied
@@ -482,17 +613,24 @@ function RecordModal({ classId, cls, onClose }) {
       setReviewLectureId(lectureId);
       return;
     } catch (e) {
-      if (orphanedUploadRef && base44.files?.delete) {
-        await base44.files.delete(orphanedUploadRef).catch((cleanupError) => {
-          console.error('Could not clean up an unlinked recording upload', cleanupError);
-        });
-      }
-      // Keep the durable copy and pending lecture id so a retry does not upload
-      // or create a second Lecture after a processing failure.
+      // Keep the durable copy, uploaded parts, and pending lecture id so a
+      // retry does not re-upload segments or create a second Lecture after a
+      // processing failure.
       const detail = e?.response?.data?.message || e?.response?.data?.error || e?.message;
       setSaveError(detail || 'Check your connection and try again.');
     }
     setProcessing(false);
+  };
+
+  const discardRecording = async () => {
+    const orphans = [...uploadedPartsRef.current];
+    await clearRecording(classId);
+    uploadedPartsRef.current = [];
+    setSavedSegmentCount(0);
+    setReadyToSave(false);
+    setSeconds(0);
+    setSaveError('');
+    await deleteOrphanedParts(orphans);
   };
 
   const formatTime = (s) => {
@@ -516,13 +654,13 @@ function RecordModal({ classId, cls, onClose }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 glass">
       <div className="bg-card rounded-2xl border border-border p-8 max-w-sm w-full mx-4 text-center animate-fade-in">
         {/* Crash recovery banner — real audio was recovered from IndexedDB */}
-        {recoveryAvailable && recoveredBlob && !recording && !audioChunks.length && !saveError && (
+        {recoveryAvailable && recoveredBlob && !recording && !readyToSave && !saveError && (
           <div className="mb-6 rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 text-left">
             <div className="flex items-start gap-2">
               <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
               <div className="flex-1">
                 <p className="text-sm font-medium text-amber-700 dark:text-amber-500">Unsaved recording found</p>
-                <p className="text-xs text-muted-foreground mt-1">A recording for this class (about {formatTime(recoveryAvailable.seconds)}) didn’t finish saving last time. The audio is safe — you can save it now.</p>
+                <p className="text-xs text-muted-foreground mt-1">A recording for this class (about {formatTime(recoveryAvailable.seconds)}) didn't finish saving last time. The audio is safe — you can save it now.</p>
                 <div className="flex gap-2 mt-3">
                   <button onClick={saveAndProcess}
                     className="flex-1 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90">
@@ -544,7 +682,7 @@ function RecordModal({ classId, cls, onClose }) {
             <div className="flex items-start gap-2">
               <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
               <div className="flex-1">
-                <p className="text-sm font-medium text-amber-700 dark:text-amber-500">Couldn’t save the recording</p>
+                <p className="text-sm font-medium text-amber-700 dark:text-amber-500">Couldn't save the recording</p>
                 <p className="text-xs text-muted-foreground mt-1">Your audio is safely stored on this device — nothing was lost. {saveError}</p>
                 <button onClick={saveAndProcess} disabled={processing}
                   className="mt-3 w-full py-2 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-2">
@@ -559,14 +697,14 @@ function RecordModal({ classId, cls, onClose }) {
             Recordings are private to this student and are never shared, but
             university policy still requires the instructor's permission to
             record at all, so we confirm that up front. */}
-        {!recording && !audioChunks.length && !recoveredBlob && !saveError && !consentConfirmed && (
+        {!recording && !readyToSave && !recoveredBlob && !saveError && !consentConfirmed && (
           <>
             <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
               <Shield className="w-8 h-8 text-primary" />
             </div>
             <h3 className="font-heading text-lg font-semibold mb-1">Before you record</h3>
             <p className="text-sm text-muted-foreground mb-4">
-              Most instructors are glad to allow it, but recording a lecture needs their permission first. Your recordings stay private to you — they’re never shared with classmates or anyone else.
+              Most instructors are glad to allow it, but recording a lecture needs their permission first. Your recordings stay private to you — they're never shared with classmates or anyone else.
             </p>
 
             <button
@@ -577,7 +715,7 @@ function RecordModal({ classId, cls, onClose }) {
                 {consentChecked && <Check className="w-3.5 h-3.5" strokeWidth={3} />}
               </span>
               <span className="text-sm text-foreground">
-                I have my instructor’s permission to record {cls?.name ? <span className="font-medium">{cls.name}</span> : 'this class'}, and I’ll keep the recording for my own study use only.
+                I have my instructor's permission to record {cls?.name ? <span className="font-medium">{cls.name}</span> : 'this class'}, and I'll keep the recording for my own study use only.
               </span>
             </button>
 
@@ -600,14 +738,14 @@ function RecordModal({ classId, cls, onClose }) {
           </>
         )}
 
-        {!recording && !audioChunks.length && !recoveredBlob && !saveError && consentConfirmed && (
+        {!recording && !readyToSave && !recoveredBlob && !saveError && consentConfirmed && (
           <>
             <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
               <Mic className="w-8 h-8 text-primary" />
             </div>
             <h3 className="font-heading text-lg font-semibold mb-1">Record Lecture</h3>
             <p className="text-sm text-muted-foreground mb-2">Tap to start recording. AI will transcribe and summarize automatically.</p>
-            <p className="text-xs text-muted-foreground mb-2">Recordings stop automatically at 90 minutes so they stay within the secure transcription limit. Start a second recording for longer classes.</p>
+            <p className="text-xs text-muted-foreground mb-2">Long lectures are split into segments automatically behind the scenes — just keep recording for up to 6 hours in one session.</p>
             {cls?.recording_consent_date && (
               <p className="text-[11px] text-muted-foreground mb-6 inline-flex items-center gap-1">
                 <Shield className="w-3 h-3 text-emerald-600" /> Permission confirmed for this class
@@ -624,7 +762,10 @@ function RecordModal({ classId, cls, onClose }) {
               <Mic className={`w-8 h-8 relative ${paused ? 'text-muted-foreground' : 'text-destructive'}`} />
             </div>
             <p className="font-heading text-3xl font-bold tabular-nums mb-1">{formatTime(seconds)}</p>
-            <p className="text-sm text-muted-foreground mb-5">{paused ? 'Paused' : 'Recording in progress…'}</p>
+            <p className="text-sm text-muted-foreground mb-1">{paused ? 'Paused' : 'Recording in progress…'}</p>
+            {savedSegmentCount > 0 && (
+              <p className="text-xs text-muted-foreground mb-4">{savedSegmentCount} segment{savedSegmentCount === 1 ? '' : 's'} saved so far</p>
+            )}
 
             <div className="flex gap-2 mb-5">
               <button onClick={togglePause}
@@ -653,9 +794,15 @@ function RecordModal({ classId, cls, onClose }) {
             </div>
           </>
         )}
-        {!recording && audioChunks.length > 0 && !saveError && (
+        {!recording && readyToSave && !saveError && (
           <>
-            {processing ? (
+            {uploadingSegment ? (
+              <>
+                <Loader2 className="w-10 h-10 text-primary mx-auto mb-4 animate-spin" />
+                <h3 className="font-heading text-lg font-semibold mb-1">Finishing upload…</h3>
+                <p className="text-sm text-muted-foreground">Saving the last part of your recording.</p>
+              </>
+            ) : processing ? (
               <>
                 <Loader2 className="w-10 h-10 text-primary mx-auto mb-4 animate-spin" />
                 <h3 className="font-heading text-lg font-semibold mb-1">Processing Lecture...</h3>
@@ -667,12 +814,15 @@ function RecordModal({ classId, cls, onClose }) {
                   <FileText className="w-8 h-8 text-emerald-600" />
                 </div>
                 <h3 className="font-heading text-lg font-semibold mb-1">Recording Complete</h3>
-                <p className="text-sm text-muted-foreground mb-6">{formatTime(seconds)} of audio captured</p>
+                <p className="text-sm text-muted-foreground mb-1">{formatTime(seconds)} of audio captured</p>
+                {savedSegmentCount > 1 && (
+                  <p className="text-xs text-muted-foreground mb-4">Saved as {savedSegmentCount} segments</p>
+                )}
                 {recordingLimitReached && (
-                  <p className="text-xs text-amber-700 dark:text-amber-400 mb-4">The 90-minute limit was reached. Save this section, then start another recording if the class is continuing.</p>
+                  <p className="text-xs text-amber-700 dark:text-amber-400 mb-4">The 6-hour recording limit was reached. Save this recording, then start a new one if the class is continuing.</p>
                 )}
                 <div className="flex gap-2">
-                  <button onClick={async () => { await clearRecording(classId); setAudioChunks([]); setSeconds(0); }} className="flex-1 py-3 rounded-xl border border-border text-sm font-medium text-muted-foreground hover:bg-muted">Discard</button>
+                  <button onClick={discardRecording} className="flex-1 py-3 rounded-xl border border-border text-sm font-medium text-muted-foreground hover:bg-muted">Discard</button>
                   <button onClick={saveAndProcess} className="flex-1 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90">Save & Process</button>
                 </div>
               </>

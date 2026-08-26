@@ -13,7 +13,9 @@ export default function LectureDetail() {
   const { lectureId } = useParams();
   const navigate = useNavigate();
   const [lecture, setLecture] = useState(null);
-  const [recordingPlaybackUrl, setRecordingPlaybackUrl] = useState(null);
+  // One entry per recording segment (in order); a single-segment lecture
+  // still gets a one-element array so the render logic below is uniform.
+  const [recordingPlaybackUrls, setRecordingPlaybackUrls] = useState([]);
   const [recordingPlaybackError, setRecordingPlaybackError] = useState(null);
   const [cls, setCls] = useState(null);
   const [note, setNote] = useState('');
@@ -65,25 +67,28 @@ export default function LectureDetail() {
 
   useEffect(() => {
     let cancelled = false;
-    const recordingRef = lecture?.recording_url;
+    // A lecture split into multiple segments (recording_parts) plays back as
+    // one <audio> per segment, in order. A single-segment lecture keeps
+    // working exactly as before, driven entirely by recording_url.
+    const refs = Array.isArray(lecture?.recording_parts) && lecture.recording_parts.length > 0
+      ? lecture.recording_parts
+      : (lecture?.recording_url ? [lecture.recording_url] : []);
     setRecordingPlaybackError(null);
-    if (!recordingRef) {
-      setRecordingPlaybackUrl(null);
+    if (!refs.length) {
+      setRecordingPlaybackUrls([]);
       return () => { cancelled = true; };
     }
-    if (!String(recordingRef).startsWith('r2://')) {
-      setRecordingPlaybackUrl(recordingRef);
-      return () => { cancelled = true; };
-    }
-    setRecordingPlaybackUrl(null);
-    base44.files.getDownloadUrl(recordingRef)
-      .then((url) => { if (!cancelled) setRecordingPlaybackUrl(url); })
+    setRecordingPlaybackUrls([]);
+    Promise.all(refs.map((ref) => (
+      String(ref).startsWith('r2://') ? base44.files.getDownloadUrl(ref) : Promise.resolve(ref)
+    )))
+      .then((urls) => { if (!cancelled) setRecordingPlaybackUrls(urls); })
       .catch((error) => {
         console.error(error);
         if (!cancelled) setRecordingPlaybackError('The recording could not be loaded. Please try again.');
       });
     return () => { cancelled = true; };
-  }, [lecture?.recording_url]);
+  }, [lecture?.recording_url, lecture?.recording_parts]);
 
   // Refetch when sync completes after reconnection
   useEffect(() => {
@@ -275,11 +280,21 @@ export default function LectureDetail() {
         </div>
       )}
 
-      {/* Audio player */}
+      {/* Audio player — one segment per part for a recording that was split
+          into multiple chunks; a single-segment lecture just shows one. */}
       {lecture.recording_url && !lecture.is_missed && (
         <div className="rounded-xl border border-border bg-card p-4 mb-6">
-          {recordingPlaybackUrl ? (
-            <audio controls className="w-full" src={recordingPlaybackUrl}></audio>
+          {recordingPlaybackUrls.length > 0 ? (
+            <div className="space-y-3">
+              {recordingPlaybackUrls.map((url, i) => (
+                <div key={i}>
+                  {recordingPlaybackUrls.length > 1 && (
+                    <p className="text-xs font-medium text-muted-foreground mb-1">Part {i + 1} of {recordingPlaybackUrls.length}</p>
+                  )}
+                  <audio controls className="w-full" src={url}></audio>
+                </div>
+              ))}
+            </div>
           ) : recordingPlaybackError ? (
             <p className="text-sm text-destructive">{recordingPlaybackError}</p>
           ) : (

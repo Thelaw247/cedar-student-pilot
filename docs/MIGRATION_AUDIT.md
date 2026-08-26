@@ -137,9 +137,12 @@ does not reach 100% until its external staging checks pass.
 
 ### Before production
 
-- The deliberate 90-minute/24 MB recording policy is production-safe but means
-  longer classes must be saved as multiple lecture sections. True seamless
-  multi-part recording can be added later without blocking staging.
+- Recordings now auto-split into ordered 90-minute/24 MB segments (see
+  `recording_parts` on `lectures`) so a single recording session can run up to
+  a 6-hour absolute ceiling without the student manually starting a new lecture
+  section. The MediaRecorder segment-rotation logic (client-side) has not yet
+  been exercised in a real browser — a live multi-hour staging test is needed
+  before trusting it for a production-length lecture.
 - `sendStudyReminders` and transcript email mode now use Resend but fail closed
   until a verified sender and `RESEND_API_KEY` are configured.
 - `academicAIChat` remains disabled by its feature flag, matching its withdrawn

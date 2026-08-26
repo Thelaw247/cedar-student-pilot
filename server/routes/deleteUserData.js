@@ -80,7 +80,8 @@ router.post('/', requireAuth, async (req, res) => {
     // retry can still discover and remove every object deterministically.
     const hasR2Objects = Number((await pool.query(
       `select count(*) from lectures
-       where user_id = $1 and recording_url like 'r2://%'`,
+       where user_id = $1
+         and (recording_url like 'r2://%' or recording_parts is not null)`,
       [userId],
     )).rows[0].count) > 0;
     if (hasR2Objects || r2IsConfigured()) {

@@ -84,9 +84,32 @@ async function fetchVerifiedAudio(rawUrl, userId) {
   if (!Number.isFinite(durationSeconds) || durationSeconds < 1) {
     throw new RequestError('The recording duration could not be verified. Please record again or contact support.', 422);
   }
-  if (durationSeconds > MAX_AUDIO_SECONDS) throw new RequestError('Recordings must be six hours or shorter', 413);
 
   return { audioUrl, buffer, durationSeconds };
+}
+
+// A lecture longer than the transcription provider's per-file size limit is
+// captured client-side as multiple ordered segments (see recording_parts on
+// the lectures table) rather than being hard-capped at ~90 minutes. Each
+// segment individually still passes the same 24 MB / owned-R2-reference
+// checks as a single-part recording; this just fetches and verifies every
+// segment in order and sums their durations for the combined six-hour ceiling
+// and for billing.
+const MAX_RECORDING_PARTS = 40; // ~40 * 90 min comfortably covers the 6-hour ceiling with room to spare
+async function fetchVerifiedAudioParts(userId, storedAudioUrl, storedParts) {
+  const partRefs = Array.isArray(storedParts) && storedParts.length > 0 ? storedParts : [storedAudioUrl];
+  if (partRefs.length > MAX_RECORDING_PARTS) {
+    throw new RequestError('This recording has too many segments to process', 422);
+  }
+  const parts = [];
+  let totalSeconds = 0;
+  for (const ref of partRefs) {
+    const verified = await fetchVerifiedAudio(ref, userId);
+    parts.push(verified);
+    totalSeconds += verified.durationSeconds;
+  }
+  if (totalSeconds > MAX_AUDIO_SECONDS) throw new RequestError('Recordings must be six hours or shorter in total', 413);
+  return { parts, totalSeconds };
 }
 
 function mergeStrings(lists) {
@@ -141,12 +164,25 @@ async function transcribeViaGroq(buffer, apiKey) {
   return text;
 }
 
-async function transcribeAudio(buffer) {
+// Each segment of a multi-part recording is already individually under
+// Groq's per-file limit (see fetchVerifiedAudioParts), so no further audio
+// splitting is needed here — just transcribe every segment independently and
+// stitch the transcripts back together in order. A clear segment marker is
+// inserted between parts so extractFromTranscript's own paragraph-level
+// chunking (and the model itself) can see where a recording was paused and
+// resumed, rather than reading a hard content jump as one continuous thought.
+async function transcribeAudioParts(buffers) {
   const groqKey = process.env.GROQ_API_KEY;
   if (!groqKey) throw new Error('GROQ_API_KEY is not configured — there is no fallback transcription provider on this stack.');
-  const text = await transcribeViaGroq(buffer, groqKey);
-  console.log('[transcribe] groq ok,', text.length, 'chars');
-  return { text, provider: 'groq' };
+  const texts = [];
+  for (const buffer of buffers) {
+    texts.push(await transcribeViaGroq(buffer, groqKey));
+  }
+  const combined = buffers.length > 1
+    ? texts.map((t, i) => `[Recording segment ${i + 1} of ${buffers.length}]\n${t}`).join('\n\n')
+    : (texts[0] || '');
+  console.log('[transcribe] groq ok,', buffers.length, 'segment(s),', combined.length, 'chars');
+  return { text: combined, provider: 'groq' };
 }
 
 const EXTRACTION_SCHEMA = {
@@ -309,8 +345,9 @@ router.post('/', requireAuth, async (req, res) => {
       return insufficientResponse(res, 'process_lecture', minimumCost, balance);
     }
 
-    const verifiedAudio = await fetchVerifiedAudio(storedAudioUrl, userId);
-    const audioSeconds = verifiedAudio.durationSeconds;
+    const { parts: verifiedParts, totalSeconds: audioSeconds } = await fetchVerifiedAudioParts(
+      userId, storedAudioUrl, existing.recording_parts,
+    );
     const cost = alreadyCharged ? 0 : durationCost(audioSeconds, COST_PER_30MIN_PROCESS);
 
     await pool.query('update lectures set duration_seconds = $1, status = $2 where id = $3', [audioSeconds, 'processing', lecture_id]);
@@ -326,7 +363,7 @@ router.post('/', requireAuth, async (req, res) => {
     let transcriptionProvider = hasTranscript ? 'stored' : 'groq';
 
     if (!hasTranscript) {
-      const transcription = await transcribeAudio(verifiedAudio.buffer);
+      const transcription = await transcribeAudioParts(verifiedParts.map((p) => p.buffer));
       const rawTranscript = transcription.text;
       transcriptionProvider = transcription.provider;
 

@@ -72,6 +72,10 @@ export async function saveRecording(classId, blob, meta = {}) {
         seconds: meta.seconds ?? 0,
         timestamp: meta.timestamp ?? Date.now(),
         mimeType: blob?.type || 'audio/webm',
+        // Segments already uploaded to R2 for a recording that has been
+        // rotated (see ClassDetail's chunking logic). Lets a crash-recovered
+        // recording resume without re-uploading segments it already has.
+        parts: Array.isArray(meta.parts) ? meta.parts : [],
       });
       req.onsuccess = () => resolve();
       req.onerror = () => reject(req.error);
@@ -97,7 +101,9 @@ export async function getRecording(classId) {
     });
     db.close();
     // Only treat it as recoverable if there's actual audio with some length.
-    if (rec && rec.blob && rec.blob.size > 0) return rec;
+    if (rec && rec.blob && rec.blob.size > 0) {
+      return { ...rec, parts: Array.isArray(rec.parts) ? rec.parts : [] };
+    }
     return null;
   } catch (e) {
     return null;
