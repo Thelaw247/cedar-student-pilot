@@ -1,6 +1,7 @@
 import express from 'express';
 import { pool } from '../lib/db.js';
 import { requireAuth } from '../middleware/requireAuth.js';
+import { requireAdmin } from '../middleware/requireAdmin.js';
 import { stripeGet } from '../lib/stripe.js';
 import { TIER_GRANT } from '../lib/credits.js';
 
@@ -30,11 +31,8 @@ async function stripeAll(path, cap = 1000) {
   return out;
 }
 
-router.post('/', requireAuth, async (req, res) => {
+router.post('/', requireAuth, requireAdmin, async (req, res) => {
   try {
-    const profile = (await pool.query('select role from profiles where id = $1', [req.user.id])).rows[0];
-    if (!profile || profile.role !== 'admin') return res.status(403).json({ error: 'Forbidden' });
-
     const { rows: balances } = await pool.query('select * from credit_balances');
     const { rows: events } = await pool.query('select * from usage_events');
     const { rows: users } = await pool.query(
