@@ -18,6 +18,7 @@ import { functionPath } from './functionPath.js';
 //   - auth.*          -> Supabase Auth directly.
 
 const RENDER_API_URL = import.meta.env.VITE_RENDER_API_URL;
+const MAX_RECORDING_BYTES = 24 * 1024 * 1024;
 if (!RENDER_API_URL) {
   console.error('[cedarClient] VITE_RENDER_API_URL not set — function calls will fail.');
 }
@@ -172,6 +173,9 @@ function readAsDataUrl(file) {
 const files = {
   async uploadRecording(file) {
     if (!(file instanceof Blob) || !file.size) throw new TypeError('A non-empty recording is required');
+    if (file.size > MAX_RECORDING_BYTES) {
+      throw new RangeError('This recording is over 24 MB. Save it in shorter sections (about 90 minutes or less each).');
+    }
     const prepared = await apiRequest('/files/recordings/upload-url', {
       method: 'POST',
       body: { content_type: file.type, size_bytes: file.size },

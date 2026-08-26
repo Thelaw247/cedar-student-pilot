@@ -11,7 +11,10 @@ import {
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
-const MAX_RECORDING_BYTES = 200 * 1024 * 1024;
+// Groq's free-tier direct attachment limit is 25 MB. Stay one MiB below it so
+// multipart/form-data overhead and provider-side rounding cannot turn an
+// accepted Cedar upload into an unprocessable recording later in the flow.
+export const MAX_RECORDING_BYTES = 24 * 1024 * 1024;
 const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
 const UPLOAD_EXPIRY_SECONDS = 5 * 60;
 const DOWNLOAD_EXPIRY_SECONDS = 15 * 60;
@@ -100,7 +103,7 @@ export function validateRecordingUpload({ contentType, sizeBytes }) {
     throw new TypeError('A valid recording size is required');
   }
   if (normalizedSize > MAX_RECORDING_BYTES) {
-    throw new RangeError('Recordings must be 200 MB or smaller');
+    throw new RangeError('Recordings must be 24 MB or smaller');
   }
   return { contentType: normalizedType, sizeBytes: normalizedSize };
 }

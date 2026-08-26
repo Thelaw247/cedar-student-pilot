@@ -1,6 +1,7 @@
 import express from 'express';
 import { pool } from '../lib/db.js';
 import { requireAuth } from '../middleware/requireAuth.js';
+import { emailIsConfigured, sendEmail } from '../lib/email.js';
 
 // Direct port of exportTranscript's SECURITY-FIXED version (built earlier
 // this session after a real scan finding: an open mail relay via a
@@ -8,13 +9,8 @@ import { requireAuth } from '../middleware/requireAuth.js';
 // bug is reintroduced here — recipient is always the caller's own email,
 // never client input, and every dynamic value in the print HTML is escaped.
 //
-// EMAIL MODE IS NOT YET FUNCTIONAL. The original used Base44's built-in
-// SendEmail integration, which doesn't exist on this stack. Custom SMTP was
-// deliberately deferred to Phase 6 (cutover prep) rather than set up early.
-// Rather than silently no-op or fake success, this fails loudly with a clear
-// error — same philosophy as appOrigin()/GEMINI_API_KEY failing closed
-// elsewhere in this port. Print mode has no such dependency and is fully
-// functional now.
+// Email mode uses the caller's verified Supabase email only. The provider is
+// intentionally server-side and fails closed when its credentials are absent.
 
 const router = express.Router();
 
@@ -31,6 +27,29 @@ function todayKey(userId) {
   return `exportTranscript_email_${userId}_${new Date().toISOString().slice(0, 10)}`;
 }
 
+async function reserveEmailAllowance(userId) {
+  const key = todayKey(userId);
+  const result = await pool.query(
+    `insert into system_state (key, value) values ($1, '1')
+     on conflict (key) do update
+       set value = (case when system_state.value ~ '^[0-9]+$' then system_state.value::integer else 0 end + 1)::text
+       where (case when system_state.value ~ '^[0-9]+$' then system_state.value::integer else 0 end) < $2
+     returning value`,
+    [key, DAILY_EMAIL_LIMIT],
+  );
+  return result.rowCount > 0;
+}
+
+async function releaseEmailAllowance(userId) {
+  const key = todayKey(userId);
+  await pool.query(
+    `update system_state
+       set value = greatest((case when value ~ '^[0-9]+$' then value::integer else 1 end) - 1, 0)::text
+     where key = $1`,
+    [key],
+  );
+}
+
 router.post('/', requireAuth, async (req, res) => {
   try {
     const userId = req.user.id;
@@ -38,25 +57,6 @@ router.post('/', requireAuth, async (req, res) => {
     if (!lecture_id) return res.status(400).json({ error: 'lecture_id is required' });
     if (!mode || !['print', 'email'].includes(mode)) {
       return res.status(400).json({ error: 'mode must be "print" or "email"' });
-    }
-
-    if (mode === 'email') {
-      // Recipient is ALWAYS the caller's own verified email — never client
-      // input. This is the actual fix from the security scan, not a
-      // mitigation layered on top of a client-supplied address.
-      const key = todayKey(userId);
-      const rows = (await pool.query('select * from system_state where key = $1', [key])).rows;
-      const count = Number(rows[0]?.value || 0);
-      if (count >= DAILY_EMAIL_LIMIT) {
-        return res.status(429).json({ error: `Daily transcript email limit reached (${DAILY_EMAIL_LIMIT}/day). Try again tomorrow.` });
-      }
-      // Cost-hygiene cap only — not a security control, since there's no
-      // variable recipient left for it to limit abuse of.
-      if (rows[0]) {
-        await pool.query('update system_state set value = $1 where key = $2', [String(count + 1), key]);
-      } else {
-        await pool.query('insert into system_state (key, value) values ($1, $2)', [key, '1']);
-      }
     }
 
     const lecture = (await pool.query('select * from lectures where id = $1 and user_id = $2', [lecture_id, userId])).rows[0];
@@ -121,11 +121,26 @@ router.post('/', requireAuth, async (req, res) => {
 </html>`;
 
     if (mode === 'email') {
-      // No email-sending mechanism configured on this stack yet (SMTP
-      // deferred to Phase 6). Fail loudly rather than silently no-op.
-      return res.status(501).json({
-        error: 'Email export is not yet available — email sending is not configured on this stack. Use print mode for now.',
-      });
+      if (!emailIsConfigured()) {
+        return res.status(501).json({ error: 'Email export is not configured. Use print mode for now.' });
+      }
+      if (!EMAIL_RE.test(req.user.email || '')) return res.status(422).json({ error: 'Your account does not have a valid email address' });
+      // Recipient is ALWAYS the caller's verified auth email—never client input.
+      if (!(await reserveEmailAllowance(userId))) {
+        return res.status(429).json({ error: `Daily transcript email limit reached (${DAILY_EMAIL_LIMIT}/day). Try again tomorrow.` });
+      }
+      try {
+        const result = await sendEmail({
+          to: req.user.email,
+          subject: `${topic.replace(/&[^;]+;/g, '')} — ${className.replace(/&[^;]+;/g, '')}`,
+          html,
+          idempotencyKey: `transcript/${userId}/${lecture_id}/${new Date().toISOString().slice(0, 10)}`,
+        });
+        return res.json({ status: 'ok', mode: 'email', message_id: result.id });
+      } catch (error) {
+        await releaseEmailAllowance(userId).catch(() => {});
+        throw error;
+      }
     }
 
     res.json({ status: 'ok', mode: 'print', html });

@@ -225,6 +225,9 @@ function LectureTab({ lectures, coverage, classId, cls, onUpdate, autoRecord, on
 }
 
 function RecordModal({ classId, cls, onClose }) {
+  const MAX_RECORDING_BYTES = 24 * 1024 * 1024;
+  const RECORDING_AUDIO_BITS_PER_SECOND = 32_000;
+  const RECOMMENDED_RECORDING_SECONDS = 90 * 60;
   const [recording, setRecording] = useState(false);
   const [paused, setPaused] = useState(false);
   const [seconds, setSeconds] = useState(0);
@@ -237,6 +240,7 @@ function RecordModal({ classId, cls, onClose }) {
   const [saveError, setSaveError] = useState('');
   const [pendingLectureId, setPendingLectureId] = useState(null);
   const [liveNotes, setLiveNotes] = useState('');
+  const [recordingLimitReached, setRecordingLimitReached] = useState(false);
 
   // Recording-consent gate. Every Canadian university policy requires a student
   // to have the instructor's permission before recording a lecture. We hold a
@@ -311,17 +315,42 @@ function RecordModal({ classId, cls, onClose }) {
         setSeconds(s => {
           const next = s + 1;
           secondsRef.current = next;
+          if (next >= RECOMMENDED_RECORDING_SECONDS && mediaRecorder?.state !== 'inactive') {
+            // Finalize at the advertised boundary. At the requested 32 kbps
+            // this remains below 24 MB; the Blob-size check remains the final
+            // authority in case a browser ignores the requested bitrate.
+            try { mediaRecorder.requestData(); } catch (e) {}
+            try { mediaRecorder.stop(); } catch (e) {}
+            setRecording(false);
+            setPaused(false);
+            setRecordingLimitReached(true);
+          }
           return next;
         });
       }, 1000);
     }
     return () => clearInterval(interval);
-  }, [recording, paused]);
+  }, [mediaRecorder, paused, recording]);
 
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream);
+      // Opus at 32 kbps is speech-appropriate and keeps a typical 90-minute
+      // lecture comfortably inside the backend/provider's 24 MB hard limit.
+      // Browsers that do not support this option may choose their own bitrate;
+      // the actual Blob size is still checked before any network request.
+      const options = MediaRecorder.isTypeSupported?.('audio/webm;codecs=opus')
+        ? { mimeType: 'audio/webm;codecs=opus', audioBitsPerSecond: RECORDING_AUDIO_BITS_PER_SECOND }
+        : { audioBitsPerSecond: RECORDING_AUDIO_BITS_PER_SECOND };
+      let recorder;
+      try {
+        recorder = new MediaRecorder(stream, options);
+      } catch {
+        // Some older WebKit versions reject bitrate options even though the
+        // MIME type itself is supported. Continue with the browser default;
+        // the hard size check still prevents an unprocessable upload.
+        recorder = new MediaRecorder(stream);
+      }
       chunksRef.current = [];
       // Fires roughly every 15s because of the timeslice below. Each event we
       // append the new slice and flush the whole recording-so-far to IndexedDB,
@@ -348,6 +377,7 @@ function RecordModal({ classId, cls, onClose }) {
       setRecoveryAvailable(null);
       setRecording(true);
       setPaused(false);
+      setRecordingLimitReached(false);
       setSeconds(0);
       secondsRef.current = 0;
     } catch (e) {
@@ -392,6 +422,9 @@ function RecordModal({ classId, cls, onClose }) {
       const audioBlob = recoveredBlob || new Blob(audioChunks, { type: 'audio/webm' });
       const durationSeconds = seconds || recoveryAvailable?.seconds || 0;
       if (!audioBlob.size) throw new Error('The recording is empty. Please record it again.');
+      if (audioBlob.size > MAX_RECORDING_BYTES) {
+        throw new Error('This recording is over 24 MB and cannot be transcribed safely. Keep each recording to about 90 minutes or less, then save longer classes in sections.');
+      }
 
       // Check the estimated Cedar-credit cost before UploadFile. The backend
       // independently verifies the real media duration before any AI call, so
@@ -574,6 +607,7 @@ function RecordModal({ classId, cls, onClose }) {
             </div>
             <h3 className="font-heading text-lg font-semibold mb-1">Record Lecture</h3>
             <p className="text-sm text-muted-foreground mb-2">Tap to start recording. AI will transcribe and summarize automatically.</p>
+            <p className="text-xs text-muted-foreground mb-2">Recordings stop automatically at 90 minutes so they stay within the secure transcription limit. Start a second recording for longer classes.</p>
             {cls?.recording_consent_date && (
               <p className="text-[11px] text-muted-foreground mb-6 inline-flex items-center gap-1">
                 <Shield className="w-3 h-3 text-emerald-600" /> Permission confirmed for this class
@@ -634,6 +668,9 @@ function RecordModal({ classId, cls, onClose }) {
                 </div>
                 <h3 className="font-heading text-lg font-semibold mb-1">Recording Complete</h3>
                 <p className="text-sm text-muted-foreground mb-6">{formatTime(seconds)} of audio captured</p>
+                {recordingLimitReached && (
+                  <p className="text-xs text-amber-700 dark:text-amber-400 mb-4">The 90-minute limit was reached. Save this section, then start another recording if the class is continuing.</p>
+                )}
                 <div className="flex gap-2">
                   <button onClick={async () => { await clearRecording(classId); setAudioChunks([]); setSeconds(0); }} className="flex-1 py-3 rounded-xl border border-border text-sm font-medium text-muted-foreground hover:bg-muted">Discard</button>
                   <button onClick={saveAndProcess} className="flex-1 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90">Save & Process</button>

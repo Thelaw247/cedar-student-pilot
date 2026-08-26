@@ -7,7 +7,7 @@ import {
   getBalance, availableCredits, insufficientResponse, spendCredits,
   logUsage, durationCost, COST_PER_30MIN_PROCESS, groqCostCad, base44CostCad,
 } from '../lib/credits.js';
-import { resolveRecordingStorageRef } from '../lib/r2.js';
+import { MAX_RECORDING_BYTES, resolveRecordingStorageRef } from '../lib/r2.js';
 
 // Direct port of base44/functions/processLectureRecording/entry.ts — the
 // core pipeline: fetch the stored recording, transcribe it, extract
@@ -36,8 +36,8 @@ const router = express.Router();
 
 const GROQ_ENDPOINT = 'https://api.groq.com/openai/v1/audio/transcriptions';
 const GROQ_MODEL = 'whisper-large-v3-turbo';
-const GROQ_MAX_BYTES = 24 * 1024 * 1024;
-const MAX_AUDIO_BYTES = 200 * 1024 * 1024;
+const GROQ_MAX_BYTES = MAX_RECORDING_BYTES;
+const MAX_AUDIO_BYTES = MAX_RECORDING_BYTES;
 const MAX_AUDIO_SECONDS = 6 * 60 * 60;
 const EXTRACT_CHUNK_SIZE = 15000;
 const NO_SPEECH = '[No speech detected in recording]';
@@ -66,12 +66,12 @@ async function fetchVerifiedAudio(rawUrl, userId) {
   if (!response.ok) throw new RequestError(`The stored recording could not be retrieved (${response.status})`, 422);
 
   const declaredBytes = Number(response.headers.get('content-length') || 0);
-  if (declaredBytes > MAX_AUDIO_BYTES) throw new RequestError('Recordings must be 200 MB or smaller', 413);
+  if (declaredBytes > MAX_AUDIO_BYTES) throw new RequestError('Recordings must be 24 MB or smaller', 413);
 
   const arrayBuffer = await response.arrayBuffer();
   const buffer = Buffer.from(arrayBuffer);
   if (!buffer.length) throw new RequestError('The stored recording is empty', 422);
-  if (buffer.length > MAX_AUDIO_BYTES) throw new RequestError('Recordings must be 200 MB or smaller', 413);
+  if (buffer.length > MAX_AUDIO_BYTES) throw new RequestError('Recordings must be 24 MB or smaller', 413);
 
   let durationSeconds = 0;
   try {

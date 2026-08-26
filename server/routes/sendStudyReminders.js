@@ -1,5 +1,6 @@
 import express from 'express';
 import { pool } from '../lib/db.js';
+import { emailIsConfigured, escapeEmailHtml, sendEmail } from '../lib/email.js';
 
 // Direct port of base44/functions/sendStudyReminders/entry.ts. See that
 // file's preserved header comment for the security history (this was the
@@ -7,13 +8,23 @@ import { pool } from '../lib/db.js';
 // accepted callers (broadcast via REMINDERS_TRIGGER_TOKEN, self-service via
 // a real session) carry over unchanged.
 //
-// EMAIL SENDING NOT YET CONFIGURED on this stack (SMTP deferred to Phase 6).
-// Checked ONCE up front rather than failing per-session in the loop below —
-// this function's entire job is sending emails, so if no provider exists,
-// every session would fail identically; better to say so once, clearly.
+// Delivery is provider-backed and idempotent. A session is marked notified
+// only after the provider accepts the message.
 
 const router = express.Router();
 const WINDOW_MINUTES = 30;
+
+function localDateAndMinutes(date = new Date()) {
+  const timeZone = String(process.env.REMINDERS_TIME_ZONE || 'America/Regina').trim();
+  const parts = Object.fromEntries(new Intl.DateTimeFormat('en-CA', {
+    timeZone, year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+  }).formatToParts(date).filter((part) => part.type !== 'literal').map((part) => [part.type, part.value]));
+  return {
+    date: `${parts.year}-${parts.month}-${parts.day}`,
+    minutes: Number(parts.hour) * 60 + Number(parts.minute),
+  };
+}
 
 function tokensMatch(a, b) {
   if (!a || !b || a.length !== b.length) return false;
@@ -57,29 +68,50 @@ router.post('/', async (req, res) => {
 
     // No email-sending mechanism configured yet — fail loudly, once, rather
     // than attempt (and fail) per session below.
-    if (!process.env.EMAIL_FROM_ADDRESS) {
-      return res.status(501).json({ ok: false, sent: 0, error: 'Email sending is not yet configured on this stack (SMTP deferred to Phase 6).' });
+    if (!emailIsConfigured()) {
+      return res.status(501).json({ ok: false, sent: 0, error: 'Email sending is not configured on this stack.' });
     }
 
-    const now = new Date();
-    const todayStr = now.toISOString().split('T')[0];
-    const currentMin = now.getHours() * 60 + now.getMinutes();
+    const clock = localDateAndMinutes();
+    const todayStr = clock.date;
+    const currentMin = clock.minutes;
 
     const sessions = isBroadcast
       ? (await pool.query(`select * from study_sessions where status = 'scheduled' and scheduled_date = $1`, [todayStr])).rows
       : (await pool.query(`select * from study_sessions where status = 'scheduled' and scheduled_date = $1 and user_id = $2`, [todayStr, caller.id])).rows;
 
     let emailsSent = 0;
+    let emailsFailed = 0;
     for (const session of sessions) {
       if (session.email_notified) continue;
       const diff = minutesUntil(session, currentMin);
       if (diff === null) continue;
-      // Actual send is intentionally not implemented — see the 501 above.
-      // This loop structure is kept so wiring in a real provider later is a
-      // one-function change, not a rewrite.
+      const recipient = isBroadcast
+        ? (await pool.query('select email from auth.users where id = $1', [session.user_id])).rows[0]?.email
+        : caller.email;
+      if (!recipient) continue;
+      const title = escapeEmailHtml(session.title || 'Study session');
+      const time = escapeEmailHtml(session.scheduled_time || 'soon');
+      try {
+        await sendEmail({
+          to: recipient,
+          subject: `Cedar reminder: ${String(session.title || 'Study session').replace(/[\r\n]/g, ' ')}`,
+          html: `<p>Your <strong>${title}</strong> session starts at ${time}${diff ? ` (in about ${diff} minutes)` : ''}.</p><p>Open Cedar Student Pilot when you are ready to begin.</p>`,
+          text: `Your ${session.title || 'study'} session starts at ${session.scheduled_time || 'soon'}${diff ? ` (in about ${diff} minutes)` : ''}.`,
+          idempotencyKey: `study-reminder/${session.id}/${todayStr}`,
+        });
+        await pool.query(
+          `update study_sessions set email_notified = true where id = $1 and user_id = $2 and email_notified = false`,
+          [session.id, session.user_id],
+        );
+        emailsSent += 1;
+      } catch (error) {
+        emailsFailed += 1;
+        console.error('[study-reminder] delivery failed', session.id, error.message);
+      }
     }
 
-    res.json({ ok: true, sent: emailsSent });
+    res.status(emailsFailed ? 207 : 200).json({ ok: emailsFailed === 0, sent: emailsSent, failed: emailsFailed });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

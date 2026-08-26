@@ -38,8 +38,12 @@ test('validates recording MIME type and size', () => {
     /Unsupported/,
   );
   assert.throws(
-    () => validateRecordingUpload({ contentType: 'audio/webm', sizeBytes: 201 * 1024 * 1024 }),
-    /200 MB/,
+    () => validateRecordingUpload({ contentType: 'audio/webm', sizeBytes: 25 * 1024 * 1024 }),
+    /24 MB/,
+  );
+  assert.deepEqual(
+    validateRecordingUpload({ contentType: 'audio/webm', sizeBytes: 24 * 1024 * 1024 }),
+    { contentType: 'audio/webm', sizeBytes: 24 * 1024 * 1024 },
   );
 });
 

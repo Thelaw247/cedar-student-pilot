@@ -30,9 +30,21 @@ Complete runtime inventory (some are feature-specific):
 - AI: `GEMINI_API_KEY`, `GROQ_API_KEY`, `ACADEMIC_CHAT_ENABLED`.
 - Stripe: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `CEDAR_APP_ID`.
 - Scheduled jobs: `GRANT_TRIGGER_TOKEN`, `REMINDERS_TRIGGER_TOKEN`.
-- Email/origins: `EMAIL_FROM_ADDRESS`, `APP_ORIGIN`.
+- Email/origins: `RESEND_API_KEY`, `EMAIL_FROM_ADDRESS`, `APP_ORIGIN`, and
+  `REMINDERS_TIME_ZONE` (defaults to `America/Regina` for the staging pilot).
 - Legacy recording compatibility only: `TRUSTED_RECORDING_HOST`. New R2
-  recordings use stable private `r2://` references and do not need this value.
+recordings use stable private `r2://` references and do not need this value.
+
+## Render cron commands
+
+Both jobs call the isolated API over HTTPS and exit non-zero on failure. Give
+each cron `CEDAR_API_URL=https://cedar-api-staging.onrender.com` plus only its
+matching trigger token (prefer the same linked environment group as the API):
+
+- Monthly-credit recovery sweep: `npm run cron:monthly-credits --prefix server`
+  on `15 6 * * *` (daily; per-account period keys make grants idempotent).
+- Study reminders: `npm run cron:study-reminders --prefix server` on
+  `*/15 * * * *`. `REMINDERS_TIME_ZONE` controls the schedule interpretation.
 
 ## Deployment safety
 
