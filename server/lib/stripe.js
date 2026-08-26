@@ -7,12 +7,19 @@ import { subscriptionEntitlement } from './stripePrices.js';
 // metadata contract (cedar_tier, cedar_period, cedar_credits, user_id,
 // base44_app_id) as the live Base44 checkout-session creator.
 
-const STRIPE_VERSION = '2026-06-24.dahlia';
+const STRIPE_VERSION = '2026-07-29.dahlia';
 const BASE = 'https://api.stripe.com/v1';
 const CEDAR_APP_ID = '6a485105cf0a684688950256';
 
 export function appId() {
   return process.env.CEDAR_APP_ID || CEDAR_APP_ID;
+}
+
+export function checkoutIntegrationIdentifier() {
+  const alphabet = 'abcdefghijklmnopqrstuvwxyz';
+  let suffix = '';
+  for (let i = 0; i < 8; i += 1) suffix += alphabet[crypto.randomInt(alphabet.length)];
+  return `cedar_checkout_${suffix}`;
 }
 
 // No more Base44 default origin to fall back to on this stack — unlike the

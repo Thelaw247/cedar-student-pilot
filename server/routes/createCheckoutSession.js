@@ -1,9 +1,9 @@
 import express from 'express';
-import crypto from 'node:crypto';
 import { requireAuth } from '../middleware/requireAuth.js';
-import { pool } from '../lib/db.js';
 import { getBalance } from '../lib/credits.js';
-import { stripePost, ensureCustomer, appOrigin, appId } from '../lib/stripe.js';
+import {
+  stripePost, ensureCustomer, appOrigin, appId, checkoutIntegrationIdentifier,
+} from '../lib/stripe.js';
 import { subscriptionPrices, packPrices, VALID_TIERS, VALID_PACKS, VALID_PERIODS } from '../lib/stripePrices.js';
 
 // Direct port of base44/functions/createCheckoutSession/entry.ts. Price is
@@ -19,7 +19,7 @@ router.post('/', requireAuth, async (req, res) => {
     const ORIGIN = appOrigin();
 
     const params = {
-      integration_identifier: `cedar_checkout_${crypto.randomBytes(6).toString('hex')}`,
+      integration_identifier: checkoutIntegrationIdentifier(),
       'metadata[base44_app_id]': appId(),
       'metadata[user_id]': user.id,
       success_url: `${ORIGIN}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,

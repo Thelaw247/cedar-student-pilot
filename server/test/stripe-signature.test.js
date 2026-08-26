@@ -1,7 +1,14 @@
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
 import test from 'node:test';
-import { verifyStripeSignature } from '../lib/stripe.js';
+import { checkoutIntegrationIdentifier, verifyStripeSignature } from '../lib/stripe.js';
+
+test('creates a Stripe-compliant Cedar integration identifier', () => {
+  const first = checkoutIntegrationIdentifier();
+  const second = checkoutIntegrationIdentifier();
+  assert.match(first, /^cedar_checkout_[a-z]{8}$/);
+  assert.notEqual(first, second);
+});
 
 test('accepts a current Stripe signature', () => {
   const body = JSON.stringify({ id: 'evt_test' });
