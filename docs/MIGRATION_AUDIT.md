@@ -10,7 +10,7 @@ live on `codex/security-and-api-hardening` in draft PR #1.
 
 | Area | Status | Evidence / remaining work |
 | --- | --- | --- |
-| Supabase database | Ready for staging | 20 public tables; RLS enabled on every table; grants and policies verified against the live project. Client CRUD is user-scoped, privileged tables are read-only or server-only, and the database readiness probe passes. Eight exact post-audit migrations are committed; six older migrations still need a schema-only export. |
+| Supabase database | Ready for staging | 20 public tables; RLS enabled on every table; grants and policies verified against the live project. Client CRUD is user-scoped, privileged tables are read-only or server-only, and the database readiness probe passes. Every recorded migration is now present in Git. The six historical migrations were reconstructed from the verified catalog and the later ALTER history, then executed in order in a rollback-only verification schema. |
 | Supabase Auth | Authenticated staging verified | A real user completed signup, email confirmation, password login, profile onboarding, and initial 20-credit provisioning. Apple/Facebook remain hidden until configured; custom SMTP and production-grade recovery delivery still need verification. |
 | Express API | Live and infrastructure-ready | `cedar-api-staging` auto-deploys the audit branch. `/health/ready` returns HTTP 200 with independent `database: ok` and `storage: ok` checks. Timetable parsing is live, and semester/class persistence now runs in one validated Postgres transaction with rollback coverage. Groq, Stripe, email, and cron flows still need functional verification. |
 | R2 storage | Bucket and credentials verified | The private bucket is reachable from Render with the configured credentials. Presigned recording/avatar upload, confirmation, playback, ownership validation, and lifecycle deletion are implemented. A real signed PUT/confirm/GET round trip still needs an authenticated staging session. |
@@ -26,10 +26,10 @@ does not reach 100% until its external staging checks pass.
 | Phase | Progress | Remaining gate |
 | --- | ---: | --- |
 | 0 — Foundations | 100% | Complete for staging. |
-| 1 — Supabase data/auth | 93% | Split the verified schema snapshot into the six historical migrations; finish auth email/recovery configuration. |
-| 2 — Render API | 88% | Verify all provider-backed routes and provision the two prepared cron jobs. |
+| 1 — Supabase data/auth | 97% | Finish auth email/recovery configuration and the plan-dependent leaked-password setting. |
+| 2 — Render API | 90% | Functionally verify provider-backed routes and provision the two prepared cron jobs. |
 | 3 — R2 storage | 85% | Complete an authenticated upload/playback/transcription/deletion round trip. |
-| 4 — Cloudflare frontend | 96% | Finish route-by-route staging regression. |
+| 4 — Cloudflare frontend | 97% | Verify the deployed security headers and finish route-by-route staging regression. |
 | 5 — Full staging | 38% | Timetable re-import plus recording, handbook, subscription, portal, cancellation, and account deletion journeys. |
 | 6 — Cutover prep | 5% | Live-mode webhook and production settings remain deliberately inert/unconfigured. |
 | 7 — Cutover | 0% | Intentionally untouched until Phases 1–6 pass. |
@@ -91,13 +91,13 @@ does not reach 100% until its external staging checks pass.
   ownership-checked, scored deterministically, and persisted atomically.
 - A generated `supabase/database.types.ts` snapshot makes remote schema drift
   reviewable in Git even before the six historical DDL exports are recovered.
-- A 42 KB schema-only live-catalog snapshot now captures all 20 tables plus
+- A 42 KB schema-only live-catalog snapshot captures all 20 tables plus
   constraints, indexes, RLS, policies, grants, functions, and triggers without
-  user rows or secrets. This replaces guesswork when reconstructing the six
-  pre-repository migration files; it intentionally remains outside the ordered
-  migration directory until split by the real historical boundaries. Its full
-  DDL executed successfully under an isolated temporary schema inside a
-  rollback-only transaction, leaving no verification objects behind.
+  user rows or secrets. The six pre-repository migration files were reconstructed
+  from that evidence and the later ALTER history. The complete ordered migration
+  set executed successfully under an isolated rollback-only schema, including
+  the later course-code and recording-parts additions, and left no verification
+  objects behind.
 - The frontend compatibility client covers entity CRUD, Supabase Auth, all 26
   frontend function names, Render routing, and R2 upload flows. This means the
   remaining frontend work is validation and targeted fixes, not 65 independent
@@ -113,7 +113,7 @@ does not reach 100% until its external staging checks pass.
   default Base44-mode build and the Cloudflare-mode build pass; ESLint passes.
   The server suite currently passes 40/40 tests locally. The 2026-08-26 GitHub
   Git-data write did not emit a new Actions run, so remote CI evidence remains
-  at the prior successful commit even though the equivalent local gates pass.
+  at the prior successful commit even though the equivalent local gates pass. The server suite now passes 44/44 tests locally.
 
 ## Known gaps and risks
 
@@ -153,8 +153,6 @@ does not reach 100% until its external staging checks pass.
 - Complete a Stripe test-mode subscription, renewal, portal, cancellation, and
   webhook replay/idempotency run. Do not add the live webhook until cutover
   preparation.
-- Export the six historical Supabase migrations so a new project can be
-  bootstrapped reproducibly from the repository.
 - Add integration/E2E coverage against the real staging services. Current
   automated tests cover unit and HTTP boundaries plus builds, not the complete
   browser journey.
