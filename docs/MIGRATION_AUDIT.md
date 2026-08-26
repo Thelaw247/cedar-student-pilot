@@ -1,6 +1,6 @@
 # Cedar migration audit
 
-Last verified: 2026-08-22 (America/Edmonton; 2026-08-23 UTC)
+Last verified: 2026-08-26 (America/Edmonton)
 
 ## Executive status
 
@@ -11,11 +11,11 @@ live on `codex/security-and-api-hardening` in draft PR #1.
 | Area | Status | Evidence / remaining work |
 | --- | --- | --- |
 | Supabase database | Ready for staging | 20 public tables; RLS enabled on every table; grants and policies verified against the live project. Client CRUD is user-scoped, privileged tables are read-only or server-only, and the database readiness probe passes. Eight exact post-audit migrations are committed; six older migrations still need a schema-only export. |
-| Supabase Auth | Authenticated staging verified | A real user completed signup, email confirmation, password login, profile onboarding, and initial 20-credit provisioning on Cloudflare staging. The signup-trigger repair is confirmed under real traffic. Apple/Facebook remain hidden until configured; custom SMTP and password-recovery delivery still need production-grade verification. |
-| Express API | Live and infrastructure-ready | `cedar-api-staging` auto-deploys the audit branch. `/health/ready` returns HTTP 200 with independent `database: ok` and `storage: ok` checks. Exact-origin CORS, hostile-origin rejection, unauthenticated rejection, and server tests are verified. Provider-specific AI, Stripe, email, and cron secrets still need functional verification. |
+| Supabase Auth | Authenticated staging verified | A real user completed signup, email confirmation, password login, profile onboarding, and initial 20-credit provisioning. Apple/Facebook remain hidden until configured; custom SMTP and production-grade recovery delivery still need verification. |
+| Express API | Live and infrastructure-ready | `cedar-api-staging` auto-deploys the audit branch. `/health/ready` returns HTTP 200 with independent `database: ok` and `storage: ok` checks. Timetable parsing is live, and semester/class persistence now runs in one validated Postgres transaction with rollback coverage. Groq, Stripe, email, and cron flows still need functional verification. |
 | R2 storage | Bucket and credentials verified | The private bucket is reachable from Render with the configured credentials. Presigned recording/avatar upload, confirmation, playback, ownership validation, and lifecycle deletion are implemented. A real signed PUT/confirm/GET round trip still needs an authenticated staging session. |
 | Staging frontend | Live on Cloudflare | The Cloudflare Worker static-assets deployment at https://cedar-student-pilot.dewetluus.workers.dev builds in isolated Supabase/Render mode. `/login`, `/register`, and `/forgot-password` load directly with no application console errors. The landing and auth routes no longer depend on the Base44 Vite plugin in this build. |
-| Full staging test | In progress | Real signup, confirmation, login, profile onboarding, and initial credits pass. The first timetable attempt exposed that the deployed Cloudflare bundle was compiled against the older Render service; `VITE_RENDER_API_URL` has now been corrected and needs a fresh Cloudflare build before AI/provider diagnosis continues. |
+| Full staging test | In progress | Signup, confirmation, login, profile onboarding, initial credits, `/me`, and timetable parsing have passed with a real staging user. The duplicate-course/date-range defects are fixed. The user's old test semester (1 semester, 64 classes) was deliberately removed on 2026-08-26 while preserving auth, profile, 20 credits, and usage history so the corrected import can be retested cleanly. |
 | Cutover | Not started | No Base44 publish, DNS change, live Stripe webhook switch, or production-domain change has occurred. |
 
 ## Verified controls
@@ -42,6 +42,12 @@ live on `codex/security-and-api-hardening` in draft PR #1.
   credit changes. Monthly grants use an advisory lock and per-user idempotency.
 - Timetable parsing accepts only bounded inline PDF/image data. Arbitrary URL
   fetching was removed to close SSRF access to internal and metadata endpoints.
+- Repeated timetable rows are consolidated into logical courses by course code
+  (or a conservative normalized-name fallback), while distinct lecture, lab,
+  tutorial, date-range, and one-off schedules remain separate `meetings` rules.
+  Semester plus class persistence is atomic: validation occurs before writes,
+  the active-semester switch and every class insert share one transaction, and
+  a simulated insert failure proves the transaction rolls back without commit.
 - Private R2 references never expose permanent public object URLs. Uploads use
   short-lived signed PUTs, server-confirmed metadata, user-scoped opaque keys,
   and signed GETs.
@@ -53,34 +59,36 @@ live on `codex/security-and-api-hardening` in draft PR #1.
   ownership-checked, scored deterministically, and persisted atomically.
 - A generated `supabase/database.types.ts` snapshot makes remote schema drift
   reviewable in Git even before the six historical DDL exports are recovered.
-- The frontend compatibility client covers entity CRUD, Supabase Auth, all 25
+- The frontend compatibility client covers entity CRUD, Supabase Auth, all 26
   frontend function names, Render routing, and R2 upload flows. This means the
   remaining frontend work is validation and targeted fixes, not 65 independent
   Base44 rewrites.
 - Cloudflare mode aliases the shared client, public-settings helper, and legacy
   MCP consent route at build time. Its generated JavaScript no longer contains
   the Base44 SDK/bootstrap client; the default Base44 build remains unchanged.
-- CI checks all 25 frontend function names against Express mounts. Both the
+- CI checks all 26 frontend function names against Express mounts. Both the
   default Base44-mode build and the Cloudflare-mode build pass; ESLint passes.
-  The server suite currently passes 18/18 tests.
+  The server suite currently passes 35/35 tests locally. The 2026-08-26 GitHub
+  Git-data write did not emit a new Actions run, so remote CI evidence remains
+  at the prior successful commit even though the equivalent local gates pass.
 
 ## Known gaps and risks
 
 ### Blocking full staging verification
 
-1. Rebuild Cloudflare after correcting `VITE_RENDER_API_URL` to the isolated
-   `cedar-api-staging` service, then verify authenticated `/me`, timetable import,
-   API/RLS access, and storage journeys.
+1. Re-import the same timetable after the atomic-import frontend deploys. Verify
+   the expected logical course count, inspect flexible lecture/lab date rules,
+   then confirm Today and weekly-calendar behavior on representative dates.
 2. In Supabase Auth, verify the staging site URL and allowed redirects include
    the Cloudflare origin and `/reset-password`. Verify signup/recovery email
    delivery and templates. Enable leaked-password protection if the project is
    on Supabase Pro or above; Supabase does not offer it on the Free plan.
-3. Inventory and functionally verify provider secrets on `cedar-api-staging`:
+3. Functionally verify remaining provider secrets on `cedar-api-staging`:
    `GEMINI_API_KEY`, `GROQ_API_KEY`, Stripe **test-mode** keys/webhook secret,
    email relay/provider values, and cron/trigger tokens. Database and R2
    connectivity are already verified without exposing their secret values.
-4. Complete a real R2 signed PUT, upload confirmation, signed GET/playback, and
-   cleanup cycle through the authenticated staging app.
+4. Complete a real recording R2 signed PUT, upload confirmation, signed
+   GET/playback, transcription, and cleanup cycle through the authenticated app.
 5. Configure Render's service health-check path as `/health/ready`. The endpoint
    is live and green, but the service currently has no Dashboard health path.
 
