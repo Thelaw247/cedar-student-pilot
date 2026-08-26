@@ -26,7 +26,7 @@ does not reach 100% until its external staging checks pass.
 | Phase | Progress | Remaining gate |
 | --- | ---: | --- |
 | 0 — Foundations | 100% | Complete for staging. |
-| 1 — Supabase data/auth | 90% | Recover the six historical schema migrations; finish auth email/recovery configuration. |
+| 1 — Supabase data/auth | 93% | Split the verified schema snapshot into the six historical migrations; finish auth email/recovery configuration. |
 | 2 — Render API | 88% | Verify all provider-backed routes and provision the two prepared cron jobs. |
 | 3 — R2 storage | 85% | Complete an authenticated upload/playback/transcription/deletion round trip. |
 | 4 — Cloudflare frontend | 96% | Finish route-by-route staging regression. |
@@ -88,6 +88,13 @@ does not reach 100% until its external staging checks pass.
   ownership-checked, scored deterministically, and persisted atomically.
 - A generated `supabase/database.types.ts` snapshot makes remote schema drift
   reviewable in Git even before the six historical DDL exports are recovered.
+- A 42 KB schema-only live-catalog snapshot now captures all 20 tables plus
+  constraints, indexes, RLS, policies, grants, functions, and triggers without
+  user rows or secrets. This replaces guesswork when reconstructing the six
+  pre-repository migration files; it intentionally remains outside the ordered
+  migration directory until split by the real historical boundaries. Its full
+  DDL executed successfully under an isolated temporary schema inside a
+  rollback-only transaction, leaving no verification objects behind.
 - The frontend compatibility client covers entity CRUD, Supabase Auth, all 26
   frontend function names, Render routing, and R2 upload flows. This means the
   remaining frontend work is validation and targeted fixes, not 65 independent

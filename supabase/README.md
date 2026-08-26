@@ -17,6 +17,14 @@ directory can bootstrap a brand-new project:
 Do not create placeholder files for those versions: that would make migration
 history look reproducible when the actual DDL is missing.
 
+`schema_snapshot.sql` is a schema-only catalog export of the connected project
+captured on 2026-08-26. It contains the current tables, constraints, indexes,
+RLS, policies, API grants, functions, and triggers, but no application rows,
+auth identities, or secrets. It is the evidence source for reconstructing the
+six migrations above; it is deliberately not placed in `migrations/`, because
+pretending the current schema existed at an earlier migration version would
+make the later ALTER migrations fail on a clean rebuild.
+
 `database.types.ts` is a generated snapshot of the connected project's public
 API schema. Regenerate it after every schema migration and review the diff so
 frontend/database contract drift is visible before deployment.
