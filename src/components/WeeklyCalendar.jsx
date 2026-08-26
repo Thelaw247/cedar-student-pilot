@@ -1,6 +1,6 @@
 import React from 'react';
 import { Clock } from 'lucide-react';
-import { getClassMeetings, getClassMeetingsForDate } from '@/lib/classSchedule';
+import { getClassMeetings, getClassMeetingsForDate, getMeetingRoom } from '@/lib/classSchedule';
 import { weekDates, expandEventsInRange, parseLocalDate } from '@/lib/eventSchedule';
 import { sessionTitle } from '@/lib/sessionTitle';
 
@@ -112,7 +112,7 @@ export default function WeeklyCalendar({
         items.push({
           key: `c-${c.id}-${day}-${index}`, kind: 'class', title: c.name,
           start: m.start_time, end: m.end_time, color: c.color || '#3B82F6',
-          room: m.room || c.room, onClick: onEditClass ? () => onEditClass(c) : null,
+          room: getMeetingRoom(c, m), onClick: onEditClass ? () => onEditClass(c) : null,
         });
       });
     }
