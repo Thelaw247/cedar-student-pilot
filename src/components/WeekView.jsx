@@ -1,6 +1,6 @@
 import React from 'react';
 import { GraduationCap, Briefcase, BookOpen, Bell, Calendar as CalIcon, Clock, MapPin } from 'lucide-react';
-import { getClassMeetingsForDate } from '@/lib/classSchedule';
+import { getClassMeetingsForDate, getMeetingRoom } from '@/lib/classSchedule';
 import { expandEventsInRange, weekDates, parseLocalDate } from '@/lib/eventSchedule';
 import { sessionTitle } from '@/lib/sessionTitle';
 
@@ -47,7 +47,7 @@ export default function WeekView({ classes = [], events = [], studySessions = []
         items.push({
           key: `c-${c.id}-${dateStr}-${index}`, kind: 'class', title: c.name,
           start: meeting.start_time || c.start_time, end: meeting.end_time || c.end_time, color: c.color || '#3B82F6',
-          room: meeting.room || c.room, meta: meeting.component || meeting.instructor || c.instructor,
+          room: getMeetingRoom(c, meeting), meta: meeting.component || meeting.instructor || c.instructor,
         });
       });
     }
