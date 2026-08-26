@@ -1,4 +1,5 @@
 import { Toaster } from "@/components/ui/toaster"
+import { lazy, Suspense } from 'react';
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
 import { BrowserRouter as Router, Route, Routes, Navigate, useLocation } from 'react-router-dom';
@@ -7,26 +8,33 @@ import { AuthProvider } from '@/lib/AuthContext';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import ScrollToTop from './components/ScrollToTop';
 import Layout from '@/components/Layout';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import ForgotPassword from './pages/ForgotPassword';
-import ResetPassword from './pages/ResetPassword';
-import OAuthConsent from '@/pages/OAuthConsent';
-import Home from './pages/Home';
-import Classes from './pages/Classes';
-import ClassDetail from './pages/ClassDetail';
-import LectureDetail from './pages/LectureDetail';
-import StudyPlanner from './pages/StudyPlanner';
-import SettingsPage from './pages/Settings';
-import PrivacyPolicy from './pages/PrivacyPolicy';
-import SemesterSetup from './pages/SemesterSetup';
-import FocusMode from './pages/FocusMode';
-import Analytics from './pages/Analytics';
-import LectureReview from './pages/LectureReview';
-import CheckoutSuccess from './pages/CheckoutSuccess';
-import OwnerAnalytics from './pages/OwnerAnalytics';
-import Subscription from './pages/Subscription';
-import Landing from './pages/Landing';
+const Login = lazy(() => import('./pages/Login'));
+const Register = lazy(() => import('./pages/Register'));
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
+const ResetPassword = lazy(() => import('./pages/ResetPassword'));
+const OAuthConsent = lazy(() => import('@/pages/OAuthConsent'));
+const Home = lazy(() => import('./pages/Home'));
+const Classes = lazy(() => import('./pages/Classes'));
+const ClassDetail = lazy(() => import('./pages/ClassDetail'));
+const LectureDetail = lazy(() => import('./pages/LectureDetail'));
+const StudyPlanner = lazy(() => import('./pages/StudyPlanner'));
+const SettingsPage = lazy(() => import('./pages/Settings'));
+const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
+const SemesterSetup = lazy(() => import('./pages/SemesterSetup'));
+const FocusMode = lazy(() => import('./pages/FocusMode'));
+const Analytics = lazy(() => import('./pages/Analytics'));
+const LectureReview = lazy(() => import('./pages/LectureReview'));
+const CheckoutSuccess = lazy(() => import('./pages/CheckoutSuccess'));
+const OwnerAnalytics = lazy(() => import('./pages/OwnerAnalytics'));
+const Subscription = lazy(() => import('./pages/Subscription'));
+const Landing = lazy(() => import('./pages/Landing'));
+
+const RouteFallback = () => (
+  <div className="min-h-screen flex items-center justify-center bg-background" role="status" aria-live="polite">
+    <div className="w-7 h-7 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+    <span className="sr-only">Loading page</span>
+  </div>
+);
 
 /**
  * Sends an unauthenticated visitor to the in-app login page, remembering where
@@ -51,6 +59,7 @@ const AuthenticatedApp = () => {
   // everything behind it (`if (isLoadingAuth || !authChecked) return fallback`),
   // so protected pages still show a spinner while auth is in flight.
   return (
+    <Suspense fallback={<RouteFallback />}>
     <Routes>
       {/* Public — reachable without an account. */}
       <Route path="/" element={<Landing />} />
@@ -101,6 +110,7 @@ const AuthenticatedApp = () => {
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
+    </Suspense>
   );
 };
 

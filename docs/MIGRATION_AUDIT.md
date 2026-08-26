@@ -29,7 +29,7 @@ does not reach 100% until its external staging checks pass.
 | 1 — Supabase data/auth | 90% | Recover the six historical schema migrations; finish auth email/recovery configuration. |
 | 2 — Render API | 88% | Verify all provider-backed routes and provision the two prepared cron jobs. |
 | 3 — R2 storage | 85% | Complete an authenticated upload/playback/transcription/deletion round trip. |
-| 4 — Cloudflare frontend | 92% | Finish route-by-route staging regression and performance follow-up. |
+| 4 — Cloudflare frontend | 96% | Finish route-by-route staging regression. |
 | 5 — Full staging | 38% | Timetable re-import plus recording, handbook, subscription, portal, cancellation, and account deletion journeys. |
 | 6 — Cutover prep | 5% | Live-mode webhook and production settings remain deliberately inert/unconfigured. |
 | 7 — Cutover | 0% | Intentionally untouched until Phases 1–6 pass. |
@@ -95,6 +95,10 @@ does not reach 100% until its external staging checks pass.
 - Cloudflare mode aliases the shared client, public-settings helper, and legacy
   MCP consent route at build time. Its generated JavaScript no longer contains
   the Base44 SDK/bootstrap client; the default Base44 build remains unchanged.
+- Every public and protected page is route-lazy-loaded with an accessible
+  suspense fallback. In the isolated build this reduces the initial JavaScript
+  from about 1.44 MB/375 KB gzip to about 528 KB/155 KB gzip; analytics charting
+  and each feature page load only when visited.
 - CI checks all 26 frontend function names against Express mounts. Both the
   default Base44-mode build and the Cloudflare-mode build pass; ESLint passes.
   The server suite currently passes 40/40 tests locally. The 2026-08-26 GitHub
@@ -145,9 +149,10 @@ does not reach 100% until its external staging checks pass.
   has extensive pre-existing JS/JSDoc and SDK-union typing errors; lint and both
   production builds pass, and the generated Supabase type file validates in
   isolation, but type checking is not yet a trustworthy CI gate.
-- The isolated frontend bundle is about 1.43 MB minified (about 372 KB gzip).
-  It works,
-  but route-level code splitting should be a performance follow-up.
+- The shared initial frontend chunk remains about 528 KB minified (155 KB
+  gzip), slightly above Vite's generic 500 KB warning but less than half its
+  prior transfer size. Further vendor splitting is optional performance work,
+  not a staging blocker.
 - A non-breaking `npm audit fix` plus removal of the unused legacy
   React Quill/Quill 1 dependency reduces the frontend report from 21 findings
   (12 high) to two moderate React Router 6 advisories. The remaining fix is a
