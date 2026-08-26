@@ -15,7 +15,7 @@ live on `codex/security-and-api-hardening` in draft PR #1.
 | Express API | Live and infrastructure-ready | `cedar-api-staging` auto-deploys the audit branch. `/health/ready` returns HTTP 200 with independent `database: ok` and `storage: ok` checks. Timetable parsing is live, and semester/class persistence now runs in one validated Postgres transaction with rollback coverage. Groq, Stripe, email, and cron flows still need functional verification. |
 | R2 storage | Bucket and credentials verified | The private bucket is reachable from Render with the configured credentials. Presigned recording/avatar upload, confirmation, playback, ownership validation, and lifecycle deletion are implemented. A real signed PUT/confirm/GET round trip still needs an authenticated staging session. |
 | Staging frontend | Live on Cloudflare | The Cloudflare Worker static-assets deployment at https://cedar-student-pilot.dewetluus.workers.dev builds in isolated Supabase/Render mode. `/login`, `/register`, and `/forgot-password` load directly with no application console errors. The landing and auth routes no longer depend on the Base44 Vite plugin in this build. |
-| Full staging test | In progress | Signup, confirmation, login, profile onboarding, initial credits, `/me`, and timetable parsing have passed with a real staging user. The duplicate-course/date-range defects are fixed. The user's old test semester (1 semester, 64 classes) was deliberately removed on 2026-08-26 while preserving auth, profile, 20 credits, and usage history so the corrected import can be retested cleanly. |
+| Full staging test | In progress | Signup, confirmation, login, profile onboarding, initial credits, `/me`, Gemini timetable parsing, atomic persistence, and schedule reconciliation have passed with a real staging user. The saved semester matches Banner: 13 logical courses, 22 registered sections/components, and 73 normalized date-aware rules. |
 | Cutover | Not started | No Base44 publish, DNS change, live Stripe webhook switch, or production-domain change has occurred. |
 
 ## Phase progress
@@ -27,10 +27,10 @@ does not reach 100% until its external staging checks pass.
 | --- | ---: | --- |
 | 0 — Foundations | 100% | Complete for staging. |
 | 1 — Supabase data/auth | 97% | Finish auth email/recovery configuration and the plan-dependent leaked-password setting. |
-| 2 — Render API | 90% | Functionally verify provider-backed routes and provision the two prepared cron jobs. |
+| 2 — Render API | 92% | Functionally verify Groq, Resend, and Stripe test mode; provision the two prepared cron jobs. |
 | 3 — R2 storage | 85% | Complete an authenticated upload/playback/transcription/deletion round trip. |
-| 4 — Cloudflare frontend | 97% | Verify the deployed security headers and finish route-by-route staging regression. |
-| 5 — Full staging | 38% | Timetable re-import plus recording, handbook, subscription, portal, cancellation, and account deletion journeys. |
+| 4 — Cloudflare frontend | 99% | Measure Core Web Vitals once Chrome DevTools tracing is connected; authenticated feature regression continues in Phase 5. |
+| 5 — Full staging | 50% | Timetable import is verified; recording, handbook, subscription, portal, cancellation, and account deletion journeys remain. |
 | 6 — Cutover prep | 5% | Live-mode webhook and production settings remain deliberately inert/unconfigured. |
 | 7 — Cutover | 0% | Intentionally untouched until Phases 1–6 pass. |
 | 8 — Post-cutover | 0% | Capacitor, Vanta, and Base44 decommissioning follow the stability window. |
@@ -98,6 +98,14 @@ does not reach 100% until its external staging checks pass.
   set executed successfully under an isolated rollback-only schema, including
   the later course-code and recording-parts additions, and left no verification
   objects behind.
+- The Banner reconciliation verified all 13 course codes, 22 registered
+  lecture/lab sections, and 73 expanded meeting rules. A page-spanning GE 102
+  instructor continuation was corrected. Rule-based schedules no longer let a
+  lab's room leak into NO_ROOM lectures; legacy manual classes retain their
+  default-room fallback.
+- Provider diagnostics now require both a valid session and a database-backed
+  admin role, and no longer return API-key fingerprints. The same reusable
+  server-side admin middleware protects owner analytics.
 - The frontend compatibility client covers entity CRUD, Supabase Auth, all 26
   frontend function names, Render routing, and R2 upload flows. This means the
   remaining frontend work is validation and targeted fixes, not 65 independent
@@ -111,17 +119,17 @@ does not reach 100% until its external staging checks pass.
   and each feature page load only when visited.
 - CI checks all 26 frontend function names against Express mounts. Both the
   default Base44-mode build and the Cloudflare-mode build pass; ESLint passes.
-  The server suite currently passes 40/40 tests locally. The 2026-08-26 GitHub
-  Git-data write did not emit a new Actions run, so remote CI evidence remains
-  at the prior successful commit even though the equivalent local gates pass. The server suite now passes 44/44 tests locally.
+  The server suite passes 49/49 tests locally, including a fail-closed inventory
+  of all 38 protected API paths. Frontend and server dependency audits report
+  zero known vulnerabilities after the pinned React Router 7 upgrade.
 
 ## Known gaps and risks
 
 ### Blocking full staging verification
 
-1. Re-import the same timetable after the atomic-import frontend deploys. Verify
-   the expected logical course count, inspect flexible lecture/lab date rules,
-   then confirm Today and weekly-calendar behavior on representative dates.
+1. The corrected timetable import is complete and reconciled against Banner.
+   Perform an authenticated visual check of Today and weekly-calendar behavior
+   on representative irregular dates.
 2. In Supabase Auth, verify the staging site URL and allowed redirects include
    the Cloudflare origin and `/reset-password`. Verify signup/recovery email
    delivery and templates. Enable leaked-password protection if the project is
@@ -164,12 +172,10 @@ does not reach 100% until its external staging checks pass.
   gzip), slightly above Vite's generic 500 KB warning but less than half its
   prior transfer size. Further vendor splitting is optional performance work,
   not a staging blocker.
-- A non-breaking `npm audit fix` plus removal of the unused legacy
-  React Quill/Quill 1 dependency reduces the frontend report from 21 findings
-  (12 high) to two moderate React Router 6 advisories. The remaining fix is a
-  React Router 7 migration that needs dedicated regression testing rather than
-  a blind `--force` update. Current redirect targets are fixed internal routes,
-  and the one query-derived post-login target is normalized by `safeReturnTo()`.
+- The React Router 6 advisories are closed by the pinned React Router 7 upgrade.
+  Existing declarative `react-router-dom` imports remain supported, both builds
+  pass, public direct-load and protected redirect routes pass in the deployed
+  browser, and `npm audit` now reports zero vulnerabilities.
 
 ## Live staging inventory
 
