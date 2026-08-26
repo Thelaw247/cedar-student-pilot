@@ -1,5 +1,6 @@
 import express from 'express';
 import { requireAuth } from '../middleware/requireAuth.js';
+import { requireAdmin } from '../middleware/requireAdmin.js';
 import { CHEAP_MODEL, QUALITY_MODEL } from '../lib/llm.js';
 
 // Direct port of base44/functions/verifyProviders/entry.ts — diagnostic only,
@@ -7,8 +8,6 @@ import { CHEAP_MODEL, QUALITY_MODEL } from '../lib/llm.js';
 // provider (presence alone proves nothing). Never returns key material.
 
 const router = express.Router();
-const mask = (k) => (!k ? null : { length: k.length, ends_with: k.slice(-4), starts_with: k.slice(0, 4) });
-
 async function checkGroq(key) {
   const res = await fetch('https://api.groq.com/openai/v1/models', { headers: { Authorization: `Bearer ${key}` } });
   if (!res.ok) return { ok: false, status: res.status, error: (await res.text().catch(() => '')).slice(0, 200) };
@@ -26,11 +25,11 @@ async function checkGemini(key) {
   return { ok: true, key_valid: true, cheap_model: CHEAP_MODEL, cheap_model_available: ids.includes(CHEAP_MODEL), quality_model: QUALITY_MODEL, quality_model_available: ids.includes(QUALITY_MODEL), flash_models_visible: ids.filter((i) => i.includes('flash')).slice(0, 12) };
 }
 
-router.post('/', requireAuth, async (req, res) => {
+router.post('/', requireAuth, requireAdmin, async (req, res) => {
   try {
     const groqKey = process.env.GROQ_API_KEY;
     const gemKey = process.env.GEMINI_API_KEY;
-    const out = { groq: { secret_set: !!groqKey, fingerprint: mask(groqKey) }, gemini: { secret_set: !!gemKey, fingerprint: mask(gemKey) } };
+    const out = { groq: { secret_set: !!groqKey }, gemini: { secret_set: !!gemKey } };
 
     if (groqKey) { try { out.groq.live_check = await checkGroq(groqKey); } catch (e) { out.groq.live_check = { ok: false, error: e.message }; } }
     if (gemKey) { try { out.gemini.live_check = await checkGemini(gemKey); } catch (e) { out.gemini.live_check = { ok: false, error: e.message }; } }
