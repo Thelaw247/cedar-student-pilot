@@ -97,6 +97,17 @@ export function classMeetsOnDay(cls, dayLabel) {
 }
 
 /**
+ * Resolve a meeting location without leaking one component's room into the
+ * others. In a rule-based schedule, an omitted room is meaningful (for
+ * example, Banner's NO_ROOM lecture beside a roomed lab), so only that rule's
+ * room may be displayed. Legacy classes still use their class-level room.
+ */
+export function getMeetingRoom(cls, meeting) {
+  const hasMeetingRules = Array.isArray(cls?.meetings) && cls.meetings.length > 0;
+  return meeting?.room || (hasMeetingRules ? '' : cls?.room || '');
+}
+
+/**
  * The class's times on a specific day, or null if it doesn't meet that day.
  * Returns { start_time, end_time }.
  */
@@ -129,7 +140,7 @@ export function classesOnDate(classes, date = new Date()) {
         ...cls,
         start_time: meeting.start_time || cls.start_time,
         end_time: meeting.end_time || cls.end_time,
-        room: meeting.room || cls.room,
+        room: getMeetingRoom(cls, meeting),
         instructor: meeting.instructor || cls.instructor,
         component: meeting.component || '',
         _meeting: meeting,
