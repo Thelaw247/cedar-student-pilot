@@ -53,3 +53,71 @@ export const VALID_PACKS = new Set(Object.keys(LIVE_PACK_PRICES));
 export const VALID_PERIODS = new Set(['monthly', 'semester']);
 
 export function packCredits(pack) { return packPrices()[pack]?.credits || 0; }
+
+/**
+ * Resolve the entitlement from the server-owned Stripe price catalogue.
+ * Metadata is useful for diagnostics, but it is never authoritative for paid
+ * credits or tiers because Stripe objects can be edited outside this app.
+ */
+export function entitlementForPriceId(priceId) {
+  if (!priceId) return null;
+  const subscriptions = subscriptionPrices();
+  for (const [tier, periods] of Object.entries(subscriptions)) {
+    for (const [period, id] of Object.entries(periods)) {
+      if (id === priceId) return { kind: 'subscription', tier, period, priceId };
+    }
+  }
+  for (const [pack, details] of Object.entries(packPrices())) {
+    if (details.priceId === priceId) {
+      return { kind: 'pack', pack, credits: details.credits, priceId };
+    }
+  }
+  return null;
+}
+
+function lineItemPriceId(item) {
+  return typeof item?.price === 'string' ? item.price : item?.price?.id;
+}
+
+/** Validate a paid Checkout Session and derive its Cedar entitlement. */
+export function checkoutEntitlement(session) {
+  const items = session?.line_items?.data;
+  if (!Array.isArray(items) || items.length !== 1 || Number(items[0]?.quantity || 0) !== 1) {
+    throw new Error('Cedar checkout must contain exactly one priced item');
+  }
+  const entitlement = entitlementForPriceId(lineItemPriceId(items[0]));
+  if (!entitlement) throw new Error('Checkout uses an unknown Cedar price');
+  const expectedCheckoutMode = entitlement.kind === 'pack' ? 'payment' : 'subscription';
+  if (session.mode !== expectedCheckoutMode) throw new Error('Checkout mode does not match its Cedar price');
+
+  const metadata = session.metadata || {};
+  if (entitlement.kind === 'subscription') {
+    const metadataTier = metadata.cedar_tier || metadata.tier;
+    const metadataPeriod = metadata.cedar_period || metadata.period;
+    if (metadataTier && metadataTier !== entitlement.tier) throw new Error('Checkout tier metadata does not match its price');
+    if (metadataPeriod && metadataPeriod !== entitlement.period) throw new Error('Checkout period metadata does not match its price');
+  } else {
+    if (metadata.cedar_pack && metadata.cedar_pack !== entitlement.pack) throw new Error('Checkout pack metadata does not match its price');
+    if (metadata.cedar_credits && Number(metadata.cedar_credits) !== entitlement.credits) {
+      throw new Error('Checkout credit metadata does not match its price');
+    }
+  }
+  return entitlement;
+}
+
+/** Derive a subscription tier from its one authoritative Stripe Price. */
+export function subscriptionEntitlement(subscription) {
+  const items = subscription?.items?.data;
+  if (!Array.isArray(items) || items.length !== 1 || Number(items[0]?.quantity || 0) !== 1) {
+    throw new Error('Cedar subscription must contain exactly one priced item');
+  }
+  const entitlement = entitlementForPriceId(lineItemPriceId(items[0]));
+  if (!entitlement || entitlement.kind !== 'subscription') {
+    throw new Error('Subscription uses an unknown Cedar price');
+  }
+  const metadataTier = subscription?.metadata?.cedar_tier;
+  const metadataPeriod = subscription?.metadata?.cedar_period;
+  if (metadataTier && metadataTier !== entitlement.tier) throw new Error('Subscription tier metadata does not match its price');
+  if (metadataPeriod && metadataPeriod !== entitlement.period) throw new Error('Subscription period metadata does not match its price');
+  return entitlement;
+}

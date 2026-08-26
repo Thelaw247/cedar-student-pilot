@@ -1,7 +1,8 @@
 import express from 'express';
 import { requireAuth } from '../middleware/requireAuth.js';
 import { getBalance, availableCredits } from '../lib/credits.js';
-import { stripeGet, grantSubscriptionInitial, grantPack } from '../lib/stripe.js';
+import { appId, stripeGet, grantSubscriptionInitial, grantPack } from '../lib/stripe.js';
+import { checkoutEntitlement } from '../lib/stripePrices.js';
 
 // Direct port of base44/functions/confirmCheckoutSession/entry.ts. The
 // redirect is never trusted — this re-fetches the session FROM Stripe and
@@ -17,21 +18,20 @@ router.post('/', requireAuth, async (req, res) => {
     const sessionId = req.body?.session_id;
     if (!sessionId) return res.status(400).json({ error: 'session_id is required' });
 
-    const session = await stripeGet(`checkout/sessions/${sessionId}`);
+    const session = await stripeGet(`checkout/sessions/${encodeURIComponent(sessionId)}?expand[]=line_items.data.price`);
     if (session.payment_status !== 'paid') return res.status(402).json({ error: 'Payment not confirmed yet' });
+    if (session.metadata?.base44_app_id !== appId()) {
+      return res.status(403).json({ error: 'This checkout session does not belong to Cedar' });
+    }
     if (session.metadata?.user_id !== user.id) {
       return res.status(403).json({ error: 'This checkout session does not belong to you' });
     }
 
-    if (session.mode === 'subscription') {
-      const tier = session.metadata?.cedar_tier || session.metadata?.tier;
-      const period = session.metadata?.cedar_period || session.metadata?.period;
-      if (!tier) return res.status(400).json({ error: 'Missing tier metadata' });
-      await grantSubscriptionInitial(user.id, tier, period, sessionId, sessionId, '', session.subscription || '');
+    const entitlement = checkoutEntitlement(session);
+    if (entitlement.kind === 'subscription') {
+      await grantSubscriptionInitial(user.id, entitlement.tier, entitlement.period, sessionId, sessionId, '', session.subscription || '');
     } else {
-      const credits = Number(session.metadata?.cedar_credits || 0);
-      if (!credits) return res.status(400).json({ error: 'Missing pack metadata' });
-      await grantPack(user.id, credits, sessionId, sessionId, '');
+      await grantPack(user.id, entitlement.credits, sessionId, sessionId, '');
     }
 
     const balance = await getBalance(user.id);

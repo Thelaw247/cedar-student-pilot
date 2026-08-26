@@ -2,10 +2,10 @@ import express from 'express';
 import { pool } from '../lib/db.js';
 import {
   appId, verifyStripeSignature, grantSubscriptionInitial, grantPack,
-  grantRenewal, syncTier, downgradeAtPeriodEnd, subscriptionContext,
+  grantRenewal, syncTier, downgradeAtPeriodEnd, subscriptionContext, stripeGet,
   userIdForSubscription,
 } from '../lib/stripe.js';
-import { expectedStripeMode } from '../lib/stripePrices.js';
+import { checkoutEntitlement, expectedStripeMode } from '../lib/stripePrices.js';
 
 // Direct port of base44/functions/stripeWebhook/entry.ts. Route logic,
 // event-type handling, and metadata contract are unchanged — only the
@@ -51,21 +51,22 @@ router.post('/', async (req, res) => {
       case 'checkout.session.completed':
       case 'checkout.session.async_payment_succeeded': {
         if (data?.payment_status !== 'paid') break;
-        if (data?.metadata?.base44_app_id !== ourAppId) {
+        // Stripe webhook payloads do not reliably expand line_items. Re-fetch
+        // the signed event's session and derive the entitlement from its Price,
+        // never from user-visible or Dashboard-editable metadata values.
+        const session = await stripeGet(`checkout/sessions/${encodeURIComponent(data.id)}?expand[]=line_items.data.price`);
+        if (session.payment_status !== 'paid') break;
+        if (session?.metadata?.base44_app_id !== ourAppId) {
           return res.json({ received: true, ignored: 'unscoped_checkout' });
         }
-        const userId = data?.metadata?.user_id;
+        const userId = session?.metadata?.user_id;
         if (!userId) throw new Error('Paid Cedar checkout is missing user metadata');
+        const entitlement = checkoutEntitlement(session);
 
-        if (data.mode === 'subscription') {
-          const tier = data?.metadata?.cedar_tier || data?.metadata?.tier;
-          const period = data?.metadata?.cedar_period || data?.metadata?.period;
-          if (!tier) throw new Error('Paid Cedar subscription is missing tier metadata');
-          await grantSubscriptionInitial(userId, tier, period, data.id, data.id, eventId, data.subscription || '');
-        } else if (data.mode === 'payment') {
-          const credits = Number(data?.metadata?.cedar_credits || 0);
-          if (!credits) throw new Error('Paid Cedar pack is missing credit metadata');
-          await grantPack(userId, credits, data.id, data.id, eventId);
+        if (entitlement.kind === 'subscription') {
+          await grantSubscriptionInitial(userId, entitlement.tier, entitlement.period, session.id, session.id, eventId, session.subscription || '');
+        } else {
+          await grantPack(userId, entitlement.credits, session.id, session.id, eventId);
         }
         break;
       }

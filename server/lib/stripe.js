@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import { pool } from './db.js';
 import { TIER_GRANT, periodKey, getBalance } from './credits.js';
+import { subscriptionEntitlement } from './stripePrices.js';
 
 // Direct port of base44/shared/stripe.ts. Same Stripe account, same product
 // metadata contract (cedar_tier, cedar_period, cedar_credits, user_id,
@@ -304,6 +305,6 @@ export async function userIdForSubscription(subId) {
 export async function subscriptionContext(subId) {
   const subscription = await stripeGet(`subscriptions/${subId}?expand[]=items.data.price`);
   const userId = subscription?.metadata?.user_id || await userIdForSubscription(subId);
-  const tier = subscription?.metadata?.cedar_tier || subscription?.items?.data?.[0]?.price?.metadata?.cedar_tier || null;
-  return { subscription, userId, tier };
+  const entitlement = subscriptionEntitlement(subscription);
+  return { subscription, userId, tier: entitlement.tier, period: entitlement.period };
 }
