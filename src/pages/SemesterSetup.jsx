@@ -140,17 +140,13 @@ export default function SemesterSetup() {
           }
         }
       }
-      const semester = await base44.entities.Semester.create({
-        ...semesterInfo,
-        is_active: true,
-      });
-      for (const cls of parsedClasses) {
-        await base44.entities.Class.create({
+      await base44.functions.invoke('createSemesterImport', {
+        semester: semesterInfo,
+        classes: parsedClasses.map((cls) => ({
           ...classPayload(cls, semesterInfo),
-          semester_id: semester.id,
           color: cls.color || '#3B82F6',
-        });
-      }
+        })),
+      });
       setStep(3);
     } catch (e) {
       setError(e.message || 'Failed to create semester. Please try again.');
