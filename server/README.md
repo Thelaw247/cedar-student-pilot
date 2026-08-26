@@ -28,7 +28,8 @@ Copy those values through the Render Dashboard; do not commit them.
 Complete runtime inventory (some are feature-specific):
 
 - AI: `GEMINI_API_KEY`, `GROQ_API_KEY`, `ACADEMIC_CHAT_ENABLED`.
-- Stripe: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `CEDAR_APP_ID`.
+- Stripe: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `CEDAR_APP_ID`, and
+  mandatory `STRIPE_EXPECTED_MODE` (`test` on staging, `live` only at cutover).
 - Scheduled jobs: `GRANT_TRIGGER_TOKEN`, `REMINDERS_TRIGGER_TOKEN`.
 - Email/origins: `RESEND_API_KEY`, `EMAIL_FROM_ADDRESS`, `APP_ORIGIN`, and
   `REMINDERS_TIME_ZONE` (defaults to `America/Regina` for the staging pilot).

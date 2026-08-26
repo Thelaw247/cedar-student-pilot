@@ -57,6 +57,9 @@ does not reach 100% until its external staging checks pass.
 - CORS uses exact origins; production has no wildcard or permissive fallback.
 - Stripe fulfillment keeps durable idempotency state in the same transaction as
   credit changes. Monthly grants use an advisory lock and per-user idempotency.
+- Stripe mode is explicit and fail-closed: staging requires
+  `STRIPE_EXPECTED_MODE=test`; a live key or live webhook event is rejected
+  before checkout or fulfillment.
 - Timetable parsing accepts only bounded inline PDF/image data. Arbitrary URL
   fetching was removed to close SSRF access to internal and metadata endpoints.
 - Repeated timetable rows are consolidated into logical courses by course code

@@ -26,8 +26,24 @@ const TEST_PACK_PRICES = {
   large:  { priceId: 'price_1U5YLFRecX8K7mfKrO7nA7xu', credits: 500 },
 };
 
+export function expectedStripeMode() {
+  const expected = String(process.env.STRIPE_EXPECTED_MODE || '').trim().toLowerCase();
+  if (!['test', 'live'].includes(expected)) {
+    throw new Error('STRIPE_EXPECTED_MODE must be explicitly set to "test" or "live"');
+  }
+  return expected;
+}
+
 export function isTestMode() {
-  return /^(sk|rk)_test_/.test(process.env.STRIPE_SECRET_KEY || '');
+  const key = String(process.env.STRIPE_SECRET_KEY || '').trim();
+  const keyIsTest = /^(sk|rk)_test_/.test(key);
+  const keyIsLive = /^(sk|rk)_live_/.test(key);
+  if (!keyIsTest && !keyIsLive) throw new Error('STRIPE_SECRET_KEY is missing or invalid');
+  const expected = expectedStripeMode();
+  if ((expected === 'test') !== keyIsTest) {
+    throw new Error(`Stripe key mode does not match STRIPE_EXPECTED_MODE=${expected}`);
+  }
+  return keyIsTest;
 }
 export function subscriptionPrices() { return isTestMode() ? TEST_SUBSCRIPTION_PRICES : LIVE_SUBSCRIPTION_PRICES; }
 export function packPrices() { return isTestMode() ? TEST_PACK_PRICES : LIVE_PACK_PRICES; }

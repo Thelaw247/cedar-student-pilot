@@ -5,6 +5,7 @@ import {
   grantRenewal, syncTier, downgradeAtPeriodEnd, subscriptionContext,
   userIdForSubscription,
 } from '../lib/stripe.js';
+import { expectedStripeMode } from '../lib/stripePrices.js';
 
 // Direct port of base44/functions/stripeWebhook/entry.ts. Route logic,
 // event-type handling, and metadata contract are unchanged — only the
@@ -33,6 +34,10 @@ router.post('/', async (req, res) => {
     }
 
     const event = JSON.parse(raw);
+    const expectedMode = expectedStripeMode();
+    if (Boolean(event.livemode) !== (expectedMode === 'live')) {
+      return res.status(400).json({ error: `Webhook event does not match Stripe ${expectedMode} mode` });
+    }
     const data = event.data?.object;
     const eventId = event.id;
     const ourAppId = appId();
