@@ -1,0 +1,20 @@
+# Cloudflare Workers Static Assets applies these headers to every response.
+# Keep connect-src aligned with the isolated staging Supabase, Render, and R2
+# hosts. The production-domain policy must be reviewed during cutover.
+/*
+  Content-Security-Policy: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https://media.base44.com https://i.ytimg.com https://*.r2.cloudflarestorage.com; connect-src 'self' https://dyowooyijuxghwnwuxcr.supabase.co wss://dyowooyijuxghwnwuxcr.supabase.co https://cedar-api-staging.onrender.com https://*.r2.cloudflarestorage.com; frame-src https://www.youtube.com https://www.youtube-nocookie.com; media-src 'self' blob: https://*.r2.cloudflarestorage.com; worker-src 'self' blob:; manifest-src 'self'; upgrade-insecure-requests
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Permissions-Policy: camera=(), geolocation=(), microphone=(self), payment=()
+  Strict-Transport-Security: max-age=31536000
+  Cross-Origin-Opener-Policy: same-origin-allow-popups
+
+# The workers.dev hostname is staging, not a public search result. This
+# absolute rule does not apply after the production custom domain is attached.
+https://cedar-student-pilot.dewetluus.workers.dev/*
+  X-Robots-Tag: noindex, nofollow
+
+# Vite filenames contain content hashes, so these can be cached permanently.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
