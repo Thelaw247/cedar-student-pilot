@@ -1,7 +1,7 @@
 import React from 'react';
 import { DECAY_STATES } from '@/lib/conceptDecay';
 
-export default function FreshnessBadge({ decayState, compact }) {
+export default function FreshnessBadge({ decayState, compact = false }) {
   if (!decayState || decayState.state === 'unreviewed') {
     if (compact) return null;
     return (
