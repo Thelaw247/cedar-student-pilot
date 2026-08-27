@@ -5,6 +5,7 @@ import { useEffect } from 'react';
  * Dispatches custom events that components can listen for.
  * Shortcuts: N (new event), R (record), / (search), ? (help), Esc (handled by modals)
  */
+/** @param {{onNewEvent?: () => void, onRecord?: () => void, onSearch?: () => void, onHelp?: () => void}} options */
 export function useKeyboardShortcuts({ onNewEvent, onRecord, onSearch, onHelp } = {}) {
   useEffect(() => {
     const handler = (e) => {
