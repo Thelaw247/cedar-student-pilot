@@ -27,7 +27,7 @@ export function daysSinceReview(dateStr) {
   if (isNaN(reviewed.getTime())) return null;
   const now = new Date();
   now.setHours(0, 0, 0, 0);
-  const diffMs = now - reviewed;
+  const diffMs = now.getTime() - reviewed.getTime();
   return Math.floor(diffMs / (1000 * 60 * 60 * 24));
 }
 
