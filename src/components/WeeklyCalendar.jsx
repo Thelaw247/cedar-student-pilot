@@ -87,8 +87,8 @@ export default function WeeklyCalendar({
   studySessions = [],
   weekOffset = 0,
   dateAware = false,
-  onEditClass,
-  onEditEvent,
+  onEditClass = null,
+  onEditEvent = null,
 }) {
   // Map the seven day-columns to concrete dates for the shown week (date-aware).
   const dates = dateAware ? weekDates(new Date(), weekOffset) : null; // Mon..Sun
