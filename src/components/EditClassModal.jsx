@@ -18,7 +18,7 @@ function initialMode(classData) {
   return classData?.meetings && classData.meetings.length > 0 ? 'perday' : 'same';
 }
 
-export default function EditClassModal({ classData, semesterId, onDeleteClass, onClose }) {
+export default function EditClassModal({ classData = null, semesterId, onDeleteClass = null, onClose }) {
   const isEdit = !!classData;
 
   const buildForm = (data) => ({
