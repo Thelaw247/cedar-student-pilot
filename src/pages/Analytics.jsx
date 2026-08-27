@@ -117,6 +117,7 @@ export default function Analytics() {
     : null;
 
   const lecturesByClass = useMemo(() => {
+    /** @type {Record<string, any[]>} */
     const map = {};
     for (const l of lectures) {
       (map[l.class_id] = map[l.class_id] || []).push(l);
