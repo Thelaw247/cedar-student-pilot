@@ -59,9 +59,10 @@ const withUserId = (data) => {
 
 const entitiesProxy = new Proxy({}, {
   get(_target, name) {
+    if (typeof name !== 'string') return Reflect.get(rawClient.entities, name);
     const ent = rawClient.entities[name];
     // Non-user entities (e.g. User) and internal lookups pass straight through.
-    if (!ent || typeof name !== 'string' || !USER_ENTITIES.has(name)) return ent;
+    if (!ent || !USER_ENTITIES.has(name)) return ent;
 
     // Spreading is safe here: createEntityHandler returns a plain object whose
     // methods close over axios/appId/entityName and never reference `this`.
@@ -89,6 +90,11 @@ const base44Sdk = new Proxy(rawClient, {
 // The live Base44 build keeps its existing behavior unless this explicit
 // staging flag is present. Cloudflare Pages can therefore exercise the new
 // stack without changing or republishing the live Base44 application.
+// Both adapters intentionally expose the same dynamic compatibility surface,
+// but the Base44 SDK's generated proxy types and Cedar's handwritten adapter
+// cannot be expressed as a useful static union. Type the boundary once here so
+// every consumer does not need an unsafe cast of its own.
+/** @type {any} */
 export const base44 = import.meta.env.VITE_BACKEND_MODE === 'supabase'
   ? cedar
   : base44Sdk;
