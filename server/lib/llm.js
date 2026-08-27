@@ -51,6 +51,8 @@ function toGeminiSchema(node) {
   return out;
 }
 
+const GEMINI_TIMEOUT_MS = 120_000;
+
 async function callGemini(prompt, schema, model, key) {
   const body = { contents: [{ role: 'user', parts: [{ text: prompt }] }] };
   if (schema) {
@@ -61,6 +63,10 @@ async function callGemini(prompt, schema, model, key) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
+    // Node's fetch has no default timeout: a provider that accepts the
+    // connection and then stalls would hang this request forever, holding the
+    // request open and leaving the caller's record mid-flight.
+    signal: AbortSignal.timeout(GEMINI_TIMEOUT_MS),
   });
 
   if (!res.ok) {

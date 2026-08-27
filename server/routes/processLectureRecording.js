@@ -42,6 +42,12 @@ const MAX_AUDIO_BYTES = MAX_RECORDING_BYTES;
 const MAX_AUDIO_SECONDS = 6 * 60 * 60;
 const EXTRACT_CHUNK_SIZE = 15000;
 const NO_SPEECH = '[No speech detected in recording]';
+// Node's fetch never times out on its own. Without these, a provider that
+// accepts the connection and then goes quiet holds the request open
+// indefinitely: the instance keeps the audio buffered, no error is ever
+// raised, and the lecture stays stuck mid-processing.
+const AUDIO_FETCH_TIMEOUT_MS = 60_000;
+const GROQ_TIMEOUT_MS = 240_000; // generous for a full-length segment
 
 class RequestError extends Error {
   constructor(message, status = 400) {
@@ -60,7 +66,7 @@ async function fetchVerifiedAudio(rawUrl, userId) {
   const audioUrl = await trustedRecordingUrl(rawUrl, userId);
   let response;
   try {
-    response = await fetch(audioUrl, { redirect: 'error' });
+    response = await fetch(audioUrl, { redirect: 'error', signal: AbortSignal.timeout(AUDIO_FETCH_TIMEOUT_MS) });
   } catch {
     throw new RequestError('The stored recording could not be retrieved', 422);
   }
@@ -162,7 +168,12 @@ async function transcribeViaGroq(buffer, apiKey) {
   form.append('model', GROQ_MODEL);
   form.append('response_format', 'json');
 
-  const res = await fetch(GROQ_ENDPOINT, { method: 'POST', headers: { Authorization: `Bearer ${apiKey}` }, body: form });
+  const res = await fetch(GROQ_ENDPOINT, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${apiKey}` },
+    body: form,
+    signal: AbortSignal.timeout(GROQ_TIMEOUT_MS),
+  });
   if (!res.ok) {
     const detail = await res.text().catch(() => '');
     throw new Error(`Groq ${res.status}: ${detail.slice(0, 200)}`);
@@ -184,6 +195,7 @@ async function transcribeAudioParts(buffers) {
   const groqKey = process.env.GROQ_API_KEY;
   if (!groqKey) throw new Error('GROQ_API_KEY is not configured — there is no fallback transcription provider on this stack.');
   const texts = [];
+  console.log('[transcribe] sending', buffers.length, 'segment(s) to groq,', buffers.reduce((n, b) => n + b.length, 0), 'bytes');
   for (const buffer of buffers) {
     texts.push(await transcribeViaGroq(buffer, groqKey));
   }
@@ -427,6 +439,27 @@ router.post('/', requireAuth, async (req, res) => {
 
     res.json({ status: 'complete', lecture_id, credits_charged: chargedNow });
   } catch (error) {
+    // The catch used to be silent, which made provider failures invisible in
+    // the service logs and impossible to diagnose after the fact.
+    console.error('[recording] processing failed:', error?.message || error);
+
+    // Everything past the duration check has already flipped the lecture to
+    // 'processing'. Leaving it there strands the recording: the page reports
+    // that it is still working and offers no way to try again. Hand it back as
+    // 'pending' instead — any transcript already stored is kept, so a retry
+    // resumes rather than paying for transcription twice.
+    const strandedLectureId = req.body?.lecture_id;
+    if (strandedLectureId) {
+      try {
+        await pool.query(
+          "update lectures set status = 'pending' where id = $1 and user_id = $2 and status = 'processing'",
+          [strandedLectureId, req.user.id],
+        );
+      } catch (cleanupError) {
+        console.error('[recording] could not release the lecture:', cleanupError.message);
+      }
+    }
+
     const status = Number(error?.status) || 500;
     res.status(status >= 400 && status < 600 ? status : 500).json({ error: error.message || 'Recording processing failed' });
   }
