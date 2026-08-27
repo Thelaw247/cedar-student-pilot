@@ -1,0 +1,116 @@
+# Declarative staging topology. This file is inert until explicitly connected
+# as a Render Blueprint; committing it does not create or modify services.
+services:
+  - type: web
+    name: cedar-api-staging
+    runtime: node
+    plan: free
+    region: virginia
+    branch: codex/security-and-api-hardening
+    autoDeployTrigger: commit
+    buildCommand: npm ci --prefix server
+    startCommand: npm start --prefix server
+    healthCheckPath: /health/ready
+    buildFilter:
+      paths:
+        - server/**
+        - .node-version
+        - render.yaml
+      ignoredPaths: []
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: ALLOWED_ORIGINS
+        value: https://cedar-student-pilot.dewetluus.workers.dev
+      - key: APP_ORIGIN
+        value: https://cedar-student-pilot.dewetluus.workers.dev
+      - key: CEDAR_APP_ID
+        value: cedar-student-pilot
+      - key: STRIPE_EXPECTED_MODE
+        value: test
+      - key: ACADEMIC_CHAT_ENABLED
+        value: "false"
+      - key: REMINDERS_TIME_ZONE
+        value: America/Regina
+      - key: DATABASE_URL
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: R2_ACCOUNT_ID
+        sync: false
+      - key: R2_ACCESS_KEY_ID
+        sync: false
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false
+      - key: R2_BUCKET_NAME
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: EMAIL_FROM_ADDRESS
+        sync: false
+      - key: GRANT_TRIGGER_TOKEN
+        sync: false
+      - key: REMINDERS_TRIGGER_TOKEN
+        sync: false
+
+  # Prepared only. Each cron service incurs Render's minimum cron charge when
+  # a user explicitly creates/syncs it; no cron is provisioned by this commit.
+  - type: cron
+    name: cedar-monthly-credits-staging
+    runtime: node
+    plan: starter
+    region: virginia
+    branch: codex/security-and-api-hardening
+    autoDeployTrigger: commit
+    schedule: "15 6 * * *"
+    buildCommand: npm ci --prefix server
+    startCommand: npm run cron:monthly-credits --prefix server
+    buildFilter:
+      paths:
+        - server/**
+        - .node-version
+        - render.yaml
+      ignoredPaths: []
+    envVars:
+      - key: CEDAR_API_URL
+        value: https://cedar-api-staging.onrender.com
+      - key: GRANT_TRIGGER_TOKEN
+        fromService:
+          type: web
+          name: cedar-api-staging
+          envVarKey: GRANT_TRIGGER_TOKEN
+
+  - type: cron
+    name: cedar-study-reminders-staging
+    runtime: node
+    plan: starter
+    region: virginia
+    branch: codex/security-and-api-hardening
+    autoDeployTrigger: commit
+    schedule: "*/15 * * * *"
+    buildCommand: npm ci --prefix server
+    startCommand: npm run cron:study-reminders --prefix server
+    buildFilter:
+      paths:
+        - server/**
+        - .node-version
+        - render.yaml
+      ignoredPaths: []
+    envVars:
+      - key: CEDAR_API_URL
+        value: https://cedar-api-staging.onrender.com
+      - key: REMINDERS_TRIGGER_TOKEN
+        fromService:
+          type: web
+          name: cedar-api-staging
+          envVarKey: REMINDERS_TRIGGER_TOKEN
