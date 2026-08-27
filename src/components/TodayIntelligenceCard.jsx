@@ -21,7 +21,7 @@ function getTodayString() {
 function daysBetween(dateStr) {
   const today = new Date(getTodayString());
   const target = new Date(dateStr);
-  return Math.ceil((target - today) / (1000 * 60 * 60 * 24));
+  return Math.ceil((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 }
 
 export default function TodayIntelligenceCard({
@@ -229,4 +229,3 @@ function getTodayPlusDays(days) {
   d.setDate(d.getDate() + days);
   return d.toISOString().split('T')[0];
 }
-
