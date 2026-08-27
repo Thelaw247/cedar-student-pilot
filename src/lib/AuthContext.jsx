@@ -5,7 +5,7 @@ import { clearLegacyUserStorage, clearOtherUserStorage, clearUserStorage, getCac
 import { clearAllRecordings, clearOtherRecordings, initializeRecordingStore } from '@/lib/recordingStore';
 import { supabase } from '@/lib/supabaseClient';
 
-const AuthContext = createContext();
+const AuthContext = createContext(null);
 const USE_SUPABASE = import.meta.env.VITE_BACKEND_MODE === 'supabase';
 
 async function purgeUserOfflineData(userId) {
