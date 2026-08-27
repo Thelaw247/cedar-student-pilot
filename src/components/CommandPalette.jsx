@@ -9,7 +9,7 @@ import { Search, Clock, GraduationCap, BookOpen, FileText, Mic, Calendar } from 
  * The "Ask AI" entries were removed along with the AI Assistant page — they
  * pointed at /assistant, which no longer has a route.
  */
-export default function CommandPalette({ classes, lectures, assignments, onStartRecording }) {
+export default function CommandPalette({ classes = [], lectures = [], assignments = [], onStartRecording = null }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [activeIndex, setActiveIndex] = useState(0);
