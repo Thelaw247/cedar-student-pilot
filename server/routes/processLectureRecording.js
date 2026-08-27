@@ -1,5 +1,6 @@
 import express from 'express';
 import { parseBlob } from 'music-metadata';
+import { readWebmDurationSeconds } from '../lib/webmDuration.js';
 import { pool } from '../lib/db.js';
 import { requireAuth } from '../middleware/requireAuth.js';
 import { invokeLLM, createLlmUsage, QUALITY_MODEL } from '../lib/llm.js';
@@ -79,6 +80,14 @@ async function fetchVerifiedAudio(rawUrl, userId) {
     durationSeconds = Math.ceil(Number(metadata?.format?.duration || 0));
   } catch (error) {
     console.error('[recording] duration parse failed:', error.message);
+  }
+
+  // Browser recordings arrive as streamed WebM, whose header never receives a
+  // Duration element, so the metadata parser reports nothing for them. Measure
+  // the container's own block timestamps instead. This still reads the stored
+  // audio rather than any client-supplied value, so billing stays server-side.
+  if (durationSeconds < 1) {
+    durationSeconds = Math.ceil(readWebmDurationSeconds(buffer));
   }
 
   if (!Number.isFinite(durationSeconds) || durationSeconds < 1) {
