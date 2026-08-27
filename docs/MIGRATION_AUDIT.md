@@ -31,7 +31,7 @@ does not reach 100% until its external staging checks pass.
 | 3 — R2 storage | 85% | Complete an authenticated upload/playback/transcription/deletion round trip. |
 | 4 — Cloudflare frontend | 99% | Measure Core Web Vitals once Chrome DevTools tracing is connected; authenticated feature regression continues in Phase 5. |
 | 5 — Full staging | 50% | Timetable import is verified; recording, handbook, subscription, portal, cancellation, and account deletion journeys remain. |
-| 6 — Cutover prep | 5% | Live-mode webhook and production settings remain deliberately inert/unconfigured. |
+| 6 — Cutover prep | 20% | A fail-safe cutover/rollback runbook is committed; rehearsal, final mappings, production resources, and owner approval remain. |
 | 7 — Cutover | 0% | Intentionally untouched until Phases 1–6 pass. |
 | 8 — Post-cutover | 0% | Capacitor, Vanta, and Base44 decommissioning follow the stability window. |
 
@@ -180,6 +180,13 @@ does not reach 100% until its external staging checks pass.
   Existing declarative `react-router-dom` imports remain supported, both builds
   pass, public direct-load and protected redirect routes pass in the deployed
   browser, and `npm audit` now reports zero vulnerabilities.
+
+## Cutover preparation
+
+- `docs/CUTOVER_RUNBOOK.md` now defines same-SHA entry gates, preservation
+  snapshots, ordered traffic switching, blocking smoke tests, abort criteria,
+  data-aware rollback, and the stability/decommission window. Every production
+  action remains unchecked and requires explicit owner approval.
 
 ## Live staging inventory
 
