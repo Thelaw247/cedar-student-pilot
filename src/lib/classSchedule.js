@@ -16,10 +16,13 @@ const ALL_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 // Map JS Date.getDay() (0=Sun..6=Sat) to our short day labels.
 const JS_DAY_TO_LABEL = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
+/** @param {Date|string} date */
 export function dayLabelFromDate(date = new Date()) {
-  return JS_DAY_TO_LABEL[date.getDay()];
+  const parsed = typeof date === 'string' ? new Date(`${date.slice(0, 10)}T00:00:00`) : date;
+  return JS_DAY_TO_LABEL[parsed.getDay()];
 }
 
+/** @param {Date|string} value */
 export function localDateString(value = new Date()) {
   if (typeof value === 'string') return value.slice(0, 10);
   return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}`;
@@ -69,6 +72,7 @@ function componentKey(meeting) {
 }
 
 /** Return every actual occurrence for one class on one concrete date. */
+/** @param {any} cls @param {Date|string} date */
 export function getClassMeetingsForDate(cls, date = new Date()) {
   const dateStr = localDateString(date);
   const applicable = getClassMeetings(cls).filter((meeting) => meetingAppliesOnDate(cls, meeting, dateStr));
@@ -130,7 +134,11 @@ export function classesOnDay(classes, dayLabel) {
   return out;
 }
 
-/** Flatten classes into concrete meeting occurrences on a specific date. */
+/**
+ * Flatten classes into concrete meeting occurrences on a specific date.
+ * @param {any[]} classes
+ * @param {Date|string} date
+ */
 export function classesOnDate(classes, date = new Date()) {
   const dateStr = localDateString(date);
   const out = [];
