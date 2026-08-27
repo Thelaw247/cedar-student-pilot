@@ -25,6 +25,8 @@ jobs:
         run: npm run lint
       - name: Type-check frontend
         run: npm run typecheck -- --pretty false
+      - name: Audit frontend dependencies
+        run: npm audit --audit-level=high
       - name: Check frontend/API route contract
         run: npm run check:api-contract
       - name: Build frontend (Base44 mode)
@@ -38,5 +40,7 @@ jobs:
           VITE_RENDER_API_URL: https://api.example.test
       - name: Install server dependencies
         run: npm ci --prefix server
+      - name: Audit server dependencies
+        run: npm audit --prefix server --audit-level=high
       - name: Test server
         run: npm test --prefix server
