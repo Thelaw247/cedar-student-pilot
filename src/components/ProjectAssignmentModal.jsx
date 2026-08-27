@@ -64,7 +64,7 @@ export default function ProjectAssignmentModal({ classId, className, onClose }) 
       // Create project sessions from roadmap, distributed from today to due date
       const today = new Date();
       const due = new Date(dueDate + 'T23:59:59');
-      const totalDays = Math.max(1, Math.ceil((due - today) / (1000 * 60 * 60 * 24)));
+      const totalDays = Math.max(1, Math.ceil((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)));
       const stepCount = roadmap.length;
 
       const sessionsToCreate = roadmap.map((rStep, i) => {
