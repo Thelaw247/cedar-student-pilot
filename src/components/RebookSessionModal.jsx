@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { Sparkles, CalendarClock, Zap, X, Loader2, Check, Calendar } from 'lucide-react';
 
-export default function RebookSessionModal({ session, className, onClose, onRebooked }) {
+export default function RebookSessionModal({ session, className = '', onClose, onRebooked }) {
   const navigate = useNavigate();
   const [mode, setMode] = useState(null); // null = menu, 'ai' | 'manual' | 'done'
   const [aiResult, setAiResult] = useState(null);
