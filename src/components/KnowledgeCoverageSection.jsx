@@ -13,12 +13,14 @@ import { computeClassProficiency, pairCoverageWithLectures, getDecayState, daysS
  * fetches and separate metrics, which is how the ring could show 100% for a
  * class this list scored at 15%.
  *
- * @param {Array} classes         every class in the active semester
- * @param {Array} coverage        all KnowledgeCoverage rows across those classes
- * @param {Object} lecturesByClass  { [classId]: Lecture[] }
- * @param {Function} onReload     re-fetch after a review changes the data
+ * @param {{
+ *   classes: any[],
+ *   coverage?: any[],
+ *   lecturesByClass?: Record<string, any[]>,
+ *   onReload?: () => void|Promise<void>,
+ * }} props
  */
-export default function KnowledgeCoverageSection({ classes, coverage = [], lecturesByClass = {}, onReload }) {
+export default function KnowledgeCoverageSection({ classes, coverage = [], lecturesByClass = {}, onReload = () => {} }) {
   const [expandedClass, setExpandedClass] = useState(null);
   const [reviewLecture, setReviewLecture] = useState(null);
 
