@@ -39,6 +39,9 @@ import createSemesterImportRouter from './routes/createSemesterImport.js';
 
 export const app = express();
 const PORT = process.env.PORT || 3000;
+// Render injects RENDER_SERVICE_NAME, so staging reports itself as
+// cedar-api-staging in health responses instead of the package name.
+const SERVICE_NAME = String(process.env.RENDER_SERVICE_NAME || '').trim() || 'cedar-server';
 
 app.disable('x-powered-by');
 app.use(requestSecurity);
@@ -81,7 +84,7 @@ app.use('/data', deleteAcademicDataRouter);
 app.use('/create-semester-import', createSemesterImportRouter);
 
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', service: 'cedar-server', timestamp: new Date().toISOString() });
+  res.json({ status: 'ok', service: SERVICE_NAME, timestamp: new Date().toISOString() });
 });
 
 // Readiness is deliberately separate from liveness: Render can keep using
@@ -105,7 +108,7 @@ app.get('/health/ready', async (req, res) => {
   const ready = Object.values(checks).every((status) => status === 'ok');
   res.status(ready ? 200 : 503).json({
     status: ready ? 'ready' : 'unavailable',
-    service: 'cedar-server',
+    service: SERVICE_NAME,
     checks,
     timestamp: new Date().toISOString(),
   });
@@ -117,6 +120,6 @@ app.use((req, res) => {
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`cedar-server listening on port ${PORT}`);
+    console.log(`${SERVICE_NAME} listening on port ${PORT}`);
   });
 }
