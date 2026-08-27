@@ -90,7 +90,7 @@ test('parses stable R2 storage references', () => {
   assert.equal(parseStorageRef('https://example.com/file'), null);
 });
 
-test('presigned browser uploads carry no SDK checksum requirement', async () => {
+test('presigned browser uploads sign metadata headers and carry no SDK checksum requirement', async () => {
   // AWS SDK >= 3.729 adds x-amz-checksum-crc32 (of the empty placeholder body)
   // to presigned PutObject URLs unless checksum calculation is WHEN_REQUIRED.
   // R2 then rejects the browser's real upload and omits CORS headers on the
@@ -111,6 +111,13 @@ test('presigned browser uploads carry no SDK checksum requirement', async () => 
       const checksumParams = [...url.searchParams.keys()].filter((key) => key.toLowerCase().includes('checksum'));
       assert.deepEqual(checksumParams, []);
       assert.equal(url.host, 'test-bucket.testaccount.r2.cloudflarestorage.com');
+      // Every x-amz-* header the browser sends must be signed, and none may be
+      // hoisted into the query string, or R2 answers 403 SignatureDoesNotMatch.
+      const signedHeaders = decodeURIComponent(url.searchParams.get('X-Amz-SignedHeaders')).split(';');
+      const browserAmzHeaders = Object.keys(upload.headers).filter((name) => name.toLowerCase().startsWith('x-amz-'));
+      assert.ok(browserAmzHeaders.length >= 3);
+      for (const name of browserAmzHeaders) assert.ok(signedHeaders.includes(name.toLowerCase()), `${name} must be signed`);
+      assert.deepEqual([...url.searchParams.keys()].filter((key) => key.toLowerCase().startsWith('x-amz-meta')), []);
     }
   } finally {
     for (const name of names) {

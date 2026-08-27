@@ -18,6 +18,12 @@ export const MAX_RECORDING_BYTES = 24 * 1024 * 1024;
 const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
 const UPLOAD_EXPIRY_SECONDS = 5 * 60;
 const DOWNLOAD_EXPIRY_SECONDS = 15 * 60;
+// Browser uploads send these as request headers. Under Signature V4 every
+// x-amz-* header present in a request must be covered by the signature, so
+// they must stay headers (not be hoisted into the query string) and be signed.
+// Otherwise R2 rejects the browser's PUT with 403 SignatureDoesNotMatch.
+const SIGNED_UPLOAD_HEADERS = new Set(['x-amz-meta-owner', 'x-amz-meta-purpose', 'x-amz-meta-max-bytes']);
+const UPLOAD_PRESIGN_OPTIONS = { expiresIn: UPLOAD_EXPIRY_SECONDS, unhoistableHeaders: SIGNED_UPLOAD_HEADERS };
 const RECORDING_TYPES = new Set([
   'audio/m4a',
   'audio/mp4',
@@ -177,7 +183,7 @@ export async function createRecordingUpload(userId, input) {
     ContentType: contentType,
     Metadata: metadata,
   });
-  const uploadUrl = await getSignedUrl(client, command, { expiresIn: UPLOAD_EXPIRY_SECONDS });
+  const uploadUrl = await getSignedUrl(client, command, UPLOAD_PRESIGN_OPTIONS);
   return {
     key,
     upload_url: uploadUrl,
@@ -197,7 +203,7 @@ export async function createAvatarUpload(userId, input) {
   const { client, bucket } = r2Client();
   const metadata = { owner: userId, purpose: 'avatar', 'max-bytes': String(sizeBytes) };
   const command = new PutObjectCommand({ Bucket: bucket, Key: key, ContentType: contentType, Metadata: metadata });
-  const uploadUrl = await getSignedUrl(client, command, { expiresIn: UPLOAD_EXPIRY_SECONDS });
+  const uploadUrl = await getSignedUrl(client, command, UPLOAD_PRESIGN_OPTIONS);
   return {
     key,
     upload_url: uploadUrl,
