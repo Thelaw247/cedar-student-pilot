@@ -609,7 +609,10 @@ function RecordModal({ classId, cls, onClose }) {
           // Display estimate only. The processing function replaces this with
           // duration parsed from the stored media before calculating the bill.
           duration_seconds: durationSeconds,
-          status: 'processing',
+          // 'pending' — the server flips it to 'processing' when it actually
+          // claims the work. Creating it as 'processing' made a brand-new row
+          // look like a run already in flight, so processing never started.
+          status: 'pending',
         });
         lectureId = lecture.id;
         setPendingLectureId(lectureId);

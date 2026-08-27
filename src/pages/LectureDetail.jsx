@@ -32,6 +32,8 @@ export default function LectureDetail() {
   // elsewhere in the app for destructive actions.
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  // Re-submitting a recording whose processing failed or never started.
+  const [retrying, setRetrying] = useState(false);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -216,6 +218,25 @@ export default function LectureDetail() {
     }
   };
 
+  // A lecture handed back as 'pending' after a processing failure (or one
+  // whose processing never started) can be re-submitted from here. The server
+  // answers 202 and works in the background; flipping the local status to
+  // 'processing' hands off to the polling effect above, which shows the
+  // analysis the moment it lands.
+  const retryProcessing = async () => {
+    setRetrying(true);
+    try {
+      await base44.functions.invoke('processLectureRecording', { lecture_id: lectureId });
+      const fresh = { ...lecture, status: 'processing' };
+      cacheSet('Lecture', 'get', [lectureId], fresh);
+      setLecture(fresh);
+    } catch (e) {
+      console.error(e);
+      alert(e?.response?.data?.error || e?.message || 'Could not start processing. Please try again.');
+    }
+    setRetrying(false);
+  };
+
   if (loading) return <div className="flex items-center justify-center min-h-[60vh]"><div className="w-8 h-8 border-3 border-muted border-t-primary rounded-full animate-spin"></div></div>;
   if (!lecture) return <div className="p-6 text-center text-muted-foreground">Lecture not found.</div>;
 
@@ -292,6 +313,23 @@ export default function LectureDetail() {
         <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 mb-6 flex items-start gap-2">
           <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
           <p className="text-xs text-amber-700 dark:text-amber-500">This lecture was not recorded. The summary below is AI-generated based on previous lectures and course context. It may not reflect what was actually covered in class.</p>
+        </div>
+      )}
+
+      {/* Recording saved but never analyzed — offer to (re)start processing */}
+      {lecture.status === 'pending' && lecture.recording_url && !lecture.ai_title && (
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 mb-6">
+          <div className="flex items-start gap-2">
+            <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-amber-700 dark:text-amber-500">This recording hasn't been processed yet</p>
+              <p className="text-xs text-muted-foreground mt-1">The audio is safely stored. Start processing to get the transcript, summary, and flashcards.</p>
+              <button onClick={retryProcessing} disabled={retrying}
+                className="mt-3 inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 disabled:opacity-50">
+                {retrying ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Starting…</> : <><Sparkles className="w-3.5 h-3.5" /> Process recording</>}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

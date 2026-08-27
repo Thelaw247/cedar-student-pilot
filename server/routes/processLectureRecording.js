@@ -324,13 +324,21 @@ ${formulas || '(none)'}`,
 // with the failure path releasing the lecture back to 'pending', no recording
 // can be stranded forever. The pipeline itself touches the row at every stage
 // (duration, transcript, analysis), which keeps updated_at fresh on live runs.
+//
+// One wrinkle: clients used to CREATE the lecture row with status 'processing'
+// before ever calling this endpoint, which made a brand-new row look like a
+// run already in flight and blocked it from ever starting. A row whose
+// updated_at still equals created_at has never been touched by any pipeline
+// (a real claim bumps updated_at immediately), so it is always claimable.
 const PROCESSING_STALE_MINUTES = 15;
 
 async function claimLecture(lectureId, userId) {
   const claimed = await pool.query(
     `update lectures set status = 'processing'
       where id = $1 and user_id = $2
-        and (status <> 'processing' or updated_at < now() - make_interval(mins => $3))
+        and (status <> 'processing'
+             or updated_at = created_at
+             or updated_at < now() - make_interval(mins => $3))
       returning id`,
     [lectureId, userId, PROCESSING_STALE_MINUTES],
   );
