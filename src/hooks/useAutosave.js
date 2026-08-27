@@ -23,6 +23,9 @@ import { invalidateEntity } from '@/lib/cache';
  *
  * Status: 'idle' | 'saving' | 'saved' | 'error'
  */
+/**
+ * @param {{entity?: string, delay?: number, onSaved?: () => void, onError?: (error: any, id: string) => void}} options
+ */
 export function useAutosave({ entity, delay = 700, onSaved, onError } = {}) {
   const [status, setStatus] = useState('idle');
 
