@@ -1,6 +1,6 @@
 # Cedar migration audit
 
-Last verified: 2026-08-26 (America/Edmonton)
+Last verified: 2026-08-27 (America/Edmonton)
 
 ## Executive status
 
@@ -27,7 +27,7 @@ does not reach 100% until its external staging checks pass.
 | --- | ---: | --- |
 | 0 — Foundations | 100% | Complete for staging. |
 | 1 — Supabase data/auth | 97% | Finish auth email/recovery configuration and the plan-dependent leaked-password setting. |
-| 2 — Render API | 92% | Functionally verify Groq, Resend, and Stripe test mode; provision the two prepared cron jobs. |
+| 2 — Render API | 93% | Functionally verify Groq, Resend, and Stripe test mode; explicitly provision the two prepared paid cron jobs and set the Dashboard health path. |
 | 3 — R2 storage | 85% | Complete an authenticated upload/playback/transcription/deletion round trip. |
 | 4 — Cloudflare frontend | 99% | Measure Core Web Vitals once Chrome DevTools tracing is connected; authenticated feature regression continues in Phase 5. |
 | 5 — Full staging | 50% | Timetable import is verified; recording, handbook, subscription, portal, cancellation, and account deletion journeys remain. |
@@ -118,7 +118,10 @@ does not reach 100% until its external staging checks pass.
   from about 1.44 MB/375 KB gzip to about 528 KB/155 KB gzip; analytics charting
   and each feature page load only when visited.
 - CI checks all 26 frontend function names against Express mounts. Both the
-  default Base44-mode build and the Cloudflare-mode build pass; ESLint passes.
+  default Base44-mode build and the Cloudflare-mode build pass; ESLint and the
+  full Cedar-source JavaScript typecheck pass. CI now enforces typechecking and
+  high-severity dependency audits for both packages. Generated UI primitives
+  are excluded unless imported; every imported primitive remains checked.
   The server suite passes 49/49 tests locally, including a fail-closed inventory
   of all 38 protected API paths. Frontend and server dependency audits report
   zero known vulnerabilities after the pinned React Router 7 upgrade.
@@ -164,10 +167,11 @@ does not reach 100% until its external staging checks pass.
 - Add integration/E2E coverage against the real staging services. Current
   automated tests cover unit and HTTP boundaries plus builds, not the complete
   browser journey.
-- The repository-wide `npm run typecheck` is not clean. The raw Base44 export
-  has extensive pre-existing JS/JSDoc and SDK-union typing errors; lint and both
-  production builds pass, and the generated Supabase type file validates in
-  isolation, but type checking is not yet a trustworthy CI gate.
+- A validated `render.yaml` now documents the existing staging web service,
+  `/health/ready`, build filters, complete secret inventory, and both prepared
+  cron services. It is not connected or synced, so it has not changed live
+  infrastructure or incurred cron charges. Official Render CLI schema validation
+  remains unavailable in this workspace; YAML parsing and secret-policy checks pass.
 - The shared initial frontend chunk remains about 528 KB minified (155 KB
   gzip), slightly above Vite's generic 500 KB warning but less than half its
   prior transfer size. Further vendor splitting is optional performance work,
