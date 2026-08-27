@@ -131,6 +131,10 @@ async function authHeaders() {
   return session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {};
 }
 
+/**
+ * @param {string} path
+ * @param {{method?: string, body?: any, headers?: Record<string, string>}} options
+ */
 async function apiRequest(path, { method = 'GET', body, headers = {} } = {}) {
   if (!RENDER_API_URL) throw new Error('The Cedar API URL is not configured');
   const response = await fetch(`${RENDER_API_URL}${path}`, {
@@ -144,6 +148,7 @@ async function apiRequest(path, { method = 'GET', body, headers = {} } = {}) {
   });
   const data = response.status === 204 ? null : await response.json().catch(() => null);
   if (!response.ok) {
+    /** @type {Error & {code?: string, status?: number, response?: {data: any, status: number}}} */
     const error = new Error(data?.message || data?.error || `API request failed (${response.status})`);
     error.code = data?.code;
     error.status = response.status;
@@ -250,6 +255,7 @@ const auth = {
   async me() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
+      /** @type {Error & {status?: number}} */
       const error = new Error('Unauthorized');
       error.status = 401;
       throw error;
