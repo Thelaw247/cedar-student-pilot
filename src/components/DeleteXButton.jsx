@@ -11,11 +11,13 @@ import { X, Loader2, AlertTriangle } from 'lucide-react';
  *
  * The parent element must be `relative` for the default absolute positioning.
  *
- * @param {() => Promise<void>} onDelete  performs the delete; may throw
- * @param {string} confirmText            what exactly will be destroyed
- * @param {string} [confirmLabel]         text on the confirm button
- * @param {string} [className]            positioning override
- * @param {string} [ariaLabel]
+ * @param {{
+ *   onDelete: () => Promise<void>,
+ *   confirmText: string,
+ *   confirmLabel?: string,
+ *   className?: string,
+ *   ariaLabel?: string,
+ * }} props
  */
 export default function DeleteXButton({
   onDelete,
