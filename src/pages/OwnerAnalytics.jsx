@@ -16,7 +16,7 @@ const money = (n) => (n == null ? '—' : `$${Number(n).toFixed(2)}`);
 const pct = (n) => (n == null ? '—' : `${n}%`);
 const short = (d) => (d ? new Date(d).toLocaleDateString() : '—');
 
-function Stat({ label, value, sub, tone }) {
+function Stat({ label, value, sub = '', tone = '' }) {
   const toneClass =
     tone === 'good' ? 'text-emerald-600'
       : tone === 'bad' ? 'text-red-600'
