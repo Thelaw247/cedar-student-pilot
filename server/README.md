@@ -9,7 +9,8 @@ receive a Supabase service-role key in browser-facing code.
 - Install: `npm ci --prefix server`
 - Start: `npm start --prefix server`
 - Test: `npm test --prefix server`
-- Health check: `GET /health`
+- Liveness check: `GET /health`
+- Deployment readiness check: `GET /health/ready` (database and R2 included).
 
 ## Required environment variables
 
@@ -49,6 +50,6 @@ matching trigger token (prefer the same linked environment group as the API):
 
 ## Deployment safety
 
-Configure Render's health-check path as `/health`. Keep staging and production
+Configure Render's health-check path as `/health/ready`. Keep staging and production
 origins explicit in `ALLOWED_ORIGINS`. Cross-origin requests from any other
 browser origin receive HTTP 403.
