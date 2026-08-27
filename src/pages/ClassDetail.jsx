@@ -224,6 +224,32 @@ function LectureTab({ lectures, coverage, classId, cls, onUpdate, autoRecord, on
   );
 }
 
+// Lecture processing is asynchronous: the server acknowledges with 202 and
+// transcribes/analyzes in the background (a long lecture takes minutes —
+// longer than a browser reliably holds one request open). Poll the lecture
+// row until it leaves 'processing'. 'complete' resolves; 'pending' means the
+// server hit an error and released the recording for another attempt.
+const PROCESS_POLL_MS = 5000;
+const PROCESS_POLL_LIMIT_MS = 45 * 60 * 1000; // generous ceiling for multi-hour recordings
+
+async function waitForLectureProcessing(lectureId) {
+  const deadline = Date.now() + PROCESS_POLL_LIMIT_MS;
+  while (Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, PROCESS_POLL_MS));
+    let lecture = null;
+    try {
+      lecture = await base44.entities.Lecture.get(lectureId);
+    } catch {
+      continue; // transient network hiccup — keep polling
+    }
+    if (lecture?.status === 'complete') return lecture;
+    if (lecture?.status && lecture.status !== 'processing') {
+      throw new Error("Processing didn't finish. Your recording is saved — tap Save & Process to try again.");
+    }
+  }
+  throw new Error('Processing is taking unusually long. Your recording is saved — please try again shortly.');
+}
+
 function RecordModal({ classId, cls, onClose }) {
   // Each segment must stay under the transcription provider's per-file limit
   // (Groq's free tier: 25 MB). 32 kbps Opus keeps a 90-minute segment
@@ -591,7 +617,10 @@ function RecordModal({ classId, cls, onClose }) {
 
       // The backend resolves the audio URL(s) from the owned Lecture record;
       // the browser no longer supplies a URL that could be swapped or forged.
+      // It answers 202 as soon as the job is accepted, so wait by polling the
+      // lecture row rather than holding one long HTTP request open.
       await base44.functions.invoke('processLectureRecording', { lecture_id: lectureId });
+      await waitForLectureProcessing(lectureId);
 
       // Save any notes typed during the lecture as a separate Note record tied
       // to this lecture. Kept distinct from the transcript, and the handbook

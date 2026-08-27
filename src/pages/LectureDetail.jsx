@@ -92,6 +92,26 @@ export default function LectureDetail() {
     return () => window.removeEventListener('cedar-data-changed', handler);
   }, [loadData]);
 
+  // Lecture processing is asynchronous — the server answers 202 and works in
+  // the background. While this page shows "AI Processing...", poll quietly
+  // (without the loading spinner) so the analysis appears the moment it
+  // lands instead of waiting for a manual refresh.
+  useEffect(() => {
+    if (lecture?.status !== 'processing') return undefined;
+    let cancelled = false;
+    const timer = setInterval(async () => {
+      try {
+        const fresh = await base44.entities.Lecture.get(lectureId);
+        if (cancelled || !fresh) return;
+        if (fresh.status !== 'processing') {
+          cacheSet('Lecture', 'get', [lectureId], fresh);
+          setLecture(fresh);
+        }
+      } catch { /* transient — keep polling */ }
+    }, 5000);
+    return () => { cancelled = true; clearInterval(timer); };
+  }, [lecture?.status, lectureId]);
+
   const saveNote = useCallback(async () => {
     setNoteStatus('saving');
     try {

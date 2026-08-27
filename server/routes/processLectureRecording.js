@@ -307,6 +307,137 @@ ${formulas || '(none)'}`,
   }
 }
 
+// ---------------------------------------------------------------------------
+// Asynchronous processing.
+//
+// Transcribing and analyzing a long lecture takes minutes — far longer than a
+// browser, a mobile network, or a proxy will reliably hold one HTTP request
+// open. The POST below therefore does only the cheap ownership and credit
+// checks, atomically claims the lecture, starts the pipeline in the
+// background, and answers 202 immediately; the client polls the lecture row
+// until status leaves 'processing'.
+//
+// The claim is a conditional UPDATE, so a double submit (two tabs, an
+// impatient retry) can never start the pipeline twice. A lecture stuck in
+// 'processing' whose row hasn't been touched recently is treated as abandoned
+// (the instance restarted or crashed mid-run) and may be re-claimed; together
+// with the failure path releasing the lecture back to 'pending', no recording
+// can be stranded forever. The pipeline itself touches the row at every stage
+// (duration, transcript, analysis), which keeps updated_at fresh on live runs.
+const PROCESSING_STALE_MINUTES = 15;
+
+async function claimLecture(lectureId, userId) {
+  const claimed = await pool.query(
+    `update lectures set status = 'processing'
+      where id = $1 and user_id = $2
+        and (status <> 'processing' or updated_at < now() - make_interval(mins => $3))
+      returning id`,
+    [lectureId, userId, PROCESSING_STALE_MINUTES],
+  );
+  return claimed.rows.length > 0;
+}
+
+async function releaseLecture(lectureId, userId) {
+  // Hand the lecture back as 'pending' so the UI stops saying it is being
+  // worked on and the user can try again. Any transcript already stored is
+  // kept, so a retry resumes rather than paying for transcription twice.
+  try {
+    await pool.query(
+      "update lectures set status = 'pending' where id = $1 and user_id = $2 and status = 'processing'",
+      [lectureId, userId],
+    );
+  } catch (cleanupError) {
+    console.error('[recording] could not release the lecture:', cleanupError.message);
+  }
+}
+
+// The heavy work, run outside any HTTP request. Ownership, replay checks, and
+// the minimum-balance gate have already passed; billing idempotency is still
+// enforced here exactly as before (usage ledger + applied_credit_operations).
+async function runProcessingPipeline({ userId, lectureId, existing, cls, balance, alreadyCharged, operationId }) {
+  const started = Date.now();
+
+  const { parts: verifiedParts, totalSeconds: audioSeconds } = await fetchVerifiedAudioParts(
+    userId, existing.recording_url, existing.recording_parts,
+  );
+  const cost = alreadyCharged ? 0 : durationCost(audioSeconds, COST_PER_30MIN_PROCESS);
+
+  await pool.query('update lectures set duration_seconds = $1 where id = $2', [audioSeconds, lectureId]);
+
+  // The preflight gate used the client's estimate; this is the real measured
+  // duration. If the true cost exceeds the balance after all, stop before any
+  // provider call — the catch in the caller releases the lecture.
+  if (cost > 0 && availableCredits(balance) < cost) {
+    await logUsage({ user_id: userId, feature: 'process_lecture', lecture_id: lectureId, tier_at_time: balance.tier, success: false, audio_seconds: audioSeconds });
+    throw new Error(`insufficient credits for the measured duration (${audioSeconds}s needs ${cost})`);
+  }
+
+  const llmUsage = createLlmUsage();
+  const hasTranscript = !!(existing.transcript && existing.transcript.trim());
+  let transcript = hasTranscript ? existing.transcript.trim() : '';
+  let transcriptionProvider = hasTranscript ? 'stored' : 'groq';
+
+  if (!hasTranscript) {
+    const transcription = await transcribeAudioParts(verifiedParts.map((p) => p.buffer));
+    const rawTranscript = transcription.text;
+    transcriptionProvider = transcription.provider;
+
+    if (!rawTranscript || rawTranscript.trim().length === 0) {
+      // Nothing to analyze and nothing to bill: mark it complete with the
+      // sentinel transcript so the lecture page explains what happened.
+      await pool.query('update lectures set status = $1, transcript = $2 where id = $3', ['complete', NO_SPEECH, lectureId]);
+      return;
+    }
+    transcript = rawTranscript.trim();
+    await pool.query('update lectures set transcript = $1, status = $2 where id = $3', [transcript, 'processing', lectureId]);
+  }
+
+  const lecture = (await pool.query('select * from lectures where id = $1', [lectureId])).rows[0];
+
+  if (!lecture.ai_title) {
+    const analysis = await extractFromTranscript(transcript, cls, lecture.date, llmUsage);
+    await pool.query(
+      `update lectures set ai_title=$1, ai_summary=$2, ai_concepts=$3, ai_vocabulary=$4, ai_definitions=$5, ai_formulas=$6, ai_action_items=$7, ai_exam_mentions=$8, status='complete' where id=$9`,
+      [analysis.title, analysis.summary, analysis.concepts || [], analysis.vocabulary || [], JSON.stringify(analysis.definitions || []), analysis.formulas || [], analysis.action_items || [], analysis.exam_mentions || [], lectureId]);
+  } else {
+    await pool.query("update lectures set status = 'complete' where id = $1", [lectureId]);
+  }
+
+  try {
+    const alreadyHave = (await pool.query('select 1 from flashcards where lecture_id = $1 limit 1', [lectureId])).rows;
+    if (alreadyHave.length === 0) {
+      const fresh = (await pool.query('select * from lectures where id = $1', [lectureId])).rows[0];
+      await generateFlashcards(fresh, cls, userId, llmUsage);
+    }
+  } catch (e) { /* non-fatal: cards can be regenerated on demand */ }
+
+  const settled = cost > 0 ? await spendCredits(balance, cost, operationId) : { ...balance, _operationAppliedNow: false };
+  const chargedNow = settled?._operationAppliedNow === false ? 0 : cost;
+
+  const geminiCalls = Number(llmUsage.geminiCalls || 0);
+  const base44Calls = Number(llmUsage.base44Calls || 0);
+  const providers = new Set();
+  providers.add(transcriptionProvider === 'stored' ? null : transcriptionProvider);
+  if (geminiCalls > 0) providers.add('gemini');
+  providers.delete(null);
+  const providerNames = [...providers];
+  const provider = providerNames.length > 1 ? 'mixed' : (providerNames[0] || 'stored');
+  const models = Object.keys(llmUsage.models);
+  if (transcriptionProvider === 'groq') models.unshift(GROQ_MODEL);
+
+  await logUsage({
+    user_id: userId, feature: 'process_lecture', lecture_id: lectureId, provider,
+    model: [...new Set(models)].join(', ') || 'stored transcript',
+    call_count: geminiCalls + base44Calls, base44_credits: base44Calls * 3,
+    input_tokens: llmUsage.inputTokens, output_tokens: llmUsage.outputTokens, audio_seconds: audioSeconds,
+    cedar_credits_charged: chargedNow, credit_operation_id: operationId,
+    cost_cad: base44CostCad(base44Calls * 3) + llmUsage.costCad + (transcriptionProvider === 'groq' ? groqCostCad(audioSeconds) : 0),
+    tier_at_time: balance.tier, success: true, latency_ms: Date.now() - started,
+  });
+
+  console.log('[recording] processing complete for lecture', lectureId, 'in', Date.now() - started, 'ms');
+}
+
 router.post('/', requireAuth, async (req, res) => {
   try {
     const userId = req.user.id;
@@ -352,7 +483,6 @@ router.post('/', requireAuth, async (req, res) => {
     }
 
     const operationId = `process:${lecture_id}`;
-    const started = Date.now();
     const balance = await getBalance(userId);
     alreadyCharged = alreadyCharged || (balance.applied_credit_operations || []).includes(operationId);
 
@@ -366,100 +496,22 @@ router.post('/', requireAuth, async (req, res) => {
       return insufficientResponse(res, 'process_lecture', minimumCost, balance);
     }
 
-    const { parts: verifiedParts, totalSeconds: audioSeconds } = await fetchVerifiedAudioParts(
-      userId, storedAudioUrl, existing.recording_parts,
-    );
-    const cost = alreadyCharged ? 0 : durationCost(audioSeconds, COST_PER_30MIN_PROCESS);
-
-    await pool.query('update lectures set duration_seconds = $1, status = $2 where id = $3', [audioSeconds, 'processing', lecture_id]);
-
-    if (cost > 0 && availableCredits(balance) < cost) {
-      await logUsage({ user_id: userId, feature: 'process_lecture', lecture_id, tier_at_time: balance.tier, success: false, audio_seconds: audioSeconds });
-      return insufficientResponse(res, 'process_lecture', cost, balance);
+    // Everything cheap has passed. Claim the lecture (or discover another
+    // request already has it) and hand the heavy work to the background.
+    const claimed = await claimLecture(lecture_id, userId);
+    if (!claimed) {
+      return res.status(202).json({ status: 'processing', lecture_id, already_processing: true });
     }
 
-    const llmUsage = createLlmUsage();
-    const hasTranscript = !!(existing.transcript && existing.transcript.trim());
-    let transcript = hasTranscript ? existing.transcript.trim() : '';
-    let transcriptionProvider = hasTranscript ? 'stored' : 'groq';
+    runProcessingPipeline({ userId, lectureId: lecture_id, existing, cls, balance, alreadyCharged, operationId })
+      .catch(async (error) => {
+        console.error('[recording] processing failed:', error?.message || error);
+        await releaseLecture(lecture_id, userId);
+      });
 
-    if (!hasTranscript) {
-      const transcription = await transcribeAudioParts(verifiedParts.map((p) => p.buffer));
-      const rawTranscript = transcription.text;
-      transcriptionProvider = transcription.provider;
-
-      if (!rawTranscript || rawTranscript.trim().length === 0) {
-        await pool.query('update lectures set status = $1, transcript = $2 where id = $3', ['complete', NO_SPEECH, lecture_id]);
-        return res.status(400).json({ error: 'No speech detected' });
-      }
-      transcript = rawTranscript.trim();
-      await pool.query('update lectures set transcript = $1, status = $2 where id = $3', [transcript, 'processing', lecture_id]);
-    }
-
-    let lecture = (await pool.query('select * from lectures where id = $1', [lecture_id])).rows[0];
-
-    if (!lecture.ai_title) {
-      const analysis = await extractFromTranscript(transcript, cls, lecture.date, llmUsage);
-      await pool.query(
-        `update lectures set ai_title=$1, ai_summary=$2, ai_concepts=$3, ai_vocabulary=$4, ai_definitions=$5, ai_formulas=$6, ai_action_items=$7, ai_exam_mentions=$8, status='complete' where id=$9`,
-        [analysis.title, analysis.summary, analysis.concepts || [], analysis.vocabulary || [], JSON.stringify(analysis.definitions || []), analysis.formulas || [], analysis.action_items || [], analysis.exam_mentions || [], lecture_id]);
-    }
-
-    try {
-      const alreadyHave = (await pool.query('select 1 from flashcards where lecture_id = $1 limit 1', [lecture_id])).rows;
-      if (alreadyHave.length === 0) {
-        const fresh = (await pool.query('select * from lectures where id = $1', [lecture_id])).rows[0];
-        await generateFlashcards(fresh, cls, userId, llmUsage);
-      }
-    } catch (e) { /* non-fatal: cards can be regenerated on demand */ }
-
-    const settled = cost > 0 ? await spendCredits(balance, cost, operationId) : { ...balance, _operationAppliedNow: false };
-    const chargedNow = settled?._operationAppliedNow === false ? 0 : cost;
-
-    const geminiCalls = Number(llmUsage.geminiCalls || 0);
-    const base44Calls = Number(llmUsage.base44Calls || 0);
-    const providers = new Set();
-    providers.add(transcriptionProvider === 'stored' ? null : transcriptionProvider);
-    if (geminiCalls > 0) providers.add('gemini');
-    providers.delete(null);
-    const providerNames = [...providers];
-    const provider = providerNames.length > 1 ? 'mixed' : (providerNames[0] || 'stored');
-    const models = Object.keys(llmUsage.models);
-    if (transcriptionProvider === 'groq') models.unshift(GROQ_MODEL);
-
-    await logUsage({
-      user_id: userId, feature: 'process_lecture', lecture_id, provider,
-      model: [...new Set(models)].join(', ') || 'stored transcript',
-      call_count: geminiCalls + base44Calls, base44_credits: base44Calls * 3,
-      input_tokens: llmUsage.inputTokens, output_tokens: llmUsage.outputTokens, audio_seconds: audioSeconds,
-      cedar_credits_charged: chargedNow, credit_operation_id: operationId,
-      cost_cad: base44CostCad(base44Calls * 3) + llmUsage.costCad + (transcriptionProvider === 'groq' ? groqCostCad(audioSeconds) : 0),
-      tier_at_time: balance.tier, success: true, latency_ms: Date.now() - started,
-    });
-
-    res.json({ status: 'complete', lecture_id, credits_charged: chargedNow });
+    return res.status(202).json({ status: 'processing', lecture_id });
   } catch (error) {
-    // The catch used to be silent, which made provider failures invisible in
-    // the service logs and impossible to diagnose after the fact.
-    console.error('[recording] processing failed:', error?.message || error);
-
-    // Everything past the duration check has already flipped the lecture to
-    // 'processing'. Leaving it there strands the recording: the page reports
-    // that it is still working and offers no way to try again. Hand it back as
-    // 'pending' instead — any transcript already stored is kept, so a retry
-    // resumes rather than paying for transcription twice.
-    const strandedLectureId = req.body?.lecture_id;
-    if (strandedLectureId) {
-      try {
-        await pool.query(
-          "update lectures set status = 'pending' where id = $1 and user_id = $2 and status = 'processing'",
-          [strandedLectureId, req.user.id],
-        );
-      } catch (cleanupError) {
-        console.error('[recording] could not release the lecture:', cleanupError.message);
-      }
-    }
-
+    console.error('[recording] request failed:', error?.message || error);
     const status = Number(error?.status) || 500;
     res.status(status >= 400 && status < 600 ? status : 500).json({ error: error.message || 'Recording processing failed' });
   }
