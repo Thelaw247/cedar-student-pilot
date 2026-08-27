@@ -74,6 +74,13 @@ export function r2Client() {
         accessKeyId: values.accessKeyId,
         secretAccessKey: values.secretAccessKey,
       },
+      // AWS SDK >= 3.729 adds a CRC32 checksum to every PutObject by default,
+      // including presigned URLs, where it can only hash the empty placeholder
+      // body. R2 then rejects the browser's real upload (and omits CORS headers
+      // on the error), so the client sees a misleading CORS failure. Only send
+      // checksums when an operation actually requires one.
+      requestChecksumCalculation: 'WHEN_REQUIRED',
+      responseChecksumValidation: 'WHEN_REQUIRED',
     });
     cachedFingerprint = fingerprint;
   }

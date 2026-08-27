@@ -3,6 +3,8 @@ import test from 'node:test';
 import {
   assertOwnedKey,
   avatarKey,
+  createAvatarUpload,
+  createRecordingUpload,
   parseStorageRef,
   recordingKey,
   r2IsConfigured,
@@ -86,4 +88,34 @@ test('parses stable R2 storage references', () => {
     key: 'users/u/file.webm',
   });
   assert.equal(parseStorageRef('https://example.com/file'), null);
+});
+
+test('presigned browser uploads carry no SDK checksum requirement', async () => {
+  // AWS SDK >= 3.729 adds x-amz-checksum-crc32 (of the empty placeholder body)
+  // to presigned PutObject URLs unless checksum calculation is WHEN_REQUIRED.
+  // R2 then rejects the browser's real upload and omits CORS headers on the
+  // error, which surfaces as a misleading CORS failure in the app.
+  const names = ['R2_ACCOUNT_ID', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY', 'R2_BUCKET_NAME'];
+  const original = Object.fromEntries(names.map((name) => [name, process.env[name]]));
+  try {
+    process.env.R2_ACCOUNT_ID = 'testaccount';
+    process.env.R2_ACCESS_KEY_ID = 'test-access-key';
+    process.env.R2_SECRET_ACCESS_KEY = 'test-secret-key';
+    process.env.R2_BUCKET_NAME = 'test-bucket';
+    const uploads = [
+      await createAvatarUpload(USER_ID, { contentType: 'image/png', sizeBytes: 1024 }),
+      await createRecordingUpload(USER_ID, { contentType: 'audio/webm', sizeBytes: 1024 }),
+    ];
+    for (const upload of uploads) {
+      const url = new URL(upload.upload_url);
+      const checksumParams = [...url.searchParams.keys()].filter((key) => key.toLowerCase().includes('checksum'));
+      assert.deepEqual(checksumParams, []);
+      assert.equal(url.host, 'test-bucket.testaccount.r2.cloudflarestorage.com');
+    }
+  } finally {
+    for (const name of names) {
+      if (original[name] === undefined) delete process.env[name];
+      else process.env[name] = original[name];
+    }
+  }
 });
