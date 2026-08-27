@@ -200,7 +200,8 @@ export default function VoiceAgent() {
   useEffect(() => {
     if (!enabled) return;
 
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const speechWindow = /** @type {Window & {SpeechRecognition?: any, webkitSpeechRecognition?: any}} */ (window);
+    const SpeechRecognition = speechWindow.SpeechRecognition || speechWindow.webkitSpeechRecognition;
     if (!SpeechRecognition) {
       alert('Voice recognition is not supported in this browser. Please use Chrome.');
       setEnabled(false);
@@ -296,7 +297,8 @@ export default function VoiceAgent() {
     if (!enabled) return;
     const handler = (e) => {
       const { onResponse } = e.detail;
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const speechWindow = /** @type {Window & {SpeechRecognition?: any, webkitSpeechRecognition?: any}} */ (window);
+      const SpeechRecognition = speechWindow.SpeechRecognition || speechWindow.webkitSpeechRecognition;
       if (!SpeechRecognition) { onResponse('timeout'); return; }
 
       // Pause the main recognition temporarily
