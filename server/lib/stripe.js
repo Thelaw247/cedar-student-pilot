@@ -52,6 +52,10 @@ function flatten(params) {
   return pairs;
 }
 
+// Stripe answers in well under a second when healthy; a hung socket here
+// would otherwise hold a checkout or webhook request open indefinitely.
+const STRIPE_TIMEOUT_MS = 30_000;
+
 export async function stripePost(path, params, idempotencyKey) {
   const key = requireStripeKey();
   const res = await fetch(`${BASE}/${path}`, {
@@ -62,6 +66,7 @@ export async function stripePost(path, params, idempotencyKey) {
       'Content-Type': 'application/x-www-form-urlencoded',
     },
     body: new URLSearchParams(flatten(params)),
+    signal: AbortSignal.timeout(STRIPE_TIMEOUT_MS),
   });
   const text = await res.text();
   let json;
@@ -74,6 +79,7 @@ export async function stripeGet(path) {
   const key = requireStripeKey();
   const res = await fetch(`${BASE}/${path}`, {
     headers: { Authorization: `Bearer ${key}`, 'Stripe-Version': STRIPE_VERSION },
+    signal: AbortSignal.timeout(STRIPE_TIMEOUT_MS),
   });
   const text = await res.text();
   if (!res.ok) throw new Error(`Stripe ${path} ${res.status}: ${text.slice(0, 300)}`);
@@ -85,6 +91,7 @@ export async function stripeDelete(path) {
   const res = await fetch(`${BASE}/${path}`, {
     method: 'DELETE',
     headers: { Authorization: `Bearer ${key}`, 'Stripe-Version': STRIPE_VERSION },
+    signal: AbortSignal.timeout(STRIPE_TIMEOUT_MS),
   });
   const text = await res.text();
   if (!res.ok) throw new Error(`Stripe DELETE ${path} ${res.status}: ${text.slice(0, 300)}`);

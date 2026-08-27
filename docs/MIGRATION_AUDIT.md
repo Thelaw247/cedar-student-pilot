@@ -12,10 +12,10 @@ live on `codex/security-and-api-hardening` in draft PR #1.
 | --- | --- | --- |
 | Supabase database | Ready for staging | 20 public tables; RLS enabled on every table; grants and policies verified against the live project. Client CRUD is user-scoped, privileged tables are read-only or server-only, and the database readiness probe passes. Every recorded migration is now present in Git. The six historical migrations were reconstructed from the verified catalog and the later ALTER history, then executed in order in a rollback-only verification schema. |
 | Supabase Auth | Authenticated staging verified | A real user completed signup, email confirmation, password login, profile onboarding, and initial 20-credit provisioning. Apple/Facebook remain hidden until configured; custom SMTP and production-grade recovery delivery still need verification. |
-| Express API | Live and infrastructure-ready | `cedar-api-staging` auto-deploys the audit branch. `/health/ready` returns HTTP 200 with independent `database: ok` and `storage: ok` checks. Timetable parsing is live, and semester/class persistence now runs in one validated Postgres transaction with rollback coverage. Groq, Stripe, email, and cron flows still need functional verification. |
-| R2 storage | Bucket and credentials verified | The private bucket is reachable from Render with the configured credentials. Presigned recording/avatar upload, confirmation, playback, ownership validation, and lifecycle deletion are implemented. A real signed PUT/confirm/GET round trip still needs an authenticated staging session. |
+| Express API | Live and functionally verified for core flows | `cedar-api-staging` auto-deploys the audit branch. `/health/ready` returns HTTP 200 with independent `database: ok` and `storage: ok` checks and is set as the Render health-check path. Groq and Gemini keys are verified live. A Stripe test-mode one-time purchase completed end-to-end: webhook delivered and fulfilled, exactly 100 credits granted once, and the redirect-side confirm path proved idempotent against double-granting. Lecture processing now runs asynchronously (details below) and was verified with a real recording. Email (Resend) and the two paid cron jobs still need functional verification. |
+| R2 storage | Round trip verified | The private bucket is reachable from Render with the configured credentials. A real authenticated round trip passed for both flows: avatar signed PUT/confirm/signed GET/replace/remove, and a browser lecture recording uploaded, confirmed, fetched server-side, and transcribed. Getting there surfaced and fixed three real defects: the bucket needed a CORS policy for the Worker origin, the AWS SDK's default checksum broke presigned browser PUTs (`requestChecksumCalculation: 'WHEN_REQUIRED'`), and unsigned `x-amz-meta-*` headers caused signature mismatches (`unhoistableHeaders`). |
 | Staging frontend | Live on Cloudflare | The Cloudflare Worker static-assets deployment at https://cedar-student-pilot.dewetluus.workers.dev builds in isolated Supabase/Render mode. `/login`, `/register`, and `/forgot-password` load directly with no application console errors. The landing and auth routes no longer depend on the Base44 Vite plugin in this build. |
-| Full staging test | In progress | Signup, confirmation, login, profile onboarding, initial credits, `/me`, Gemini timetable parsing, atomic persistence, and schedule reconciliation have passed with a real staging user. The saved semester matches Banner: 13 logical courses, 22 registered sections/components, and 73 normalized date-aware rules. |
+| Full staging test | In progress | Signup, confirmation, login, profile onboarding, initial credits, `/me`, Gemini timetable parsing, atomic persistence, and schedule reconciliation have passed with a real staging user, and the saved semester matches Banner (13 logical courses, 22 sections, 73 rules). The complete recording journey has now also passed: browser capture, segmented R2 upload, duration verification from the stored WebM, asynchronous Groq transcription and Gemini analysis, exactly-once billing, and in-page status updates. Remaining journeys: AI study features, subscription lifecycle (checkout/renewal/portal/cancel), a multi-hour segmented recording, and account deletion. |
 | Cutover | Not started | No Base44 publish, DNS change, live Stripe webhook switch, or production-domain change has occurred. |
 
 ## Phase progress
@@ -27,10 +27,10 @@ does not reach 100% until its external staging checks pass.
 | --- | ---: | --- |
 | 0 — Foundations | 100% | Complete for staging. |
 | 1 — Supabase data/auth | 97% | Finish auth email/recovery configuration and the plan-dependent leaked-password setting. |
-| 2 — Render API | 93% | Functionally verify Groq, Resend, and Stripe test mode; explicitly provision the two prepared paid cron jobs and set the Dashboard health path. |
-| 3 — R2 storage | 85% | Complete an authenticated upload/playback/transcription/deletion round trip. |
+| 2 — Render API | 97% | Groq, Gemini, and Stripe test mode are functionally verified and the Dashboard health path is set. Remaining: verify Resend once a sender domain is chosen, and explicitly provision the two prepared paid cron jobs. |
+| 3 — R2 storage | 100% | Authenticated avatar and recording round trips verified, including transcription of the stored object. |
 | 4 — Cloudflare frontend | 99% | Measure Core Web Vitals once Chrome DevTools tracing is connected; authenticated feature regression continues in Phase 5. |
-| 5 — Full staging | 50% | Timetable import is verified; recording, handbook, subscription, portal, cancellation, and account deletion journeys remain. |
+| 5 — Full staging | 65% | Timetable import, one-time credit purchase, avatar storage, and the full recording/transcription journey are verified; AI study features, subscription lifecycle, multi-hour recording, and account deletion journeys remain. |
 | 6 — Cutover prep | 20% | A fail-safe cutover/rollback runbook is committed; rehearsal, final mappings, production resources, and owner approval remain. |
 | 7 — Cutover | 0% | Intentionally untouched until Phases 1–6 pass. |
 | 8 — Post-cutover | 0% | Capacitor, Vanta, and Base44 decommissioning follow the stability window. |
@@ -126,6 +126,28 @@ does not reach 100% until its external staging checks pass.
   of all 38 protected API paths. Frontend and server dependency audits report
   zero known vulnerabilities after the pinned React Router 7 upgrade.
 
+- Lecture processing is asynchronous. The processing endpoint performs only
+  ownership, replay, and credit checks, atomically claims the lecture with a
+  conditional `UPDATE` (double submits cannot start two pipelines; a
+  `processing` row untouched for 15 minutes, or never touched at all, is
+  treated as abandoned and reclaimable), answers `202 Accepted`, and runs the
+  transcribe/analyze/bill pipeline in the background. Failures release the
+  lecture back to `pending`, the lecture page polls while processing and
+  offers a "Process recording" retry for any pending recording, so no
+  recording can be stranded and no browser request outlives a long lecture.
+- Browser recordings are streamed WebM with no header Duration element, so
+  billing duration is measured server-side by a small EBML reader over the
+  stored object's cluster/block timestamps (accurate to ~21 ms against ffmpeg
+  fixtures; empty or non-WebM input fails closed).
+- Every outbound provider call — Groq, Gemini (both call sites), Stripe,
+  Resend, R2 object fetches, and the Supabase auth check — carries an explicit
+  `AbortSignal.timeout`, because Node's `fetch` never times out on its own and
+  a hung provider socket previously stranded a recording invisibly.
+- Deployment is fully automatic from a push to the deployment branch: Render
+  auto-deploys the API, and a GitHub Actions workflow
+  (`.github/workflows/deploy-frontend.yml`) builds the Cloudflare-mode bundle
+  and publishes the Worker using repository-secret Cloudflare credentials.
+
 ## Known gaps and risks
 
 ### Blocking full staging verification
@@ -137,14 +159,18 @@ does not reach 100% until its external staging checks pass.
    the Cloudflare origin and `/reset-password`. Verify signup/recovery email
    delivery and templates. Enable leaked-password protection if the project is
    on Supabase Pro or above; Supabase does not offer it on the Free plan.
-3. Functionally verify remaining provider secrets on `cedar-api-staging`:
-   `GEMINI_API_KEY`, `GROQ_API_KEY`, Stripe **test-mode** keys/webhook secret,
-   `RESEND_API_KEY`/verified sender, and cron/trigger tokens. Database and R2
-   connectivity are already verified without exposing their secret values.
-4. Complete a real recording R2 signed PUT, upload confirmation, signed
-   GET/playback, transcription, and cleanup cycle through the authenticated app.
-5. Configure Render's service health-check path as `/health/ready`. The endpoint
-   is live and green, but the service currently has no Dashboard health path.
+3. Gemini, Groq, and the Stripe test-mode keys/webhook secret are now
+   functionally verified live. Still to verify: `RESEND_API_KEY` with a
+   verified sender (deliberately deferred until the owner picks a domain) and
+   the cron trigger tokens once the cron jobs are provisioned.
+4. Done: a real recording completed the full R2 signed PUT, confirmation,
+   server-side fetch, transcription, and analysis cycle through the
+   authenticated app, and the avatar flow passed upload/replace/remove.
+5. Done: Render's service health-check path is `/health/ready`.
+6. The verified recording run produced zero auto-generated flashcards despite
+   extracted concepts; the failure was swallowed by a silent catch, which now
+   logs. Watch the next recording's logs; on-demand generation from the
+   Practice tab is the fallback either way.
 
 ### Before production
 
@@ -198,6 +224,8 @@ does not reach 100% until its external staging checks pass.
   `codex/security-and-api-hardening`
 - API readiness: https://cedar-api-staging.onrender.com/health/ready
 - Deployment source: the head of `codex/security-and-api-hardening` (draft PR #1)
+- Frontend deploys: GitHub Actions `Deploy frontend` workflow on every push to
+  the deployment branch (Cloudflare credentials held as repository secrets)
 - Older API: `cedar-server` (`srv-da451eek1f9s73ampaug`), still deploying
   `main`; it is not the isolated migration target.
 

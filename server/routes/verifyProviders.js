@@ -9,7 +9,7 @@ import { CHEAP_MODEL, QUALITY_MODEL } from '../lib/llm.js';
 
 const router = express.Router();
 async function checkGroq(key) {
-  const res = await fetch('https://api.groq.com/openai/v1/models', { headers: { Authorization: `Bearer ${key}` } });
+  const res = await fetch('https://api.groq.com/openai/v1/models', { headers: { Authorization: `Bearer ${key}` }, signal: AbortSignal.timeout(15_000) });
   if (!res.ok) return { ok: false, status: res.status, error: (await res.text().catch(() => '')).slice(0, 200) };
   const data = await res.json();
   const ids = (data?.data || []).map((m) => m.id);
@@ -18,7 +18,7 @@ async function checkGroq(key) {
 }
 
 async function checkGemini(key) {
-  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(key)}&pageSize=200`);
+  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(key)}&pageSize=200`, { signal: AbortSignal.timeout(15_000) });
   if (!res.ok) return { ok: false, status: res.status, error: (await res.text().catch(() => '')).slice(0, 200) };
   const data = await res.json();
   const ids = (data?.models || []).map((m) => String(m.name).replace(/^models\//, ''));

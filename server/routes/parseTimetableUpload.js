@@ -110,7 +110,9 @@ router.post('/', requireAuth, async (req, res) => {
 
     const geminiRes = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(key)}`,
-      { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) },
+      // Same guard as every other provider call: Node's fetch never times
+      // out on its own, and a timetable image is a large multimodal request.
+      { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: AbortSignal.timeout(120_000) },
     );
     if (!geminiRes.ok) {
       const detail = await geminiRes.text().catch(() => '');

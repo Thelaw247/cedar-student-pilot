@@ -52,7 +52,7 @@ async function requireAuthOrToken(req) {
   const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
   if (!token) return { isBroadcast: false, caller: null };
   try {
-    const resp = await fetch(`${process.env.SUPABASE_URL}/auth/v1/user`, { headers: { Authorization: `Bearer ${token}`, apikey: process.env.SUPABASE_ANON_KEY } });
+    const resp = await fetch(`${process.env.SUPABASE_URL}/auth/v1/user`, { headers: { Authorization: `Bearer ${token}`, apikey: process.env.SUPABASE_ANON_KEY }, signal: AbortSignal.timeout(15_000) });
     if (!resp.ok) return { isBroadcast: false, caller: null };
     const user = await resp.json();
     return { isBroadcast: false, caller: user?.id ? user : null };

@@ -417,7 +417,11 @@ async function runProcessingPipeline({ userId, lectureId, existing, cls, balance
       const fresh = (await pool.query('select * from lectures where id = $1', [lectureId])).rows[0];
       await generateFlashcards(fresh, cls, userId, llmUsage);
     }
-  } catch (e) { /* non-fatal: cards can be regenerated on demand */ }
+  } catch (e) {
+    // Non-fatal — cards can be generated on demand from the Practice tab —
+    // but never silent: an invisible failure here cost a debugging session.
+    console.error('[recording] flashcard generation failed:', e?.message || e);
+  }
 
   const settled = cost > 0 ? await spendCredits(balance, cost, operationId) : { ...balance, _operationAppliedNow: false };
   const chargedNow = settled?._operationAppliedNow === false ? 0 : cost;

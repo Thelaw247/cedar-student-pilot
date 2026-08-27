@@ -1,4 +1,5 @@
 const RESEND_ENDPOINT = 'https://api.resend.com/emails';
+const EMAIL_TIMEOUT_MS = 15_000; // reminders run in a loop; one hung send must not stall the rest
 
 export function emailIsConfigured() {
   return Boolean(String(process.env.RESEND_API_KEY || '').trim()
@@ -19,6 +20,7 @@ export async function sendEmail({ to, subject, html, text, idempotencyKey }) {
       ...(idempotencyKey ? { 'Idempotency-Key': String(idempotencyKey).slice(0, 256) } : {}),
     },
     body: JSON.stringify({ from, to: [to], subject, html, text }),
+    signal: AbortSignal.timeout(EMAIL_TIMEOUT_MS),
   });
   const result = await response.json().catch(() => null);
   if (!response.ok) {
