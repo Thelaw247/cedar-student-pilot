@@ -2,7 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Loader2, X, Brain, Check, ChevronRight, Award, TrendingUp, BookOpen, Target } from 'lucide-react';
 
-export default function SessionReview({ classId, className, lectureId, lectureIds, studyRecordId, aiInteractions, onClose }) {
+export default function SessionReview({
+  classId,
+  className = '',
+  lectureId = null,
+  lectureIds = [],
+  studyRecordId = null,
+  aiInteractions = [],
+  onClose,
+}) {
   const [phase, setPhase] = useState('loading'); // loading -> questions -> self_assessment -> results
   const [questions, setQuestions] = useState([]);
   const [resolvedLectureIds, setResolvedLectureIds] = useState([]);
