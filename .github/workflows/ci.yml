@@ -23,6 +23,8 @@ jobs:
         run: npm ci
       - name: Lint frontend
         run: npm run lint
+      - name: Type-check frontend
+        run: npm run typecheck -- --pretty false
       - name: Check frontend/API route contract
         run: npm run check:api-contract
       - name: Build frontend (Base44 mode)
