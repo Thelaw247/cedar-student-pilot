@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { Loader2, X, BookOpen, ChevronLeft, ChevronRight, List, Zap, Check, Brain, Expand, Filter } from 'lucide-react';
 import QuizDepthSelector, { QUIZ_PRESETS } from '@/components/QuizDepthSelector';
 
-export default function HandbookReader({ classId, lectureIds, assignmentId, studyMode, onClose, onQuizComplete }) {
+export default function HandbookReader({ classId, lectureIds = null, assignmentId = null, studyMode = null, onClose, onQuizComplete = null }) {
   const [handbook, setHandbook] = useState(null);
   const [loading, setLoading] = useState(true);
   const [currentChapter, setCurrentChapter] = useState(0);
