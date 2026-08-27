@@ -39,6 +39,7 @@ export default function WeekView({ classes = [], events = [], studySessions = []
   const weekEvents = expandEventsInRange(events, rangeStart, rangeEnd);
 
   const itemsForDate = (dateStr) => {
+    /** @type {Array<{key: string, kind: string, title: string, start?: string|null, end?: string|null, color?: string, room?: string, meta?: string, recurring?: boolean, notes?: string}>} */
     const items = [];
 
     // Actual class occurrences on this date, including irregular rules.
