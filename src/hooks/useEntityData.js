@@ -8,7 +8,8 @@ import { enqueueOperation } from '@/lib/syncQueue';
  * When online: fetch fresh, update cache, return.
  * When offline: return cached data (or empty array).
  */
-export async function fetchWithCache(entity, op, params = [], { ttl } = {}) {
+export async function fetchWithCache(entity, op, params = [], options = {}) {
+  const { ttl } = /** @type {{ttl?: number}} */ (options);
   const cached = cacheGet(entity, op, params);
   if (!navigator.onLine) {
     return cached || [];
