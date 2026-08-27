@@ -186,7 +186,7 @@ export default function StudyPlanner() {
               <div className="space-y-2">
                 {deadlineAssignments.map(a => {
                   const cls = classMap[a.class_id];
-                  const daysUntil = a.due_date ? Math.ceil((new Date(a.due_date + 'T00:00:00') - new Date(todayStr + 'T00:00:00')) / (1000 * 60 * 60 * 24)) : 0;
+                  const daysUntil = a.due_date ? Math.ceil((new Date(a.due_date + 'T00:00:00').getTime() - new Date(todayStr + 'T00:00:00').getTime()) / (1000 * 60 * 60 * 24)) : 0;
                   const pastDue = !!a.due_date && a.due_date < todayStr;
                   const busy = resolvingKey !== null;
                   return (
