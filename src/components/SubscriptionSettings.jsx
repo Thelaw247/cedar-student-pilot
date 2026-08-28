@@ -65,7 +65,7 @@ export default function SubscriptionSettings() {
       window.location.href = url;
     } catch (e) {
       console.error(e);
-      setError('Billing isn’t connected yet. Once Stripe is wired up this will open checkout.');
+      setError(e?.response?.data?.error || e?.message || 'Could not open checkout. Please try again.');
       setBusy(null);
     }
   };
@@ -80,7 +80,7 @@ export default function SubscriptionSettings() {
       window.location.href = url;
     } catch (e) {
       console.error(e);
-      setError('Billing isn’t connected yet. This will open the Stripe billing portal.');
+      setError(e?.response?.data?.error || e?.message || 'Could not open the billing portal. Please try again.');
       setBusy(null);
     }
   };
