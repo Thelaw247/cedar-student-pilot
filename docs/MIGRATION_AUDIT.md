@@ -268,7 +268,14 @@ subscription updated/deleted).
 and icons at cedar-student-pilot.dewetluus.workers.dev.
 
 ### Remaining items that need a human
-1. Subscription lifecycle: VERIFIED Aug 28 except the cancel path. De Wet
+1. Subscription lifecycle: FULLY VERIFIED Aug 28 with real traffic.
+   Checkout -> webhook grant -> persistence across sessions -> billing
+   portal (after the fixes below) -> cancel scheduled at period end ->
+   subscription.deleted fired via API -> server downgraded within seconds:
+   tier student->free, subscription_credits zeroed, purchased credits
+   (100) preserved untouched, stripe_subscription_id cleared. The
+   no-clawback rule held. Portal settings were saved in TEST mode by the
+   owner; the same save is still required in LIVE mode at cutover. De Wet
    subscribed to Student (test mode) and it persisted across sessions;
    cross-checked Stripe <-> Supabase: active sub with user_id metadata,
    matching stripe_subscription_id/customer_id on the credit row, tier
