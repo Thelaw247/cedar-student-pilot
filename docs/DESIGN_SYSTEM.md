@@ -63,3 +63,46 @@ research behind every choice is in the printed series document DSN-03
 - Anything interactive must look interactive; focus states stay visible.
 
 Changed values → update this file and DSN-03's successor in the same commit.
+
+## The widget grammar (UI redesign, Aug 2026)
+
+Full rationale and the per-page fix ledger live in the Design Blueprint
+artifact (see MIGRATION_AUDIT.md). The parts that are now code:
+
+- `src/components/ui/Widget.jsx` — the one card grammar: icon chip, title,
+  meta summary line, optional collapse (state persisted per user under
+  `localStorage cedar-w-<storageKey>`), `WidgetRow` for the standard row
+  anatomy (class-color rail, title/meta, right-aligned tabular content).
+  New surfaces MUST use Widget/WidgetRow instead of hand-rolling
+  `rounded-xl border bg-card` markup.
+- `src/components/ui/IconChip.jsx` — the tinted icon box, sizes sm/md/lg on
+  the concentric radius ladder. Class-colored via `classTint()`.
+- `src/lib/time.js` — the only place clock math lives (parse/format/countdown/
+  clock). The five per-file copies are being deleted as pages migrate.
+- `src/lib/eventMeta.js` — event types are distinguished by icon + label,
+  never by an invented hue. Class + study items render in the class's own
+  color; personal events render neutral; semantic colors report state only.
+- `src/lib/color.js` — `classTint(color)` (color-mix) replaces every
+  `color + '20'` concat.
+
+## The recording island
+
+Recording no longer walls off the app. The engine (segment rotation,
+IndexedDB crash-safety, retrying uploads, orphan cleanup) moved verbatim from
+ClassDetail's RecordModal into `src/recording/RecordingContext.jsx`, mounted
+once in Layout above the router — so a session survives navigation. Its
+visible handle is `src/recording/RecordingIsland.jsx`: a floating pill
+(pulsing dot, tabular timer, class, pause/stop) that expands to live notes,
+and that carries the whole finish flow (upload → Save & Process → processing
+→ post-recording review) on whatever page the student happens to be.
+
+Invariants:
+- One session at a time; RecordModal refuses to start a second and points at
+  the pill.
+- The consent gate, start screen, and crash-recovery offer stay in
+  ClassDetail's RecordModal — they are class-page concerns.
+- `beforeunload` warns while recording; audio is still crash-safe either way.
+- Processing completion fires `cedar-data-changed`, which Home and
+  ClassDetail listen to.
+- The island keeps its dark surface in both themes deliberately: it reads as
+  live hardware, constant on every screen.

@@ -10,6 +10,8 @@ import CommandPalette from './CommandPalette';
 import ShortcutsHelp from './ShortcutsHelp';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import UpgradeProvider from './monetization/UpgradeContext';
+import { RecordingProvider } from '@/recording/RecordingContext';
+import RecordingIsland from '@/recording/RecordingIsland';
 
 export default function Layout() {
   const [isDark, setIsDark] = useState(false);
@@ -40,6 +42,11 @@ export default function Layout() {
     // surface; the credit meter (Sidebar) and any LockedFeature open it via
     // useUpgrade(). See docs/MONETIZATION_KIT.md.
     <UpgradeProvider>
+    {/* RecordingProvider sits above the router so a live recording session
+        survives navigation; RecordingIsland is its floating handle on every
+        page (Design Blueprint §3). It must be inside UpgradeProvider — the
+        save flow opens the upgrade sheet on a 402. */}
+    <RecordingProvider>
     <div className="flex min-h-screen bg-background">
       <Sidebar />
       <div className="flex-1 flex flex-col min-w-0">
@@ -56,7 +63,9 @@ export default function Layout() {
       <OfflineIndicator />
       <CommandPalette />
       <ShortcutsHelp open={showShortcuts} onClose={() => setShowShortcuts(false)} />
+      <RecordingIsland />
     </div>
+    </RecordingProvider>
     </UpgradeProvider>
   );
 }
