@@ -41,6 +41,49 @@ const NEUTRAL_EVENT_COLOR = 'hsl(var(--muted-foreground) / 0.55)';
 
 const parseTime = parseTimeToMinutes;
 
+/**
+ * Standard calendar column packing (the fix for stacked blocks on heavy
+ * schedules): overlapping events in a day split the column's width instead
+ * of rendering on top of each other. Items are clustered into overlap
+ * groups; within a group each item takes the first free sub-column, and
+ * every member shares the group's column count so widths line up — exactly
+ * how Google/Apple calendars lay out conflicts.
+ */
+function packDayColumns(items) {
+  const timed = items
+    .map((it) => {
+      const s = parseTime(it.start);
+      const e = parseTime(it.end) || (s != null ? s + 60 : null);
+      return s == null ? null : { it, s, e };
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.s - b.s || a.e - b.e);
+
+  const layout = new Map();
+  let cluster = [];
+  let clusterEnd = -1;
+  const flush = () => {
+    if (!cluster.length) return;
+    const colEnds = [];
+    for (const entry of cluster) {
+      let col = colEnds.findIndex((end) => entry.s >= end);
+      if (col === -1) { col = colEnds.length; colEnds.push(entry.e); }
+      else colEnds[col] = entry.e;
+      entry.col = col;
+    }
+    for (const entry of cluster) layout.set(entry.it, { col: entry.col, cols: colEnds.length });
+    cluster = [];
+    clusterEnd = -1;
+  };
+  for (const entry of timed) {
+    if (cluster.length && entry.s >= clusterEnd) flush();
+    cluster.push(entry);
+    clusterEnd = Math.max(clusterEnd, entry.e);
+  }
+  flush();
+  return layout;
+}
+
 function formatHour(h) {
   // Wrap past midnight — an event ending at 23:30 pushes the grid to hour 24,
   // which would otherwise read "12PM" instead of "12AM".
@@ -261,7 +304,7 @@ export default function WeeklyCalendar({
                   const top = ((m - startMin) / 60) * HOUR_HEIGHT;
                   return <div key={m} className="absolute left-0 right-0 border-t border-border/40" style={{ top }}></div>;
                 })}
-                {timedByDay[day].map((it, mi) => {
+                {(() => { const colLayout = packDayColumns(timedByDay[day]); return timedByDay[day].map((it, mi) => {
                   const start = parseTime(it.start);
                   const end = parseTime(it.end) || start + 60;
                   if (start == null) return null;
@@ -271,16 +314,18 @@ export default function WeeklyCalendar({
                   const height = Math.max(18, ((end - start) / 60) * HOUR_HEIGHT - BLOCK_GAP_Y);
                   const color = classColor(it.color);
                   const Tag = it.onClick ? 'button' : 'div';
+                  const { col = 0, cols = 1 } = colLayout.get(it) || {};
                   return (
                     <Tag key={it.key || `${day}-${mi}`} onClick={it.onClick || undefined}
                       className="absolute rounded-md text-left p-1 overflow-hidden hover:shadow-md transition-all"
                       style={{
                         top,
                         height,
-                        // Inset from the column edges so the hour lines stay
-                        // visible either side of the block.
-                        left: BLOCK_INSET_X,
-                        right: BLOCK_INSET_X,
+                        // Concurrent events share the column: each takes its
+                        // sub-column's slice of the width (inset preserved so
+                        // hour lines stay visible at the edges).
+                        left: `calc(${(col / cols) * 100}% + ${BLOCK_INSET_X}px)`,
+                        width: `calc(${100 / cols}% - ${BLOCK_INSET_X * 2}px)`,
                         // Tint layered over the card colour keeps the block
                         // opaque, so gridlines don't show through the middle
                         // of an event.
@@ -293,7 +338,7 @@ export default function WeeklyCalendar({
                       {height > 40 && it.room && <p className="text-[9px] text-muted-foreground truncate leading-tight">{it.room}</p>}
                     </Tag>
                   );
-                })}
+                }); })()}
               </div>
             );
           })}
