@@ -9,6 +9,7 @@ import OfflineIndicator from './OfflineIndicator';
 import CommandPalette from './CommandPalette';
 import ShortcutsHelp from './ShortcutsHelp';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import UpgradeProvider from './monetization/UpgradeContext';
 
 export default function Layout() {
   const [isDark, setIsDark] = useState(false);
@@ -35,6 +36,10 @@ export default function Layout() {
   });
 
   return (
+    // UpgradeProvider mounts the single upgrade sheet for every authenticated
+    // surface; the credit meter (Sidebar) and any LockedFeature open it via
+    // useUpgrade(). See docs/MONETIZATION_KIT.md.
+    <UpgradeProvider>
     <div className="flex min-h-screen bg-background">
       <Sidebar />
       <div className="flex-1 flex flex-col min-w-0">
@@ -56,5 +61,6 @@ export default function Layout() {
       <CommandPalette />
       <ShortcutsHelp open={showShortcuts} onClose={() => setShowShortcuts(false)} />
     </div>
+    </UpgradeProvider>
   );
 }

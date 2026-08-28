@@ -4,12 +4,19 @@ import { NAV_ITEMS } from '@/lib/navItems';
 import UserMenuButton from '@/components/UserMenuButton';
 import ClassStatusBar from '@/components/ClassStatusBar';
 import { Search, Keyboard } from 'lucide-react';
+import CreditMeter from '@/components/monetization/CreditMeter';
 
 export default function Sidebar() {
   return (
     <aside className="hidden lg:flex w-60 flex-col border-r border-border bg-card/50 h-screen sticky top-0">
       <div className="px-4 py-5">
         <UserMenuButton />
+      </div>
+      {/* The always-visible credit meter (MON-04): visible limits are limits
+          students forgive. Mobile placement lands with the Home header in
+          phase C. */}
+      <div className="px-4 pb-3">
+        <CreditMeter />
       </div>
       <ClassStatusBar variant="desktop" />
       <nav className="flex flex-col gap-1 px-3 mt-2 flex-1">
