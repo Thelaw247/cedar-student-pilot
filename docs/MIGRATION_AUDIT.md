@@ -234,3 +234,51 @@ does not reach 100% until its external staging checks pass.
 The live Base44 app, production DNS, and live Stripe webhook have not been
 changed. Keep that boundary until the isolated stack passes the complete
 new-user staging journey and rollback has been rehearsed.
+
+## Verification pass — Aug 28, 2026 (post-UI-redesign)
+
+Automated checks run against the live staging stack:
+
+**Server health (Render, srv-da4h7arbc2fs73b96pjg)** — clean. No error-level
+logs and no `[recording] flashcard generation failed` lines since Aug 27.
+All redesign deploys (757477b → 5dde2d5) built and went live; health check
+`/health/ready` is configured and passing. The free instance spun down and
+cold-started at 13:00 UTC — expected on the free plan, and the reason the
+cutover checklist upgrades the instance before launch.
+
+**Supabase advisors (dyowooyijuxghwnwuxcr)** —
+- WARN: leaked-password protection is disabled. One toggle in the dashboard
+  (Auth → Passwords → "Prevent use of leaked passwords"). Recommended before
+  launch; cannot be flipped via SQL/API from here. → OWNER ACTION
+- INFO: `system_state` has RLS enabled with no policies. Intentional — the
+  table is service-role-only, and no-policy RLS is deny-all for clients.
+- INFO: five unused indexes (classes_user_idx etc.). Kept deliberately: the
+  database is near-empty and these are the exact indexes production query
+  patterns will use.
+
+**Stripe (test mode, acct_1ToUnnRecX8K7mfK)** — active catalog matches
+src/lib/tiers.js exactly: Student $9.99/$31.99, Scholar $16.99/$54.99,
+Unlimited $29.99/$95.99 CAD (semester = 4-month interval), packs 100/$6.99,
+250/$14.99, 500/$27.99; superseded prices archived with metadata. Webhook
+endpoint enabled at cedar-api-staging.onrender.com/stripe/webhook with the
+full event set (checkout completed/async, invoice paid/succeeded/failed,
+subscription updated/deleted).
+
+**Frontend (Cloudflare Worker)** — serving the app shell with correct title
+and icons at cedar-student-pilot.dewetluus.workers.dev.
+
+### Remaining items that need a human
+1. Subscription lifecycle click-through: checkout with 4242 4242 4242 4242,
+   verify credits granted, open billing portal, cancel, verify downgrade.
+   Needs a logged-in session in a real browser.
+2. Env-group duplicate cleanup: Render's API does not expose env-var reads;
+   verify in the dashboard that the service and env group don't define the
+   same keys twice. Functionally harmless today (the service boots and runs).
+3. Leaked-password protection toggle (above).
+4. Long-recording field test (>90 min, segment rotation) during a real class.
+5. Account deletion end-to-end on a throwaway account (never the admin one).
+6. Cutover: paid Render instance, Stripe live keys + live webhook, domain +
+   Resend (pending SEO research), the two cron jobs (approval pending), and
+   the rehearsal itself.
+7. Phase D decisions: paywall analytics events; RevenueCat + Apple IAP
+   timing (launch-blocking for the iOS build).
