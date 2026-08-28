@@ -10,6 +10,8 @@ import ExamPredictionCard from '@/components/ExamPredictionCard';
 import HandbookReader from '@/components/HandbookReader';
 import { getSetting } from '@/lib/settings';
 import { useRecording, findRecoverableRecording } from '@/recording/RecordingContext';
+import Segmented from '@/components/ui/Segmented';
+import { classTint, classColor } from '@/lib/color';
 import { useBalance } from '@/hooks/useBalance';
 import LockedFeature from '@/components/monetization/LockedFeature';
 
@@ -80,7 +82,7 @@ export default function ClassDetail() {
       {/* Class header */}
       <div className="flex items-start gap-4 mb-8">
         <div className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0"
-          style={{ backgroundColor: (cls.color || '#3B82F6') + '20', color: cls.color || '#3B82F6' }}>
+          style={{ backgroundColor: classTint(cls.color) || 'hsl(var(--primary) / 0.1)', color: classColor(cls.color) }}>
           <GraduationCap className="w-7 h-7" strokeWidth={1.5} />
         </div>
         <div className="flex-1">
@@ -100,13 +102,17 @@ export default function ClassDetail() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 border-b border-border mb-6 overflow-x-auto scrollbar-hide">
-        {['lectures', 'assignments', 'handbook', 'study'].map(t => (
-          <button key={t} onClick={() => changeTab(t)}
-            className={`px-4 py-2.5 text-sm font-medium capitalize border-b-2 transition-colors whitespace-nowrap ${tab === t ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>
-            {t === 'study' ? 'Practice' : t}
-          </button>
-        ))}
+      <div className="mb-6 overflow-x-auto scrollbar-hide">
+        <Segmented
+          value={tab}
+          onChange={changeTab}
+          options={[
+            { value: 'lectures', label: lectures.length ? `Lectures · ${lectures.length}` : 'Lectures' },
+            { value: 'assignments', label: assignments.length ? `Assignments · ${assignments.length}` : 'Assignments' },
+            { value: 'handbook', label: 'Handbook' },
+            { value: 'study', label: 'Practice' },
+          ]}
+        />
       </div>
 
       {tab === 'lectures' && (

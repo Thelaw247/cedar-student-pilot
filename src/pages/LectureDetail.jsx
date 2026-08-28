@@ -9,6 +9,7 @@ import TranscriptActions from '@/components/TranscriptActions';
 import InLectureQuiz from '@/components/InLectureQuiz';
 import AutosaveIndicator from '@/components/AutosaveIndicator';
 import { useBalance } from '@/hooks/useBalance';
+import Widget from '@/components/ui/Widget';
 import { useUpgrade } from '@/components/monetization/UpgradeContext';
 
 export default function LectureDetail() {
@@ -251,7 +252,18 @@ export default function LectureDetail() {
     setRetrying(false);
   };
 
-  if (loading) return <div className="flex items-center justify-center min-h-[60vh]"><div className="w-8 h-8 border-3 border-muted border-t-primary rounded-full animate-spin"></div></div>;
+  if (loading) {
+    return (
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 lg:py-10">
+        <div className="animate-pulse space-y-4">
+          <div className="h-5 w-32 bg-muted rounded" />
+          <div className="h-14 bg-muted rounded-xl" />
+          <div className="h-32 bg-muted rounded-xl" />
+          <div className="h-24 bg-muted rounded-xl" />
+        </div>
+      </div>
+    );
+  }
   if (!lecture) return <div className="p-6 text-center text-muted-foreground">Lecture not found.</div>;
 
   return (
@@ -385,16 +397,32 @@ export default function LectureDetail() {
         </div>
       )}
 
+      {/* Processing: show the shape of what's coming, with honest timing */}
+      {lecture.status === 'processing' && !lecture.ai_summary && (
+        <div className="rounded-xl border border-border bg-card p-4 mb-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Loader2 className="w-4 h-4 animate-spin text-primary" />
+            <p className="text-sm font-semibold text-foreground">Transcribing and summarizing…</p>
+          </div>
+          <p className="text-[11px] text-muted-foreground mb-3">Usually under a minute for a typical lecture — this page updates by itself.</p>
+          <div className="animate-pulse space-y-2">
+            <div className="h-3 bg-muted rounded w-full" />
+            <div className="h-3 bg-muted rounded w-11/12" />
+            <div className="h-3 bg-muted rounded w-4/5" />
+          </div>
+        </div>
+      )}
+
       {/* AI Summary */}
       {lecture.ai_summary && (
-        <Section icon={Sparkles} title="AI Summary">
+        <Section icon={Sparkles} title="AI Summary" storageKey="lec-summary">
           <p className="text-sm text-foreground leading-relaxed">{lecture.ai_summary}</p>
         </Section>
       )}
 
       {/* Key Concepts */}
       {lecture.ai_concepts && lecture.ai_concepts.length > 0 && (
-        <Section icon={Lightbulb} title="Key Concepts">
+        <Section icon={Lightbulb} title="Key Concepts" storageKey="lec-concepts">
           <div className="flex flex-wrap gap-2">
             {lecture.ai_concepts.map((c, i) => (
               <span key={i} className="px-2.5 py-1 rounded-md bg-primary/10 text-primary text-xs font-medium">{c}</span>
@@ -405,7 +433,7 @@ export default function LectureDetail() {
 
       {/* Vocabulary & Definitions */}
       {lecture.ai_definitions && lecture.ai_definitions.length > 0 && (
-        <Section icon={BookOpen} title="Definitions">
+        <Section icon={BookOpen} title="Definitions" storageKey="lec-defs">
           <div className="space-y-2">
             {lecture.ai_definitions.map((d, i) => (
               <div key={i} className="text-sm">
@@ -419,7 +447,7 @@ export default function LectureDetail() {
 
       {/* Formulas */}
       {lecture.ai_formulas && lecture.ai_formulas.length > 0 && (
-        <Section icon={Tag} title="Formulas">
+        <Section icon={Tag} title="Formulas" storageKey="lec-formulas">
           <div className="space-y-1.5">
             {lecture.ai_formulas.map((f, i) => (
               <div key={i} className="px-3 py-2 rounded-lg bg-muted font-mono text-sm">{f}</div>
@@ -430,7 +458,7 @@ export default function LectureDetail() {
 
       {/* Action Items */}
       {lecture.ai_action_items && lecture.ai_action_items.length > 0 && (
-        <Section icon={ListChecks} title="Action Items">
+        <Section icon={ListChecks} title="Action Items" storageKey="lec-actions">
           <ul className="space-y-1.5">
             {lecture.ai_action_items.map((a, i) => (
               <li key={i} className="flex items-start gap-2 text-sm text-foreground">
@@ -443,7 +471,7 @@ export default function LectureDetail() {
 
       {/* Exam Mentions */}
       {lecture.ai_exam_mentions && lecture.ai_exam_mentions.length > 0 && (
-        <Section icon={AlertCircle} title="Exam Announcements">
+        <Section icon={AlertCircle} title="Exam Announcements" storageKey="lec-exams">
           <ul className="space-y-1.5">
             {lecture.ai_exam_mentions.map((m, i) => (
               <li key={i} className="flex items-start gap-2 text-sm text-amber-700 dark:text-amber-500">
@@ -456,7 +484,9 @@ export default function LectureDetail() {
 
       {/* Transcript */}
       {lecture.transcript && (
-        <Section icon={FileText} title="Transcript" actions={<TranscriptActions lecture={lecture} />}>
+        <Section icon={FileText} title="Transcript" storageKey="lec-transcript" defaultOpen={false}
+          meta={`${lecture.transcript.trim().split(/\s+/).length.toLocaleString()} words`}
+          actions={<TranscriptActions lecture={lecture} />}>
           {/* Recordings are stored as raw speech-to-text. Cleanup is a paid,
               on-demand pass rather than something every lecture pays for — most
               recordings are perfectly readable without it. */}
@@ -488,8 +518,8 @@ export default function LectureDetail() {
             <p className="text-[11px] text-destructive mb-2">{cleanError}</p>
           )}
 
-          <div className="max-h-64 overflow-y-auto pr-2">
-            <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">{lecture.transcript}</p>
+          <div className="max-h-96 overflow-y-auto pr-2">
+            <p className="text-[15px] text-foreground/85 leading-7 whitespace-pre-wrap max-w-[68ch]">{lecture.transcript}</p>
           </div>
 
           {lecture.transcript_cleaned && lecture.transcript_raw && (
@@ -530,17 +560,26 @@ export default function LectureDetail() {
   );
 }
 
-function Section({ icon: Icon, title, children, actions = null }) {
+/**
+ * Lecture sections ride the widget grammar (Design Blueprint, Lecture fixes):
+ * summary and study content open by default, the transcript starts collapsed
+ * (it's reference material) with its size in the meta line, and every choice
+ * is remembered per user across lectures via storageKey.
+ */
+function Section({ icon, title, children, actions = null, storageKey = undefined, defaultOpen = true, meta = undefined }) {
   return (
-    <div className="rounded-xl border border-border bg-card p-4 mb-4">
-      <div className="flex items-center justify-between gap-2 mb-3">
-        <div className="flex items-center gap-2">
-          <Icon className="w-4 h-4 text-primary" strokeWidth={2} />
-          <h3 className="text-sm font-semibold text-foreground">{title}</h3>
-        </div>
-        {actions}
-      </div>
-      {children}
-    </div>
+    <Widget
+      icon={icon}
+      title={title}
+      meta={meta}
+      action={actions ? <span onClick={(e) => e.stopPropagation()}>{actions}</span> : undefined}
+      collapsible={!!storageKey}
+      defaultOpen={defaultOpen}
+      storageKey={storageKey}
+      className="mb-4"
+      padded
+    >
+      <div className="pt-1">{children}</div>
+    </Widget>
   );
 }
