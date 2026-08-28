@@ -1,6 +1,7 @@
 import React from 'react';
 import { Sparkles } from 'lucide-react';
 import { useBalance } from '@/hooks/useBalance';
+import { tierOf } from '@/lib/tiers';
 import { useUpgrade } from './UpgradeContext';
 
 /**
@@ -12,7 +13,7 @@ import { useUpgrade } from './UpgradeContext';
  * out-of-credits framing when they don't.
  */
 export default function CreditMeter({ className = '' }) {
-  const { balance, available, loading } = useBalance();
+  const { balance, available, tier, loading } = useBalance();
   const { openUpgrade } = useUpgrade();
 
   if (loading && !balance) return null;
@@ -35,6 +36,10 @@ export default function CreditMeter({ className = '' }) {
       <Sparkles className="w-3.5 h-3.5" strokeWidth={2} />
       {available}
       <span className="sr-only">credits</span>
+      {/* Which plan those credits come from — one glance, no Settings trip. */}
+      <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground border-l border-border pl-1.5 ml-0.5">
+        {tierOf(tier).name}
+      </span>
     </button>
   );
 }
