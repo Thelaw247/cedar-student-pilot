@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { Plus, Search, GraduationCap, ChevronRight, Pencil } from 'lucide-react';
+import { Plus, Search, GraduationCap, Pencil, CalendarDays } from 'lucide-react';
+import Widget from '@/components/ui/Widget';
+import IconChip from '@/components/ui/IconChip';
 import LectureSearch from '@/components/LectureSearch';
 import WeeklyCalendar from '@/components/WeeklyCalendar';
 import EditClassModal from '@/components/EditClassModal';
@@ -42,12 +44,17 @@ export default function Classes() {
       const semesters = await base44.entities.Semester.filter({ is_active: true });
       if (semesters.length > 0) {
         setActiveSemester(semesters[0]);
-        const cls = await base44.entities.Class.filter({ semester_id: semesters[0].id });
+        // One request for classes + one for lectures, counted client-side —
+        // this was a per-class fetch loop (N+1) that made the page feel slow
+        // to open. 1000 covers years of recordings for one student.
+        const [cls, allLectures] = await Promise.all([
+          base44.entities.Class.filter({ semester_id: semesters[0].id }),
+          base44.entities.Lecture.list('-date', 1000),
+        ]);
         setClasses(cls);
         const lecMap = {};
-        for (const c of cls) {
-          const lecs = await base44.entities.Lecture.filter({ class_id: c.id });
-          lecMap[c.id] = lecs.length;
+        for (const l of allLectures) {
+          if (l.class_id) lecMap[l.class_id] = (lecMap[l.class_id] || 0) + 1;
         }
         setLectures(lecMap);
       }
@@ -89,8 +96,13 @@ export default function Classes() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="w-8 h-8 border-3 border-muted border-t-primary rounded-full animate-spin"></div>
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 lg:py-10">
+        <div className="animate-pulse space-y-3">
+          <div className="h-8 w-40 bg-muted rounded-lg" />
+          <div className="h-40 bg-muted rounded-xl" />
+          <div className="h-16 bg-muted rounded-xl" />
+          <div className="h-16 bg-muted rounded-xl" />
+        </div>
       </div>
     );
   }
@@ -107,12 +119,20 @@ export default function Classes() {
         </button>
       </div>
 
-      {/* Weekly schedule grid (moved here from the Today area) */}
+      {/* Weekly schedule grid — reference, not this page's question, so it
+          collapses and remembers the choice (law 04). */}
       {classes.length > 0 && (
-        <div className="mb-6">
-          <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Weekly schedule</h2>
+        <Widget
+          icon={CalendarDays}
+          title="Weekly schedule"
+          meta={`${classes.length} ${classes.length === 1 ? 'course' : 'courses'} on the grid`}
+          collapsible
+          storageKey="classes-schedule"
+          className="mb-6"
+          padded
+        >
           <WeeklyCalendar classes={classes} onEditClass={(c) => setEditClass(c)} />
-        </div>
+        </Widget>
       )}
 
       <div className="relative mb-4">
@@ -139,32 +159,21 @@ export default function Classes() {
       ) : (
         <div className="grid gap-3">
           {filtered.map(c => (
-            <div key={c.id} className="group flex items-center gap-4 rounded-xl border border-border bg-card p-4 hover:shadow-md transition-all">
-              <Link to={`/classes/${c.id}`} className="flex items-center gap-4 flex-1 min-w-0">
-                <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
-                  style={{ backgroundColor: (c.color || '#3B82F6') + '20', color: c.color || '#3B82F6' }}>
-                  <GraduationCap className="w-6 h-6" strokeWidth={1.5} />
-                </div>
+            <div key={c.id} className="group flex items-center gap-3.5 rounded-xl border border-border bg-card shadow-1 p-4 hover:shadow-2 transition-all duration-micro">
+              <Link to={`/classes/${c.id}`} className="flex items-center gap-3.5 flex-1 min-w-0">
+                <IconChip icon={GraduationCap} size="lg" color={c.color} />
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-medium text-foreground text-sm">{c.course_code ? `${c.course_code} · ` : ''}{c.name}</h3>
-                  <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                    {scheduleSummary(c)}
-                    {c.instructor && ` • ${c.instructor}`}
+                  <h3 className="font-medium text-foreground text-sm truncate">{c.course_code ? `${c.course_code} · ` : ''}{c.name}</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5 truncate tabular-nums">
+                    {lectures[c.id] || 0} {lectures[c.id] === 1 ? 'lecture' : 'lectures'} · {scheduleSummary(c)}
+                    {c.instructor && ` · ${c.instructor}`}
                   </p>
                 </div>
               </Link>
-              <div className="flex items-center gap-3 flex-shrink-0">
-                <div className="text-right hidden sm:block">
-                  <p className="text-xs text-muted-foreground">{lectures[c.id] || 0} lectures</p>
-                </div>
-                <button onClick={() => setEditClass(c)} aria-label="Edit class"
-                  className="w-8 h-8 rounded-lg border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
-                  <Pencil className="w-3.5 h-3.5" />
-                </button>
-                <Link to={`/classes/${c.id}`} className="text-muted-foreground group-hover:text-foreground transition-colors">
-                  <ChevronRight className="w-4 h-4" />
-                </Link>
-              </div>
+              <button onClick={() => setEditClass(c)} aria-label="Edit class"
+                className="w-8 h-8 rounded-lg border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors flex-shrink-0">
+                <Pencil className="w-3.5 h-3.5" />
+              </button>
             </div>
           ))}
         </div>

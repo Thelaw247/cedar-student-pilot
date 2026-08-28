@@ -1,6 +1,10 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   darkMode: ["class"],
+  // Hover styles only apply on devices that actually hover — otherwise the
+  // -translate-y lifts fired as sticky-hover jank on every touch (Design
+  // Blueprint, global fix #13).
+  future: { hoverOnlyWhenSupported: true },
   content: ["./index.html", "./src/**/*.{ts,tsx,js,jsx}"],
   theme: {
     extend: {

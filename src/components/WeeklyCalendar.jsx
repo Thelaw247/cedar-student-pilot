@@ -3,6 +3,8 @@ import { Clock } from 'lucide-react';
 import { getClassMeetings, getClassMeetingsForDate, getMeetingRoom } from '@/lib/classSchedule';
 import { weekDates, expandEventsInRange, parseLocalDate } from '@/lib/eventSchedule';
 import { sessionTitle } from '@/lib/sessionTitle';
+import { classColor, classTint } from '@/lib/color';
+import { parseTimeToMinutes, formatTime as formatTimeShared } from '@/lib/time';
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const HOUR_HEIGHT = 44;
@@ -32,21 +34,12 @@ const LABEL_HEIGHT = 12;
 // instead of being clamped, first and last included.
 const GRID_PAD_Y = 14;          // px above the first line and below the last
 
-// Colors for non-class items so the grid reads consistently with the rest of
-// the app (study = violet, work = amber, etc.).
-const TYPE_COLORS = {
-  work: '#F59E0B',
-  study: '#8B5CF6',
-  appointment: '#10B981',
-  reminder: '#EC4899',
-  custom: '#3B82F6',
-};
+// Non-class items follow law 02: study renders in its class's color, and
+// personal events are neutral unless the user picked a color themselves —
+// types are told apart by label, never by an invented hue.
+const NEUTRAL_EVENT_COLOR = 'hsl(var(--muted-foreground) / 0.55)';
 
-function parseTime(timeStr) {
-  if (!timeStr) return null;
-  const parts = timeStr.split(':').map(Number);
-  return parts[0] * 60 + (parts[1] || 0);
-}
+const parseTime = parseTimeToMinutes;
 
 function formatHour(h) {
   // Wrap past midnight — an event ending at 23:30 pushes the grid to hour 24,
@@ -57,13 +50,7 @@ function formatHour(h) {
   return `${dh}${ampm}`;
 }
 
-function formatTime(timeStr) {
-  if (!timeStr) return '';
-  const [h, m] = timeStr.split(':').map(Number);
-  const ampm = h >= 12 ? 'PM' : 'AM';
-  const dh = h === 0 ? 12 : h > 12 ? h - 12 : h;
-  return `${dh}:${String(m || 0).padStart(2, '0')} ${ampm}`;
-}
+const formatTime = formatTimeShared;
 
 function todayString() {
   const d = new Date();
@@ -111,7 +98,7 @@ export default function WeeklyCalendar({
       classMeetings.forEach((m, index) => {
         items.push({
           key: `c-${c.id}-${day}-${index}`, kind: 'class', title: c.name,
-          start: m.start_time, end: m.end_time, color: c.color || '#3B82F6',
+          start: m.start_time, end: m.end_time, color: classColor(c.color),
           room: getMeetingRoom(c, m), onClick: onEditClass ? () => onEditClass(c) : null,
         });
       });
@@ -122,14 +109,14 @@ export default function WeeklyCalendar({
         items.push({
           // See src/lib/sessionTitle.js — `notes` is a description, not a title.
           key: `s-${s.id}`, kind: 'study', title: sessionTitle(s),
-          start: s.scheduled_time, end: null, color: TYPE_COLORS.study,
+          start: s.scheduled_time, end: null, color: classColor(classes.find(c => c.id === s.class_id)?.color),
         });
       }
       for (const e of weekEvents.filter(ev => ev.date === dstr)) {
         items.push({
           key: `e-${e.id}-${dstr}`, kind: e.type || 'custom', title: e.title,
           start: e.start_time, end: e.end_time,
-          color: e.color || TYPE_COLORS[e.type] || TYPE_COLORS.custom,
+          color: e.color || NEUTRAL_EVENT_COLOR,
           recurring: e._recurring,
           onClick: onEditEvent ? () => onEditEvent(e) : null,
         });
@@ -231,7 +218,7 @@ export default function WeeklyCalendar({
                   return (
                     <Tag key={it.key} onClick={it.onClick || undefined}
                       className="block w-full text-left rounded-md px-1 py-0.5 overflow-hidden"
-                      style={{ backgroundColor: (it.color) + '18', borderLeft: `2px solid ${it.color}` }}>
+                      style={{ backgroundColor: classTint(it.color, 10), borderLeft: `2px solid ${it.color}` }}>
                       <span className="text-[10px] font-medium text-foreground truncate block leading-tight">{it.title}</span>
                     </Tag>
                   );
@@ -282,7 +269,7 @@ export default function WeeklyCalendar({
                   // of the next one, so the block never covers a gridline.
                   const top = ((start - startMin) / 60) * HOUR_HEIGHT + 1;
                   const height = Math.max(18, ((end - start) / 60) * HOUR_HEIGHT - BLOCK_GAP_Y);
-                  const color = it.color || '#3B82F6';
+                  const color = classColor(it.color);
                   const Tag = it.onClick ? 'button' : 'div';
                   return (
                     <Tag key={it.key || `${day}-${mi}`} onClick={it.onClick || undefined}
@@ -298,7 +285,7 @@ export default function WeeklyCalendar({
                         // opaque, so gridlines don't show through the middle
                         // of an event.
                         backgroundColor: 'hsl(var(--card))',
-                        backgroundImage: `linear-gradient(${color}18, ${color}18)`,
+                        backgroundImage: `linear-gradient(${classTint(color, 10)}, ${classTint(color, 10)})`,
                         borderLeft: `2px solid ${color}`,
                       }}>
                       <p className="text-[10px] font-semibold text-foreground truncate leading-tight">{it.title}</p>

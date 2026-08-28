@@ -1,38 +1,22 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { MapPin, GraduationCap, Clock, Sparkles, Briefcase, Calendar, AlertCircle } from 'lucide-react';
+import { MapPin, Clock, AlertCircle } from 'lucide-react';
 import EmptyTimeSuggestion from '@/components/EmptyTimeSuggestion';
+import { eventMeta } from '@/lib/eventMeta';
+import { classColor } from '@/lib/color';
+import { parseTimeToMinutes as parseTime, formatTime } from '@/lib/time';
 
-const eventTypeConfig = {
-  class: { icon: GraduationCap, text: 'text-primary' },
-  study: { icon: Sparkles, text: 'text-purple-600' },
-  work: { icon: Briefcase, text: 'text-emerald-600' },
-  custom: { icon: Calendar, text: 'text-emerald-600' },
-  appointment: { icon: Clock, text: 'text-emerald-600' },
-  reminder: { icon: Clock, text: 'text-gray-500' },
-};
-
-function parseTime(timeStr) {
-  if (!timeStr) return null;
-  const parts = timeStr.split(':').map(Number);
-  return parts[0] * 60 + (parts[1] || 0);
-}
-
-function formatTime(timeStr) {
-  if (!timeStr) return '';
-  const [h, m] = timeStr.split(':').map(Number);
-  const ampm = h >= 12 ? 'PM' : 'AM';
-  const dh = h === 0 ? 12 : h > 12 ? h - 12 : h;
-  return `${dh}:${String(m).padStart(2, '0')} ${ampm}`;
-}
-
-function getPriorityColor(item) {
-  if (item.type === 'exam') return '#EF4444';
-  if (item.type === 'study') return '#8B5CF6';
-  if (item.type === 'class') return item.color || '#2D5BFF';
-  if (['custom', 'appointment', 'work'].includes(item.type)) return '#10B981';
-  if (item.type === 'reminder') return '#9CA3AF';
-  return item.color || '#2D5BFF';
+/**
+ * Rail color rules (Design Blueprint, law 02): classes and study sessions
+ * render in the class's own color; exams use the problem token; personal
+ * events are neutral. Types are told apart by icon + label, never by an
+ * invented hue — the old map gave "work" a different color here than
+ * WeekView did.
+ */
+function railColor(item) {
+  if (item.type === 'exam') return 'hsl(var(--destructive))';
+  if (item.type === 'class' || item.type === 'study') return classColor(item.color);
+  return 'hsl(var(--muted-foreground) / 0.55)';
 }
 
 function findConflicts(items) {
@@ -123,10 +107,10 @@ export default function Timeline({ items, onAddEvent }) {
   return (
     <div>
     {conflicts.length > 0 && (
-      <div className="mb-3 rounded-lg border border-rose-500/30 bg-rose-500/5 p-2.5 flex items-center gap-2">
-        <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0" />
-        <p className="text-xs text-rose-600 font-medium">
-          {conflicts.length} scheduling conflict{conflicts.length !== 1 ? 's' : ''} detected — overlapping events highlighted in red
+      <div className="mb-3 rounded-lg border border-amber-500/30 bg-amber-500/5 p-2.5 flex items-center gap-2">
+        <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-500 flex-shrink-0" />
+        <p className="text-xs text-amber-700 dark:text-amber-500 font-medium">
+          {conflicts.length} scheduling conflict{conflicts.length !== 1 ? 's' : ''} — the overlapping events are highlighted below
         </p>
       </div>
     )}
@@ -154,10 +138,12 @@ export default function Timeline({ items, onAddEvent }) {
         </div>
       )}
 
-      {/* Now indicator dot — z-30, always visible above event blocks but below hour labels */}
+      {/* Now bubble — the current time in the gutter, riding the line */}
       {showNow && (
-        <div className="absolute left-0 w-14 flex justify-end pr-2 pointer-events-none" style={{ top: nowTop, zIndex: 30 }}>
-          <div className="w-2 h-2 rounded-full bg-destructive"></div>
+        <div className="absolute left-0 w-14 flex justify-end pr-1 pointer-events-none" style={{ top: nowTop - 9, zIndex: 30 }}>
+          <span className="rounded-full bg-destructive text-destructive-foreground text-[10px] font-semibold tabular-nums px-1.5 py-0.5 leading-none flex items-center">
+            {formatTime(`${now.getHours()}:${now.getMinutes()}`)}
+          </span>
         </div>
       )}
 
@@ -182,13 +168,14 @@ export default function Timeline({ items, onAddEvent }) {
         const clampedStart = Math.max(start, startMin);
         const clampedEnd = Math.min(end || start + 60, endMin);
         const top = ((clampedStart - startMin) / 60) * HOUR_HEIGHT;
-        const height = Math.max(22, ((clampedEnd - clampedStart) / 60) * HOUR_HEIGHT - 2);
-        const config = eventTypeConfig[item.type] || eventTypeConfig.custom;
-        const Icon = config.icon;
-        const color = getPriorityColor(item);
+        const height = Math.max(28, ((clampedEnd - clampedStart) / 60) * HOUR_HEIGHT - 2);
+        const Icon = eventMeta(item.type).icon;
+        const color = railColor(item);
         const isConflicting = conflictingIds.has(item.id);
+        // The past quiets down so the eye lands on what's next.
+        const isPast = (end || start + 60) < nowMin;
 
-        const blockClass = `absolute rounded-lg border bg-card timeline-shadow transition-all duration-micro overflow-hidden z-10 hover:shadow-2 hover:-translate-y-0.5 ${isConflicting ? 'border-rose-500/50 ring-1 ring-rose-500/30' : 'border-border'} ${item.dimmed ? 'opacity-40 grayscale' : ''}`;
+        const blockClass = `absolute rounded-lg border bg-card timeline-shadow transition-all duration-micro overflow-hidden z-10 hover:shadow-2 hover:-translate-y-0.5 ${isConflicting ? 'border-amber-500/50 ring-1 ring-amber-500/30' : 'border-border'} ${item.dimmed ? 'opacity-40 grayscale' : isPast ? 'opacity-55' : ''}`;
         const blockStyle = {
           top: top + 1,
           height,
@@ -200,7 +187,7 @@ export default function Timeline({ items, onAddEvent }) {
         const blockContent = (
           <div className="px-2 py-0.5">
             <div className="flex items-center gap-1.5">
-              <Icon className={`w-3 h-3 ${config.text} flex-shrink-0`} strokeWidth={2} />
+              <Icon className="w-3 h-3 text-muted-foreground flex-shrink-0" strokeWidth={2} />
               <span className="text-xs font-medium text-foreground truncate">{item.title}</span>
             </div>
             {height > 34 && (

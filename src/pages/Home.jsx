@@ -157,6 +157,8 @@ export default function Home() {
       time: s.scheduled_time,
       type: 'study',
       classId: s.class_id,
+      // Study belongs to a class, so it renders in the class's color (law 02).
+      color: classes.find(c => c.id === s.class_id)?.color,
     })),
   ].sort((a, b) => (a.time || '99:99').localeCompare(b.time || '99:99'));
 
