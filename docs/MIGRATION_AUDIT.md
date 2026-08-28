@@ -276,14 +276,25 @@ and icons at cedar-student-pilot.dewetluus.workers.dev.
    anchors recorded (idempotent). STILL OPEN: billing portal -> cancel ->
    webhook downgrade to free at period end (deliberately not exercised
    against his live test subscription without his go-ahead).
+   UPDATE (later Aug 28): "Manage billing" was actually broken for all
+   subscribers — two independent causes, one fixed, one owner action:
+   (a) FIXED (commit df863ea): billing-portal sessions accept no metadata
+   parameter; the Base44-era 'metadata[base44_app_id]' made Stripe 400
+   every request. Client error copy no longer masks server errors.
+   (b) OWNER ACTION: the Stripe TEST-mode account has no saved customer
+   portal configuration, so portal sessions are refused until one exists.
+   One click: dashboard.stripe.com/test/settings/billing/portal -> Save.
+   (The MCP key lacks permission to create it via API.) Must be REPEATED
+   IN LIVE MODE at cutover — added to the cutover list.
 2. Env-group duplicate cleanup: Render's API does not expose env-var reads;
    verify in the dashboard that the service and env group don't define the
    same keys twice. Functionally harmless today (the service boots and runs).
 3. Leaked-password protection toggle (above).
 4. Long-recording field test (>90 min, segment rotation) during a real class.
 5. Account deletion end-to-end on a throwaway account (never the admin one).
-6. Cutover: paid Render instance, Stripe live keys + live webhook, domain +
-   Resend (pending SEO research), the two cron jobs (approval pending), and
-   the rehearsal itself.
+6. Cutover: paid Render instance, Stripe live keys + live webhook, LIVE-mode
+   customer portal settings saved (see item 1b), domain + Resend (pending
+   SEO research), the two cron jobs (approval pending), and the rehearsal
+   itself.
 7. Phase D decisions: paywall analytics events; RevenueCat + Apple IAP
    timing (launch-blocking for the iOS build).
