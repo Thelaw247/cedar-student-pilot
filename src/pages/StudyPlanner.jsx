@@ -10,6 +10,7 @@ import ReviewFromLectures from '@/components/ReviewFromLectures';
 import DeleteXButton from '@/components/DeleteXButton';
 import { sessionTitle, sessionDescription } from '@/lib/sessionTitle';
 import { classColor } from '@/lib/color';
+import Segmented from '@/components/ui/Segmented';
 
 const priorityColors = {
   high: 'bg-rose-500/10 text-rose-600 border-rose-500/20',
@@ -157,19 +158,20 @@ export default function StudyPlanner() {
       </div>
 
       {/* Sub-tabs */}
-      <div className="flex gap-1 border-b border-border mb-6">
-        <button onClick={() => setTab('plan')}
-          className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${tab === 'plan' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>
-          Plan
-        </button>
-        <button onClick={() => setTab('practice')}
-          className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${tab === 'practice' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>
-          Practice
-        </button>
+      <div className="mb-6">
+        <Segmented
+          value={tab}
+          onChange={setTab}
+          options={[{ value: 'plan', label: 'Plan' }, { value: 'practice', label: 'Practice' }]}
+        />
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-20"><div className="w-8 h-8 border-3 border-muted border-t-primary rounded-full animate-spin"></div></div>
+        <div className="animate-pulse space-y-3 py-2">
+          <div className="h-24 bg-muted rounded-xl" />
+          <div className="h-16 bg-muted rounded-xl" />
+          <div className="h-16 bg-muted rounded-xl" />
+        </div>
       ) : tab === 'practice' ? (
         <PracticePanel initialClassId={deepClassId} initialLectureIds={deepLectureIds.length ? deepLectureIds : null} />
       ) : (
@@ -191,7 +193,7 @@ export default function StudyPlanner() {
                   const pastDue = !!a.due_date && a.due_date < todayStr;
                   const busy = resolvingKey !== null;
                   return (
-                    <div key={a.id} className={`relative rounded-xl border bg-card p-3 pr-10 ${pastDue ? 'border-amber-500/40' : 'border-border'}`}>
+                    <div key={a.id} className={`relative rounded-xl border bg-card p-3 pr-10 ${pastDue ? 'border-rose-500/40' : 'border-border'}`}>
                       {/* Delete this deadline and every session tied to it. */}
                       <DeleteXButton
                         ariaLabel={`Delete ${a.title}`}
@@ -209,12 +211,12 @@ export default function StudyPlanner() {
                           <div className="flex items-center gap-2 flex-wrap">
                             <h3 className="text-sm font-medium text-foreground truncate">{a.title}</h3>
                             {a.type === 'project' && (
-                              <span className="text-[9px] font-semibold px-1 py-0.5 rounded bg-purple-500/10 text-purple-600 uppercase flex-shrink-0">Project</span>
+                              <span className="text-[11px] font-medium px-1.5 py-0.5 rounded bg-muted text-muted-foreground flex-shrink-0">Project</span>
                             )}
                           </div>
                           <p className="text-xs text-muted-foreground">{cls?.name} • Due {a.due_date}</p>
                         </div>
-                        <span className={`text-xs font-semibold px-2 py-1 rounded-md flex-shrink-0 ${pastDue ? 'bg-amber-500/10 text-amber-600' : daysUntil <= 3 ? 'bg-rose-500/10 text-rose-600' : 'bg-muted text-muted-foreground'}`}>
+                        <span className={`text-xs font-semibold px-2 py-1 rounded-md flex-shrink-0 ${pastDue ? 'bg-rose-500/10 text-rose-600' : daysUntil <= 3 ? 'bg-amber-500/10 text-amber-600' : 'bg-muted text-muted-foreground'}`}>
                           {pastDue ? 'Past due' : daysUntil <= 0 ? 'Today' : `${daysUntil}d`}
                         </span>
                         {/* Edit — opens the same AssignmentEditModal used in Classes,
@@ -230,7 +232,7 @@ export default function StudyPlanner() {
 
                       {/* Past-due prompt — resolve and clear the sessions made for it */}
                       {pastDue && (
-                        <div className="mt-3 pt-3 border-t border-amber-500/20">
+                        <div className="mt-3 pt-3 border-t border-rose-500/20">
                           <p className="text-[11px] text-muted-foreground mb-2">
                             This deadline has passed. Resolving it also clears the study sessions still scheduled for it.
                           </p>

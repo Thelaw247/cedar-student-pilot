@@ -10,6 +10,7 @@ import ReviewScheduleSection from '@/components/ReviewScheduleSection';
 import LearningModeToggle from '@/components/LearningModeToggle';
 import ConceptDecaySettings from '@/components/ConceptDecaySettings';
 import DataExportSection from '@/components/DataExportSection';
+import Widget from '@/components/ui/Widget';
 
 export default function Settings() {
   const [isDark, setIsDark] = useState(false);
@@ -137,15 +138,15 @@ export default function Settings() {
   );
 }
 
-function SettingsSection({ icon: Icon, title, children }) {
+function SettingsSection({ icon, title, children }) {
+  // Widget grammar: every group collapses and the choice is remembered per
+  // user (storageKey derived from the title), so a long settings page reads
+  // as a scannable index instead of a wall.
+  const storageKey = `set-${String(title).toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
   return (
-    <div className="rounded-xl border border-border bg-card p-5 mb-4">
-      <div className="flex items-center gap-2 mb-4">
-        <Icon className="w-4 h-4 text-primary" strokeWidth={2} />
-        <h2 className="text-sm font-semibold">{title}</h2>
-      </div>
-      {children}
-    </div>
+    <Widget icon={icon} title={title} collapsible storageKey={storageKey} className="mb-4" padded>
+      <div className="pt-2">{children}</div>
+    </Widget>
   );
 }
 

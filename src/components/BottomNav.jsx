@@ -54,7 +54,7 @@ export default function BottomNav() {
             }
           >
             <item.icon className="w-5 h-5" strokeWidth={2} />
-            <span className="text-[10px] font-medium">{item.label}</span>
+            <span className="text-[11px] font-medium">{item.label}</span>
           </NavLink>
         ))}
       </div>
