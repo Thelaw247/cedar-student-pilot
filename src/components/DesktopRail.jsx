@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useTodaySchedule } from '@/hooks/useTodaySchedule';
 import { Zap, Clock, MapPin, GraduationCap } from 'lucide-react';
+import { classTint, classColor } from '@/lib/color';
 
 function formatTime(t) {
   if (!t) return '';
@@ -64,7 +65,7 @@ export default function DesktopRail() {
                 >
                   <div
                     className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                    style={{ backgroundColor: (c.color || '#3B82F6') + '20', color: c.color || '#3B82F6' }}
+                    style={{ backgroundColor: classTint(c.color) || 'hsl(var(--primary) / 0.1)', color: classColor(c.color) }}
                   >
                     <GraduationCap className="w-4 h-4" strokeWidth={1.5} />
                   </div>

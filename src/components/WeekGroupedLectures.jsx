@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import LectureItem from '@/components/LectureItem';
 import { getDecayState, getWorstState, DECAY_STATES } from '@/lib/conceptDecay';
+import { classColor } from '@/lib/color';
 
 function getMondayOfWeek(dateStr) {
   const d = new Date(dateStr + 'T00:00:00');
@@ -97,7 +98,7 @@ export default function WeekGroupedLectures({ lectures, coverageMap, allClassLec
             <button
               onClick={() => toggleWeek(weekKey)}
               className="w-full flex items-center gap-3 p-3.5 hover:bg-muted/30 transition-colors text-left"
-              style={expanded ? { borderLeft: `3px solid ${cls?.color || '#3B82F6'}` } : {}}
+              style={expanded ? { borderLeft: `3px solid ${classColor(cls?.color)}` } : {}}
             >
               <div className="flex-shrink-0">
                 {expanded

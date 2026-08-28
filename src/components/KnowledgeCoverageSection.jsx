@@ -3,6 +3,7 @@ import { BookOpen, AlertCircle, CheckCircle2, ChevronRight, ChevronDown, Brain }
 import SessionReview from '@/components/SessionReview';
 import FreshnessBadge from '@/components/FreshnessBadge';
 import { computeClassProficiency, pairCoverageWithLectures, getDecayState, daysSinceReview, DECAY_STATES } from '@/lib/conceptDecay';
+import { classColor, SEMANTIC } from '@/lib/color';
 
 /**
  * Per-class knowledge coverage breakdown.
@@ -64,7 +65,7 @@ export default function KnowledgeCoverageSection({ classes, coverage = [], lectu
               onClick={() => setExpandedClass(isExpanded ? null : cls.id)}
               className="w-full flex items-center gap-3 p-4 hover:bg-muted/50 transition-colors text-left"
             >
-              <div className="w-1 h-10 rounded-full" style={{ backgroundColor: cls.color || '#3B82F6' }} />
+              <div className="w-1 h-10 rounded-full" style={{ backgroundColor: classColor(cls.color) }} />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate">{cls.name}</p>
                 <div className="flex items-center gap-2 flex-wrap">
@@ -94,7 +95,7 @@ export default function KnowledgeCoverageSection({ classes, coverage = [], lectu
                     <div key={l.id} className="rounded-lg border border-border p-3">
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: lecProf >= 70 ? '#10B981' : lecProf >= 40 ? '#F59E0B' : '#EF4444' }} />
+                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: lecProf >= 70 ? SEMANTIC.good : lecProf >= 40 ? SEMANTIC.warn : SEMANTIC.bad }} />
                           <span className="text-xs font-medium">Lecture Session</span>
                           {(() => {
                             const lecObj = classLectures.find(ll => ll.id === l.lecture_id);
@@ -149,7 +150,7 @@ export default function KnowledgeCoverageSection({ classes, coverage = [], lectu
                       {/* Progress bar */}
                       <div className="mt-2 h-1.5 bg-muted rounded-full overflow-hidden">
                         <div className="h-full rounded-full transition-all"
-                          style={{ width: `${lecProf}%`, backgroundColor: lecProf >= 70 ? '#10B981' : lecProf >= 40 ? '#F59E0B' : '#EF4444' }} />
+                          style={{ width: `${lecProf}%`, backgroundColor: lecProf >= 70 ? SEMANTIC.good : lecProf >= 40 ? SEMANTIC.warn : SEMANTIC.bad }} />
                       </div>
 
                       {gaps.length > 0 && (

@@ -806,12 +806,12 @@ function HandbookTab({ cls, lectures }) {
     <div>
       {/* Handbook preview card */}
       <div className="rounded-2xl border border-border bg-card overflow-hidden mb-4">
-        <div className="p-6 text-center" style={{ backgroundColor: (cls.color || '#3B82F6') + '08' }}>
+        <div className="p-6 text-center" style={{ backgroundColor: classTint(cls.color, 4) || 'hsl(var(--primary) / 0.04)' }}>
           <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-3"
-            style={{ backgroundColor: (cls.color || '#3B82F6') + '20' }}>
-            <BookOpen className="w-8 h-8" style={{ color: cls.color || '#3B82F6' }} strokeWidth={1.5} />
+            style={{ backgroundColor: classTint(cls.color) || 'hsl(var(--primary) / 0.1)' }}>
+            <BookOpen className="w-8 h-8" style={{ color: classColor(cls.color) }} strokeWidth={1.5} />
           </div>
-          <h2 className="font-heading text-xl font-bold mb-1" style={{ color: cls.color || '#3B82F6' }}>{cls.name}</h2>
+          <h2 className="font-heading text-xl font-bold mb-1" style={{ color: classColor(cls.color) }}>{cls.name}</h2>
           {cls.instructor && <p className="text-sm text-muted-foreground">by Prof. {cls.instructor}</p>}
           <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mt-2">Class Handbook</p>
         </div>

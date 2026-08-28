@@ -5,6 +5,13 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieCha
 import { Clock, TrendingUp, Calendar, Brain, BarChart3, Loader2, GraduationCap, Target, BookOpen, Award, Check, X } from 'lucide-react';
 import KnowledgeCoverageSection from '@/components/KnowledgeCoverageSection';
 import { computeClassProficiency, pairCoverageWithLectures, aggregateProficiency } from '@/lib/conceptDecay';
+import { classColor } from '@/lib/color';
+
+// Chart series can't resolve CSS vars in SVG fill attributes, so the brand
+// pair is pinned here: full blue for the primary series, the soft step for
+// the comparison series — one hue at two strengths, not two hues (law 02).
+const BRAND_BLUE = '#2E66FF';
+const BRAND_BLUE_SOFT = '#9DB8FF';
 
 export default function Analytics() {
   const [records, setRecords] = useState([]);
@@ -314,9 +321,9 @@ export default function Analytics() {
                         ? 'text-primary-foreground border-transparent'
                         : 'bg-card text-muted-foreground border-border hover:bg-muted'
                     }`}
-                    style={active ? { backgroundColor: c.color || '#3B82F6' } : undefined}
+                    style={active ? { backgroundColor: classColor(c.color) } : undefined}
                   >
-                    <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: active ? 'rgba(255,255,255,0.9)' : (c.color || '#3B82F6') }} />
+                    <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: active ? 'rgba(255,255,255,0.9)' : classColor(c.color) }} />
                     {c.name}
                   </button>
                 );
@@ -336,9 +343,9 @@ export default function Analytics() {
                   coverage and in-depth come from review sessions, so they read
                   “—” rather than 0% when a class hasn't been reviewed yet. */}
               <div className="grid grid-cols-3 gap-3 mb-4">
-                <ScoreRingCard icon={Target} label="Proficiency" value={avgProficiency} color="#3B82F6" />
-                <ScoreRingCard icon={BookOpen} label="Course Coverage" value={latestCoverage} color="#10B981" />
-                <ScoreRingCard icon={Award} label="In-Depth" value={avgInDepth} color="#F59E0B" />
+                <ScoreRingCard icon={Target} label="Proficiency" value={avgProficiency} color={BRAND_BLUE} />
+                <ScoreRingCard icon={BookOpen} label="Course Coverage" value={latestCoverage} color={BRAND_BLUE} />
+                <ScoreRingCard icon={Award} label="In-Depth" value={avgInDepth} color={BRAND_BLUE} />
               </div>
 
               {/* Knowledge growth chart */}
@@ -355,8 +362,8 @@ export default function Analytics() {
                         formatter={(v, name) => [`${v}%`, name === 'coverage' ? 'Coverage' : 'Proficiency']}
                         labelFormatter={(l) => `Session ${l}`}
                       />
-                      <Bar dataKey="coverage" fill="#10B981" radius={[4, 4, 0, 0]} />
-                      <Bar dataKey="proficiency" fill="#3B82F6" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="coverage" fill={BRAND_BLUE_SOFT} radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="proficiency" fill={BRAND_BLUE} radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>

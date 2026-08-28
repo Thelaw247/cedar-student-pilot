@@ -3,9 +3,9 @@ import { base44 } from '@/api/base44Client';
 import { GraduationCap, ChevronRight } from 'lucide-react';
 
 const ALL_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-const EVENT_COLORS = {
-  custom: '#3B82F6', study: '#8B5CF6', work: '#F59E0B', appointment: '#10B981', reminder: '#EC4899',
-};
+// Personal events no longer get stamped with an invented per-type hue (law
+// 02) — they render neutral everywhere, and types are told apart by icon +
+// label. Events created before this change keep the color they stored.
 
 function getTodayString() {
   const d = new Date();
@@ -53,7 +53,6 @@ export default function AddEventModal({ classes, onAddClass, onClose }) {
     if (!canSave) return;
     setSaving(true);
     try {
-      const color = EVENT_COLORS[form.type] || '#3B82F6';
       if (repeat === 'weekly') {
         await base44.entities.CalendarEvent.create({
           title: form.title,
@@ -61,7 +60,6 @@ export default function AddEventModal({ classes, onAddClass, onClose }) {
           start_time: form.start_time,
           end_time: form.end_time,
           notes: form.notes,
-          color,
           recurrence: 'weekly',
           recurrence_days: form.recurrence_days,
           recurrence_start_date: form.recurrence_start_date,
@@ -75,7 +73,6 @@ export default function AddEventModal({ classes, onAddClass, onClose }) {
           start_time: form.start_time,
           end_time: form.end_time,
           notes: form.notes,
-          color,
           recurrence: 'none',
         });
       }

@@ -9,6 +9,7 @@ import PracticePanel from '@/components/PracticePanel';
 import ReviewFromLectures from '@/components/ReviewFromLectures';
 import DeleteXButton from '@/components/DeleteXButton';
 import { sessionTitle, sessionDescription } from '@/lib/sessionTitle';
+import { classColor } from '@/lib/color';
 
 const priorityColors = {
   high: 'bg-rose-500/10 text-rose-600 border-rose-500/20',
@@ -203,7 +204,7 @@ export default function StudyPlanner() {
                         className="flex items-center gap-3 cursor-pointer"
                         onClick={() => navigate(`/classes/${a.class_id}?tab=assignments&assignmentId=${a.id}`)}
                       >
-                        <div className="w-1 h-10 rounded-full flex-shrink-0" style={{ backgroundColor: cls?.color || '#3B82F6' }}></div>
+                        <div className="w-1 h-10 rounded-full flex-shrink-0" style={{ backgroundColor: classColor(cls?.color) }}></div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <h3 className="text-sm font-medium text-foreground truncate">{a.title}</h3>

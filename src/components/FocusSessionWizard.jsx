@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { X, ChevronLeft, Loader2, RefreshCw, GraduationCap, Brain, BookOpen, ClipboardList, Check, ArrowRight } from 'lucide-react';
 import LecturePickerSheet from '@/components/LecturePickerSheet';
+import { classTint, classColor } from '@/lib/color';
 
 /**
  * FocusSessionWizard
@@ -160,7 +161,7 @@ export default function FocusSessionWizard({ initialClassId = null, initialLectu
                     onClick={() => { setClassId(c.id); setCls(c); setStep('goal'); }}
                     className="w-full flex items-center gap-3 rounded-xl border border-border bg-card p-3 hover:border-primary/40 hover:shadow-sm transition-all text-left">
                     <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
-                      style={{ backgroundColor: (c.color || '#3B82F6') + '20', color: c.color || '#3B82F6' }}>
+                      style={{ backgroundColor: classTint(c.color) || 'hsl(var(--primary) / 0.1)', color: classColor(c.color) }}>
                       <GraduationCap className="w-5 h-5" strokeWidth={1.5} />
                     </div>
                     <span className="text-sm font-medium text-foreground">{c.name}</span>

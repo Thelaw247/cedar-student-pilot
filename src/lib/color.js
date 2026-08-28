@@ -17,3 +17,14 @@ export function classTint(color, percent = 14) {
 export function classColor(color) {
   return color || 'hsl(var(--primary))';
 }
+
+/**
+ * Semantic state colors for the few inline/SVG contexts (charts, styled
+ * bars) where a CSS var can't resolve in an attribute. These are the same
+ * emerald/amber/red the utility classes use — one source, never ad-hoc.
+ */
+export const SEMANTIC = {
+  good: '#10B981',
+  warn: '#F59E0B',
+  bad: '#EF4444',
+};

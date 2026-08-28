@@ -12,6 +12,7 @@ import FocusSessionWizard from '@/components/FocusSessionWizard';
 import HandbookReader from '@/components/HandbookReader';
 import ManualStudyGuide from '@/components/ManualStudyGuide';
 import ProjectSessionEndModal from '@/components/ProjectSessionEndModal';
+import { SEMANTIC } from '@/lib/color';
 
 const STUDY_MODES = {
   deep: { goal: 90, study: 25, break: 5 },
@@ -349,7 +350,7 @@ export default function FocusMode() {
   const intervalTotal = (pomodoroPhase === 'break' ? breakMinutes : studyMinutes) * 60;
   const intervalProgress = intervalTotal > 0 ? 1 - Math.max(0, intervalSecondsLeft) / intervalTotal : 0;
   const ringProgress = mode === 'pomodoro' ? intervalProgress : goalProgress;
-  const ringColor = phase === 'break' ? '#10B981' : phase === 'complete' ? '#F59E0B' : 'hsl(var(--primary))';
+  const ringColor = phase === 'break' ? SEMANTIC.good : phase === 'complete' ? SEMANTIC.warn : 'hsl(var(--primary))';
   const displayTime = mode === 'pomodoro' ? formatTime(intervalSecondsLeft) : formatTime(studySeconds);
 
   const phaseLabels = {

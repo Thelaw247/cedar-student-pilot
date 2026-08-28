@@ -3,6 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { fetchWithCache } from '@/hooks/useEntityData';
 import { GraduationCap, Check, X, Loader2, Clock } from 'lucide-react';
 import { getClassMeetingsForDate } from '@/lib/classSchedule';
+import { classTint, classColor } from '@/lib/color';
 
 function formatDate(dateStr) {
   const d = new Date(dateStr + 'T00:00:00');
@@ -151,7 +152,7 @@ export default function AttendancePrompt() {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 glass p-4">
       <div className="bg-card w-full max-w-sm rounded-2xl border border-border p-6 animate-fade-in text-center">
         <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4"
-          style={{ backgroundColor: (current.classObj.color || '#3B82F6') + '20', color: current.classObj.color || '#3B82F6' }}>
+          style={{ backgroundColor: classTint(current.classObj.color) || 'hsl(var(--primary) / 0.1)', color: classColor(current.classObj.color) }}>
           <GraduationCap className="w-7 h-7" strokeWidth={1.5} />
         </div>
 
