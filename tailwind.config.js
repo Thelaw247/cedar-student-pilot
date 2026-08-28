@@ -5,9 +5,16 @@ module.exports = {
   theme: {
     extend: {
       borderRadius: {
+        // The concentric ladder (DSN-03): mapping the raw Tailwind steps onto
+        // it retokens every existing rounded-* class in one place —
+        // lg 12 / xl 16 / 2xl 20 (card) / 3xl 24 (modal).
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
+        xl: '1rem',
+        '2xl': 'var(--radius-card)',
+        '3xl': 'var(--radius-modal)',
+        chip: 'var(--radius-chip)',
         button: 'var(--radius-button)',
         card: 'var(--radius-card)',
         input: 'var(--radius-input)',
@@ -19,6 +26,9 @@ module.exports = {
         '1': 'var(--shadow-1)',
         '2': 'var(--shadow-2)',
         '3': 'var(--shadow-3)'
+      },
+      transitionTimingFunction: {
+        standard: 'var(--ease-standard)'
       },
       transitionDuration: {
         micro: 'var(--duration-micro)',

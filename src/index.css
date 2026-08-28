@@ -26,24 +26,33 @@
     --ring: 224 100% 59%;
 
     /* Design system — semantic radii */
+    /* One concentric ladder — 24 modal / 20 card / 16 mid / 12 button /
+       8 chip. A nested element takes outer radius minus padding, never the
+       same radius as its container (DSN-03 §3). */
     --radius: 0.75rem;
     --radius-button: 0.75rem;
-    --radius-card: 1.125rem;
+    --radius-card: 1.25rem;
     --radius-input: 0.875rem;
     --radius-modal: 1.5rem;
     --radius-notification: 1rem;
+    --radius-chip: 0.5rem;
 
     /* Design system — shadow levels */
+    /* Layered, brand-navy-tinted shadows (DSN-03). A single gray drop shadow
+       reads default; tinting toward the brand's navy and layering two-three
+       plausible light sources is what reads crafted. */
     --shadow-0: none;
-    --shadow-1: 0 1px 3px 0 rgb(0 0 0 / 0.04), 0 1px 2px -1px rgb(0 0 0 / 0.04);
-    --shadow-2: 0 4px 12px -2px rgb(0 0 0 / 0.08), 0 2px 6px -2px rgb(0 0 0 / 0.05);
-    --shadow-3: 0 20px 48px -12px rgb(0 0 0 / 0.18), 0 8px 16px -8px rgb(0 0 0 / 0.08);
+    --shadow-1: 0 1px 2px rgb(30 41 80 / 0.05), 0 1px 3px rgb(30 41 80 / 0.04);
+    --shadow-2: 0 1px 2px rgb(30 41 80 / 0.05), 0 4px 12px rgb(30 41 80 / 0.06);
+    --shadow-3: 0 1px 2px rgb(30 41 80 / 0.05), 0 8px 24px rgb(30 41 80 / 0.07), 0 24px 48px -12px rgb(30 41 80 / 0.12);
 
     /* Design system — motion durations */
     --duration-micro: 150ms;
     --duration-standard: 250ms;
     --duration-modal: 300ms;
     --duration-page: 400ms;
+    /* Apple-derived spring-feel curve; entries ease out, exits ease in. */
+    --ease-standard: cubic-bezier(0.32, 0.72, 0, 1);
 
     --font-heading: 'Inter', ui-sans-serif, system-ui, sans-serif;
     --font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
@@ -52,24 +61,27 @@
   }
 
   .dark {
-    --background: 0 0% 0%;
-    --foreground: 0 0% 95%;
-    --card: 0 0% 7%;
-    --card-foreground: 0 0% 95%;
-    --popover: 0 0% 7%;
-    --popover-foreground: 0 0% 95%;
+    /* Premium dark is layered dark-gray with a blue bias, never pure black;
+       elevation is expressed through lighter surfaces, not heavier shadows
+       (DSN-03 §3). */
+    --background: 220 16% 7%;
+    --foreground: 216 25% 95%;
+    --card: 219 15% 11%;
+    --card-foreground: 216 25% 95%;
+    --popover: 219 15% 11%;
+    --popover-foreground: 216 25% 95%;
     --primary: 224 100% 65%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 0 0% 10%;
-    --secondary-foreground: 0 0% 95%;
-    --muted: 0 0% 10%;
-    --muted-foreground: 0 0% 64%;
-    --accent: 0 0% 12%;
-    --accent-foreground: 0 0% 95%;
-    --destructive: 0 62% 35%;
+    --secondary: 219 14% 14%;
+    --secondary-foreground: 216 25% 95%;
+    --muted: 219 14% 14%;
+    --muted-foreground: 218 11% 66%;
+    --accent: 219 14% 16%;
+    --accent-foreground: 216 25% 95%;
+    --destructive: 0 62% 45%;
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 15%;
-    --input: 0 0% 15%;
+    --border: 218 13% 17%;
+    --input: 218 13% 17%;
     --ring: 224 100% 65%;
 
     --shadow-0: none;
@@ -108,7 +120,30 @@
     scrollbar-width: none;
   }
   .scrollbar-hide::-webkit-scrollbar { display: none; }
-  .glass { backdrop-filter: blur(12px); }
+  /* Glass is reserved for the chrome layer — header, tab bar, sheets —
+     never content cards, never stacked (DSN-03 §3). .glass keeps its
+     historical role (dimmed modal backdrops); .glass-chrome is the
+     navigation-surface treatment with an opaque fallback. */
+  .glass { backdrop-filter: blur(14px) saturate(160%); -webkit-backdrop-filter: blur(14px) saturate(160%); }
+  .glass-chrome {
+    background-color: hsl(var(--card));
+    border-color: hsl(var(--border) / 0.7);
+  }
+  @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+    .glass-chrome {
+      background-color: hsl(var(--card) / 0.72);
+      backdrop-filter: blur(14px) saturate(160%);
+      -webkit-backdrop-filter: blur(14px) saturate(160%);
+    }
+  }
+  @media (prefers-reduced-transparency: reduce) {
+    .glass-chrome {
+      background-color: hsl(var(--card));
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+    }
+  }
+  .ease-standard { transition-timing-function: var(--ease-standard); }
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
       animation-duration: 0.01ms !important;
