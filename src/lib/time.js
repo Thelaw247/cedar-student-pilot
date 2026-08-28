@@ -43,3 +43,15 @@ export function formatClock(totalSeconds) {
 export function todayString(d = new Date()) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
+
+/** ['2026-08-24', ..., '2026-08-30'] -> "Aug 24 – 30" (or "Aug 31 – Sep 6"). */
+export function formatWeekRange(dates) {
+  if (!dates?.length) return '';
+  const a = new Date(`${dates[0]}T00:00:00`);
+  const b = new Date(`${dates[dates.length - 1]}T00:00:00`);
+  const mA = a.toLocaleDateString('en-US', { month: 'short' });
+  const mB = b.toLocaleDateString('en-US', { month: 'short' });
+  return mA === mB
+    ? `${mA} ${a.getDate()} – ${b.getDate()}`
+    : `${mA} ${a.getDate()} – ${mB} ${b.getDate()}`;
+}

@@ -19,6 +19,8 @@ import AttendancePrompt from '@/components/AttendancePrompt';
 import WeeklyCalendar from '@/components/WeeklyCalendar';
 import AddEventModal from '@/components/AddEventModal';
 import { classesOnDate } from '@/lib/classSchedule';
+import { weekDates } from '@/lib/eventSchedule';
+import { formatWeekRange } from '@/lib/time';
 import { eventsOnDate } from '@/lib/eventSchedule';
 import { sessionTitle, sessionDescription } from '@/lib/sessionTitle';
 
@@ -275,8 +277,9 @@ export default function Home() {
                 <ChevronLeft className="w-4 h-4" />
               </button>
               <button onClick={() => setWeekOffset(0)}
-                className={`px-3 h-8 rounded-lg text-xs font-medium transition-colors ${weekOffset === 0 ? 'text-muted-foreground' : 'text-primary hover:bg-primary/10'}`}>
-                {weekOffset === 0 ? 'This week' : 'Today'}
+                title={weekOffset === 0 ? 'This week' : 'Back to this week'}
+                className={`px-3 h-8 rounded-lg text-xs font-medium tabular-nums transition-colors ${weekOffset === 0 ? 'text-muted-foreground' : 'text-primary hover:bg-primary/10'}`}>
+                {formatWeekRange(weekDates(new Date(), weekOffset))}
               </button>
               <button onClick={() => setWeekOffset(w => w + 1)}
                 className="w-8 h-8 rounded-lg border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">

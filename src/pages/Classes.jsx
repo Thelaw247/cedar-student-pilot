@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { Plus, Search, GraduationCap, Pencil, CalendarDays } from 'lucide-react';
+import { Plus, Search, GraduationCap, Pencil, CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react';
+import Segmented from '@/components/ui/Segmented';
+import { weekDates } from '@/lib/eventSchedule';
+import { formatWeekRange } from '@/lib/time';
 import Widget from '@/components/ui/Widget';
 import IconChip from '@/components/ui/IconChip';
 import LectureSearch from '@/components/LectureSearch';
@@ -37,6 +40,11 @@ export default function Classes() {
   const [activeSemester, setActiveSemester] = useState(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const { toast, showUndo, handleUndo, dismiss } = useUndo();
+  // Schedule widget view: 'pattern' overlays every week's recurring shape
+  // (the compressed classic); 'week' browses one real week at a time, with
+  // per-date rules applied and the dates in the header.
+  const [schedView, setSchedView] = useState('pattern');
+  const [schedWeek, setSchedWeek] = useState(0);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -131,7 +139,34 @@ export default function Classes() {
           className="mb-6"
           padded
         >
-          <WeeklyCalendar classes={classes} onEditClass={(c) => setEditClass(c)} />
+          <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
+            <Segmented
+              value={schedView}
+              onChange={(v) => { setSchedView(v); setSchedWeek(0); }}
+              options={[{ value: 'pattern', label: 'Semester pattern' }, { value: 'week', label: 'By week' }]}
+            />
+            {schedView === 'week' && (
+              <div className="flex items-center gap-1">
+                <button onClick={() => setSchedWeek(w => w - 1)} aria-label="Previous week"
+                  className="w-7 h-7 rounded-lg border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+                  <ChevronLeft className="w-3.5 h-3.5" />
+                </button>
+                <button onClick={() => setSchedWeek(0)}
+                  className={`px-2 h-7 rounded-lg text-xs font-medium tabular-nums transition-colors ${schedWeek === 0 ? 'text-foreground' : 'text-primary hover:bg-primary/10'}`}>
+                  {formatWeekRange(weekDates(new Date(), schedWeek))}
+                </button>
+                <button onClick={() => setSchedWeek(w => w + 1)} aria-label="Next week"
+                  className="w-7 h-7 rounded-lg border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+          </div>
+          {schedView === 'pattern' ? (
+            <WeeklyCalendar classes={classes} onEditClass={(c) => setEditClass(c)} />
+          ) : (
+            <WeeklyCalendar classes={classes} dateAware weekOffset={schedWeek} onEditClass={(c) => setEditClass(c)} />
+          )}
         </Widget>
       )}
 
