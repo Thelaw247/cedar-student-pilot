@@ -140,8 +140,8 @@ export default function Timeline({ items, onAddEvent }) {
 
       {/* Now bubble — the current time in the gutter, riding the line */}
       {showNow && (
-        <div className="absolute left-0 w-14 flex justify-end pr-1 pointer-events-none" style={{ top: nowTop - 9, zIndex: 30 }}>
-          <span className="rounded-full bg-destructive text-destructive-foreground text-[10px] font-semibold tabular-nums px-1.5 py-0.5 leading-none flex items-center">
+        <div className="absolute left-0 w-14 flex justify-center pointer-events-none" style={{ top: nowTop - 8, zIndex: 30 }}>
+          <span className="rounded-full bg-destructive text-destructive-foreground text-[10px] font-semibold tabular-nums px-1.5 py-0.5 leading-none whitespace-nowrap">
             {formatTime(`${now.getHours()}:${now.getMinutes()}`)}
           </span>
         </div>

@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { ChevronLeft, Loader2, Check, X, ListChecks, ArrowRight, RotateCcw } from 'lucide-react';
+import { ChevronLeft, Loader2, Check, X, ListChecks, ArrowRight, RotateCcw, Lock } from 'lucide-react';
+import { useUpgrade } from '@/components/monetization/UpgradeContext';
+import { featureMinTierName } from '@/lib/tiers';
 
 export default function LectureReview() {
+  const { openUpgrade } = useUpgrade();
   const params = useParams();
   const [searchParams] = useSearchParams();
   const scope = params.scope || 'today';
@@ -64,7 +67,13 @@ export default function LectureReview() {
         const res = await base44.functions.invoke('generateLectureReview', payload);
         setData(res.data);
       } catch (e) {
-        setData({ error: 'Failed to generate review.' });
+        // A 402 isn't a failure — it's the tier gate. Show the lock, never
+        // a dead-end error (law: the paywall is never an error message).
+        if (e?.response?.status === 402) {
+          setData({ locked: true, message: e?.response?.data?.message });
+        } else {
+          setData({ error: e?.response?.data?.error === 'insufficient_credits' ? (e?.response?.data?.message || 'Not enough credits for this review.') : 'Could not generate the review. Check your connection and try again.' });
+        }
       }
       setLoading(false);
     };
@@ -76,6 +85,28 @@ export default function LectureReview() {
       <div className="max-w-2xl mx-auto px-4 py-10 text-center">
         <Loader2 className="w-8 h-8 text-primary mx-auto animate-spin mb-4" />
         <p className="text-sm text-muted-foreground">Generating review questions following your professor's teaching flow...</p>
+      </div>
+    );
+  }
+
+  if (data?.locked) {
+    return (
+      <div className="max-w-md mx-auto px-4 py-14 text-center animate-fade-in">
+        <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-4">
+          <Lock className="w-6 h-6 text-muted-foreground" />
+        </div>
+        <h1 className="font-heading text-xl font-bold text-foreground mb-2">AI lecture reviews</h1>
+        <p className="text-sm text-muted-foreground mb-1">
+          Question-by-question reviews built from your own lectures, in your professor&rsquo;s teaching order.
+        </p>
+        <p className="text-xs text-muted-foreground mb-6">
+          Unlocks with the {featureMinTierName('lecture_review')} plan. {data.message || ''}
+        </p>
+        <button type="button" onClick={() => openUpgrade({ source: 'feature-lock', feature: 'lecture_review' })}
+          className="w-full py-3 rounded-button bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors duration-micro">
+          See plans
+        </button>
+        <Link to="/planner" className="text-sm text-muted-foreground hover:text-foreground mt-3 inline-block">Back to Study</Link>
       </div>
     );
   }

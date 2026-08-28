@@ -6,6 +6,8 @@ import { Clock, MapPin, GraduationCap, Headphones, ListChecks, BookOpen, Calenda
 import { classTint, classColor } from '@/lib/color';
 import { formatTime, todayString } from '@/lib/time';
 import QuickRecordCard from '@/components/QuickRecordCard';
+import { useFeatureGate } from '@/components/monetization/useFeatureGate';
+import { Lock } from 'lucide-react';
 
 /**
  * Extra-wide-desktop only (xl: ~1280px+). Below that, this column doesn't
@@ -25,13 +27,15 @@ import QuickRecordCard from '@/components/QuickRecordCard';
 
 const QUICK_ACTIONS = [
   { to: '/focus', icon: Headphones, label: 'Focus session' },
-  { to: '/lecture-review/today', icon: ListChecks, label: "Review today" },
+  { to: '/lecture-review/today', icon: ListChecks, label: 'Review today', feature: 'lecture_review' },
   { to: '/planner', icon: BookOpen, label: 'Study planner' },
   { to: '/classes?add=1', icon: CalendarPlus, label: 'Add a class' },
 ];
 
 export default function DesktopRail() {
   const { loaded, remaining, current } = useTodaySchedule();
+  // The one gated shortcut shows its lock up front instead of dead-ending.
+  const reviewGate = useFeatureGate('lecture_review');
   const [assignments, setAssignments] = useState([]);
   const [lectures, setLectures] = useState([]);
   const [classes, setClasses] = useState([]);
@@ -196,16 +200,36 @@ export default function DesktopRail() {
           Quick actions
         </p>
         <div className="grid grid-cols-2 gap-1.5">
-          {QUICK_ACTIONS.map((q) => (
-            <Link
-              key={q.to}
-              to={q.to}
-              className="flex flex-col items-start gap-1.5 rounded-xl border border-border bg-card p-2.5 hover:border-primary/40 hover:bg-primary/[0.03] transition-colors duration-micro"
-            >
-              <q.icon className="w-4 h-4 text-primary" strokeWidth={1.75} />
-              <span className="text-[11px] font-medium text-foreground leading-tight">{q.label}</span>
-            </Link>
-          ))}
+          {QUICK_ACTIONS.map((q) => {
+            const locked = q.feature === 'lecture_review' && !reviewGate.allowed;
+            if (locked) {
+              return (
+                <button
+                  key={q.to}
+                  type="button"
+                  onClick={reviewGate.lock}
+                  title={`Unlocks with ${reviewGate.requiredTierName}`}
+                  className="flex flex-col items-start gap-1.5 rounded-xl border border-border bg-muted/40 p-2.5 text-left hover:bg-muted transition-colors duration-micro"
+                >
+                  <span className="flex items-center gap-1">
+                    <q.icon className="w-4 h-4 text-muted-foreground" strokeWidth={1.75} />
+                    <Lock className="w-3 h-3 text-muted-foreground" />
+                  </span>
+                  <span className="text-[11px] font-medium text-muted-foreground leading-tight">{q.label}</span>
+                </button>
+              );
+            }
+            return (
+              <Link
+                key={q.to}
+                to={q.to}
+                className="flex flex-col items-start gap-1.5 rounded-xl border border-border bg-card p-2.5 hover:border-primary/40 hover:bg-primary/[0.03] transition-colors duration-micro"
+              >
+                <q.icon className="w-4 h-4 text-primary" strokeWidth={1.75} />
+                <span className="text-[11px] font-medium text-foreground leading-tight">{q.label}</span>
+              </Link>
+            );
+          })}
         </div>
       </div>
     </aside>
