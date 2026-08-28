@@ -130,3 +130,18 @@ Still open from the Design Blueprint ledger (deliberately deferred):
 - FocusMode component split (tokens fixed; the 700-line file stands).
 - Timeline auto-scroll-to-now (skipped: it would yank the page past the
   hero widgets on load; revisit if the day view becomes its own screen).
+
+## Quick-access recording (Aug 2026 follow-up)
+
+`src/recording/useQuickRecord.js` defines the one-tap rule shared by every
+mic in the chrome: consent on file → the session starts immediately and the
+island appears; no consent (or mic refused) → the class page's RecordModal
+opens with its consent gate. The legal flow is never skipped, only the
+redundant tap after it.
+
+Surfaces: `QuickRecordCard` docked at the top of the DesktopRail (xl+ — a
+real layout column beside the calendar, so it can never overlap content),
+showing the in-progress class (live dot) or the next one (countdown) with a
+single round mic button; ClassStatusBar (mobile sticky header + Sidebar)
+uses the same hook, and hides its Record button while a session is live —
+the island is the one control surface for a running recording.

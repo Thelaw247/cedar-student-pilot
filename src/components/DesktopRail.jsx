@@ -4,6 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { useTodaySchedule } from '@/hooks/useTodaySchedule';
 import { Zap, Clock, MapPin, GraduationCap } from 'lucide-react';
 import { classTint, classColor } from '@/lib/color';
+import QuickRecordCard from '@/components/QuickRecordCard';
 
 function formatTime(t) {
   if (!t) return '';
@@ -44,6 +45,11 @@ export default function DesktopRail() {
 
   return (
     <aside className="hidden xl:flex w-72 flex-shrink-0 flex-col gap-4 border-l border-border px-4 py-5 h-screen sticky top-0 overflow-y-auto">
+      {/* One-tap recording for the class you're in / the next one — docked
+          here because the rail is a real layout column beside the calendar,
+          so it can never overlap content. */}
+      <QuickRecordCard />
+
       {/* Rest of today */}
       <div>
         <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">

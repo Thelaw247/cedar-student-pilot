@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTodaySchedule } from '@/hooks/useTodaySchedule';
+import { useQuickRecord } from '@/recording/useQuickRecord';
 import { Mic, ChevronDown, GraduationCap, Check } from 'lucide-react';
 
 /**
@@ -23,6 +24,7 @@ import { Mic, ChevronDown, GraduationCap, Check } from 'lucide-react';
 export default function ClassStatusBar({ variant = 'mobile' }) {
   const navigate = useNavigate();
   const { loaded, todayClasses, current, next } = useTodaySchedule();
+  const { startForClass, startingId, recordingActive } = useQuickRecord();
   const [pickerOpen, setPickerOpen] = useState(false);
   const pickerRef = useRef(null);
 
@@ -40,9 +42,12 @@ export default function ClassStatusBar({ variant = 'mobile' }) {
   // hook — this just derives the "other classes" list for the picker.
   const otherToday = todayClasses.filter((c) => c.id !== current?.id);
 
-  const startRecording = (classId) => {
+  // One-tap start (useQuickRecord): consent on file -> the session starts
+  // right here and the island appears; otherwise the class page's consent
+  // gate opens exactly as before.
+  const startRecording = (cls) => {
     setPickerOpen(false);
-    navigate(`/classes/${classId}?record=1`);
+    startForClass(cls);
   };
 
   // Nothing to show: onboarding, no active semester, or a day with no classes
@@ -63,12 +68,13 @@ export default function ClassStatusBar({ variant = 'mobile' }) {
             </p>
             {current && <p className="text-[10px] text-muted-foreground">In progress · {current.room || 'recording available'}</p>}
           </div>
-          {current && (
+          {current && !recordingActive && (
             <button
-              onClick={() => startRecording(current.id)}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors flex-shrink-0"
+              onClick={() => startRecording(current)}
+              disabled={startingId === current.id}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors flex-shrink-0 disabled:opacity-60"
             >
-              <Mic className="w-3.5 h-3.5" /> Record
+              <Mic className="w-3.5 h-3.5" /> {startingId === current.id ? 'Starting…' : 'Record'}
             </button>
           )}
           <div className="relative flex-shrink-0" ref={pickerRef}>
@@ -90,7 +96,7 @@ export default function ClassStatusBar({ variant = 'mobile' }) {
                   (current ? otherToday : todayClasses).map((c) => (
                     <button
                       key={c.id}
-                      onClick={() => startRecording(c.id)}
+                      onClick={() => startRecording(c)}
                       className="w-full flex items-center gap-2 px-3 py-2 text-xs text-left hover:bg-muted transition-colors"
                     >
                       <GraduationCap className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
