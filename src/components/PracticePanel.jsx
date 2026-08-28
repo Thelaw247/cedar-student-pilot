@@ -5,6 +5,8 @@ import { Loader2, Sparkles, Layers, FileQuestion, ClipboardList, FileText } from
 import FlashcardViewer from '@/components/FlashcardViewer';
 import QuizViewer from '@/components/QuizViewer';
 import LectureScopePicker, { resolveScopeIds } from '@/components/LectureScopePicker';
+import { useFeatureGate } from '@/components/monetization/useFeatureGate';
+import { Lock } from 'lucide-react';
 
 const materialTypes = [
   { id: 'flashcards', label: 'Flashcards', icon: Layers, description: 'Flip cards with key terms and definitions' },
@@ -23,6 +25,7 @@ const materialTypes = [
  *   initialClassId — preselect a class (optional)
  */
 export default function PracticePanel({ initialClassId = '', initialLectureIds = null }) {
+  const { allowed: practiceAllowed, requiredTierName: practiceTierName, lock: practiceLock } = useFeatureGate('study_material');
   const navigate = useNavigate();
   const [classes, setClasses] = useState([]);
   const [selectedClass, setSelectedClass] = useState(initialClassId || '');
@@ -138,11 +141,18 @@ export default function PracticePanel({ initialClassId = '', initialLectureIds =
         })}
       </div>
 
-      {/* Generate button */}
+      {/* Generate button — grey lock below Student (server re-enforces) */}
+      {!practiceAllowed ? (
+        <button onClick={practiceLock}
+          className="w-full py-3 rounded-xl bg-muted text-muted-foreground text-sm font-medium hover:text-foreground transition-colors flex items-center justify-center gap-2 mb-6">
+          <Lock className="w-4 h-4" /> Upgrade to use — practice generation ships with {practiceTierName}
+        </button>
+      ) : (
       <button onClick={generate} disabled={generating || !selectedClass}
         className="w-full py-3 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-2 mb-6">
         {generating ? <><Loader2 className="w-4 h-4 animate-spin" /> Generating from {lectures.length} lectures...</> : <><Sparkles className="w-4 h-4" /> Generate {materialTypes.find(t => t.id === selectedType)?.label}</>}
       </button>
+      )}
 
       {/* Generated result */}
       {result && !result.error && (

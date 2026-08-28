@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Loader2, X, FileText, BookOpen, ChevronLeft } from 'lucide-react';
 import { getSetting } from '@/lib/settings';
+import { useFeatureGate } from '@/components/monetization/useFeatureGate';
 
 export default function AddExamOrStudyModal({ classes, onClose }) {
   const [mode, setMode] = useState(null);
@@ -48,6 +49,9 @@ export default function AddExamOrStudyModal({ classes, onClose }) {
 function ExamForm({ classes, onBack, onClose }) {
   const [form, setForm] = useState({ title: '', due_date: '', type: 'exam', class_id: '', coverage_scope: 'cumulative' });
   const [saving, setSaving] = useState(false);
+  // The deadline itself is free for everyone; the auto-generated AI study
+  // plan around it ships with Scholar (server re-enforces).
+  const scheduleGate = useFeatureGate('study_schedule');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -55,7 +59,7 @@ function ExamForm({ classes, onBack, onClose }) {
     setSaving(true);
     try {
       const assignment = await base44.entities.Assignment.create({ ...form });
-      if (getSetting('autoGenerateSchedules')) {
+      if (scheduleGate.allowed && getSetting('autoGenerateSchedules')) {
         await base44.functions.invoke('generateStudySchedule', { assignment_id: assignment.id });
       }
       onClose();

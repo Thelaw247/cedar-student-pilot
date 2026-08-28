@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { X, Check, Loader2 } from 'lucide-react';
-import { TIERS, TIER_ORDER, CREDIT_COSTS, CREDITS_PER_LECTURE } from '@/lib/tiers';
+import { TIERS, TIER_ORDER, CREDIT_COSTS, CREDITS_PER_LECTURE, FEATURES, featureMinTierName } from '@/lib/tiers';
 import { startCheckout } from '@/lib/checkout';
 import { useBalance } from '@/hooks/useBalance';
 
@@ -29,8 +29,8 @@ const ENTRY_COPY = {
 const GOAL_SOURCES = {
   'fast-prof': { title: 'Never miss a word again', sub: 'Student covers about 20 recorded, transcribed lectures a month.' },
   notes: { title: 'Just listen. Cedar takes the notes.', sub: 'Every plan turns lectures into transcripts, summaries and flashcards.' },
-  exams: { title: 'Walk into every exam covered', sub: 'Flashcards, exam-mention tracking and topic prediction on every plan.' },
-  organized: { title: 'Your semester, already structured', sub: 'AI study schedules and a planner that rebooks itself.' },
+  exams: { title: 'Walk into every exam covered', sub: 'AI reviews and practice ship with Student; exam topic prediction with Scholar.' },
+  organized: { title: 'Your semester, already structured', sub: 'Smart rebooking ships with Student; AI study schedules with Scholar.' },
 };
 
 function storedGoalCopy() {
@@ -43,8 +43,17 @@ function storedGoalCopy() {
 
 const PAYWALL_TIERS = ['student', 'scholar', 'unlimited'];
 
-export default function UpgradeSheet({ source = 'generic', onClose }) {
-  const copy = (source === 'generic' && storedGoalCopy()) || ENTRY_COPY[source] || ENTRY_COPY.generic;
+export default function UpgradeSheet({ source = 'generic', feature = null, onClose }) {
+  // A locked feature opens the sheet speaking about ITSELF: the feature's
+  // name as the headline, and the tier that unlocks it highlighted below.
+  const lockInfo = source === 'feature-lock' && feature && FEATURES[feature] ? FEATURES[feature] : null;
+  const copy = lockInfo
+    ? {
+        title: lockInfo.label,
+        sub: `Unlocks with the ${featureMinTierName(feature)} plan${lockInfo.minTier === 'scholar' ? ' — the everything-unlocked tier' : ''}. Recording, summaries and flashcards stay free forever.`,
+      }
+    : (source === 'generic' && storedGoalCopy()) || ENTRY_COPY[source] || ENTRY_COPY.generic;
+  const highlightTier = lockInfo && lockInfo.minTier !== 'free' ? lockInfo.minTier : 'scholar';
   const { tier: currentTier } = useBalance();
   const [period, setPeriod] = useState('semester');
   const [busy, setBusy] = useState(null);
@@ -117,7 +126,7 @@ export default function UpgradeSheet({ source = 'generic', onClose }) {
             <div className="space-y-2.5 mb-4">
               {options.map((id) => {
                 const t = TIERS[id];
-                const isPopular = id === 'scholar';
+                const isPopular = id === highlightTier;
                 const perMonth = period === 'semester' ? t.semester / 4 : t.monthly;
                 return (
                   <div
@@ -128,7 +137,7 @@ export default function UpgradeSheet({ source = 'generic', onClose }) {
                   >
                     {isPopular && (
                       <span className="absolute -top-2.5 left-4 px-2 py-0.5 rounded-full bg-primary text-primary-foreground text-[10px] font-semibold uppercase tracking-wide">
-                        Most popular
+                        {lockInfo ? 'Unlocks this' : 'Most popular'}
                       </span>
                     )}
                     <div className="flex items-baseline justify-between gap-2">

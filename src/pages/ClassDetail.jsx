@@ -14,6 +14,7 @@ import Segmented from '@/components/ui/Segmented';
 import { classTint, classColor } from '@/lib/color';
 import { useBalance } from '@/hooks/useBalance';
 import LockedFeature from '@/components/monetization/LockedFeature';
+import { hasFeature } from '@/lib/tiers';
 
 export default function ClassDetail() {
   const { classId } = useParams();
@@ -770,10 +771,10 @@ function HandbookTab({ cls, lectures }) {
 
   const lecturesWithContent = lectures.filter(l => l.ai_summary || l.transcript || (l.ai_concepts && l.ai_concepts.length > 0));
 
-  // Handbooks ship with Student and up (tiers.js free.excludes; enforced
-  // server-side in gateFeature). Free users see the tease built from their
-  // OWN chapter list — their value sells the upgrade, not a stock promo.
-  if (tier === 'free') {
+  // Handbooks ship with Scholar — the everything-unlocked tier (FEATURES in
+  // tiers.js; enforced server-side in gateFeature). Locked-out users see the
+  // tease built from their OWN chapter list — their value sells the upgrade.
+  if (!hasFeature(tier, 'handbook')) {
     const teaseChapters = lecturesWithContent.length > 0
       ? lecturesWithContent.slice(0, 4).map((lec, i) => ({ n: i + 1, title: lec.ai_title || `Lecture — ${lec.date}` }))
       : [
@@ -786,7 +787,7 @@ function HandbookTab({ cls, lectures }) {
         title={`The ${cls.name} handbook`}
         description="Cedar writes a living handbook for this class from your own lectures — every chapter in your professor's words, updated as you record."
         source="handbook"
-        requiredTierName="Student"
+        requiredTierName="Scholar"
         ctaLabel="See plans"
       >
         <div className="p-5">

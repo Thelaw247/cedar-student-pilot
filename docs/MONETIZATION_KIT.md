@@ -48,3 +48,48 @@ explicit `?returnTo=` exists; Login never does). Three steps, all skippable:
 
 `cedar-onboarded` marks completion; the flow is only auto-entered from
 signup, so revisits are possible but never forced.
+
+## Tier-ranked feature gating (Aug 28, 2026 rework)
+
+The free-vs-paid gate became a ladder. One matrix, two copies:
+`FEATURE_MIN_TIER` in server/lib/credits.js ENFORCES (gateFeature 402s with
+`required_tier`; cleanLectureTranscript carries its own check); `FEATURES`
+in src/lib/tiers.js renders locks (hasFeature / featureMinTierName /
+useFeatureGate).
+
+The ladder (research: gate added value, never the hook):
+- FREE — the hook, never gated: recording, transcription, summaries,
+  concepts, flashcards, timetable import, planner/calendar/focus/analytics.
+  2 full lectures (20 lifetime credits).
+- STUDENT — the everyday study kit: lecture reviews & quick quizzes,
+  practice generation, session reviews, missed-lecture catch-up, smart
+  rebooking, project roadmaps, transcript cleanup.
+- SCHOLAR — everything unlocked: + handbooks, exam topic prediction, AI
+  study schedules. The recommended tier everywhere.
+- UNLIMITED — Scholar with volume.
+
+Lock chrome: useFeatureGate(feature) → grey button + Lock icon + "Upgrade
+to use"; tap opens the UpgradeSheet with source 'feature-lock', the
+feature's own name as the headline, and the unlocking tier highlighted
+("Unlocks this"). Surfaces with explicit locks: ExamPredictionCard,
+Handbook tab (Scholar tease), PracticePanel, ReviewFromLectures, Quick
+Quiz + transcript cleanup on LectureDetail, AddExamOrStudyModal (deadline
+stays free, the AI plan is Scholar). Every other gated route falls back to
+the server's 402.
+
+## Onboarding v2 — questionnaire → paywall → soft exit
+
+Five steps: three micro-decision questions (struggle/persona, study style,
+course load — Duolingo pattern: self-identification before pricing), the
+promise step answering their own words, then ONE paywall: honest free
+framing ("2 full lectures"), the locked-features list with tiers named,
+all rates with billed totals, Scholar "Recommended · Everything unlocked",
+Unlimited as a compact row. The exit is a quiet X → a single
+recommendation screen ("start with at least Scholar") with a real
+"Continue with Free" button. One interstitial, never a loop; no invented
+urgency or testimonials; free path always works. Answers persist in
+localStorage (cedar-goal, cedar-studystyle, cedar-courseload) and
+personalize the UpgradeSheet's copy later.
+
+Grandfathering note: the Student->Scholar re-split shipped pre-launch with
+zero real subscribers, so no existing customer lost access.

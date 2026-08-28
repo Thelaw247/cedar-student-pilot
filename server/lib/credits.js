@@ -181,20 +181,53 @@ export async function logUsage(event) {
  * match the promise — a free account with starter credits left could
  * otherwise buy through a gate the pricing page says is closed.
  */
-const PAID_ONLY_FEATURES = new Set(['handbook', 'exam_prediction', 'study_schedule']);
+/**
+ * Feature -> minimum tier (MON-04 rework, Aug 2026). The hook — recording,
+ * transcription, summaries, flashcards, timetable import — is never gated.
+ * Student buys the everyday study tools; Scholar unlocks everything;
+ * Unlimited is Scholar with volume. Mirrored for display in
+ * src/lib/tiers.js FEATURES; THIS copy enforces.
+ */
+const TIER_RANK = { free: 0, student: 1, scholar: 2, unlimited: 3 };
+export const FEATURE_MIN_TIER = {
+  lecture_review: 'student',
+  study_material: 'student',
+  session_review: 'student',
+  missed_summary: 'student',
+  smart_rebook: 'student',
+  project_roadmap: 'student',
+  clean_transcript: 'student',
+  handbook: 'scholar',
+  exam_prediction: 'scholar',
+  study_schedule: 'scholar',
+};
+
+export function tierAllows(tier, feature) {
+  const min = FEATURE_MIN_TIER[feature];
+  if (!min) return true;
+  return (TIER_RANK[tier] ?? 0) >= TIER_RANK[min];
+}
+
+const TIER_GATE_MESSAGE = {
+  student: 'This ships with the Student plan and up. Your credits still cover recording and reviewing lectures.',
+  scholar: 'This ships with Scholar — the everything-unlocked plan. Recording, summaries and flashcards keep working on your current plan.',
+};
 
 export async function gateFeature(userId, feature, res, extra = {}) {
   const cost = FEATURE_COSTS[feature] ?? 0;
   const balance = await getBalance(userId);
 
-  if (PAID_ONLY_FEATURES.has(feature) && (balance.tier || 'free') === 'free') {
-    await logUsage({ user_id: userId, feature, tier_at_time: 'free', success: false, ...extra });
+  const userTier = balance.tier || 'free';
+  if (!tierAllows(userTier, feature)) {
+    const requiredTier = FEATURE_MIN_TIER[feature];
+    await logUsage({ user_id: userId, feature, tier_at_time: userTier, success: false, ...extra });
     res.status(402).json({
       error: 'upgrade_required',
       feature,
-      tier: 'free',
+      tier: userTier,
+      required_tier: requiredTier,
       options: ['upgrade'],
-      message: 'This ships with the Student plan and up. Your starter credits still cover recording and reviewing lectures.',
+      message: TIER_GATE_MESSAGE[requiredTier] || TIER_GATE_MESSAGE.student,
     });
     return { ok: false };
   }

@@ -2,7 +2,7 @@ import express from 'express';
 import { pool } from '../lib/db.js';
 import { requireAuth } from '../middleware/requireAuth.js';
 import { invokeLLM, createLlmUsage } from '../lib/llm.js';
-import { getBalance, availableCredits, insufficientResponse, spendCredits, logUsage, durationCost, COST_PER_30MIN_CLEAN, base44CostCad } from '../lib/credits.js';
+import { getBalance, availableCredits, insufficientResponse, spendCredits, logUsage, durationCost, COST_PER_30MIN_CLEAN, base44CostCad, tierAllows } from '../lib/credits.js';
 
 // Direct port of base44/functions/cleanLectureTranscript/entry.ts. See that
 // file's preserved header comment for why this is on-demand rather than
@@ -65,6 +65,20 @@ router.post('/', requireAuth, async (req, res) => {
     const balance = await getBalance(userId);
     const audioSeconds = lecture.duration_seconds || 0;
     const cost = durationCost(audioSeconds, COST_PER_30MIN_CLEAN);
+
+    // Tier gate (this route predates gateFeature's, so it carries its own):
+    // cleanup is part of the Student everyday kit.
+    if (!tierAllows(balance.tier || 'free', 'clean_transcript')) {
+      await logUsage({ user_id: userId, feature: 'clean_transcript', lecture_id, tier_at_time: balance.tier, success: false, audio_seconds: audioSeconds });
+      return res.status(402).json({
+        error: 'upgrade_required',
+        feature: 'clean_transcript',
+        tier: balance.tier || 'free',
+        required_tier: 'student',
+        options: ['upgrade'],
+        message: 'Transcript cleanup ships with the Student plan and up. The raw transcript stays right here either way.',
+      });
+    }
 
     if (availableCredits(balance) < cost) {
       await logUsage({ user_id: userId, feature: 'clean_transcript', lecture_id, tier_at_time: balance.tier, success: false, audio_seconds: audioSeconds });

@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Brain, Loader2, Lightbulb } from 'lucide-react';
 import Widget from '@/components/ui/Widget';
+import { Lock } from 'lucide-react';
+import { useFeatureGate } from '@/components/monetization/useFeatureGate';
 import { todayString } from '@/lib/time';
 
 /**
@@ -17,9 +19,10 @@ const cacheKey = (classId) => `cedar-exampred-${classId}-${todayString()}`;
 export default function ExamPredictionCard({ classId }) {
   const [prediction, setPrediction] = useState(null);
   const [loading, setLoading] = useState(true);
+  const { allowed, requiredTierName, lock } = useFeatureGate('exam_prediction');
 
   useEffect(() => {
-    if (!classId) return;
+    if (!classId || !allowed) { setLoading(false); return; }
     let cancelled = false;
     try {
       const cached = localStorage.getItem(cacheKey(classId));
@@ -43,7 +46,27 @@ export default function ExamPredictionCard({ classId }) {
       if (!cancelled) setLoading(false);
     })();
     return () => { cancelled = true; };
-  }, [classId]);
+  }, [classId, allowed]);
+
+  // Locked: the grey card with a lock — visible while exploring, one tap to
+  // the upgrade sheet, never a dead end (law: paywall is never an error).
+  if (!allowed) {
+    return (
+      <div className="rounded-xl border border-border bg-muted/40 p-4 mb-4 flex items-center gap-3">
+        <span className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+          <Brain className="w-4 h-4 text-muted-foreground" />
+        </span>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-muted-foreground">Exam topic predictions</p>
+          <p className="text-[11px] text-muted-foreground">Cedar reads every lecture and predicts what your exam will cover. Unlocks with {requiredTierName}.</p>
+        </div>
+        <button onClick={lock}
+          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-muted text-muted-foreground text-xs font-medium hover:text-foreground transition-colors flex-shrink-0">
+          <Lock className="w-3.5 h-3.5" /> Upgrade to use
+        </button>
+      </div>
+    );
+  }
 
   if (loading) {
     return (

@@ -20,47 +20,55 @@ export const TIERS = {
   free: {
     id: 'free',
     name: 'Free',
-    blurb: 'Everything you need to see what Cedar does.',
+    blurb: 'See exactly what Cedar does — 2 full lectures on us.',
     monthly: 0,
     semester: 0,
     creditsPerMonth: 20,
     lifetimeOnly: true, // free credits are a one-off grant, not a monthly refresh
     includes: [
-      'Full exam coverage map',
+      '2 recorded lectures — full transcript, summary & flashcards',
       'Unlimited typed-note lectures',
-      '2 recorded lectures (lifetime)',
-      'Flashcards and practice quizzes',
-      'Calendar, focus mode and analytics',
+      'Full exam coverage map',
+      'Calendar, planner, focus mode & analytics',
+      'Timetable import',
     ],
-    excludes: ['Class handbooks', 'Exam topic prediction', 'AI study schedules'],
+    excludes: [
+      'AI reviews, quizzes & practice questions',
+      'Class handbooks & exam topic prediction',
+      'AI study schedules',
+    ],
   },
   student: {
     id: 'student',
     name: 'Student',
-    blurb: 'For one busy semester.',
+    blurb: 'The everyday study kit.',
     monthly: 9.99,
     semester: 31.99,
     creditsPerMonth: 200,
     includes: [
       'Everything in Free',
       '~20 recorded lectures a month',
-      'Class handbooks',
-      'Exam topic prediction',
-      'AI study schedules',
+      'AI reviews, quick quizzes & practice questions',
+      'Missed-lecture catch-up summaries',
       'Cleaned "Professor\'s Voice" transcripts',
+      'Smart rebooking & project roadmaps',
     ],
+    excludes: ['Class handbooks', 'Exam topic prediction', 'AI study schedules'],
   },
   scholar: {
     id: 'scholar',
     name: 'Scholar',
-    blurb: 'For a full course load.',
+    blurb: 'Everything unlocked.',
     monthly: 16.99,
     semester: 54.99,
     creditsPerMonth: 450,
+    everything: true,
     includes: [
       'Everything in Student',
       '~45 recorded lectures a month',
-      'Handbooks for every class',
+      'Class handbooks for every course',
+      'Exam topic prediction',
+      'AI study schedules',
       'Full proficiency history',
     ],
   },
@@ -121,6 +129,48 @@ export const CREDIT_COSTS = {
 
 /** ~1 lecture, for translating credits into something a student understands. */
 export const CREDITS_PER_LECTURE = 10;
+
+/**
+ * Feature -> minimum tier (Design Blueprint follow-up + MON-04 rework,
+ * Aug 2026). The HOOK stays free — recording, transcription, summaries and
+ * flashcards are the aha moment and are never gated (research: gate added
+ * value, never core functionality). Student buys the everyday study tools;
+ * Scholar unlocks everything; Unlimited is Scholar with volume.
+ *
+ * MUST stay in sync with FEATURE_MIN_TIER in server/lib/credits.js — that
+ * copy enforces; this one only renders locks.
+ */
+export const FEATURES = {
+  // Free — the hook
+  process_lecture:  { label: 'Record, transcribe & summarize', minTier: 'free' },
+  flashcards:       { label: 'Flashcards from every lecture', minTier: 'free' },
+  timetable_import: { label: 'Timetable import', minTier: 'free' },
+  // Student — the everyday study kit
+  lecture_review:   { label: 'AI reviews & quick quizzes', minTier: 'student' },
+  study_material:   { label: 'Practice question generation', minTier: 'student' },
+  session_review:   { label: 'Study session reviews', minTier: 'student' },
+  missed_summary:   { label: 'Missed-lecture catch-up', minTier: 'student' },
+  smart_rebook:     { label: 'Smart session rebooking', minTier: 'student' },
+  project_roadmap:  { label: 'Project roadmaps', minTier: 'student' },
+  clean_transcript: { label: 'Transcript cleanup', minTier: 'student' },
+  // Scholar — the intelligence layer (everything unlocked)
+  handbook:         { label: 'Class handbooks', minTier: 'scholar' },
+  exam_prediction:  { label: 'Exam topic prediction', minTier: 'scholar' },
+  study_schedule:   { label: 'AI study schedules', minTier: 'scholar' },
+};
+
+export const tierRank = (id) => Math.max(0, TIER_ORDER.indexOf(id || 'free'));
+
+/** Can this tier use this feature? Unknown features are never locked. */
+export const hasFeature = (tier, featureId) => {
+  const f = FEATURES[featureId];
+  if (!f) return true;
+  return tierRank(tier) >= tierRank(f.minTier);
+};
+
+/** Display name of the cheapest tier that unlocks a feature. */
+export const featureMinTierName = (featureId) =>
+  TIERS[FEATURES[featureId]?.minTier || 'student'].name;
 
 export const tierOf = (id) => TIERS[id] || TIERS.free;
 export const nextTierUp = (id) => {

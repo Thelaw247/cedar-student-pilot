@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { CalendarDays, CalendarRange, ListChecks, ArrowRight } from 'lucide-react';
 import LectureScopePicker, { resolveScopeIds } from '@/components/LectureScopePicker';
+import { useFeatureGate } from '@/components/monetization/useFeatureGate';
+import { Lock, BookOpenCheck } from 'lucide-react';
 
 /**
  * ReviewFromLectures — entry points for reviewing lecture content: quick
@@ -14,6 +16,7 @@ import LectureScopePicker, { resolveScopeIds } from '@/components/LectureScopePi
  *   initialClassId, initialLectureIds — optional pre-scoping (from deep links)
  */
 export default function ReviewFromLectures({ initialClassId = '', initialLectureIds = null }) {
+  const { allowed: reviewAllowed, requiredTierName: reviewTierName, lock: reviewLock } = useFeatureGate('lecture_review');
   const navigate = useNavigate();
   const [classes, setClasses] = useState([]);
   const [selectedClass, setSelectedClass] = useState(initialClassId || '');
@@ -57,6 +60,26 @@ export default function ReviewFromLectures({ initialClassId = '', initialLecture
       navigate(`/lecture-review?ids=${ids.join(',')}`);
     }
   };
+
+  // Below Student: one clear locked card instead of four dead entries — the
+  // value copy stays visible, and the lock is one tap from the upgrade sheet.
+  if (!reviewAllowed) {
+    return (
+      <div className="rounded-xl border border-border bg-muted/40 p-4 flex items-center gap-3">
+        <span className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+          <BookOpenCheck className="w-5 h-5 text-muted-foreground" />
+        </span>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-muted-foreground">AI lecture reviews</p>
+          <p className="text-[11px] text-muted-foreground">Question-by-question reviews built from your own lectures, in teaching order. Unlocks with {reviewTierName}.</p>
+        </div>
+        <button onClick={reviewLock}
+          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-muted text-muted-foreground text-xs font-medium hover:text-foreground transition-colors flex-shrink-0">
+          <Lock className="w-3.5 h-3.5" /> Upgrade to use
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div>

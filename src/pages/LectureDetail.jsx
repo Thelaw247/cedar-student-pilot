@@ -11,6 +11,8 @@ import AutosaveIndicator from '@/components/AutosaveIndicator';
 import { useBalance } from '@/hooks/useBalance';
 import Widget from '@/components/ui/Widget';
 import { useUpgrade } from '@/components/monetization/UpgradeContext';
+import { useFeatureGate } from '@/components/monetization/useFeatureGate';
+import { Lock } from 'lucide-react';
 
 export default function LectureDetail() {
   const { lectureId } = useParams();
@@ -39,6 +41,8 @@ export default function LectureDetail() {
   // never blocking, never repeated once dismissed.
   const { tier } = useBalance();
   const { openUpgrade } = useUpgrade();
+  const quizGate = useFeatureGate('lecture_review');
+  const cleanGate = useFeatureGate('clean_transcript');
   const [upsellDismissed, setUpsellDismissed] = useState(() => {
     try { return !!localStorage.getItem(`cedar-lec-upsell-${lectureId}`); } catch { return true; }
   });
@@ -274,10 +278,17 @@ export default function LectureDetail() {
         </Link>
         <div className="flex items-center gap-2 flex-wrap justify-end">
           {lecture?.ai_summary && (
-            <button onClick={() => setShowQuiz(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors">
-              <Zap className="w-3.5 h-3.5" /> Quick Quiz
-            </button>
+            quizGate.allowed ? (
+              <button onClick={() => setShowQuiz(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors">
+                <Zap className="w-3.5 h-3.5" /> Quick Quiz
+              </button>
+            ) : (
+              <button onClick={quizGate.lock} title={`Quick quizzes ship with ${quizGate.requiredTierName}`}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-muted text-muted-foreground text-xs font-medium hover:text-foreground transition-colors">
+                <Lock className="w-3.5 h-3.5" /> Quick Quiz
+              </button>
+            )
           )}
           <Link to={`/lecture-review?ids=${lectureId}`}
             className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border text-xs font-medium text-foreground hover:bg-primary/5 hover:border-primary/30 transition-colors">
@@ -501,7 +512,16 @@ export default function LectureDetail() {
               </p>
             )}
 
-            {!lecture.transcript_cleaned && (
+            {!lecture.transcript_cleaned && !cleanGate.allowed && (
+              <button
+                onClick={cleanGate.lock}
+                title={`Transcript cleanup ships with ${cleanGate.requiredTierName}`}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-muted text-[11px] font-medium text-muted-foreground hover:text-foreground flex-shrink-0 transition-colors"
+              >
+                <Lock className="w-3 h-3" /> Clean up transcript
+              </button>
+            )}
+            {!lecture.transcript_cleaned && cleanGate.allowed && (
               <button
                 onClick={cleanTranscript}
                 disabled={cleaning}

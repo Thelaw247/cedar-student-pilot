@@ -25,7 +25,7 @@ export default function UpgradeProvider({ children }) {
   return (
     <UpgradeContext.Provider value={{ openUpgrade }}>
       {children}
-      {sheet && <UpgradeSheet source={sheet.source} onClose={() => setSheet(null)} />}
+      {sheet && <UpgradeSheet source={sheet.source} feature={sheet.feature} onClose={() => setSheet(null)} />}
     </UpgradeContext.Provider>
   );
 }
