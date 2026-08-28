@@ -268,9 +268,14 @@ subscription updated/deleted).
 and icons at cedar-student-pilot.dewetluus.workers.dev.
 
 ### Remaining items that need a human
-1. Subscription lifecycle click-through: checkout with 4242 4242 4242 4242,
-   verify credits granted, open billing portal, cancel, verify downgrade.
-   Needs a logged-in session in a real browser.
+1. Subscription lifecycle: VERIFIED Aug 28 except the cancel path. De Wet
+   subscribed to Student (test mode) and it persisted across sessions;
+   cross-checked Stripe <-> Supabase: active sub with user_id metadata,
+   matching stripe_subscription_id/customer_id on the credit row, tier
+   'student', 200/mo grant + 100-credit pack both landed, checkout-session
+   anchors recorded (idempotent). STILL OPEN: billing portal -> cancel ->
+   webhook downgrade to free at period end (deliberately not exercised
+   against his live test subscription without his go-ahead).
 2. Env-group duplicate cleanup: Render's API does not expose env-var reads;
    verify in the dashboard that the service and env group don't define the
    same keys twice. Functionally harmless today (the service boots and runs).
