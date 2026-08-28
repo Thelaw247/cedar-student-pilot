@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { fetchWithCache } from '@/hooks/useEntityData';
 import UserMenuButton from '@/components/UserMenuButton';
+import CreditMeter from '@/components/monetization/CreditMeter';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useUndo, UndoToast } from '@/hooks/useUndo';
 import { Plus, Sun, Moon, GraduationCap, Calendar, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -191,8 +192,11 @@ export default function Home() {
           Replaces the old Cedar logo lockup here — the brand mark stays in
           the favicon, home-screen icon, and marketing; this corner is
           profile-only now. */}
-      <div className="mb-6 lg:hidden">
+      <div className="mb-6 lg:hidden flex items-center justify-between">
         <UserMenuButton size="sm" />
+        {/* Mobile home for the credit meter — the desktop meter lives in the
+            Sidebar. Same component, same sheet (MON-04 §3). */}
+        <CreditMeter />
       </div>
 
       {/* Tab bar */}
