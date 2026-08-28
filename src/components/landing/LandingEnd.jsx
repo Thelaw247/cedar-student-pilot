@@ -56,7 +56,7 @@ export default function LandingEnd() {
           <div className="rounded-[26px] border border-slate-200 bg-white p-7 sm:p-8">
             <p className="text-sm font-semibold text-blue-600">Pricing</p>
             <h2 className="mt-2 text-3xl font-bold tracking-[-0.04em] text-slate-950">Start free. Pay for more processing when you need it.</h2>
-            <p className="mt-4 max-w-xl text-sm leading-6 text-slate-600">Cedar has Free, Student, Scholar, and Unlimited plans. The paid tiers increase how much lecture processing and study generation you can use.</p>
+            <p className="mt-4 max-w-xl text-sm leading-6 text-slate-600">Cedar has Free, Student, Scholar, and Unlimited plans. The paid tiers increase how much lecture processing and study generation you can use — and every plan can be paid <span className="font-semibold text-slate-900">by the semester</span>, one bill that matches your term. No other study app does that.</p>
             <div className="mt-6 flex flex-wrap gap-2">
               {['Free', 'Student', 'Scholar', 'Unlimited'].map((plan) => (
                 <span key={plan} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700">{plan}</span>

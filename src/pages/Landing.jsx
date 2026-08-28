@@ -7,6 +7,7 @@ import RecordingFeature from '@/components/landing/RecordingFeature';
 import StudyToolProof from '@/components/landing/StudyToolProof';
 import StudyScheduleProof from '@/components/landing/RealProductPreview';
 import StudySystemFeature from '@/components/landing/StudySystemFeature';
+import LandingWhyStudents from '@/components/landing/LandingWhyStudents';
 import LandingEnd from '@/components/landing/LandingEnd';
 
 function LandingFooter() {
@@ -15,7 +16,10 @@ function LandingFooter() {
       <div className="mx-auto flex max-w-6xl flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2.5">
           <img src={CEDAR_LOGO_URL} alt="" className="h-7 w-7 object-contain" />
-          <p className="text-sm font-semibold text-slate-950">Cedar Student Pilot</p>
+          <div>
+            <p className="text-sm font-semibold text-slate-950">Cedar Student Pilot</p>
+            <p className="text-xs text-slate-500">Made in Canada · Your recordings stay private to you</p>
+          </div>
         </div>
         <div className="flex flex-wrap gap-x-5 gap-y-2 text-xs font-medium text-slate-500">
           <a href="#recording" className="hover:text-slate-950">Recording</a>
@@ -61,6 +65,7 @@ export default function Landing() {
         <StudyToolProof />
         <StudyScheduleProof />
         <StudySystemFeature />
+        <LandingWhyStudents />
         <LandingEnd />
       </main>
       <LandingFooter />
