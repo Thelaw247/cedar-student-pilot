@@ -8,6 +8,8 @@ import { ChevronLeft, FileText, Clock, AlertCircle, Loader2, Tag, BookOpen, List
 import TranscriptActions from '@/components/TranscriptActions';
 import InLectureQuiz from '@/components/InLectureQuiz';
 import AutosaveIndicator from '@/components/AutosaveIndicator';
+import { useBalance } from '@/hooks/useBalance';
+import { useUpgrade } from '@/components/monetization/UpgradeContext';
 
 export default function LectureDetail() {
   const { lectureId } = useParams();
@@ -31,6 +33,18 @@ export default function LectureDetail() {
   // Delete flow — two-step inline confirm, consistent with the pattern used
   // elsewhere in the app for destructive actions.
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  // Post-value upsell (MON-04 §3, trigger #4): shown to Free users on a
+  // completed lecture — the moment belief peaks — dismissible per lecture,
+  // never blocking, never repeated once dismissed.
+  const { tier } = useBalance();
+  const { openUpgrade } = useUpgrade();
+  const [upsellDismissed, setUpsellDismissed] = useState(() => {
+    try { return !!localStorage.getItem(`cedar-lec-upsell-${lectureId}`); } catch { return true; }
+  });
+  const dismissUpsell = () => {
+    try { localStorage.setItem(`cedar-lec-upsell-${lectureId}`, '1'); } catch { /* cosmetic */ }
+    setUpsellDismissed(true);
+  };
   const [deleting, setDeleting] = useState(false);
   // Re-submitting a recording whose processing failed or never started.
   const [retrying, setRetrying] = useState(false);
@@ -307,6 +321,29 @@ export default function LectureDetail() {
           </div>
         </div>
       </div>
+
+      {/* Post-value upsell — Free tier, completed lecture, dismissible */}
+      {tier === 'free' && lecture.status === 'complete' && lecture.ai_title && !upsellDismissed && (
+        <div className="rounded-2xl border border-primary/25 bg-primary/[0.04] p-4 mb-6 flex items-start gap-3">
+          <Sparkles className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+          <div className="flex-1">
+            <p className="text-sm font-medium text-foreground">This lecture is fully covered — transcript, summary and key concepts.</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Students on the Student plan cover about 20 lectures like this every month.</p>
+            <div className="flex gap-2 mt-2.5">
+              <button
+                type="button"
+                onClick={() => openUpgrade({ source: 'recording' })}
+                className="px-3 py-1.5 rounded-button bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors duration-micro"
+              >
+                See plans
+              </button>
+              <button type="button" onClick={dismissUpsell} className="px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground">
+                Not now
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* AI Estimated banner */}
       {lecture.is_ai_estimated && (

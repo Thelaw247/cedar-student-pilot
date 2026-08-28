@@ -6,7 +6,7 @@ import MusicPlayer from '@/components/MusicPlayer';
 // AI Study Chat is WITHDRAWN pending a per-message price and a working
 // implementation. The component is left on disk — re-add the import plus the
 // toggle button and render block below to bring it back.
-// import AIStudyChat from '@/components/AIStudyChat';
+// AIStudyChat was withdrawn and its source purged in the conversion redesign (git history holds it).
 import SessionReview from '@/components/SessionReview';
 import FocusSessionWizard from '@/components/FocusSessionWizard';
 import HandbookReader from '@/components/HandbookReader';

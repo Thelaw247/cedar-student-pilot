@@ -175,9 +175,29 @@ export async function logUsage(event) {
  * The check-before-work half of the credit contract. Call immediately
  * BEFORE the expensive work; if !gate.ok, send gate.response and stop.
  */
+/**
+ * Features the Free tier's display copy excludes (tiers.js free.excludes:
+ * class handbooks, exam prediction, AI study schedules). Enforcement must
+ * match the promise — a free account with starter credits left could
+ * otherwise buy through a gate the pricing page says is closed.
+ */
+const PAID_ONLY_FEATURES = new Set(['handbook', 'exam_prediction', 'study_schedule']);
+
 export async function gateFeature(userId, feature, res, extra = {}) {
   const cost = FEATURE_COSTS[feature] ?? 0;
   const balance = await getBalance(userId);
+
+  if (PAID_ONLY_FEATURES.has(feature) && (balance.tier || 'free') === 'free') {
+    await logUsage({ user_id: userId, feature, tier_at_time: 'free', success: false, ...extra });
+    res.status(402).json({
+      error: 'upgrade_required',
+      feature,
+      tier: 'free',
+      options: ['upgrade'],
+      message: 'This ships with the Student plan and up. Your starter credits still cover recording and reviewing lectures.',
+    });
+    return { ok: false };
+  }
 
   if (cost > 0 && availableCredits(balance) < cost) {
     await logUsage({ user_id: userId, feature, tier_at_time: balance.tier, success: false, ...extra });

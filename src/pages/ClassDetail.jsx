@@ -11,6 +11,9 @@ import HandbookReader from '@/components/HandbookReader';
 import PostRecordingReviewPrompt from '@/components/PostRecordingReviewPrompt';
 import { saveRecording, getRecording, clearRecording } from '@/lib/recordingStore';
 import { getSetting } from '@/lib/settings';
+import { useBalance } from '@/hooks/useBalance';
+import { useUpgrade } from '@/components/monetization/UpgradeContext';
+import LockedFeature from '@/components/monetization/LockedFeature';
 
 export default function ClassDetail() {
   const { classId } = useParams();
@@ -251,6 +254,7 @@ async function waitForLectureProcessing(lectureId) {
 }
 
 function RecordModal({ classId, cls, onClose }) {
+  const { openUpgrade } = useUpgrade();
   // Each segment must stay under the transcription provider's per-file limit
   // (Groq's free tier: 25 MB). 32 kbps Opus keeps a 90-minute segment
   // comfortably inside that, so segments rotate at 90 minutes; a lecture can
@@ -648,8 +652,16 @@ function RecordModal({ classId, cls, onClose }) {
       // Keep the durable copy, uploaded parts, and pending lecture id so a
       // retry does not re-upload segments or create a second Lecture after a
       // processing failure.
-      const detail = e?.response?.data?.message || e?.response?.data?.error || e?.message;
-      setSaveError(detail || 'Check your connection and try again.');
+      // A 402 is not an error to apologize for — it is the moment of need.
+      // Open the upgrade sheet with the out-of-credits framing; the inline
+      // message still records what happened, and the recording stays safe.
+      if (e?.response?.status === 402) {
+        openUpgrade({ source: 'out-of-credits' });
+        setSaveError(e?.response?.data?.message || 'You are out of credits. Your recording is saved on this device.');
+      } else {
+        const detail = e?.response?.data?.message || e?.response?.data?.error || e?.message;
+        setSaveError(detail || 'Check your connection and try again.');
+      }
     }
     setProcessing(false);
   };
@@ -1185,8 +1197,41 @@ function MissedLectureConfirmModal({ classId, onClose, onGenerated }) {
 
 function HandbookTab({ cls, lectures }) {
   const [showReader, setShowReader] = useState(false);
+  const { tier } = useBalance();
 
   const lecturesWithContent = lectures.filter(l => l.ai_summary || l.transcript || (l.ai_concepts && l.ai_concepts.length > 0));
+
+  // Handbooks ship with Student and up (tiers.js free.excludes; enforced
+  // server-side in gateFeature). Free users see the tease built from their
+  // OWN chapter list — their value sells the upgrade, not a stock promo.
+  if (tier === 'free') {
+    const teaseChapters = lecturesWithContent.length > 0
+      ? lecturesWithContent.slice(0, 4).map((lec, i) => ({ n: i + 1, title: lec.ai_title || `Lecture — ${lec.date}` }))
+      : [
+          { n: 1, title: 'Course foundations and key terms' },
+          { n: 2, title: 'Core concepts, week by week' },
+          { n: 3, title: 'Worked examples from lectures' },
+        ];
+    return (
+      <LockedFeature
+        title={`The ${cls.name} handbook`}
+        description="Cedar writes a living handbook for this class from your own lectures — every chapter in your professor's words, updated as you record."
+        source="handbook"
+        requiredTierName="Student"
+        ctaLabel="See plans"
+      >
+        <div className="p-5">
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-3">Class Handbook</p>
+          {teaseChapters.map((c) => (
+            <div key={c.n} className="flex items-center gap-2 text-sm py-1.5">
+              <span className="text-muted-foreground tabular-nums w-5">{String(c.n).padStart(2, '0')}</span>
+              <span className="text-foreground truncate">{c.title}</span>
+            </div>
+          ))}
+        </div>
+      </LockedFeature>
+    );
+  }
 
   return (
     <div>

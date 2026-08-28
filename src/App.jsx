@@ -84,10 +84,9 @@ const AuthenticatedApp = () => {
         <Route path="/classes" element={<Classes />} />
         <Route path="/classes/:classId" element={<ClassDetail />} />
         <Route path="/lectures/:lectureId" element={<LectureDetail />} />
-        {/* The AI Assistant page is deliberately not routed for now. Without a
-            route, /assistant falls through to the catch-all 404 below and the
-            page isn't bundled at all. src/pages/AIAssistant.jsx is kept on disk
-            so it can be reinstated with an import and a route. */}
+        {/* The AI Assistant was withdrawn (feature-flagged off since Base44)
+            and its dead source purged in the conversion redesign; git history
+            holds it if a real use case ever earns it back. */}
         <Route path="/planner" element={<StudyPlanner />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/focus" element={<FocusMode />} />

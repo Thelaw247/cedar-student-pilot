@@ -50,12 +50,8 @@ export default function Layout() {
         <BottomNav />
       </div>
       <DesktopRail />
-      {/* The floating AI chat button is intentionally not rendered. It sat at
-          the same fixed position as the Today page's quick-task button
-          (both bottom-20 / lg:bottom-6, right-4, z-40) and the two overlapped.
-          src/components/FloatingChat.jsx is left in place — re-add <FloatingChat />
-          here once it has a position that doesn't collide. The full AI page at
-          /ai is unaffected. */}
+      {/* The floating AI chat button was withdrawn with the AI Assistant and
+          its source purged in the conversion redesign (git history holds it). */}
       <StudySessionNotifier />
       <OfflineIndicator />
       <CommandPalette />
