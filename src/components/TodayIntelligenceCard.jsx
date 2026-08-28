@@ -1,27 +1,30 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { GraduationCap, BookOpen, AlertCircle, AlertTriangle, Plus, CalendarClock, X } from 'lucide-react';
+import { BookOpen, AlertCircle, AlertTriangle, Plus, CalendarClock, X, Sparkles, GraduationCap } from 'lucide-react';
 import UpNextCard from '@/components/UpNextCard';
 import RebookSessionModal from '@/components/RebookSessionModal';
+import Widget, { WidgetRow } from '@/components/ui/Widget';
 import { isDismissedToday, dismissToday } from '@/lib/dismiss';
+import { formatTime, todayString } from '@/lib/time';
 
-function formatTime(timeStr) {
-  if (!timeStr) return '';
-  const [h, m] = timeStr.split(':').map(Number);
-  const ampm = h >= 12 ? 'PM' : 'AM';
-  const dh = h === 0 ? 12 : h > 12 ? h - 12 : h;
-  return `${dh}:${String(m).padStart(2, '0')} ${ampm}`;
-}
-
-function getTodayString() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
+/**
+ * The "Today at a glance" widget (Design Blueprint, Home fixes #2–#4).
+ * Previously this was three bordered layers deep: a gradient wrapper holding
+ * UpNextCard's bordered card holding three more bordered tiles in amber /
+ * rose / class-color hues. Now: UpNextCard stands alone as the hero, and the
+ * glance items are rows of ONE widget — class-color rails, neutral icons,
+ * semantic color only on the two signal rows (exam week, behind schedule).
+ */
 
 function daysBetween(dateStr) {
-  const today = new Date(getTodayString());
+  const today = new Date(todayString());
   const target = new Date(dateStr);
   return Math.ceil((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+}
+
+function getTodayPlusDays(days) {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  return d.toISOString().split('T')[0];
 }
 
 export default function TodayIntelligenceCard({
@@ -34,13 +37,12 @@ export default function TodayIntelligenceCard({
   onAddStudyBlock,
 }) {
   const [rebookSession, setRebookSession] = useState(null);
-  // Dismiss state for the two banners below — per-day (see lib/dismiss), so a
-  // dismissed-but-still-true problem (still exam week, still behind) returns
-  // tomorrow instead of being silenced for good.
+  // Per-day dismissals (lib/dismiss): a dismissed-but-still-true problem
+  // returns tomorrow instead of being silenced for good.
   const [examWeekDismissed, setExamWeekDismissed] = useState(() => isDismissedToday('examweek'));
   const [behindDismissed, setBehindDismissed] = useState(() => isDismissedToday('behind'));
 
-  const today = getTodayString();
+  const today = todayString();
   const now = new Date();
   const nowMin = now.getHours() * 60 + now.getMinutes();
 
@@ -54,164 +56,125 @@ export default function TodayIntelligenceCard({
     .filter(c => c.minutesUntil >= -15)
     .sort((a, b) => a.minutesUntil - b.minutesUntil)[0] || null;
 
-  // Study blocks today
   const todaySessions = studySessions.filter(s => s.scheduled_date === today && s.status === 'scheduled');
   const totalStudyMinutes = todaySessions.reduce((sum, s) => sum + (s.duration_minutes || 0), 0);
 
-  // Top priority: soonest-due assignment
   const topPriority = assignments
     .filter(a => a.due_date >= today)
     .sort((a, b) => a.due_date.localeCompare(b.due_date))[0] || null;
   const topDays = topPriority ? daysBetween(topPriority.due_date) : null;
 
-  // Exam week: any exam/quiz due within 7 days
   const upcomingExams = assignments
     .filter(a => (a.type === 'exam' || a.type === 'quiz') && a.due_date >= today && a.due_date <= getTodayPlusDays(7))
     .sort((a, b) => a.due_date.localeCompare(b.due_date));
   const isExamWeek = upcomingExams.length > 0;
 
-  // Behind schedule
   const behindSessions = studySessions.filter(s => s.status === 'scheduled' && s.scheduled_date < today);
 
   useEffect(() => {
     onExamWeekChange?.(isExamWeek);
   }, [isExamWeek, onExamWeekChange]);
 
+  // The law-04 summary: the collapsed header already answers the day.
+  const metaParts = [
+    `${todayClasses.length} ${todayClasses.length === 1 ? 'class' : 'classes'}`,
+    todaySessions.length > 0 ? `${todaySessions.length} study ${todaySessions.length === 1 ? 'block' : 'blocks'}` : null,
+    topPriority ? (topDays === 0 ? 'due today' : `next due in ${topDays}d`) : 'nothing due',
+  ].filter(Boolean).join(' · ');
+
   return (
     <div className="mb-4 space-y-3">
-      {/* What Matters Today */}
-      <div className="rounded-xl border border-border bg-gradient-to-b from-primary/5 to-transparent p-3 sm:p-4">
-        <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-3">What Matters Today</p>
-        <UpNextCard todayClasses={todayClasses} events={events || []} />
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-          {/* Next Class */}
-          <Link to={nextClass ? `/classes/${nextClass.id}` : '/classes'}
-            className="flex items-center gap-2.5 rounded-lg p-2.5 bg-card border border-border hover:shadow-sm transition-all">
-            <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
-              style={{ backgroundColor: (nextClass?.color || '#3B82F6') + '20', color: nextClass?.color || '#3B82F6' }}>
-              <GraduationCap className="w-5 h-5" strokeWidth={1.5} />
-            </div>
-            <div className="min-w-0 flex-1">
-              {nextClass ? (
-                <>
-                  <p className="text-sm font-semibold text-foreground truncate">{nextClass.name}</p>
-                  <p className="text-[11px] text-muted-foreground truncate">
-                    {formatTime(nextClass.start_time)}{nextClass.room ? ` · ${nextClass.room}` : ''}
-                  </p>
-                  <p className="text-[11px] text-primary font-medium">
-                    {nextClass.minutesUntil > 0
-                      ? `in ${nextClass.minutesUntil} min`
-                      : nextClass.minutesUntil >= -15
-                        ? 'started'
-                        : ''}
-                  </p>
-                </>
-              ) : todayClasses.length > 0 ? (
-                <>
-                  <p className="text-sm font-semibold text-foreground">Classes done</p>
-                  <p className="text-[11px] text-muted-foreground">All finished for today</p>
-                </>
-              ) : (
-                <>
-                  <p className="text-sm font-semibold text-foreground">No classes today</p>
-                  <p className="text-[11px] text-muted-foreground">Enjoy your day</p>
-                </>
-              )}
-            </div>
-          </Link>
+      {/* Hero: what's happening right now / next */}
+      <UpNextCard todayClasses={todayClasses} events={events || []} />
 
-          {/* Study Blocks */}
-          {todaySessions.length > 0 ? (
-            <Link to="/planner"
-              className="flex items-center gap-2.5 rounded-lg p-2.5 bg-card border border-border hover:shadow-sm transition-all">
-              <div className="w-9 h-9 rounded-lg bg-amber-500/10 flex items-center justify-center flex-shrink-0">
-                <BookOpen className="w-5 h-5 text-amber-600" strokeWidth={1.5} />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-foreground">
-                  {todaySessions.length} study block{todaySessions.length !== 1 ? 's' : ''}
-                </p>
-                <p className="text-[11px] text-muted-foreground">{totalStudyMinutes} min total</p>
-              </div>
-            </Link>
-          ) : (
-            <button onClick={onAddStudyBlock}
-              className="flex items-center gap-2.5 rounded-lg p-2.5 bg-card border border-dashed border-amber-500/30 hover:border-amber-500/50 hover:bg-amber-500/5 transition-all w-full text-left">
-              <div className="w-9 h-9 rounded-lg bg-amber-500/10 flex items-center justify-center flex-shrink-0">
-                <Plus className="w-5 h-5 text-amber-600" strokeWidth={1.5} />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-foreground">No study blocks</p>
-                <p className="text-[11px] text-amber-600 font-medium">Tap to add an exam or study block</p>
-              </div>
+      <Widget
+        icon={Sparkles}
+        title="Today at a glance"
+        meta={metaParts}
+        collapsible
+        storageKey="glance"
+      >
+        {/* Next class */}
+        <WidgetRow
+          railColor={nextClass?.color}
+          icon={!nextClass ? GraduationCap : undefined}
+          title={nextClass ? nextClass.name : todayClasses.length > 0 ? 'Classes done' : 'No classes today'}
+          meta={nextClass
+            ? `${formatTime(nextClass.start_time)}${nextClass.room ? ` · ${nextClass.room}` : ''}`
+            : todayClasses.length > 0 ? 'All finished for today' : 'Enjoy your day'}
+          right={nextClass ? (nextClass.minutesUntil > 0 ? `in ${nextClass.minutesUntil} min` : 'started') : undefined}
+          to={nextClass ? `/classes/${nextClass.id}` : '/classes'}
+        />
+
+        {/* Study blocks */}
+        {todaySessions.length > 0 ? (
+          <WidgetRow
+            icon={BookOpen}
+            title={`${todaySessions.length} study block${todaySessions.length !== 1 ? 's' : ''}`}
+            meta={`${totalStudyMinutes} min total`}
+            to="/planner"
+          />
+        ) : (
+          <WidgetRow
+            icon={Plus}
+            title="No study blocks yet"
+            meta="Add an exam or study block"
+            onClick={onAddStudyBlock}
+          />
+        )}
+
+        {/* Top priority — deep-links into the class's Assignments tab */}
+        {topPriority && (
+          <WidgetRow
+            icon={AlertCircle}
+            title={topPriority.title}
+            meta={topDays === 0 ? 'Due today' : topDays === 1 ? '1 day left' : `${topDays} days left`}
+            to={topPriority.class_id ? `/classes/${topPriority.class_id}?tab=assignments&assignmentId=${topPriority.id}` : '/planner'}
+          />
+        )}
+
+        {/* Signal rows — the only semantic color in the widget (law 02) */}
+        {isExamWeek && !examWeekDismissed && (
+          <div className="flex items-center gap-2.5 px-4 py-2.5 border-t border-border bg-amber-500/5">
+            <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-500 flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold text-amber-700 dark:text-amber-500">Exam week</p>
+              <p className="text-[11px] text-muted-foreground truncate">
+                {upcomingExams.map(e => {
+                  const d = daysBetween(e.due_date);
+                  return `${e.title} (${d === 0 ? 'today' : d === 1 ? 'tomorrow' : `${d}d`})`;
+                }).join(' · ')}
+              </p>
+            </div>
+            <button onClick={() => { dismissToday('examweek'); setExamWeekDismissed(true); }}
+              aria-label="Dismiss"
+              className="text-muted-foreground hover:text-foreground flex-shrink-0 p-1 -m-1">
+              <X className="w-3.5 h-3.5" />
             </button>
-          )}
+          </div>
+        )}
 
-          {/* Top Priority — routes into the class's Assignments tab, landing
-              directly on this item, instead of just the class overview. */}
-          {topPriority && (
-            <Link to={topPriority.class_id ? `/classes/${topPriority.class_id}?tab=assignments&assignmentId=${topPriority.id}` : '/planner'}
-              className="flex items-center gap-2.5 rounded-lg p-2.5 bg-card border border-border hover:shadow-sm transition-all">
-              <div className="w-9 h-9 rounded-lg bg-rose-500/10 flex items-center justify-center flex-shrink-0">
-                <AlertCircle className="w-5 h-5 text-rose-600" strokeWidth={1.5} />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-foreground truncate">{topPriority.title}</p>
-                <p className="text-[11px] text-muted-foreground">
-                  {topDays === 0 ? 'Due today' : topDays === 1 ? '1 day left' : `${topDays} days left`}
-                </p>
-              </div>
-            </Link>
-          )}
-        </div>
-      </div>
-
-      {/* Exam Week banner */}
-      {isExamWeek && !examWeekDismissed && (
-        <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 flex items-center gap-2.5 animate-fade-in">
-          <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center flex-shrink-0">
-            <AlertTriangle className="w-4 h-4 text-amber-600" />
+        {behindSessions.length > 0 && !behindDismissed && (
+          <div className="flex items-center gap-2.5 px-4 py-2.5 border-t border-border bg-rose-500/5">
+            <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold text-rose-700 dark:text-rose-500">You're behind</p>
+              <p className="text-[11px] text-muted-foreground">
+                {behindSessions.length} missed session{behindSessions.length !== 1 ? 's' : ''} to reschedule
+              </p>
+            </div>
+            <button onClick={() => setRebookSession(behindSessions[0])}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-600 text-white text-xs font-medium hover:bg-rose-700 flex-shrink-0">
+              <CalendarClock className="w-3 h-3" /> Rebook
+            </button>
+            <button onClick={() => { dismissToday('behind'); setBehindDismissed(true); }}
+              aria-label="Dismiss"
+              className="text-muted-foreground hover:text-foreground flex-shrink-0 p-1 -m-1">
+              <X className="w-3.5 h-3.5" />
+            </button>
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-semibold text-amber-700 dark:text-amber-500">Exam Week</p>
-            <p className="text-[11px] text-muted-foreground truncate">
-              {upcomingExams.map(e => {
-                const d = daysBetween(e.due_date);
-                return `${e.title} (${d === 0 ? 'today' : d === 1 ? 'tomorrow' : `${d}d`})`;
-              }).join(' · ')}
-            </p>
-          </div>
-          <button onClick={() => { dismissToday('examweek'); setExamWeekDismissed(true); }}
-            aria-label="Dismiss"
-            className="text-muted-foreground hover:text-foreground flex-shrink-0 p-1 -m-1">
-            <X className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      )}
-
-      {/* Behind Schedule banner */}
-      {behindSessions.length > 0 && !behindDismissed && (
-        <div className="rounded-xl border border-rose-500/30 bg-rose-500/5 p-3 flex items-center gap-2.5 animate-fade-in">
-          <div className="w-8 h-8 rounded-lg bg-rose-500/10 flex items-center justify-center flex-shrink-0">
-            <AlertCircle className="w-4 h-4 text-rose-600" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-semibold text-rose-700 dark:text-rose-500">You're Behind</p>
-            <p className="text-[11px] text-muted-foreground">
-              {behindSessions.length} missed session{behindSessions.length !== 1 ? 's' : ''} to reschedule
-            </p>
-          </div>
-          <button onClick={() => setRebookSession(behindSessions[0])}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-600 text-white text-xs font-medium hover:bg-rose-700 flex-shrink-0">
-            <CalendarClock className="w-3 h-3" /> Rebook
-          </button>
-          <button onClick={() => { dismissToday('behind'); setBehindDismissed(true); }}
-            aria-label="Dismiss"
-            className="text-muted-foreground hover:text-foreground flex-shrink-0 p-1 -m-1">
-            <X className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      )}
+        )}
+      </Widget>
 
       {rebookSession && (
         <RebookSessionModal
@@ -222,10 +185,4 @@ export default function TodayIntelligenceCard({
       )}
     </div>
   );
-}
-
-function getTodayPlusDays(days) {
-  const d = new Date();
-  d.setDate(d.getDate() + days);
-  return d.toISOString().split('T')[0];
 }

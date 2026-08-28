@@ -1,9 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Plus, X } from 'lucide-react';
+import { useRecording } from '@/recording/RecordingContext';
 
 export default function FloatingActionButton({ actions }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
+  // The recording island docks in this same corner — step above it while a
+  // session is live so neither control covers the other.
+  const { active: recordingActive } = useRecording();
 
   useEffect(() => {
     if (!open) return;
@@ -15,7 +19,7 @@ export default function FloatingActionButton({ actions }) {
   }, [open]);
 
   return (
-    <div ref={ref} className="fixed bottom-20 lg:bottom-6 right-4 sm:right-6 z-40">
+    <div ref={ref} className={`fixed right-4 sm:right-6 z-40 ${recordingActive ? 'bottom-[148px] lg:bottom-24' : 'bottom-20 lg:bottom-6'}`}>
       {open && (
         <div className="absolute bottom-16 right-0 space-y-1.5 animate-fade-in">
           {actions.map((a, i) => (

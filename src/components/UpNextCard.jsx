@@ -1,22 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { GraduationCap, Calendar, CheckCircle2, Users } from 'lucide-react';
-
-function formatTime(timeStr) {
-  if (!timeStr) return '';
-  const [h, m] = timeStr.split(':').map(Number);
-  const ampm = h >= 12 ? 'PM' : 'AM';
-  const dh = h === 0 ? 12 : h > 12 ? h - 12 : h;
-  return `${dh}:${String(m).padStart(2, '0')} ${ampm}`;
-}
-
-function formatCountdown(minutes) {
-  if (minutes < 1) return 'now';
-  if (minutes < 60) return `${minutes} min`;
-  const h = Math.floor(minutes / 60);
-  const m = minutes % 60;
-  return m === 0 ? `${h}h` : `${h}h ${m}m`;
-}
+import { formatTime, formatCountdown, parseTimeToMinutes } from '@/lib/time';
+import { classTint, classColor } from '@/lib/color';
 
 const SOCIAL_TYPES = ['custom', 'work', 'appointment'];
 
@@ -37,11 +23,7 @@ export default function UpNextCard({ todayClasses, events }) {
 
   const nowMin = now.getHours() * 60 + now.getMinutes();
 
-  const parseTime = (t) => {
-    if (!t) return null;
-    const [h, m] = t.split(':').map(Number);
-    return h * 60 + m;
-  };
+  const parseTime = parseTimeToMinutes;
 
   const allClasses = (todayClasses || [])
     .filter(c => c.start_time && c.end_time)
@@ -117,7 +99,7 @@ export default function UpNextCard({ todayClasses, events }) {
         className="block rounded-xl border border-border bg-card p-4 hover:shadow-md transition-all">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
-            style={{ backgroundColor: (nextClass.color || '#3B82F6') + '20', color: nextClass.color || '#3B82F6' }}>
+            style={{ backgroundColor: classTint(nextClass.color) || 'hsl(var(--primary) / 0.1)', color: classColor(nextClass.color) }}>
             <GraduationCap className="w-6 h-6" strokeWidth={1.5} />
           </div>
           <div className="flex-1 min-w-0">

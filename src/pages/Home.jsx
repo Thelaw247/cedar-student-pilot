@@ -6,7 +6,8 @@ import UserMenuButton from '@/components/UserMenuButton';
 import CreditMeter from '@/components/monetization/CreditMeter';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useUndo, UndoToast } from '@/hooks/useUndo';
-import { Plus, Sun, Moon, GraduationCap, Calendar, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, GraduationCap, Calendar, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import Segmented from '@/components/ui/Segmented';
 import Timeline from '@/components/Timeline';
 import TodayIntelligenceCard from '@/components/TodayIntelligenceCard';
 import RiskIndicatorCard from '@/components/RiskIndicatorCard';
@@ -104,7 +105,9 @@ export default function Home() {
   }, [loadData]);
 
   useEffect(() => {
-    const interval = setInterval(() => setCurrentTime(new Date()), 1000);
+    // 30s tick: the clock shows h:mm and every calculation here runs on
+    // minutes, so a 1-second interval just re-rendered the page 30x too often.
+    const interval = setInterval(() => setCurrentTime(new Date()), 30000);
     return () => clearInterval(interval);
   }, []);
 
@@ -199,19 +202,15 @@ export default function Home() {
         <CreditMeter />
       </div>
 
-      {/* Tab bar */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex gap-1 border-b border-border">
-          <button onClick={() => setTab('today')}
-            className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${tab === 'today' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>
-            Today
-          </button>
-          <button onClick={() => setTab('weekly')}
-            className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${tab === 'weekly' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>
-            Weekly
-          </button>
-        </div>
-        <ThemeToggle />
+      {/* View switch. The theme toggle moved to Settings -> Appearance (it was
+          chrome competing with content here; Settings already had the same
+          control). */}
+      <div className="mb-6">
+        <Segmented
+          value={tab}
+          onChange={setTab}
+          options={[{ value: 'today', label: 'Today' }, { value: 'weekly', label: 'Weekly' }]}
+        />
       </div>
 
       {/* Today tab */}
@@ -256,7 +255,7 @@ export default function Home() {
           <div className="flex items-center justify-between mb-3 mt-6">
             <h2 className="font-heading text-sm font-semibold text-muted-foreground uppercase tracking-wide">Today's schedule</h2>
             <button onClick={() => setShowAddEvent(true)}
-              className="inline-flex items-center gap-1.5 bg-primary text-primary-foreground px-3 py-2 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors">
+              className="hidden sm:inline-flex items-center gap-1.5 bg-primary text-primary-foreground px-3 py-2 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors">
               <Plus className="w-4 h-4" /> Add event
             </button>
           </div>
@@ -283,7 +282,7 @@ export default function Home() {
               </button>
             </div>
             <button onClick={() => setShowAddEvent(true)}
-              className="inline-flex items-center gap-1.5 bg-primary text-primary-foreground px-3 py-2 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors">
+              className="hidden sm:inline-flex items-center gap-1.5 bg-primary text-primary-foreground px-3 py-2 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors">
               <Plus className="w-4 h-4" /> Add event
             </button>
           </div>
@@ -317,22 +316,5 @@ export default function Home() {
         { label: 'Add Class', icon: GraduationCap, onClick: () => navigate('/classes?add=1') },
       ]} />
     </div>
-  );
-}
-
-function ThemeToggle() {
-  const [isDark, setIsDark] = useState(document.documentElement.classList.contains('dark'));
-  return (
-    <button
-      onClick={() => {
-        const next = !isDark;
-        setIsDark(next);
-        document.documentElement.classList.toggle('dark', next);
-        localStorage.setItem('cedar-theme', next ? 'dark' : 'light');
-      }}
-      className="w-9 h-9 rounded-lg border border-border bg-card flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
-    >
-      {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-    </button>
   );
 }

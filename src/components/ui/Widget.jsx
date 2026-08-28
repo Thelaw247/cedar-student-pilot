@@ -17,14 +17,14 @@ import { classColor } from '@/lib/color';
  * actions must stopPropagation so they don't toggle the collapse.
  */
 export default function Widget({
-  icon,
-  iconColor,
+  icon = undefined,
+  iconColor = undefined,
   title,
-  meta,
-  action,
+  meta = undefined,
+  action = undefined,
   collapsible = false,
   defaultOpen = true,
-  storageKey,
+  storageKey = undefined,
   className = '',
   padded = false,
   children,
@@ -96,13 +96,13 @@ export default function Widget({
  * `to` is given, a button when `onClick` is given, a plain row otherwise.
  */
 export function WidgetRow({
-  railColor,
-  icon: Icon,
+  railColor = undefined,
+  icon: Icon = undefined,
   title,
-  meta,
-  right,
-  to,
-  onClick,
+  meta = undefined,
+  right = undefined,
+  to = undefined,
+  onClick = undefined,
   className = '',
 }) {
   const inner = (
