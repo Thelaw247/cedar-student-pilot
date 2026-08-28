@@ -10,6 +10,7 @@ import ScrollToTop from './components/ScrollToTop';
 import Layout from '@/components/Layout';
 const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
+const Onboarding = lazy(() => import('./pages/Onboarding'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const OAuthConsent = lazy(() => import('@/pages/OAuthConsent'));
@@ -74,6 +75,9 @@ const AuthenticatedApp = () => {
 
       {/* Everything below requires a signed-in user. */}
       <Route element={<ProtectedRoute unauthenticatedElement={<RedirectToLogin />} />}>
+      {/* First-run onboarding renders without the app chrome — it is a focused
+          full-screen flow (goal → promise → plan) that ends at /setup. */}
+      <Route path="/welcome" element={<Onboarding />} />
       <Route element={<Layout />}>
         <Route path="/today" element={<Home />} />
         <Route path="/setup" element={<SemesterSetup />} />

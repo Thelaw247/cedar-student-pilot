@@ -59,8 +59,12 @@ export default function Register() {
       if (result?.access_token) {
         base44.auth.setToken(result.access_token);
       }
-      // Same validated redirect as Login — see src/lib/authReturnTo.js.
-      window.location.href = safeReturnTo();
+      // A brand-new account lands on first-run onboarding (goal → promise →
+      // plan, MON-04 §2); an explicit ?returnTo= still wins so deep links and
+      // the OAuth consent flow keep working. Login is unchanged — onboarding
+      // greets a person exactly once, at signup.
+      const explicitReturn = new URLSearchParams(window.location.search).get('returnTo');
+      window.location.href = explicitReturn ? safeReturnTo() : '/welcome';
     } catch (err) {
       setError(err.message || "Invalid verification code");
     } finally {

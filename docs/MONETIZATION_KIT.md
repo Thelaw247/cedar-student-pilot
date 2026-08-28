@@ -27,3 +27,24 @@ Rules the kit enforces by construction:
 
 Server note: `tiers.js` remains the display-side single source of truth for
 prices/copy; `createCheckoutSession` resolves real Stripe prices server-side.
+
+## First-run onboarding (`/welcome`)
+
+`src/pages/Onboarding.jsx` — the onboarding-primed paywall (MON-04 §2).
+Reached once, after signup completes (`Register` redirects there unless an
+explicit `?returnTo=` exists; Login never does). Three steps, all skippable:
+
+1. **Goal capture** — the student names their struggle; stored as
+   `cedar-goal` in localStorage (client-side only, no schema change) and
+   reused by the UpgradeSheet to personalize its generic entry copy.
+2. **Promise + trust** — the mechanism answered in their own terms, plus the
+   honest trust block (privacy, integrity, consent). No invented
+   testimonials or ratings — swap in real ones once they exist.
+3. **Plan** — Student ("Most popular" here: it is the natural first plan for
+   a brand-new user; the full pricing page highlights Scholar for
+   upgraders) and Scholar, semester default, billed total beside the
+   per-month price, and a full-width unshamed **Continue with Free** that
+   lands on `/setup` — the activation moment.
+
+`cedar-onboarded` marks completion; the flow is only auto-entered from
+signup, so revisits are possible but never forced.

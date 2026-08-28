@@ -23,10 +23,28 @@ const ENTRY_COPY = {
   onboarding: { title: 'Start the semester covered', sub: 'Most students pick Student. Change or cancel anytime.' },
 };
 
+// The onboarding goal (localStorage, set in Onboarding.jsx) upgrades the
+// generic entry to persona copy — the sheet speaks to the struggle the
+// student named on day one.
+const GOAL_SOURCES = {
+  'fast-prof': { title: 'Never miss a word again', sub: 'Student covers about 20 recorded, transcribed lectures a month.' },
+  notes: { title: 'Just listen. Cedar takes the notes.', sub: 'Every plan turns lectures into transcripts, summaries and flashcards.' },
+  exams: { title: 'Walk into every exam covered', sub: 'Flashcards, exam-mention tracking and topic prediction on every plan.' },
+  organized: { title: 'Your semester, already structured', sub: 'AI study schedules and a planner that rebooks itself.' },
+};
+
+function storedGoalCopy() {
+  try {
+    return GOAL_SOURCES[localStorage.getItem('cedar-goal')] || null;
+  } catch {
+    return null;
+  }
+}
+
 const PAYWALL_TIERS = ['student', 'scholar', 'unlimited'];
 
 export default function UpgradeSheet({ source = 'generic', onClose }) {
-  const copy = ENTRY_COPY[source] || ENTRY_COPY.generic;
+  const copy = (source === 'generic' && storedGoalCopy()) || ENTRY_COPY[source] || ENTRY_COPY.generic;
   const { tier: currentTier } = useBalance();
   const [period, setPeriod] = useState('semester');
   const [busy, setBusy] = useState(null);
