@@ -106,3 +106,27 @@ Invariants:
   ClassDetail listen to.
 - The island keeps its dark surface in both themes deliberately: it reads as
   live hardware, constant on every screen.
+
+## Redesign status (session of Aug 28, 2026)
+
+Shipped, in order: R1 foundations (Widget/WidgetRow, IconChip, Segmented,
+lib/time, lib/eventMeta, lib/color + SEMANTIC), R2 recording island,
+R3 Home (SVG progress ring, flattened glance widget, segmented tabs, 30s
+clock), R4 Timeline/WeeklyCalendar/Classes (color law, N+1 fix, collapsible
+schedule, WeekView dead-code deletion, hoverOnlyWhenSupported), R5
+ClassDetail/LectureDetail/Flashcards/ExamPrediction (segmented tabs with
+counts, widgetized lecture sections, transcript reading measure, keyboard
+flashcards, per-day prediction cache), R6 hex cull + Settings/Planner
+widgetization + urgency-semantics fix + dead AIInsightCard removed +
+UserNotRegisteredError retokened.
+
+Still open from the Design Blueprint ledger (deliberately deferred):
+- The two celebration moments (day-complete spring is partial: the ring
+  closes animated; no toast yet; first-lecture-processed moment unbuilt).
+- Sheet unification (one bottom-sheet/modal component) — modals still use
+  their existing per-file markup, styled consistently but not shared.
+- Contextual notification opt-in (UpNextCard still asks on mount — kept to
+  avoid a silent feature regression; needs a designed toggle).
+- FocusMode component split (tokens fixed; the 700-line file stands).
+- Timeline auto-scroll-to-now (skipped: it would yank the page past the
+  hero widgets on load; revisit if the day view becomes its own screen).
