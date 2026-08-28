@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
+import { startCheckout as beginCheckout } from '@/lib/checkout';
 import { TIERS, TIER_ORDER, CREDIT_PACKS, CREDITS_PER_LECTURE } from '@/lib/tiers';
 import { Check, Loader2, ArrowLeft, Zap, Sparkles, AlertCircle } from 'lucide-react';
 
@@ -38,16 +39,11 @@ export default function Subscription() {
     setBusy(key);
     setError('');
     try {
-      const res = await base44.functions.invoke('createCheckoutSession', payload);
-      const url = res?.data?.url;
-      if (url) {
-        window.location.href = url;
-        return;
-      }
-      setError(res?.data?.error || 'Billing isn’t connected yet. Please try again shortly.');
+      await beginCheckout(payload); // shared with the UpgradeSheet — one checkout path (lib/checkout.js)
+      return;
     } catch (e) {
       console.error('[subscription] checkout failed', e);
-      setError('Could not start checkout. Please try again, or contact support if it keeps happening.');
+      setError(e?.message || 'Could not start checkout. Please try again, or contact support if it keeps happening.');
     }
     setBusy('');
   };
@@ -93,7 +89,7 @@ export default function Subscription() {
       </button>
 
       <div className="text-center mb-8">
-        <h1 className="font-heading text-3xl font-bold mb-2">Choose your plan</h1>
+        <h1 className="font-heading text-3xl font-bold mb-2">Walk into every exam covered</h1>
         <p className="text-sm text-muted-foreground max-w-lg mx-auto">
           Every plan includes the full exam coverage map, unlimited typed-note lectures, flashcards and analytics.
           Plans differ in how much you can <span className="text-foreground font-medium">record and process</span>.
@@ -136,13 +132,13 @@ export default function Subscription() {
         </div>
       )}
 
-      {/* Tier grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-12">
-        {TIER_ORDER.map((id) => {
+      {/* Tier grid — three paid cards; Unlimited anchors, Scholar carries the
+          "Most popular" emphasis, and Free lives as a plain-language exit row
+          below rather than a fourth card competing for attention (MON-04 §4). */}
+      <div className="grid gap-4 md:grid-cols-3 mb-6 max-w-4xl mx-auto">
+        {TIER_ORDER.filter((id) => id !== 'free').map((id) => {
           const tier = TIERS[id];
           const isCurrent = currentTier === id;
-          const isFree = id === 'free';
-          const price = isFree ? 0 : (period === 'monthly' ? tier.monthly : tier.semester);
           const saving = savingFor(tier);
           const featured = id === 'scholar';
 
@@ -150,7 +146,7 @@ export default function Subscription() {
             <div
               key={id}
               className={`relative rounded-2xl border p-5 flex flex-col ${
-                featured ? 'border-primary shadow-lg shadow-primary/5' : 'border-border'
+                featured ? 'border-primary/60 ring-1 ring-primary/25 shadow-2' : 'border-border shadow-1'
               } ${isCurrent ? 'bg-muted/30' : 'bg-card'}`}
             >
               {featured && !isCurrent && (
@@ -167,24 +163,23 @@ export default function Subscription() {
               <h2 className="font-heading text-lg font-bold">{tier.name}</h2>
               <p className="text-xs text-muted-foreground mb-4 min-h-[32px]">{tier.blurb}</p>
 
+              {/* Per-month framing sells; the true billed amount stays just as
+                  visible (App Review 3.1.2, and the honesty invariant). */}
               <div className="mb-1">
-                <span className="font-heading text-3xl font-bold">${price.toFixed(2)}</span>
-                {!isFree && (
-                  <span className="text-xs text-muted-foreground ml-1">
-                    {period === 'monthly' ? '/month' : 'every 4 months'}
-                  </span>
-                )}
+                <span className="font-heading text-3xl font-bold">
+                  ${(period === 'semester' && saving ? Number(saving.perMonth) : tier.monthly).toFixed(2)}
+                </span>
+                <span className="text-xs text-muted-foreground ml-1">/month</span>
               </div>
 
               <div className="min-h-[32px] mb-4">
-                {isFree ? (
-                  <p className="text-xs text-muted-foreground">Free forever</p>
-                ) : period === 'semester' && saving ? (
-                  <p className="text-xs text-emerald-600">
-                    ${saving.perMonth}/mo · save ${saving.saved}
+                {period === 'semester' ? (
+                  <p className="text-xs text-foreground">
+                    Billed ${tier.semester.toFixed(2)} once per semester
+                    {saving && <span className="text-emerald-600"> · save ${saving.saved}</span>}
                   </p>
                 ) : (
-                  <p className="text-xs text-muted-foreground">Billed monthly</p>
+                  <p className="text-xs text-muted-foreground">Billed ${tier.monthly.toFixed(2)} every month</p>
                 )}
               </div>
 
@@ -218,11 +213,7 @@ export default function Subscription() {
                 </p>
               )}
 
-              {isFree ? (
-                <button disabled className="w-full py-2.5 rounded-xl border border-border text-sm font-medium text-muted-foreground cursor-default">
-                  {isCurrent ? 'Your plan' : 'Included'}
-                </button>
-              ) : isCurrent ? (
+              {isCurrent ? (
                 <button
                   onClick={async () => {
                     setBusy('portal');
@@ -259,24 +250,42 @@ export default function Subscription() {
         })}
       </div>
 
-      {/* Credit packs */}
-      <div className="rounded-2xl border border-border bg-card p-6">
+      {/* The dignified exit (MON-04): staying on Free is stated plainly, never
+          shamed — the free tier's job is proving the magic, and Free users are
+          tomorrow's midterm converts. */}
+      <p className="text-center text-xs text-muted-foreground max-w-xl mx-auto mb-3">
+        Staying on <span className="text-foreground font-medium">Free</span>? You keep the exam coverage map,
+        unlimited typed-note lectures, flashcards, analytics — and your {TIERS.free.creditsPerMonth} starter credits
+        ({Math.floor(TIERS.free.creditsPerMonth / CREDITS_PER_LECTURE)} recorded lectures).
+      </p>
+      <p className="text-center text-[11px] text-muted-foreground mb-12">
+        Cancel anytime · No hidden fees · Prices in CAD
+      </p>
+
+      {/* Credit packs — deliberately the overflow, not the pitch (MON-04 §4):
+          they follow the plans, show their own per-credit math beside the
+          subscription rate, and stay visually quiet. They exist to catch the
+          commitment-averse panic buyer, not to compete with plans. */}
+      <div id="packs" className="rounded-2xl border border-border bg-muted/20 p-6 max-w-4xl mx-auto">
         <div className="flex items-center gap-2 mb-1">
           <Zap className="w-4 h-4 text-primary" />
-          <h2 className="font-heading text-lg font-bold">Need a top-up instead?</h2>
+          <h2 className="font-heading text-base font-bold">Just need a few credits?</h2>
         </div>
-        <p className="text-sm text-muted-foreground mb-5">
-          One-off credit packs. No subscription needed, and{' '}
-          <span className="text-foreground font-medium">purchased credits never expire</span> — they survive
-          cancellation and are spent only after your monthly credits run out.
+        <p className="text-xs text-muted-foreground mb-5">
+          One-off packs — no subscription, and{' '}
+          <span className="text-foreground font-medium">purchased credits never expire</span>. They cost more per
+          credit than a plan (plans start around ${(TIERS.student.monthly / TIERS.student.creditsPerMonth).toFixed(2)}/credit),
+          which is the price of no commitment.
         </p>
 
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-3">
           {CREDIT_PACKS.map((p) => (
-            <div key={p.id} className="rounded-xl border border-border p-4 flex flex-col">
+            <div key={p.id} className="rounded-xl border border-border bg-card p-4 flex flex-col">
               <p className="text-sm font-semibold">{p.name}</p>
               <p className="font-heading text-2xl font-bold mt-1">${p.price.toFixed(2)}</p>
-              <p className="text-xs text-muted-foreground mb-1">{p.credits} credits</p>
+              <p className="text-xs text-muted-foreground mb-1">
+                {p.credits} credits · ${(p.price / p.credits).toFixed(3)}/credit
+              </p>
               <p className="text-[11px] text-muted-foreground mb-4 flex-1">
                 ~{Math.floor(p.credits / CREDITS_PER_LECTURE)} recorded lectures
               </p>
