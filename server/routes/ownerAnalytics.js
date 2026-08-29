@@ -35,6 +35,13 @@ router.post('/', requireAuth, requireAdmin, async (req, res) => {
   try {
     const { rows: balances } = await pool.query('select * from credit_balances');
     const { rows: events } = await pool.query('select * from usage_events');
+    // Paywall funnel (MON-04 Phase D): event counts + unique users, 30 days.
+    const { rows: funnelRows } = await pool.query(
+      `select event, count(*)::int as count, count(distinct user_id)::int as users
+         from product_events
+        where created_at > now() - interval '30 days'
+        group by event
+        order by count desc`);
     const { rows: users } = await pool.query(
       `select u.id, u.email, u.created_at, p.full_name from auth.users u left join profiles p on p.id = u.id`);
 
@@ -110,6 +117,7 @@ router.post('/', requireAuth, requireAdmin, async (req, res) => {
     const subs = customers.filter((c) => c.subscribed);
 
     res.json({
+      paywall_funnel: funnelRows,
       generated_at: new Date().toISOString(),
       totals: {
         users: customers.length, paying_customers: paying.length, active_subscribers: subs.length,

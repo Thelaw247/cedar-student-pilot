@@ -305,3 +305,19 @@ and icons at cedar-student-pilot.dewetluus.workers.dev.
    itself.
 7. Phase D decisions: paywall analytics events; RevenueCat + Apple IAP
    timing (launch-blocking for the iOS build).
+
+## Phase D progress — Aug 28, 2026 (evening)
+
+Paywall funnel analytics SHIPPED, first-party only: `product_events` table
+(deny-all RLS, service-role writes — the advisors' "RLS enabled no policy"
+INFO on it is intentional, same as system_state), `trackEvent` route with a
+server-side event whitelist and scalar-only meta sanitizer, fire-and-forget
+`lib/analytics.js` on the client (telemetry can never block or break UI),
+and instrumentation across the funnel: onboarding paywall viewed → exit
+offer shown → exit-Scholar clicked / continue-free, upgrade sheet opened
+(source + feature), checkout started (tier/period/source), feature lock
+taps. ownerAnalytics now returns `paywall_funnel` (30-day counts + unique
+users per event) for the owner dashboard.
+
+Phase D remaining: RevenueCat + Apple IAP — a decision + accounts, blocking
+only the iOS App Store build (web launch proceeds without it).

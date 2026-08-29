@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mic, FileText, Layers, CalendarCheck, Check, Loader2, Shield, X, Lock, Sparkles } from 'lucide-react';
 import { TIERS, CREDITS_PER_LECTURE } from '@/lib/tiers';
 import { startCheckout } from '@/lib/checkout';
+import { track } from '@/lib/analytics';
 
 /**
  * The onboarding-primed paywall, v2 (MON-04 §2 + Aug 2026 rework).
@@ -75,6 +76,12 @@ export default function Onboarding() {
   // The soft exit: X on the paywall opens one recommendation screen.
   const [exitOffer, setExitOffer] = useState(false);
 
+  // Funnel telemetry — view/dismiss/convert on the one paywall (Phase D).
+  useEffect(() => {
+    if (step === 4 && !exitOffer) track('onboarding_paywall_viewed');
+    if (step === 4 && exitOffer) track('onboarding_exit_offer_shown');
+  }, [step, exitOffer]);
+
   const finish = (to = '/setup') => {
     try {
       localStorage.setItem('cedar-onboarded', '1');
@@ -93,6 +100,8 @@ export default function Onboarding() {
   const buy = async (tierId) => {
     setBusy(tierId);
     setError(null);
+    track('checkout_started', { tier: tierId, period, source: exitOffer ? 'onboarding-exit' : 'onboarding' });
+    if (exitOffer) track('onboarding_exit_scholar_clicked');
     try { localStorage.setItem('cedar-onboarded', '1'); } catch { /* cosmetic */ }
     try {
       await startCheckout({ tier: tierId, billing_period: period });
@@ -322,7 +331,7 @@ export default function Onboarding() {
                 className="w-full py-3 rounded-button bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors duration-micro disabled:opacity-50 flex items-center justify-center gap-2">
                 {busy === 'scholar' ? <><Loader2 className="w-4 h-4 animate-spin" /> Opening checkout…</> : 'Get Scholar'}
               </button>
-              <button type="button" onClick={() => finish()}
+              <button type="button" onClick={() => { track('onboarding_continue_free'); finish(); }}
                 className="mt-2.5 w-full py-2.5 rounded-button border border-border text-sm font-medium text-foreground hover:bg-muted transition-colors duration-micro">
                 Continue with Free
               </button>

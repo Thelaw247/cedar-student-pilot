@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { X, Check, Loader2 } from 'lucide-react';
 import { TIERS, TIER_ORDER, CREDIT_COSTS, CREDITS_PER_LECTURE, FEATURES, featureMinTierName } from '@/lib/tiers';
 import { startCheckout } from '@/lib/checkout';
 import { useBalance } from '@/hooks/useBalance';
+import { track } from '@/lib/analytics';
 
 /**
  * The single upgrade surface (MON-04 §3-4). Entry-aware headline, semester
@@ -59,12 +60,18 @@ export default function UpgradeSheet({ source = 'generic', feature = null, onClo
   const [busy, setBusy] = useState(null);
   const [error, setError] = useState(null);
 
+  useEffect(() => {
+    track('upgrade_sheet_opened', feature ? { source, feature } : { source });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const currentRank = TIER_ORDER.indexOf(currentTier);
   const options = PAYWALL_TIERS.filter((id) => TIER_ORDER.indexOf(id) > currentRank);
 
   const buy = async (tierId) => {
     setBusy(tierId);
     setError(null);
+    track('checkout_started', { tier: tierId, period, source, ...(feature ? { feature } : {}) });
     try {
       await startCheckout({ tier: tierId, billing_period: period });
     } catch (e) {

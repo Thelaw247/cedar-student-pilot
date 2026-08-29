@@ -1,6 +1,7 @@
 import { useBalance } from '@/hooks/useBalance';
 import { useUpgrade } from '@/components/monetization/UpgradeContext';
 import { hasFeature, featureMinTierName } from '@/lib/tiers';
+import { track } from '@/lib/analytics';
 
 /**
  * One-hook feature gating for the UI (MON-04 rework, Aug 2026).
@@ -15,7 +16,10 @@ export function useFeatureGate(featureId) {
   const { openUpgrade } = useUpgrade();
   const allowed = hasFeature(tier, featureId);
   const requiredTierName = featureMinTierName(featureId);
-  const lock = () => openUpgrade({ source: 'feature-lock', feature: featureId });
+  const lock = () => {
+    track('feature_lock_tapped', { feature: featureId });
+    openUpgrade({ source: 'feature-lock', feature: featureId });
+  };
   return { allowed, requiredTierName, lock, tier };
 }
 
