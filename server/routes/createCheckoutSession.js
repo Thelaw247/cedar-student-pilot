@@ -24,6 +24,10 @@ router.post('/', requireAuth, async (req, res) => {
       'metadata[user_id]': user.id,
       success_url: `${ORIGIN}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${ORIGIN}/settings`,
+      // Finishing copy on hosted Checkout (branding pass, Aug 2026): the
+      // same honest reassurance the app shows beside every price. Stays
+      // accurate for both modes — the pack line is set below.
+      'custom_text[submit][message]': 'Cancel anytime — you keep your plan until the period ends. Prices in CAD.',
     };
 
     if (tier) {
@@ -53,6 +57,8 @@ router.post('/', requireAuth, async (req, res) => {
         'metadata[cedar_kind]': 'pack',
         'metadata[cedar_pack]': pack,
         'metadata[cedar_credits]': String(p.credits),
+        // One-time purchase — the subscription reassurance would be wrong here.
+        'custom_text[submit][message]': 'One-time purchase — credits never expire. Prices in CAD.',
       });
     } else {
       return res.status(400).json({ error: 'Provide a tier or a pack' });
