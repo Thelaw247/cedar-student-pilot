@@ -264,10 +264,15 @@ export default function FocusMode() {
       setPhase('studying');
     }
 
-    // If switching to pomodoro while studying/paused, start a fresh interval
+    // If switching to pomodoro while studying/paused, carry the elapsed time
+    // into the countdown: the interval picks up where the accumulated study
+    // time falls inside the current cycle instead of restarting at the full
+    // interval. Switching views must never look like it lost the clock —
+    // studySeconds is the one source of truth and is never reset here.
     if (newMode === 'pomodoro' && (phase === 'studying' || phase === 'paused')) {
       setPomodoroPhase('study');
-      const secs = studyMinutes * 60;
+      const cycle = studyMinutes * 60;
+      const secs = cycle - (studySeconds % cycle);
       intervalLeftRef.current = secs;
       setIntervalSecondsLeft(secs);
     }
