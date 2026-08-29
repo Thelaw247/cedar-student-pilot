@@ -1,0 +1,62 @@
+<!-- Cedar — password reset email (Supabase Auth template).
+     Paste into: Supabase dashboard -> Authentication -> Emails -> Reset password.
+     Subject line: Reset your Cedar password
+     Uses Supabase template variables ({{ .ConfirmationURL }}, {{ .SiteURL }}).
+     Email-client-safe: table layout, inline styles, system font stack, no
+     external images (the wordmark is text so nothing gets blocked). -->
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#F7F9FD;padding:32px 16px;">
+  <tr>
+    <td align="center">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;">
+        <!-- Brand bar -->
+        <tr>
+          <td style="padding:0 8px 16px;">
+            <span style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:18px;font-weight:700;color:#101828;letter-spacing:-0.02em;">
+              <span style="color:#2E66FF;">&#9650;</span>&nbsp;Cedar
+            </span>
+          </td>
+        </tr>
+        <!-- Card -->
+        <tr>
+          <td style="background-color:#FFFFFF;border:1px solid #DFE4EE;border-radius:16px;padding:32px;">
+            <h1 style="margin:0 0 12px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:22px;font-weight:700;color:#101828;letter-spacing:-0.02em;">
+              Reset your password
+            </h1>
+            <p style="margin:0 0 24px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:14px;line-height:22px;color:#3D4661;">
+              Someone asked to reset the password for this Cedar account. If that was you,
+              the button below opens a page where you can choose a new one. The link works once
+              and expires in one hour.
+            </p>
+            <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+              <tr>
+                <td align="center">
+                  <a href="{{ .ConfirmationURL }}"
+                     style="display:inline-block;background-color:#2E66FF;color:#FFFFFF;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:14px;font-weight:600;text-decoration:none;padding:13px 32px;border-radius:12px;">
+                    Choose a new password
+                  </a>
+                </td>
+              </tr>
+            </table>
+            <p style="margin:24px 0 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:12px;line-height:19px;color:#6B7488;">
+              Didn&rsquo;t ask for this? You can safely ignore this email — your password stays
+              exactly as it is, and nobody else can use this link without access to your inbox.
+            </p>
+            <p style="margin:16px 0 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:11px;line-height:17px;color:#9AA3B8;word-break:break-all;">
+              Button not working? Copy this link into your browser:<br>
+              <a href="{{ .ConfirmationURL }}" style="color:#2E66FF;text-decoration:underline;">{{ .ConfirmationURL }}</a>
+            </p>
+          </td>
+        </tr>
+        <!-- Footer -->
+        <tr>
+          <td style="padding:20px 8px 0;">
+            <p style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:11px;line-height:17px;color:#9AA3B8;">
+              Cedar Student Pilot · Made in Canada<br>
+              Your recordings and notes stay private to you.
+            </p>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
