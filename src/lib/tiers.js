@@ -159,6 +159,34 @@ export const FEATURES = {
   study_schedule:   { label: 'AI study schedules', minTier: 'scholar' },
 };
 
+/**
+ * The full plan-comparison matrix: every plan card renders this SAME list so
+ * the tiers line up row for row, with rows above the tier struck through —
+ * seeing exactly what is missed sells the step up better than a short list
+ * ever did (user request, Aug 2026). Labels here are marketing copy; the
+ * enforcing map is FEATURES above / server credits.js.
+ */
+export const PLAN_FEATURES = [
+  { label: 'Record, transcribe & summarize lectures', minTier: 'free' },
+  { label: 'Flashcards from every lecture', minTier: 'free' },
+  { label: 'Full exam coverage map', minTier: 'free' },
+  { label: 'Calendar, planner, focus mode & analytics', minTier: 'free' },
+  { label: 'Timetable import & unlimited typed notes', minTier: 'free' },
+  { label: 'AI lecture reviews & quick quizzes', minTier: 'student' },
+  { label: 'Practice questions & study material', minTier: 'student' },
+  { label: 'Missed-lecture catch-up summaries', minTier: 'student' },
+  { label: 'Cleaned \u201cProfessor\u2019s Voice\u201d transcripts', minTier: 'student' },
+  { label: 'Smart rebooking & project roadmaps', minTier: 'student' },
+  { label: 'Class handbooks for every course', minTier: 'scholar' },
+  { label: 'Exam topic prediction', minTier: 'scholar' },
+  { label: 'AI study schedules', minTier: 'scholar' },
+  { label: 'Full proficiency history', minTier: 'scholar' },
+  { label: 'Priority processing', minTier: 'unlimited' },
+];
+
+/** Does this plan include this PLAN_FEATURES row? */
+export const planHas = (tierId, feature) => tierRank(tierId) >= tierRank(feature.minTier);
+
 export const tierRank = (id) => Math.max(0, TIER_ORDER.indexOf(id || 'free'));
 
 /** Can this tier use this feature? Unknown features are never locked. */

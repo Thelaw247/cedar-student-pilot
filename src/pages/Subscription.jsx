@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { startCheckout as beginCheckout } from '@/lib/checkout';
-import { TIERS, TIER_ORDER, CREDIT_PACKS, CREDITS_PER_LECTURE } from '@/lib/tiers';
+import { TIERS, TIER_ORDER, CREDIT_PACKS, CREDITS_PER_LECTURE, PLAN_FEATURES, planHas } from '@/lib/tiers';
 import { Check, Loader2, ArrowLeft, Zap, Sparkles, AlertCircle } from 'lucide-react';
 
 /**
@@ -192,19 +192,23 @@ export default function Subscription() {
                 </p>
               </div>
 
+              {/* Every card renders the SAME matrix so tiers line up row for
+                  row; rows above the tier are struck through — what you'd
+                  miss is the pitch. */}
               <ul className="space-y-1.5 mb-5 flex-1">
-                {tier.includes.map((f, i) => (
-                  <li key={i} className="flex items-start gap-2 text-xs">
-                    <Check className="w-3.5 h-3.5 text-primary mt-0.5 flex-shrink-0" strokeWidth={2.5} />
-                    <span className="text-foreground">{f}</span>
-                  </li>
-                ))}
-                {tier.excludes?.map((f, i) => (
-                  <li key={`x${i}`} className="flex items-start gap-2 text-xs text-muted-foreground/60">
-                    <span className="w-3.5 text-center mt-0.5 flex-shrink-0">–</span>
-                    <span className="line-through">{f}</span>
-                  </li>
-                ))}
+                {PLAN_FEATURES.map((f) => {
+                  const has = planHas(tier.id, f);
+                  return (
+                    <li key={f.label} className={`flex items-start gap-2 text-xs ${has ? '' : 'text-muted-foreground/60'}`}>
+                      {has ? (
+                        <Check className="w-3.5 h-3.5 text-primary mt-0.5 flex-shrink-0" strokeWidth={2.5} />
+                      ) : (
+                        <span className="w-3.5 text-center mt-0.5 flex-shrink-0">–</span>
+                      )}
+                      <span className={has ? 'text-foreground' : 'line-through'}>{f.label}</span>
+                    </li>
+                  );
+                })}
               </ul>
 
               {tier.fairUseHoursPerSemester && (

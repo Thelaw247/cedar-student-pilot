@@ -23,11 +23,15 @@ export default function LockedFeature({
   return (
     <div className={`relative overflow-hidden rounded-2xl border border-border bg-card ${className}`}>
       {children && (
-        <div className="pointer-events-none select-none blur-[6px] opacity-60 max-h-72 overflow-hidden" aria-hidden="true">
+        <div className="pointer-events-none select-none blur-[6px] opacity-60 max-h-72 min-h-[128px] overflow-hidden" aria-hidden="true">
           {children}
         </div>
       )}
-      <div className={children ? 'absolute inset-0 flex items-end bg-gradient-to-t from-card via-card/85 to-card/10' : ''}>
+      {/* The panel sits in normal flow and overlaps the preview's bottom with
+          a negative margin, so it can never be taller than its box and clip —
+          the absolutely-positioned version cut the copy off whenever the
+          preview was shorter than the pitch (seen on the Handbook tab). */}
+      <div className={children ? 'relative -mt-24 bg-gradient-to-t from-card via-card/90 to-transparent pt-12' : ''}>
         <div className="p-5 w-full">
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-[11px] font-semibold mb-2">
             <Lock className="w-3 h-3" strokeWidth={2.5} /> {requiredTierName} and up

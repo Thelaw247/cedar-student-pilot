@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { X, Check, Loader2 } from 'lucide-react';
-import { TIERS, TIER_ORDER, CREDIT_COSTS, CREDITS_PER_LECTURE, FEATURES, featureMinTierName } from '@/lib/tiers';
+import { TIERS, TIER_ORDER, CREDIT_COSTS, CREDITS_PER_LECTURE, FEATURES, featureMinTierName, PLAN_FEATURES, planHas } from '@/lib/tiers';
 import { startCheckout } from '@/lib/checkout';
 import { useBalance } from '@/hooks/useBalance';
 import { track } from '@/lib/analytics';
@@ -160,12 +160,22 @@ export default function UpgradeSheet({ source = 'generic', feature = null, onClo
                         ? `Billed $${t.semester.toFixed(2)} once per semester.`
                         : `Billed $${t.monthly.toFixed(2)} monthly.`}
                     </p>
+                    {/* The SAME full matrix on every card, rows above the
+                        tier struck through — the gap sells the step up. */}
                     <ul className="mt-2 space-y-1">
-                      {t.includes.slice(0, 3).map((line) => (
-                        <li key={line} className="flex items-start gap-1.5 text-xs text-foreground">
-                          <Check className="w-3.5 h-3.5 text-primary mt-[1px] flex-shrink-0" strokeWidth={2.5} /> {line}
-                        </li>
-                      ))}
+                      {PLAN_FEATURES.map((f) => {
+                        const has = planHas(id, f);
+                        return (
+                          <li key={f.label} className={`flex items-start gap-1.5 text-xs ${has ? 'text-foreground' : 'text-muted-foreground/60'}`}>
+                            {has ? (
+                              <Check className="w-3.5 h-3.5 text-primary mt-[1px] flex-shrink-0" strokeWidth={2.5} />
+                            ) : (
+                              <span className="w-3.5 text-center flex-shrink-0">–</span>
+                            )}
+                            <span className={has ? '' : 'line-through'}>{f.label}</span>
+                          </li>
+                        );
+                      })}
                     </ul>
                     <button
                       type="button"

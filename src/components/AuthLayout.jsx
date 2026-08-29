@@ -1,80 +1,84 @@
 import React from "react";
 import { Check } from "lucide-react";
-import { CEDAR_LOGO_URL } from "@/lib/brand";
 
 /**
- * The auth shell for Login, Register, Forgot- and Reset-password (Aug 2026
- * redesign). Desktop (lg+) is a split screen: a deep-navy brand panel — the
- * same constant surface as the recording island, with a soft brand-blue
- * glow — carrying the wordmark and the three-line pitch, beside the form.
- * Below lg it collapses to the classic centered card with the brandmark on
- * top. Pure presentation: every page's form logic is untouched.
+ * Auth shell for Login, Register, Forgot-/Reset-password and the OAuth
+ * consent screens (Aug 2026 glass redesign). One constant visual world in
+ * both themes — like the recording island: the glass brandmark blown up to
+ * fill the viewport, heavily blurred and darkened, with the crisp mark and
+ * the form card floating on top. Pure presentation: every page's form logic
+ * is untouched, and the card interior keeps theme tokens so the forms render
+ * correctly in light and dark.
+ *
+ * Assets (public/): logo-glass-160.png is the crisp transparent brandmark;
+ * logo-glass-blur-512.png is a palette-quantized copy used only as background
+ * art — the heavy blur hides the quantization, and it keeps the page light.
  */
-const PITCH = [
-  'Record the lecture — Cedar takes the notes',
-  'Transcripts, summaries and flashcards, minutes after class',
-  'Your recordings stay private to you',
-];
+const TRUST = ["Records & transcribes", "Summaries & flashcards", "Private to you"];
 
-export default function AuthLayout({ icon: Icon, title, subtitle = '', footer = null, children = null }) {
+// eslint-disable-next-line no-unused-vars -- icon is accepted for API stability; the glass brandmark is the hero now
+export default function AuthLayout({ icon = undefined, title, subtitle = "", footer = null, children = null }) {
   return (
-    <div className="min-h-screen flex bg-background">
-      {/* Brand panel — desktop only */}
-      <div
-        className="hidden lg:flex w-[44%] max-w-xl flex-col justify-between p-12 text-white relative overflow-hidden"
-        style={{ backgroundColor: '#14192A' }}
-      >
-        {/* Soft brand glow, purely decorative */}
-        <div
-          aria-hidden="true"
-          className="absolute -top-40 -right-40 w-[480px] h-[480px] rounded-full pointer-events-none"
-          style={{ background: 'radial-gradient(circle, rgba(46,102,255,0.28) 0%, rgba(46,102,255,0) 70%)' }}
+    <div className="relative min-h-screen overflow-hidden flex flex-col" style={{ backgroundColor: "#0B0E16" }}>
+      {/* Background: the brandmark over the whole screen, blurred and darkened */}
+      <div aria-hidden="true" className="absolute inset-0 pointer-events-none select-none">
+        <img
+          src="/logo-glass-blur-512.png"
+          alt=""
+          className="absolute left-1/2 top-1/2 w-[115vmax] max-w-none -translate-x-1/2 -translate-y-1/2 rotate-[8deg] blur-[70px] opacity-50"
         />
-        <div className="relative flex items-center gap-3">
-          <img src={CEDAR_LOGO_URL} alt="" className="w-9 h-9" />
-          <span className="font-heading text-lg font-bold tracking-tight">Cedar</span>
-        </div>
-        <div className="relative">
-          <h2 className="font-heading text-3xl font-bold leading-tight mb-6 text-balance">
-            Every lecture, remembered for you.
-          </h2>
-          <ul className="space-y-3.5">
-            {PITCH.map((line) => (
-              <li key={line} className="flex items-start gap-3 text-sm text-white/80">
-                <span className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0 mt-[1px]">
-                  <Check className="w-3 h-3 text-white" strokeWidth={2.5} />
-                </span>
-                {line}
-              </li>
-            ))}
-          </ul>
-        </div>
-        <p className="relative text-xs text-white/40">
-          Made in Canada · Your recordings stay private to you
-        </p>
+        {/* Darkening + vignette so the form stays the focal point */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(ellipse at 50% 38%, rgba(11,14,22,0.45) 0%, rgba(11,14,22,0.82) 68%, rgba(11,14,22,0.94) 100%)",
+          }}
+        />
+        {/* Faint dot grid for texture, faded out toward the edges */}
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage: "radial-gradient(rgba(255,255,255,0.05) 1px, transparent 1px)",
+            backgroundSize: "26px 26px",
+            maskImage: "radial-gradient(ellipse at 50% 40%, black 0%, transparent 72%)",
+            WebkitMaskImage: "radial-gradient(ellipse at 50% 40%, black 0%, transparent 72%)",
+          }}
+        />
       </div>
 
-      {/* Form side */}
-      <div className="flex-1 flex items-center justify-center px-4 py-10">
+      <div className="relative flex-1 flex items-center justify-center px-4 py-10">
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
-            {/* Brandmark on mobile (the panel carries it on desktop);
-                the page's own icon in a quiet chip on desktop. */}
-            <img src={CEDAR_LOGO_URL} alt="Cedar" className="w-12 h-12 mx-auto mb-4 lg:hidden" />
-            <div className="hidden lg:inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-primary/10 mb-4">
-              <Icon className="w-6 h-6 text-primary" aria-hidden="true" />
-            </div>
-            <h1 className="font-heading text-2xl sm:text-3xl font-bold tracking-tight text-foreground text-balance">{title}</h1>
-            {subtitle && <p className="text-sm text-muted-foreground mt-2">{subtitle}</p>}
+            <img
+              src="/logo-glass-160.png"
+              alt="Cedar"
+              className="w-16 h-16 mx-auto mb-4 drop-shadow-[0_10px_28px_rgba(46,102,255,0.45)]"
+            />
+            <h1 className="font-heading text-2xl sm:text-3xl font-bold tracking-tight text-white text-balance">{title}</h1>
+            {subtitle && <p className="text-sm text-white/60 mt-2">{subtitle}</p>}
           </div>
-          <div className="bg-card rounded-2xl shadow-2 border border-border p-6 sm:p-8">
+
+          <div className="bg-card rounded-3xl shadow-3 ring-1 ring-white/10 p-6 sm:p-8">
             {children}
           </div>
-          {footer && (
-            <p className="text-center text-sm text-muted-foreground mt-6">{footer}</p>
-          )}
+
+          {footer && <p className="text-center text-sm text-white/70 mt-6">{footer}</p>}
+
+          <div className="hidden sm:flex items-center justify-center gap-5 mt-8">
+            {TRUST.map((t) => (
+              <span key={t} className="flex items-center gap-1.5 text-xs text-white/40">
+                <Check className="w-3.5 h-3.5 text-white/60" strokeWidth={2.5} />
+                {t}
+              </span>
+            ))}
+          </div>
         </div>
       </div>
+
+      <p className="relative text-center text-[11px] text-white/30 pb-6 px-4">
+        Made in Canada &middot; Your recordings stay private to you
+      </p>
     </div>
   );
 }
