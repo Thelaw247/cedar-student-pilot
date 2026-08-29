@@ -160,27 +160,29 @@ export const FEATURES = {
 };
 
 /**
- * The full plan-comparison matrix: every plan card renders this SAME list so
- * the tiers line up row for row, with rows above the tier struck through —
- * seeing exactly what is missed sells the step up better than a short list
- * ever did (user request, Aug 2026). Labels here are marketing copy; the
- * enforcing map is FEATURES above / server credits.js.
+ * The plan-comparison matrix for the FULL /subscription page only — the
+ * compact surfaces (UpgradeSheet, onboarding paywall) keep short lists to
+ * stay scannable. Every card on the page renders this SAME list so tiers
+ * line up row for row, with unavailable rows struck through. Deliberately
+ * short and balanced (3 rows a tier, 2 for Unlimited): a consistent value
+ * step between tiers, only the headline features. Labels are marketing
+ * copy; the enforcing map is FEATURES above / server credits.js.
  */
 export const PLAN_FEATURES = [
+  // Free — the hook (3)
   { label: 'Record, transcribe & summarize lectures', minTier: 'free' },
   { label: 'Flashcards from every lecture', minTier: 'free' },
-  { label: 'Full exam coverage map', minTier: 'free' },
-  { label: 'Calendar, planner, focus mode & analytics', minTier: 'free' },
-  { label: 'Timetable import & unlimited typed notes', minTier: 'free' },
+  { label: 'Calendar, planner & exam coverage map', minTier: 'free' },
+  // Student — the everyday study kit (3)
   { label: 'AI lecture reviews & quick quizzes', minTier: 'student' },
-  { label: 'Practice questions & study material', minTier: 'student' },
-  { label: 'Missed-lecture catch-up summaries', minTier: 'student' },
-  { label: 'Cleaned \u201cProfessor\u2019s Voice\u201d transcripts', minTier: 'student' },
+  { label: 'Practice questions & catch-up summaries', minTier: 'student' },
   { label: 'Smart rebooking & project roadmaps', minTier: 'student' },
+  // Scholar — everything unlocked (3)
   { label: 'Class handbooks for every course', minTier: 'scholar' },
   { label: 'Exam topic prediction', minTier: 'scholar' },
   { label: 'AI study schedules', minTier: 'scholar' },
-  { label: 'Full proficiency history', minTier: 'scholar' },
+  // Unlimited — volume (2)
+  { label: 'Record every lecture and lab', minTier: 'unlimited' },
   { label: 'Priority processing', minTier: 'unlimited' },
 ];
 

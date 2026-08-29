@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mic, FileText, Layers, CalendarCheck, Check, Loader2, Shield, X, Lock, Sparkles } from 'lucide-react';
-import { TIERS, CREDITS_PER_LECTURE, PLAN_FEATURES, planHas } from '@/lib/tiers';
+import { TIERS, CREDITS_PER_LECTURE } from '@/lib/tiers';
 import { startCheckout } from '@/lib/checkout';
 import { track } from '@/lib/analytics';
 
@@ -281,22 +281,14 @@ export default function Onboarding() {
                         {period === 'semester' ? `Billed $${t.semester.toFixed(2)} once per semester.` : `Billed $${t.monthly.toFixed(2)} monthly.`}{' '}
                         ~{Math.floor(t.creditsPerMonth / CREDITS_PER_LECTURE)} recorded lectures a month.
                       </p>
-                      {/* Full matrix, same on both cards — Student's struck-
-                          through rows are exactly what Scholar unlocks. */}
+                      {/* Compact by design — the paywall step stays scannable;
+                          the full comparison lives on /subscription. */}
                       <ul className="mb-2.5 space-y-1">
-                        {PLAN_FEATURES.map((f) => {
-                          const has = planHas(id, f);
-                          return (
-                            <li key={f.label} className={`flex items-start gap-1.5 text-xs ${has ? 'text-foreground' : 'text-muted-foreground/60'}`}>
-                              {has ? (
-                                <Check className="w-3.5 h-3.5 text-primary mt-[1px] flex-shrink-0" strokeWidth={2.5} />
-                              ) : (
-                                <span className="w-3.5 text-center flex-shrink-0">–</span>
-                              )}
-                              <span className={has ? '' : 'line-through'}>{f.label}</span>
-                            </li>
-                          );
-                        })}
+                        {t.includes.slice(1, 4).map((line) => (
+                          <li key={line} className="flex items-start gap-1.5 text-xs text-foreground">
+                            <Check className="w-3.5 h-3.5 text-primary mt-[1px] flex-shrink-0" strokeWidth={2.5} /> {line}
+                          </li>
+                        ))}
                       </ul>
                       <button type="button" onClick={() => buy(id)} disabled={busy !== null}
                         className={`w-full py-2.5 rounded-button text-sm font-medium transition-colors duration-micro disabled:opacity-50 flex items-center justify-center gap-2 ${recommended ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 'border border-border text-foreground hover:bg-muted'}`}>
