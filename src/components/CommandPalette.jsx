@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Clock, GraduationCap, BookOpen, FileText, Mic, Calendar } from 'lucide-react';
+import { fetchWithCache } from '@/hooks/useEntityData';
+import { useTodaySchedule } from '@/hooks/useTodaySchedule';
+import { searchPalette, classNameFor } from '@/lib/paletteSearch';
 
 /**
  * Universal Command Palette — ⌘K / Ctrl+K
@@ -8,12 +11,45 @@ import { Search, Clock, GraduationCap, BookOpen, FileText, Mic, Calendar } from 
  *
  * The "Ask AI" entries were removed along with the AI Assistant page — they
  * pointed at /assistant, which no longer has a route.
+ *
+ * This component loads its own data. It used to take classes/lectures/
+ * assignments as props, but Layout — the only thing that renders it — has no
+ * data of its own and passed none, so every prop sat at its [] default and the
+ * palette could never match anything a student typed. Searching a real class
+ * name returned "No results found". Props still win when given (tests, and any
+ * future surface that already holds the data); otherwise the palette fetches
+ * on first open, so a student who never presses ⌘K pays nothing for it.
  */
-export default function CommandPalette({ classes = [], lectures = [], assignments = [], onStartRecording = null }) {
+export default function CommandPalette({ classes: classesProp = null, lectures: lecturesProp = null, assignments: assignmentsProp = null, onStartRecording = null }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [activeIndex, setActiveIndex] = useState(0);
+  const [loaded, setLoaded] = useState({ lectures: [], assignments: [] });
   const navigate = useNavigate();
+
+  // Every class in the active semester, already fetched and cached for the
+  // record picker — reused here rather than fetched a second time.
+  const { classes: semesterClasses } = useTodaySchedule();
+
+  const classes = classesProp ?? semesterClasses;
+  const lectures = lecturesProp ?? loaded.lectures;
+  const assignments = assignmentsProp ?? loaded.assignments;
+
+  // Lectures and assignments are only needed once the palette is actually
+  // opened, and only if the caller did not supply them.
+  useEffect(() => {
+    if (!open) return undefined;
+    if (lecturesProp && assignmentsProp) return undefined;
+    let cancelled = false;
+    (async () => {
+      const [lec, asg] = await Promise.all([
+        lecturesProp ? Promise.resolve(lecturesProp) : fetchWithCache('Lecture', 'list', ['-date', 200]),
+        assignmentsProp ? Promise.resolve(assignmentsProp) : fetchWithCache('Assignment', 'list', ['-due_date', 200]),
+      ]);
+      if (!cancelled) setLoaded({ lectures: lec || [], assignments: asg || [] });
+    })();
+    return () => { cancelled = true; };
+  }, [open, lecturesProp, assignmentsProp]);
 
   useEffect(() => {
     const handler = (e) => {
@@ -39,11 +75,13 @@ export default function CommandPalette({ classes = [], lectures = [], assignment
     if (q.includes('record') || q.includes('lecture')) actions.push({ label: 'Start Recording', icon: Mic, type: 'action', run: () => { onStartRecording?.(); setOpen(false); } });
     if (q.includes('event') || q.includes('add')) actions.push({ label: 'Add Event', icon: Calendar, type: 'action', run: () => { navigate('/today'); setOpen(false); } });
 
-    const matchedClasses = (classes || []).filter(c => c.name?.toLowerCase().includes(q)).slice(0, 3)
-      .map(c => ({ label: c.name, sub: c.instructor || 'Class', icon: GraduationCap, type: 'class', run: () => { navigate(`/classes/${c.id}`); setOpen(false); } }));
-    const matchedLectures = (lectures || []).filter(l => l.ai_title?.toLowerCase().includes(q) || l.transcript?.toLowerCase().includes(q)).slice(0, 3)
-      .map(l => ({ label: l.ai_title || `Lecture ${l.date}`, sub: l.date, icon: BookOpen, type: 'lecture', run: () => { navigate(`/lectures/${l.id}`); setOpen(false); } }));
-    const matchedAssignments = (assignments || []).filter(a => a.title?.toLowerCase().includes(q)).slice(0, 3)
+    const found = searchPalette(query, { classes, lectures, assignments });
+
+    const matchedClasses = found.classes
+      .map(c => ({ label: c.name, sub: c.course_code || c.instructor || 'Class', icon: GraduationCap, type: 'class', run: () => { navigate(`/classes/${c.id}`); setOpen(false); } }));
+    const matchedLectures = found.lectures
+      .map(l => ({ label: l.ai_title || `Lecture ${l.date}`, sub: [classNameFor(classes, l.class_id), l.date].filter(Boolean).join(' · '), icon: BookOpen, type: 'lecture', run: () => { navigate(`/lectures/${l.id}`); setOpen(false); } }));
+    const matchedAssignments = found.assignments
       .map(a => ({ label: a.title, sub: `Due ${a.due_date}`, icon: FileText, type: 'assignment', run: () => { navigate(`/classes/${a.class_id}`); setOpen(false); } }));
 
     return { actions, items: [...matchedClasses, ...matchedLectures, ...matchedAssignments] };
@@ -91,6 +129,7 @@ export default function CommandPalette({ classes = [], lectures = [], assignment
           {displayed.length === 0 ? (
             <div className="px-4 py-8 text-center">
               <p className="text-sm text-muted-foreground">No results found</p>
+              <p className="mt-1 text-xs text-muted-foreground">Searches your classes, recordings and assignments.</p>
             </div>
           ) : (
             <div className="space-y-0.5">

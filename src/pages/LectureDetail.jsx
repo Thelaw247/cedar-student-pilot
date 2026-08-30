@@ -34,6 +34,9 @@ export default function LectureDetail() {
   // On-demand transcript cleanup — a paid pass, so it is never automatic.
   const [cleaning, setCleaning] = useState(false);
   const [cleanError, setCleanError] = useState(null);
+  // What the last cleanup pass actually changed, so a subtle result is still
+  // visible. Null until a run completes in this session.
+  const [cleanResult, setCleanResult] = useState(null);
   // Delete flow — two-step inline confirm, consistent with the pattern used
   // elsewhere in the app for destructive actions.
   const [confirmingDelete, setConfirmingDelete] = useState(false);
@@ -195,9 +198,18 @@ export default function LectureDetail() {
   const cleanTranscript = async () => {
     setCleaning(true);
     setCleanError(null);
+    setCleanResult(null);
     try {
       const res = await base44.functions.invoke('cleanLectureTranscript', { lecture_id: lectureId });
       if (res?.data?.error) throw new Error(res.data.error);
+      // Cleanup is punctuation, spelling and paragraphing — on a recording
+      // that was already fairly clean the diff can be a few hundred characters
+      // in twenty thousand, which reads as "nothing happened" unless we say
+      // what changed. The server reports both lengths; show them.
+      const { calls, chars_before: before, chars_after: after } = res?.data || {};
+      if (Number.isFinite(before) && Number.isFinite(after)) {
+        setCleanResult({ calls, before, after, delta: Math.abs(after - before) });
+      }
       invalidateEntity('Lecture');
       await loadData();
     } catch (e) {
@@ -213,6 +225,7 @@ export default function LectureDetail() {
     if (!lecture?.transcript_raw) return;
     setCleaning(true);
     setCleanError(null);
+    setCleanResult(null);
     try {
       await base44.entities.Lecture.update(lectureId, {
         transcript: lecture.transcript_raw,
@@ -537,6 +550,15 @@ export default function LectureDetail() {
 
           {cleanError && (
             <p className="text-[11px] text-destructive mb-2">{cleanError}</p>
+          )}
+          {cleanResult && !cleanError && (
+            <p className="text-[11px] text-muted-foreground mb-2">
+              Cleaned in {cleanResult.calls} pass{cleanResult.calls === 1 ? '' : 'es'}
+              {cleanResult.delta > 0
+                ? ` · ${cleanResult.delta.toLocaleString()} characters changed`
+                : ' · the transcript was already clean'}
+              . The original is kept — you can restore it below.
+            </p>
           )}
 
           <div className="max-h-96 overflow-y-auto pr-2">

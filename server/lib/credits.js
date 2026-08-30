@@ -1,4 +1,5 @@
 import { pool } from './db.js';
+import { recordCreditsSpent } from './creditSignal.js';
 
 // Direct port of base44/shared/credits.ts. Business rules, cost table, and
 // gate/settle contract are unchanged — only the storage layer differs
@@ -132,6 +133,9 @@ export async function spendCredits(balance, amount, operationId = crypto.randomU
     );
 
     if (result.rowCount === 1) {
+      // Tell the client something was charged, so the credit meter refreshes
+      // in the same beat instead of going stale until the next reload.
+      recordCreditsSpent(amount);
       return {
         ...current,
         subscription_credits: subscription - fromSub,

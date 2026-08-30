@@ -90,14 +90,31 @@ router.post('/', requireAuth, async (req, res) => {
     const llmUsage = createLlmUsage();
     const operationId = `clean:${lecture_id}`;
 
+    // A chunk the model returns nothing for falls back to the raw text so one
+    // bad chunk cannot delete part of a transcript. That fallback used to be
+    // silent: the lecture was still marked cleaned and still charged in full,
+    // and because the route is idempotent the student could never retry it.
+    // Count them, and refuse to charge for a pass that did nothing.
+    let fellBack = 0;
     for (const chunk of chunks) {
       const result = await invokeLLM({ usage: llmUsage, prompt: cleanPrompt(chunk, chunks.length > 1) });
       const part = asText(result).trim();
-      cleanedParts.push(part.length > 0 ? part : chunk);
+      if (part.length > 0) cleanedParts.push(part);
+      else { cleanedParts.push(chunk); fellBack += 1; }
     }
 
     const cleaned = cleanedParts.join('\n\n').trim();
-    if (!cleaned) return res.status(502).json({ error: 'Cleanup produced no output. Nothing was changed.' });
+    if (!cleaned || fellBack === chunks.length) {
+      await logUsage({
+        user_id: userId, feature: 'clean_transcript', lecture_id, provider: 'gemini',
+        model: Object.keys(llmUsage.models).join(', ') || 'automatic',
+        call_count: Number(llmUsage.geminiCalls || 0), input_tokens: llmUsage.inputTokens,
+        output_tokens: llmUsage.outputTokens, audio_seconds: audioSeconds,
+        cedar_credits_charged: 0, cost_cad: llmUsage.costCad, tier_at_time: balance.tier,
+        success: false, latency_ms: Date.now() - started,
+      });
+      return res.status(502).json({ error: 'Cleanup produced no output. Nothing was changed and you were not charged.' });
+    }
 
     const settled = await spendCredits(balance, cost, operationId);
     const chargedNow = settled?._operationAppliedNow === false ? 0 : cost;
@@ -119,7 +136,12 @@ router.post('/', requireAuth, async (req, res) => {
       success: true, latency_ms: Date.now() - started,
     });
 
-    res.json({ status: 'complete', calls: chunks.length, charged: chargedNow > 0, credits_charged: chargedNow, chars_before: source.length, chars_after: cleaned.length });
+    res.json({
+      status: 'complete', calls: chunks.length, charged: chargedNow > 0, credits_charged: chargedNow,
+      chars_before: source.length, chars_after: cleaned.length,
+      // > 0 means some chunks came back empty and kept their raw text.
+      chunks_unchanged: fellBack,
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

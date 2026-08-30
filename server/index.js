@@ -2,6 +2,7 @@ import express from 'express';
 import { fileURLToPath } from 'node:url';
 import { pool } from './lib/db.js';
 import { requestSecurity } from './lib/http.js';
+import { creditSignal } from './lib/creditSignal.js';
 import { checkR2Connection } from './lib/r2.js';
 import stripeWebhookRouter from './routes/stripeWebhook.js';
 import meRouter from './routes/me.js';
@@ -50,6 +51,12 @@ app.use(requestSecurity);
 app.use('/stripe/webhook', express.raw({ type: 'application/json' }), stripeWebhookRouter);
 
 app.use(express.json({ limit: '10mb' }));
+
+// Stamps X-Credits-Spent on any response whose handler actually charged, so
+// the client's credit meter refreshes immediately rather than going stale
+// until the next reload. Must sit above the routers and below the Stripe
+// webhook's raw body. See server/lib/creditSignal.js.
+app.use(creditSignal);
 
 app.use('/me', meRouter);
 app.use('/export-user-data', exportUserDataRouter);

@@ -1,3 +1,5 @@
+import { CREDITS_SPENT_HEADER } from './creditSignal.js';
+
 const LOCAL_ORIGINS = new Set([
   'http://localhost:5173',
   'http://127.0.0.1:5173',
@@ -36,6 +38,9 @@ export function requestSecurity(req, res, next) {
     'Access-Control-Allow-Credentials': 'true',
     'Access-Control-Allow-Headers': 'Authorization, Content-Type, Stripe-Signature',
     'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+    // Without this the browser hides X-Credits-Spent from the client and the
+    // credit meter goes stale again. See server/lib/creditSignal.js.
+    'Access-Control-Expose-Headers': CREDITS_SPENT_HEADER,
     Vary: 'Origin',
   });
 

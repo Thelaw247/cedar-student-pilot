@@ -131,6 +131,27 @@ async function authHeaders() {
   return session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {};
 }
 
+const CREDITS_SPENT_HEADER = 'X-Credits-Spent';
+
+/**
+ * Fire the app's existing data-changed event when a response reports a charge.
+ * useBalance listens for it, so the credit meter and every gated surface
+ * re-read the balance without any per-feature wiring. Header absent or zero
+ * (a cached read, a free action, a background job that charges later) is the
+ * common case and does nothing.
+ * @param {Response} response
+ */
+function announceCreditsSpent(response) {
+  try {
+    const spent = Number(response.headers.get(CREDITS_SPENT_HEADER));
+    if (Number.isFinite(spent) && spent > 0) {
+      window.dispatchEvent(new CustomEvent('cedar-data-changed'));
+    }
+  } catch {
+    // Header parsing must never break the request it rode in on.
+  }
+}
+
 /**
  * @param {string} path
  * @param {{method?: string, body?: any, headers?: Record<string, string>}} options
@@ -147,6 +168,11 @@ async function apiRequest(path, { method = 'GET', body, headers = {} } = {}) {
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   const data = response.status === 204 ? null : await response.json().catch(() => null);
+  // The server stamps X-Credits-Spent on any response whose handler charged.
+  // Announcing it here means every paid feature refreshes the credit meter the
+  // moment it settles — the meter used to sit on a stale number until the user
+  // reloaded, which reads as credits quietly disappearing.
+  announceCreditsSpent(response);
   if (!response.ok) {
     /** @type {Error & {code?: string, status?: number, response?: {data: any, status: number}}} */
     const error = new Error(data?.message || data?.error || `API request failed (${response.status})`);
