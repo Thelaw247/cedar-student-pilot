@@ -26,9 +26,9 @@ export const COST_PER_30MIN_CLEAN = 3;
 export const FEATURE_COSTS: Record<string, number> = {
   handbook: 5,
   study_material: 1,
-  exam_prediction: 1,
+  exam_prediction: 2,
   study_schedule: 1,
-  lecture_review: 2,
+  lecture_review: 3,
   missed_summary: 2,
   project_roadmap: 2,
   smart_rebook: 1,

@@ -25,13 +25,16 @@
  * $0.033/credit against $0.063-0.125 for every subscription tier, so packs
  * strictly dominated. Current per-credit rates:
  *
- *   Student   $9.99/mo   200 cr   $0.050      Small  100 cr  $6.99   $0.070
- *   Scholar   $16.99/mo  450 cr   $0.038      Medium 250 cr  $14.99  $0.060
- *   Unlimited $29.99/mo  1000 cr  $0.030      Large  500 cr  $27.99  $0.056
+ *   Student   $7.99/mo   200 cr   $0.040      Small  100 cr  $6.99   $0.070
+ *   Scholar   $12.99/mo  450 cr   $0.029      Medium 250 cr  $14.99  $0.060
+ *   Unlimited $24.99/mo  1000 cr  $0.025      Large  500 cr  $27.99  $0.056
  *
- * Cheapest pack ($0.056) is dearer than the priciest subscription ($0.050),
+ * Cheapest pack ($0.056) is dearer than the priciest subscription ($0.040),
  * so the ordering holds everywhere, semester included. If you ever change an
  * amount here, re-check that invariant before shipping.
+ *
+ * NOTE: this file is the retired Base44 copy, kept for reference only. The
+ * live catalogue is server/lib/stripePrices.js.
  */
 import { secrets } from 'base44:runtime';
 

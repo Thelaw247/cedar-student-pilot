@@ -15,12 +15,16 @@ import { pool } from './db.js';
 export const COST_PER_30MIN_PROCESS = 5;
 export const COST_PER_30MIN_CLEAN = 3;
 
+// exam_prediction and lecture_review both run on the QUALITY model. Priced at
+// 1 and 2 credits they cost $0.0066 and $0.0093 per credit — above what a
+// recorded minute costs. At 2 and 3 every credit in Cedar costs at most the
+// lecture rate. Repriced 30 Aug 2026, before the first paying subscriber.
 export const FEATURE_COSTS = {
   handbook: 5,
   study_material: 1,
-  exam_prediction: 1,
+  exam_prediction: 2,
   study_schedule: 1,
-  lecture_review: 2,
+  lecture_review: 3,
   missed_summary: 2,
   project_roadmap: 2,
   smart_rebook: 1,

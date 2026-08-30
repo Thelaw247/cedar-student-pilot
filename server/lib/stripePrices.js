@@ -15,7 +15,18 @@ const LIVE_PACK_PRICES = {
   medium: { priceId: 'price_1U5YKqRecX8K7mfKnqPJGaMT', credits: 250 },
   large:  { priceId: 'price_1U5YKuRecX8K7mfKaGgeHZZQ', credits: 500 },
 };
+// Aug 2026 price cut ($7.99 / $12.99 / $24.99 monthly). Stripe Prices are
+// immutable, so a price change means NEW price objects and the old ones
+// archived — never an edit. Subscribers on an archived price keep billing at
+// the rate they signed up for, which is exactly the grandfather rule.
 const TEST_SUBSCRIPTION_PRICES = {
+  student:   { monthly: 'price_1U9yENRecX8K7mfKHC8HJO1t', semester: 'price_1U9yEWRecX8K7mfKLcgHYyht' },
+  scholar:   { monthly: 'price_1U9yEPRecX8K7mfKU3kZcNxA', semester: 'price_1U9yEYRecX8K7mfKFMbHQYs6' },
+  unlimited: { monthly: 'price_1U9yERRecX8K7mfK98F5vKZf', semester: 'price_1U9yEaRecX8K7mfKg2x6BkzX' },
+};
+// Superseded 30 Aug 2026, archived in Stripe, kept so a webhook replaying an
+// older subscription still resolves to the right tier instead of throwing.
+const RETIRED_TEST_SUBSCRIPTION_PRICES = {
   student:   { monthly: 'price_1U4ZcQRecX8K7mfKFbmPPwsw', semester: 'price_1U5YKzRecX8K7mfKt7dExkuL' },
   scholar:   { monthly: 'price_1U4ZcURecX8K7mfK8r1bhRCu', semester: 'price_1U4ZcWRecX8K7mfKmkqyxMe1' },
   unlimited: { monthly: 'price_1U4ZcZRecX8K7mfKvfXZi2wv', semester: 'price_1U5YL3RecX8K7mfKoyLtrFOO' },
@@ -46,6 +57,8 @@ export function isTestMode() {
   return keyIsTest;
 }
 export function subscriptionPrices() { return isTestMode() ? TEST_SUBSCRIPTION_PRICES : LIVE_SUBSCRIPTION_PRICES; }
+/** Prices no longer sold, but still billing existing subscribers. */
+function retiredSubscriptionPrices() { return isTestMode() ? RETIRED_TEST_SUBSCRIPTION_PRICES : {}; }
 export function packPrices() { return isTestMode() ? TEST_PACK_PRICES : LIVE_PACK_PRICES; }
 
 export const VALID_TIERS = new Set(['student', 'scholar', 'unlimited']);
@@ -61,10 +74,13 @@ export function packCredits(pack) { return packPrices()[pack]?.credits || 0; }
  */
 export function entitlementForPriceId(priceId) {
   if (!priceId) return null;
-  const subscriptions = subscriptionPrices();
-  for (const [tier, periods] of Object.entries(subscriptions)) {
-    for (const [period, id] of Object.entries(periods)) {
-      if (id === priceId) return { kind: 'subscription', tier, period, priceId };
+  // Current catalogue first, then retired prices: a subscriber who bought
+  // before a price change must keep resolving to their tier.
+  for (const catalogue of [subscriptionPrices(), retiredSubscriptionPrices()]) {
+    for (const [tier, periods] of Object.entries(catalogue)) {
+      for (const [period, id] of Object.entries(periods)) {
+        if (id === priceId) return { kind: 'subscription', tier, period, priceId };
+      }
     }
   }
   for (const [pack, details] of Object.entries(packPrices())) {
