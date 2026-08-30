@@ -300,17 +300,40 @@ export const RATES = {
   cadPerBase44Credit: 120 / 20000,
   groqUsdPerAudioHour: 0.04,
   usdToCad: 1.37,
+  // USD per million tokens, per Google's published API pricing. Keep this
+  // exhaustive for every model in the chains in lib/llm.js — an unpriced
+  // model does not fail, it falls back to the most expensive rate, which
+  // over-reports rather than quietly flattering the margin.
   geminiUsdPerMillion: {
     'gemini-2.5-flash-lite': { input: 0.10, output: 0.40 },
     'gemini-2.5-flash': { input: 0.30, output: 2.50 },
+    'gemini-3.5-flash-lite': { input: 0.30, output: 2.50 },
+    'gemini-3.5-flash': { input: 1.50, output: 9.00 },
   },
 };
 
 export const groqCostCad = (audioSeconds) => (audioSeconds / 3600) * RATES.groqUsdPerAudioHour * RATES.usdToCad;
 export const base44CostCad = (credits) => credits * RATES.cadPerBase44Credit;
+/**
+ * What one Gemini call actually cost us, in CAD.
+ *
+ * This used to decide the rate with `model.includes('flash-lite')`, which was
+ * true while there was exactly one flash-lite. gemini-3.5-flash-lite costs
+ * $0.30/$2.50 — three times the input and six times the output of the 2.5
+ * flash-lite it replaces — so that substring match would have priced the new
+ * model at the old model's rate and under-reported every call by 3-6x. Cost
+ * data feeds the credit pricing, so silently cheap numbers are worse than
+ * loud expensive ones: an unknown model is charged at the dearest rate we
+ * know and logged, rather than guessed downward.
+ */
 export function geminiCostCad(model, inputTokens, outputTokens) {
-  const key = model.includes('flash-lite') ? 'gemini-2.5-flash-lite' : 'gemini-2.5-flash';
-  const rate = RATES.geminiUsdPerMillion[key];
+  const table = RATES.geminiUsdPerMillion;
+  let rate = table[model];
+  if (!rate) {
+    const dearest = Object.entries(table).sort((a, b) => b[1].output - a[1].output)[0];
+    console.warn(`[credits] no published rate for Gemini model "${model}" — costing it at ${dearest[0]} rates. Add it to RATES.geminiUsdPerMillion.`);
+    rate = dearest[1];
+  }
   const usd = (Math.max(0, inputTokens) / 1_000_000) * rate.input + (Math.max(0, outputTokens) / 1_000_000) * rate.output;
   return usd * RATES.usdToCad;
 }

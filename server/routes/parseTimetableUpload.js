@@ -3,6 +3,7 @@ import { requireAuth } from '../middleware/requireAuth.js';
 import { gateFeature, settleFeature } from '../lib/credits.js';
 import { parseTimetableDataUrl } from '../lib/timetableFile.js';
 import { consolidateTimetableClasses } from '../lib/timetableResult.js';
+import { QUALITY_MODEL } from '../lib/llm.js';
 
 // Direct port of base44/functions/parseTimetableUpload/entry.ts, with ONE
 // real change: the original never routed through llm.ts because Base44's
@@ -109,7 +110,7 @@ router.post('/', requireAuth, async (req, res) => {
     };
 
     const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(key)}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${QUALITY_MODEL}:generateContent?key=${encodeURIComponent(key)}`,
       // Same guard as every other provider call: Node's fetch never times
       // out on its own, and a timetable image is a large multimodal request.
       { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: AbortSignal.timeout(120_000) },
