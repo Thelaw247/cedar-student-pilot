@@ -6,38 +6,23 @@ import { BRAND_MARK_URL } from "@/lib/brand";
  * Auth shell for Login, Register, Forgot-/Reset-password and the OAuth consent
  * screens.
  *
- * The background is a scattered field of pilcrows — the brandmark repeated
- * small, like a manuscript page marked up by a scribe. It replaces the old
- * treatment (one huge brandmark blurred behind the form), which worked for the
- * Cedar graduation cap because that shape had enough internal detail to blur
- * into something atmospheric. The pilcrow is a simple two-stem glyph and blurs
- * into a shapeless smudge, so it is tiled instead of magnified.
+ * The background is a photographic waveform — hundreds of fine vertical lines
+ * of varying height, loud at the left and right edges and falling to near
+ * black through the middle. It says what the product does without a word of
+ * copy: this is a thing that listens.
  *
- * It is also cheaper than what it replaces: the field is one inline SVG in a
- * data URI and the glow and vignette are gradients, so nothing blocks paint.
- * The old version fetched a PNG before the form could render.
+ * It replaces a CSS field of tiled pilcrows. That version cost nothing to
+ * load, but at any real size the marks read as blobs rather than glyphs and
+ * the tile grid was visible once you noticed it.
  *
- * Layer order, bottom to top: flat navy, brand glow, mark field, vignette.
+ * The image is WebP at 17KB. #0B0E16 is painted underneath, so the form is
+ * legible from the first paint whether or not the image has arrived, and the
+ * page never flashes.
+ *
+ * Layer order, bottom to top: flat navy, waveform, brand glow, vignette. The
+ * vignette is deliberately weak — a strong one swallowed the waveform at the
+ * edges, which is the only place it exists.
  */
-
-// The mark, tiled at low opacity. Geometry matches public/logo-mark.png
-// exactly: a 150-unit lobe and a 74-unit stem.
-const FIELD = encodeURIComponent(
-  `<svg xmlns="http://www.w3.org/2000/svg" width="150" height="190" viewBox="0 0 150 190">` +
-    `<g fill="#2E66FF" fill-opacity="0.075">` +
-      `<g transform="translate(30 18) scale(0.075) rotate(-4)">` +
-        `<circle cx="0" cy="0" r="150"/>` +
-        `<rect x="88" y="-128" width="74" height="598" rx="37"/>` +
-        `<rect x="-52" y="-70" width="74" height="540"/>` +
-      `</g>` +
-      `<g transform="translate(112 112) scale(0.062) rotate(5)">` +
-        `<circle cx="0" cy="0" r="150"/>` +
-        `<rect x="88" y="-128" width="74" height="598" rx="37"/>` +
-        `<rect x="-52" y="-70" width="74" height="540"/>` +
-      `</g>` +
-    `</g>` +
-  `</svg>`,
-);
 
 const TRUST = ["Records & transcribes", "Summaries & flashcards", "Private to you"];
 
@@ -46,25 +31,28 @@ export default function AuthLayout({ icon = undefined, title, subtitle = "", foo
   return (
     <div className="relative min-h-screen overflow-hidden flex flex-col" style={{ backgroundColor: "#0B0E16" }}>
       <div aria-hidden="true" className="absolute inset-0 pointer-events-none select-none">
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage: 'url("/auth-bg.webp")',
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+          }}
+        />
         {/* Brand glow, so the card sits in light rather than on flat black */}
         <div
           className="absolute inset-0"
           style={{
             background:
-              "radial-gradient(ellipse 70% 60% at 50% 42%, rgba(30,58,138,0.55) 0%, rgba(11,14,22,0) 70%)",
+              "radial-gradient(ellipse 55% 45% at 50% 44%, rgba(30,58,138,0.38) 0%, rgba(11,14,22,0) 72%)",
           }}
         />
-        {/* The field */}
-        <div
-          className="absolute inset-0"
-          style={{ backgroundImage: `url("data:image/svg+xml,${FIELD}")`, backgroundRepeat: "repeat" }}
-        />
-        {/* Vignette, pulling the edges down so the form is the focal point */}
+        {/* Vignette, kept light so the waveform survives at the edges */}
         <div
           className="absolute inset-0"
           style={{
             background:
-              "radial-gradient(ellipse 62% 58% at 50% 45%, rgba(11,14,22,0) 30%, rgba(11,14,22,0.85) 78%, #0B0E16 100%)",
+              "radial-gradient(ellipse 78% 72% at 50% 46%, rgba(11,14,22,0) 45%, rgba(11,14,22,0.45) 82%, rgba(11,14,22,0.8) 100%)",
           }}
         />
       </div>

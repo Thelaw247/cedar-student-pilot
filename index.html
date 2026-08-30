@@ -18,16 +18,17 @@
     <meta property="og:title" content="Praelecta" />
     <meta property="og:description" content="Just go to class. We’ll take the notes — transcript, summary and flashcards, minutes after you walk out." />
     <!-- og:image / twitter:image stay absolute deliberately: social scrapers
-         (Facebook, LinkedIn, Slack, iMessage) do not resolve relative paths.
-         Points at the 512 app icon we already ship, so there is one brand
-         asset to keep current instead of a second file that can drift. The
-         art is square, so the Twitter card is the small summary type rather
-         than the wide one. Swap the host to the real domain at the DNS move;
-         the path is already correct. -->
-    <meta property="og:image" content="https://cedar-student-pilot.dewetluus.workers.dev/android-chrome-512x512.png" />
+         (Facebook, LinkedIn, Slack, WhatsApp, iMessage) do not resolve
+         relative paths. JPEG, not WebP or PNG: every scraper handles JPEG,
+         and at 16KB it is far under WhatsApp's 600KB ceiling, above which it
+         silently shows no image at all. Versioned filename because WhatsApp
+         caches a preview for days with no way to purge it — publish
+         og-card-v2.jpg rather than editing this file in place. Swap the host
+         to the real domain at the DNS move. -->
+    <meta property="og:image" content="https://cedar-student-pilot.dewetluus.workers.dev/og-card-v1.jpg" />
     <meta property="og:type" content="website" />
-    <meta name="twitter:card" content="summary" />
-    <meta name="twitter:image" content="https://cedar-student-pilot.dewetluus.workers.dev/android-chrome-512x512.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="https://cedar-student-pilot.dewetluus.workers.dev/og-card-v1.jpg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
