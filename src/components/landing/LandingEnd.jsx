@@ -51,7 +51,7 @@ export default function LandingEnd() {
         </div>
       </section>
 
-      <section id="pricing" className="border-t border-border bg-muted px-4 py-20 sm:px-6 lg:py-24">
+      <section id="pricing" className="border-t border-border bg-background/40 px-4 py-20 sm:px-6 lg:py-24">
         <div className="mx-auto grid max-w-6xl gap-6 lg:grid-cols-[1fr_.9fr] lg:items-stretch">
           <div className="rounded-[26px] border border-border bg-card p-7 sm:p-8">
             <p className="text-sm font-semibold text-primary">Pricing</p>
@@ -74,7 +74,7 @@ export default function LandingEnd() {
         </div>
       </section>
 
-      <section className="relative isolate overflow-hidden bg-muted px-4 pb-24 sm:px-6 lg:pb-28">
+      <section className="relative isolate overflow-hidden bg-background/40 px-4 pb-24 sm:px-6 lg:pb-28">
         <div className="pointer-events-none absolute inset-x-0 bottom-0 top-8 -z-10 overflow-hidden">
           <div className="absolute left-[2%] top-[10%] h-72 w-72 rounded-full bg-primary/35 blur-[82px]" />
           <div className="absolute left-[31%] top-[38%] h-56 w-56 rounded-full bg-primary/30 blur-[78px]" />

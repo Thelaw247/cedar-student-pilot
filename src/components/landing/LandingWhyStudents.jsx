@@ -36,7 +36,7 @@ const COMMITMENTS = [
 
 export default function LandingWhyStudents() {
   return (
-    <section id="why-students" className="border-t border-border bg-card px-4 py-20 sm:px-6 lg:py-24">
+    <section id="why-students" className="border-t border-border bg-background/25 px-4 py-20 sm:px-6 lg:py-24">
       <div className="mx-auto max-w-6xl">
         <div className="mx-auto max-w-3xl text-center">
           <p className="text-sm font-semibold text-primary">Sound familiar?</p>
@@ -47,7 +47,7 @@ export default function LandingWhyStudents() {
 
         <div className="mt-10 grid gap-4 md:grid-cols-3">
           {PAINS.map((p) => (
-            <div key={p.quote} className="rounded-[26px] border border-border bg-card p-6 shadow-[0_18px_55px_-35px_rgba(15,23,42,0.35)] sm:p-7">
+            <div key={p.quote} className="rounded-[26px] border border-border bg-card p-6 shadow-[0_18px_55px_-35px_rgba(0,0,0,0.60)] sm:p-7">
               <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                 <p.icon className="h-5 w-5" />
               </div>

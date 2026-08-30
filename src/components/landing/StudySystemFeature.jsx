@@ -100,7 +100,7 @@ export default function StudySystemFeature() {
           </div>
 
           <div className="space-y-6">
-            <div className="overflow-hidden rounded-[28px] border border-border bg-card shadow-[0_24px_70px_-38px_rgba(15,23,42,0.3)]">
+            <div className="overflow-hidden rounded-[28px] border border-border bg-card shadow-[0_24px_70px_-38px_rgba(0,0,0,0.55)]">
               <div className="border-b border-border bg-muted p-5 sm:p-6">
                 <div className="flex items-center gap-3">
                   <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary"><Route className="h-5 w-5" /></div>

@@ -16,7 +16,7 @@ function OutputRow({ icon: Icon, title, children, tone = 'blue' }) {
 
 export default function RecordingFeature() {
   return (
-    <section id="recording" className="border-y border-border bg-muted px-4 py-20 sm:px-6 lg:py-28">
+    <section id="recording" className="border-y border-border bg-background/25 px-4 py-20 sm:px-6 lg:py-28">
       <div className="mx-auto max-w-6xl">
         <div className="grid gap-12 lg:grid-cols-[0.78fr_1.22fr] lg:items-center">
           <div>
@@ -41,7 +41,7 @@ export default function RecordingFeature() {
           </div>
 
           <div className="grid gap-4 md:grid-cols-[0.78fr_1.22fr]">
-            <div className="rounded-[26px] border border-border bg-card p-5 shadow-[0_22px_60px_-38px_rgba(15,23,42,0.4)]">
+            <div className="rounded-[26px] border border-border bg-card p-5 shadow-[0_22px_60px_-38px_rgba(0,0,0,0.65)]">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/80">PHYS 117</p>
@@ -70,7 +70,7 @@ export default function RecordingFeature() {
               <p className="mt-3 text-center text-[10px] text-muted-foreground/80">Based on Praelecta&rsquo;s current recording screen</p>
             </div>
 
-            <div className="rounded-[26px] border border-border bg-card p-5 shadow-[0_22px_60px_-38px_rgba(15,23,42,0.4)] sm:p-6">
+            <div className="rounded-[26px] border border-border bg-card p-5 shadow-[0_22px_60px_-38px_rgba(0,0,0,0.65)] sm:p-6">
               <div className="border-b border-border pb-4">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-primary">Saved lecture</p>
                 <h3 className="mt-1 text-xl font-bold tracking-[-0.035em] text-foreground">Equilibrium &amp; free-body diagrams</h3>

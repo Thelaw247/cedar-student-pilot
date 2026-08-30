@@ -219,10 +219,12 @@
    glow underneath is what makes it look lit rather than painted. */
 .auth-cta {
   background-image: linear-gradient(180deg, hsl(224 100% 66%) 0%, hsl(224 100% 54%) 100%);
+  /* Inset edges only. The coloured bloom underneath read as a glow and the
+     owner asked for it gone; what is left is the lit top edge and the dark
+     bottom edge that give the button its shape. */
   box-shadow:
     inset 0 1px 0 0 hsl(0 0% 100% / 0.22),
-    inset 0 -1px 0 0 hsl(224 70% 28% / 0.55),
-    0 10px 26px -8px hsl(224 100% 54% / 0.6);
+    inset 0 -1px 0 0 hsl(224 70% 28% / 0.55);
   transition: box-shadow var(--duration-micro) ease, background-image var(--duration-micro) ease, transform var(--duration-micro) ease;
 }
 .auth-cta:hover:not(:disabled) {
@@ -307,7 +309,7 @@
   background-image: url("/auth-bg.webp");
   background-size: cover;
   background-position: center;
-  opacity: 0.28;
+  opacity: 0.5;
 }
 /* A vignette so the edges fall away and the centre column stays the brightest
    part of the page, and a floor of solid background colour underneath so the
@@ -318,5 +320,5 @@
   inset: 0;
   background:
     radial-gradient(120% 80% at 50% 0%, hsl(224 100% 59% / 0.10), transparent 60%),
-    linear-gradient(180deg, hsl(222 33% 8% / 0.55) 0%, hsl(222 33% 8% / 0.86) 55%, hsl(222 33% 8%) 100%);
+    linear-gradient(180deg, hsl(222 33% 8% / 0.30) 0%, hsl(222 33% 8% / 0.55) 55%, hsl(222 33% 8% / 0.72) 100%);
 }

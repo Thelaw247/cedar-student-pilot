@@ -52,7 +52,7 @@ export default function RealProductPreview() {
   ];
 
   return (
-    <section id="study-schedule" className="border-y border-border bg-muted px-4 py-20 sm:px-6 lg:py-28">
+    <section id="study-schedule" className="border-y border-border bg-background/40 px-4 py-20 sm:px-6 lg:py-28">
       <div className="mx-auto max-w-6xl">
         <div className="grid gap-12 lg:grid-cols-[0.76fr_1.24fr] lg:items-center">
           <div>
@@ -87,7 +87,7 @@ export default function RealProductPreview() {
             </div>
           </div>
 
-          <div className="overflow-hidden rounded-[28px] border border-border bg-card shadow-[0_24px_70px_-38px_rgba(15,23,42,0.3)]">
+          <div className="overflow-hidden rounded-[28px] border border-border bg-card shadow-[0_24px_70px_-38px_rgba(0,0,0,0.55)]">
             <div className="border-b border-border bg-card p-4 sm:px-5">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>

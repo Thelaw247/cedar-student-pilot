@@ -58,7 +58,7 @@ export default function LandingHero() {
           <a
             key={feature.number}
             href={feature.href}
-            className="group relative overflow-hidden rounded-[26px] border border-border bg-card p-6 shadow-[0_18px_55px_-35px_rgba(15,23,42,0.35)] transition-all hover:-translate-y-1 hover:border-primary/30 hover:shadow-[0_24px_65px_-32px_rgba(46,102,255,0.28)] sm:p-7">
+            className="group relative overflow-hidden rounded-[26px] border border-border bg-card p-6 shadow-[0_18px_55px_-35px_rgba(0,0,0,0.6)] transition-all hover:-translate-y-1 hover:border-primary/30 hover:shadow-[0_24px_65px_-32px_rgba(0,0,0,0.7)] sm:p-7">
             
               <div className="flex items-start justify-between gap-4">
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">

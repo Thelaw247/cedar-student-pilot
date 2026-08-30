@@ -12,7 +12,7 @@ import LandingEnd from '@/components/landing/LandingEnd';
 
 function LandingFooter() {
   return (
-    <footer className="border-t border-border bg-background/60 px-4 py-8 sm:px-6">
+    <footer className="border-t border-border bg-background/50 px-4 py-8 sm:px-6">
       <div className="mx-auto flex max-w-6xl flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2.5">
           <img src={BRAND_MARK_URL} alt="" className="h-7 w-7 object-contain" />
