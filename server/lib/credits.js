@@ -14,7 +14,14 @@ import { recordCreditsSpent } from './creditSignal.js';
 //      their own balance would have an infinite plan.
 
 export const COST_PER_30MIN_PROCESS = 5;
-export const COST_PER_30MIN_CLEAN = 3;
+// Transcript cleanup runs entirely on the cheap chain and rewrites the whole
+// transcript, so output tokens ~= input tokens. When gemini-2.5-flash-lite was
+// retired on 29 Aug 2026 its replacement came in at 5.5x the rate, and at 3
+// credits per 30 min a cleanup credit cost more than a recorded minute does —
+// inverting the ordering the credit system is built on, and dropping the
+// Scholar semester ceiling margin to 20%. 4 puts every credit back under the
+// lecture rate. Repriced 30 Aug 2026, before the first paying subscriber.
+export const COST_PER_30MIN_CLEAN = 4;
 
 // exam_prediction and lecture_review both run on the QUALITY model. Priced at
 // 1 and 2 credits they cost $0.0066 and $0.0093 per credit — above what a

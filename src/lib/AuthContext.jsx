@@ -1,9 +1,10 @@
-import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
+import React, { createContext, useState, useContext, useEffect, useCallback, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { getAppPublicSettings, hasAppToken } from '@/lib/base44PublicSettings';
 import { clearLegacyUserStorage, clearOtherUserStorage, clearUserStorage, getCachedUserId, setCachedUserId } from '@/lib/currentUser';
 import { clearAllRecordings, clearOtherRecordings, initializeRecordingStore } from '@/lib/recordingStore';
 import { supabase } from '@/lib/supabaseClient';
+import { shouldRecheckAuth } from '@/lib/authEvents';
 
 const AuthContext = createContext(null);
 const USE_SUPABASE = import.meta.env.VITE_BACKEND_MODE === 'supabase';
@@ -25,6 +26,12 @@ export const AuthProvider = ({ children }) => {
   const [authChecked, setAuthChecked] = useState(false);
   const [appPublicSettings, setAppPublicSettings] = useState(null); // Contains only { id, public_settings }
 
+  // Read inside checkUserAuth, which is memoised with an empty dependency
+  // array and so cannot close over state. The ref holds the signed-in user id
+  // for the auth-event comparison, and whether a check has ever completed.
+  const userIdRef = useRef(null);
+  const authCheckedRef = useRef(false);
+
   useEffect(() => {
     // Unscoped values from older builds have no safe owner. Remove them once,
     // and open IndexedDB v2 so its unscoped recording store is dropped too.
@@ -34,8 +41,12 @@ export const AuthProvider = ({ children }) => {
       setAppPublicSettings({ id: 'cedar-student-pilot', public_settings: {} });
       setIsLoadingPublicSettings(false);
       void checkUserAuth();
-      const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
-        void checkUserAuth();
+      // Only re-check when the signed-in identity actually changed. Supabase
+      // re-validates on tab visibility and emits TOKEN_REFRESHED with the same
+      // user; answering that by re-running the check unmounted the entire
+      // authenticated tree (see src/lib/authEvents.js).
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+        if (shouldRecheckAuth(event, session?.user?.id, userIdRef.current)) void checkUserAuth();
       });
       return () => subscription.unsubscribe();
     }
@@ -128,8 +139,12 @@ export const AuthProvider = ({ children }) => {
   // (stable by contract) and the module-level base44 client.
   const checkUserAuth = useCallback(async () => {
     try {
-      // Now check if the user is authenticated
-      setIsLoadingAuth(true);
+      // Only gate the UI on the FIRST check. ProtectedRoute swaps the whole
+      // authenticated tree for a spinner while isLoadingAuth is set, so
+      // raising it on a later re-validation throws away every mounted page —
+      // and any recording in progress with them. A re-check runs quietly and
+      // updates state when it lands.
+      if (!authCheckedRef.current) setIsLoadingAuth(true);
       const currentUser = await base44.auth.me();
       const previousUserId = getCachedUserId();
       if (previousUserId && previousUserId !== currentUser.id) {
@@ -141,8 +156,10 @@ export const AuthProvider = ({ children }) => {
       await clearOtherRecordings(currentUser.id);
       setUser(currentUser);
       setCachedUserId(currentUser.id);
+      userIdRef.current = currentUser.id;
       setIsAuthenticated(true);
       setIsLoadingAuth(false);
+      authCheckedRef.current = true;
       setAuthChecked(true);
     } catch (error) {
       const isAuthRejection = error.status === 401 || error.status === 403;
@@ -151,6 +168,7 @@ export const AuthProvider = ({ children }) => {
       if (!isAuthRejection) console.error('User auth check failed:', error);
       setIsLoadingAuth(false);
       setIsAuthenticated(false);
+      authCheckedRef.current = true;
       setAuthChecked(true);
       
       // If user auth fails, it might be an expired token. Only purge on an
@@ -162,6 +180,7 @@ export const AuthProvider = ({ children }) => {
         clearOtherUserStorage(null);
         await clearOtherRecordings(null);
         setCachedUserId(null);
+        userIdRef.current = null;
         setUser(null);
         setAuthError({
           type: 'auth_required',
@@ -181,6 +200,7 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     setIsAuthenticated(false);
     setCachedUserId(null);
+    userIdRef.current = null;
 
     try {
       if (shouldRedirect) {

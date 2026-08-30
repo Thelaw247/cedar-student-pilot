@@ -112,7 +112,7 @@ export const CREDIT_PACKS = [
  * display only. The server is always the authority.
  */
 export const CREDIT_COSTS = {
-  perThirtyMinutes: { process_lecture: 5, clean_transcript: 3 },
+  perThirtyMinutes: { process_lecture: 5, clean_transcript: 4 },
   flat: {
     handbook: 5,
     lecture_review: 3,
