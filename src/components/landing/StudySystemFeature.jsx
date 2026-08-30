@@ -73,60 +73,60 @@ export default function StudySystemFeature() {
         <div className="grid gap-10 lg:grid-cols-[0.78fr_1.22fr] lg:items-start">
           <div className="lg:sticky lg:top-24">
             <div className="flex items-center gap-3">
-              <span className="text-5xl font-black tracking-[-0.07em] text-blue-100">04</span>
+              <span className="text-5xl font-black tracking-[-0.07em] text-primary/25">04</span>
               <div>
-                <p className="text-xs font-bold uppercase tracking-[0.14em] text-blue-600">The complete study system</p>
-                <p className="mt-0.5 text-sm font-semibold text-slate-500">The calendar tells you when. We also tell you what to do when you get there.</p>
+                <p className="text-xs font-bold uppercase tracking-[0.14em] text-primary">The complete study system</p>
+                <p className="mt-0.5 text-sm font-semibold text-muted-foreground">The calendar tells you when. We also tell you what to do when you get there.</p>
               </div>
             </div>
 
-            <h2 className="mt-5 text-4xl font-bold leading-[1.04] tracking-[-0.05em] text-slate-950 sm:text-5xl">
+            <h2 className="mt-5 text-4xl font-bold leading-[1.04] tracking-[-0.05em] text-foreground sm:text-5xl">
               Studying stops being one giant task.
             </h2>
-            <p className="mt-5 max-w-xl text-base leading-7 text-slate-600">
+            <p className="mt-5 max-w-xl text-base leading-7 text-muted-foreground">
               “Study for the midterm” is vague enough to procrastinate on. We turn it into a sequence: choose the goal, narrow the material, choose the method, work in a defined session, retrieve what you know, then review what you missed.
             </p>
 
-            <div className="mt-7 rounded-2xl border border-blue-100 bg-blue-50/70 p-5">
-              <p className="text-xs font-bold uppercase tracking-[0.12em] text-blue-700">Built from well-supported learning principles</p>
-              <p className="mt-2 text-sm leading-6 text-slate-600">
+            <div className="mt-7 rounded-2xl border border-primary/25 bg-primary/10 p-5">
+              <p className="text-xs font-bold uppercase tracking-[0.12em] text-primary">Built from well-supported learning principles</p>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">
                 We combine spaced practice with repeated retrieval through quizzes, practice questions, and post-session review. Research consistently finds that distributing learning over time and actively retrieving information can improve later retention compared with massed study or additional rereading alone.
               </p>
               <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs font-semibold">
-                <a href="https://pubmed.ncbi.nlm.nih.gov/16719566/" target="_blank" rel="noreferrer" className="text-blue-600 hover:text-blue-700">Spacing research</a>
-                <a href="https://pubmed.ncbi.nlm.nih.gov/16507066/" target="_blank" rel="noreferrer" className="text-blue-600 hover:text-blue-700">Retrieval-practice research</a>
+                <a href="https://pubmed.ncbi.nlm.nih.gov/16719566/" target="_blank" rel="noreferrer" className="text-primary hover:text-primary">Spacing research</a>
+                <a href="https://pubmed.ncbi.nlm.nih.gov/16507066/" target="_blank" rel="noreferrer" className="text-primary hover:text-primary">Retrieval-practice research</a>
               </div>
             </div>
           </div>
 
           <div className="space-y-6">
-            <div className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_24px_70px_-38px_rgba(15,23,42,0.3)]">
-              <div className="border-b border-slate-200 bg-slate-50 p-5 sm:p-6">
+            <div className="overflow-hidden rounded-[28px] border border-border bg-card shadow-[0_24px_70px_-38px_rgba(15,23,42,0.3)]">
+              <div className="border-b border-border bg-muted p-5 sm:p-6">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-600"><Route className="h-5 w-5" /></div>
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary"><Route className="h-5 w-5" /></div>
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-[0.13em] text-blue-600">Guided session setup</p>
-                    <h3 className="mt-1 text-xl font-bold tracking-[-0.03em] text-slate-950">We turn a study goal into a specific session.</h3>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.13em] text-primary">Guided session setup</p>
+                    <h3 className="mt-1 text-xl font-bold tracking-[-0.03em] text-foreground">We turn a study goal into a specific session.</h3>
                   </div>
                 </div>
               </div>
 
-              <div className="grid gap-px bg-slate-200 sm:grid-cols-2">
+              <div className="grid gap-px bg-border sm:grid-cols-2">
                 {wizardSteps.map((step) => (
-                  <div key={step.number} className="bg-white p-5 sm:p-6">
-                    <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-blue-50 text-[11px] font-bold text-blue-700">{step.number}</span>
-                    <h4 className="mt-4 text-base font-bold text-slate-950">{step.title}</h4>
-                    <p className="mt-2 text-sm leading-6 text-slate-600">{step.body}</p>
+                  <div key={step.number} className="bg-card p-5 sm:p-6">
+                    <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-[11px] font-bold text-primary">{step.number}</span>
+                    <h4 className="mt-4 text-base font-bold text-foreground">{step.title}</h4>
+                    <p className="mt-2 text-sm leading-6 text-muted-foreground">{step.body}</p>
                   </div>
                 ))}
               </div>
 
-              <div className="border-t border-slate-200 bg-slate-50 p-5 sm:p-6">
-                <p className="text-xs font-semibold text-slate-700">Current Praelecta presets</p>
+              <div className="border-t border-border bg-muted p-5 sm:p-6">
+                <p className="text-xs font-semibold text-foreground/80">Current Praelecta presets</p>
                 <div className="mt-3 grid gap-3 sm:grid-cols-3">
-                  <div className="rounded-xl border border-slate-200 bg-white p-4"><p className="text-[10px] font-bold uppercase tracking-[0.11em] text-blue-600">Lecture review</p><p className="mt-2 text-sm font-bold text-slate-950">30 min goal</p><p className="mt-1 text-xs leading-5 text-slate-500">20-minute work intervals with 5-minute breaks; timing stays adjustable.</p></div>
-                  <div className="rounded-xl border border-slate-200 bg-white p-4"><p className="text-[10px] font-bold uppercase tracking-[0.11em] text-rose-600">Exam prep</p><p className="mt-2 text-sm font-bold text-slate-950">45 min goal</p><p className="mt-1 text-xs leading-5 text-slate-500">15-minute focused intervals with 3-minute breaks; timing stays adjustable.</p></div>
-                  <div className="rounded-xl border border-slate-200 bg-white p-4"><p className="text-[10px] font-bold uppercase tracking-[0.11em] text-amber-600">Deep study</p><p className="mt-2 text-sm font-bold text-slate-950">90 min goal</p><p className="mt-1 text-xs leading-5 text-slate-500">25-minute work intervals with 5-minute breaks; timing stays adjustable.</p></div>
+                  <div className="rounded-xl border border-border bg-card p-4"><p className="text-[10px] font-bold uppercase tracking-[0.11em] text-primary">Lecture review</p><p className="mt-2 text-sm font-bold text-foreground">30 min goal</p><p className="mt-1 text-xs leading-5 text-muted-foreground">20-minute work intervals with 5-minute breaks; timing stays adjustable.</p></div>
+                  <div className="rounded-xl border border-border bg-card p-4"><p className="text-[10px] font-bold uppercase tracking-[0.11em] text-rose-400">Exam prep</p><p className="mt-2 text-sm font-bold text-foreground">45 min goal</p><p className="mt-1 text-xs leading-5 text-muted-foreground">15-minute focused intervals with 3-minute breaks; timing stays adjustable.</p></div>
+                  <div className="rounded-xl border border-border bg-card p-4"><p className="text-[10px] font-bold uppercase tracking-[0.11em] text-amber-400">Deep study</p><p className="mt-2 text-sm font-bold text-foreground">90 min goal</p><p className="mt-1 text-xs leading-5 text-muted-foreground">25-minute work intervals with 5-minute breaks; timing stays adjustable.</p></div>
                 </div>
               </div>
             </div>
@@ -134,119 +134,119 @@ export default function StudySystemFeature() {
         </div>
 
         <div className="mt-10 grid gap-6 lg:grid-cols-2 lg:items-stretch">
-          <div className="h-full rounded-[28px] border border-slate-200 bg-white p-5 sm:p-7">
+          <div className="h-full rounded-[28px] border border-border bg-card p-5 sm:p-7">
             <div className="max-w-2xl">
-                <p className="text-xs font-bold uppercase tracking-[0.13em] text-blue-600">Every study tool in the same class</p>
-                <h3 className="mt-2 text-2xl font-bold tracking-[-0.035em] text-slate-950">Use the tool the material needs — without rebuilding the course.</h3>
+                <p className="text-xs font-bold uppercase tracking-[0.13em] text-primary">Every study tool in the same class</p>
+                <h3 className="mt-2 text-2xl font-bold tracking-[-0.035em] text-foreground">Use the tool the material needs — without rebuilding the course.</h3>
               </div>
             <div className="mt-6 grid gap-3 sm:grid-cols-2">
                 {studyTools.map((tool) => (
-                  <div key={tool.title} className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white text-blue-600 shadow-sm"><tool.icon className="h-4 w-4" /></div>
-                    <h4 className="mt-3 text-sm font-bold text-slate-950">{tool.title}</h4>
-                    <p className="mt-1.5 text-xs leading-5 text-slate-500">{tool.body}</p>
+                  <div key={tool.title} className="rounded-2xl border border-border bg-muted/70 p-4">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-secondary text-primary"><tool.icon className="h-4 w-4" /></div>
+                    <h4 className="mt-3 text-sm font-bold text-foreground">{tool.title}</h4>
+                    <p className="mt-1.5 text-xs leading-5 text-muted-foreground">{tool.body}</p>
                   </div>
                 ))}
               </div>
             </div>
 
-          <div className="h-full overflow-hidden rounded-[28px] border border-slate-200 bg-slate-950 text-white">
+          <div className="h-full overflow-hidden rounded-[28px] border border-border bg-secondary text-secondary-foreground">
             <div className="p-6 sm:p-8">
                 <div>
-                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/10 text-blue-300"><Sparkles className="h-5 w-5" /></div>
-                  <p className="mt-5 text-xs font-bold uppercase tracking-[0.13em] text-blue-300">Projects work the same way</p>
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-card/10 text-primary"><Sparkles className="h-5 w-5" /></div>
+                  <p className="mt-5 text-xs font-bold uppercase tracking-[0.13em] text-primary">Projects work the same way</p>
                   <h3 className="mt-2 text-3xl font-bold leading-tight tracking-[-0.04em]">Turn “finish the project” into work you can actually start.</h3>
-                  <p className="mt-4 text-sm leading-6 text-slate-300">
+                  <p className="mt-4 text-sm leading-6 text-muted-foreground">
                     We first figure out what information is missing, then build a roadmap of concrete tasks that each fit into a single work session. The sessions are distributed from now to the due date so the project has a path to completion instead of one giant deadline.
                   </p>
                 </div>
 
               <div className="mt-7 space-y-2.5">
                 {projectSteps.map((step, index) => (
-                  <div key={step} className="flex gap-3 rounded-xl border border-white/10 bg-white/[0.06] p-3.5">
-                    <span className="flex h-6 w-6 flex-none items-center justify-center rounded-full bg-blue-500/20 text-[10px] font-bold text-blue-200">{index + 1}</span>
-                    <p className="text-xs leading-5 text-slate-200">{step}</p>
+                  <div key={step} className="flex gap-3 rounded-xl border border-border bg-card/[0.06] p-3.5">
+                    <span className="flex h-6 w-6 flex-none items-center justify-center rounded-full bg-primary/20 text-[10px] font-bold text-primary">{index + 1}</span>
+                    <p className="text-xs leading-5 text-muted-foreground">{step}</p>
                   </div>
                 ))}
               </div>
 
-              <div className="mt-7 rounded-2xl border border-white/10 bg-white p-4 text-slate-950 shadow-[0_18px_45px_-28px_rgba(0,0,0,0.55)] sm:p-5">
-                <div className="flex items-center justify-between gap-3 border-b border-slate-200 pb-3">
+              <div className="mt-7 rounded-2xl border border-border bg-card p-4 text-foreground shadow-[0_18px_45px_-28px_rgba(0,0,0,0.55)] sm:p-5">
+                <div className="flex items-center justify-between gap-3 border-b border-border pb-3">
                   <div>
-                    <p className="text-[9px] font-bold uppercase tracking-[0.13em] text-blue-600">Production flow preview</p>
+                    <p className="text-[9px] font-bold uppercase tracking-[0.13em] text-primary">Production flow preview</p>
                     <p className="mt-1 text-sm font-bold">Your Roadmap</p>
                   </div>
-                  <span className="rounded-lg bg-blue-50 px-2.5 py-1 text-[10px] font-semibold text-blue-700">Project · PHYS 117</span>
+                  <span className="rounded-lg bg-primary/10 px-2.5 py-1 text-[10px] font-semibold text-primary">Project · PHYS 117</span>
                 </div>
 
-                <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3.5">
+                <div className="mt-4 rounded-xl border border-border bg-muted p-3.5">
                   <div className="flex items-start gap-3">
-                    <div className="flex h-7 w-7 flex-none items-center justify-center rounded-full bg-blue-100 text-[10px] font-bold text-blue-700">1</div>
+                    <div className="flex h-7 w-7 flex-none items-center justify-center rounded-full bg-primary/15 text-[10px] font-bold text-primary">1</div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-start justify-between gap-3">
-                        <p className="text-xs font-bold text-slate-900">Research &amp; define requirements</p>
-                        <span className="inline-flex flex-none items-center gap-1 text-[9px] font-semibold text-slate-500"><Clock3 className="h-3 w-3" /> 60 min</span>
+                        <p className="text-xs font-bold text-foreground">Research &amp; define requirements</p>
+                        <span className="inline-flex flex-none items-center gap-1 text-[9px] font-semibold text-muted-foreground"><Clock3 className="h-3 w-3" /> 60 min</span>
                       </div>
-                      <p className="mt-1 text-[10px] leading-4 text-slate-500">Collect the required sources, constraints, and project criteria before building.</p>
+                      <p className="mt-1 text-[10px] leading-4 text-muted-foreground">Collect the required sources, constraints, and project criteria before building.</p>
                     </div>
                   </div>
                 </div>
 
-                <div className="mt-2.5 rounded-xl border border-slate-200 bg-slate-50 p-3.5">
+                <div className="mt-2.5 rounded-xl border border-border bg-muted p-3.5">
                   <div className="flex items-start gap-3">
-                    <div className="flex h-7 w-7 flex-none items-center justify-center rounded-full bg-blue-100 text-[10px] font-bold text-blue-700">2</div>
+                    <div className="flex h-7 w-7 flex-none items-center justify-center rounded-full bg-primary/15 text-[10px] font-bold text-primary">2</div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-start justify-between gap-3">
-                        <p className="text-xs font-bold text-slate-900">Build the first working version</p>
-                        <span className="inline-flex flex-none items-center gap-1 text-[9px] font-semibold text-slate-500"><Clock3 className="h-3 w-3" /> 90 min</span>
+                        <p className="text-xs font-bold text-foreground">Build the first working version</p>
+                        <span className="inline-flex flex-none items-center gap-1 text-[9px] font-semibold text-muted-foreground"><Clock3 className="h-3 w-3" /> 90 min</span>
                       </div>
-                      <p className="mt-1 text-[10px] leading-4 text-slate-500">Complete the core deliverable before polishing details or formatting.</p>
+                      <p className="mt-1 text-[10px] leading-4 text-muted-foreground">Complete the core deliverable before polishing details or formatting.</p>
                     </div>
                   </div>
                 </div>
 
-                <div className="mt-2.5 rounded-xl border border-slate-200 bg-slate-50 p-3.5">
+                <div className="mt-2.5 rounded-xl border border-border bg-muted p-3.5">
                   <div className="flex items-start gap-3">
-                    <div className="flex h-7 w-7 flex-none items-center justify-center rounded-full bg-blue-100 text-[10px] font-bold text-blue-700">3</div>
+                    <div className="flex h-7 w-7 flex-none items-center justify-center rounded-full bg-primary/15 text-[10px] font-bold text-primary">3</div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-start justify-between gap-3">
-                        <p className="text-xs font-bold text-slate-900">Test, revise &amp; fill gaps</p>
-                        <span className="inline-flex flex-none items-center gap-1 text-[9px] font-semibold text-slate-500"><Clock3 className="h-3 w-3" /> 60 min</span>
+                        <p className="text-xs font-bold text-foreground">Test, revise &amp; fill gaps</p>
+                        <span className="inline-flex flex-none items-center gap-1 text-[9px] font-semibold text-muted-foreground"><Clock3 className="h-3 w-3" /> 60 min</span>
                       </div>
-                      <p className="mt-1 text-[10px] leading-4 text-slate-500">Check the work against the requirements, fix weak sections, and resolve anything still incomplete.</p>
+                      <p className="mt-1 text-[10px] leading-4 text-muted-foreground">Check the work against the requirements, fix weak sections, and resolve anything still incomplete.</p>
                     </div>
                   </div>
                 </div>
 
-                <div className="mt-2.5 rounded-xl border border-slate-200 bg-slate-50 p-3.5">
+                <div className="mt-2.5 rounded-xl border border-border bg-muted p-3.5">
                   <div className="flex items-start gap-3">
-                    <div className="flex h-7 w-7 flex-none items-center justify-center rounded-full bg-blue-100 text-[10px] font-bold text-blue-700">4</div>
+                    <div className="flex h-7 w-7 flex-none items-center justify-center rounded-full bg-primary/15 text-[10px] font-bold text-primary">4</div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-start justify-between gap-3">
-                        <p className="text-xs font-bold text-slate-900">Polish &amp; submit</p>
-                        <span className="inline-flex flex-none items-center gap-1 text-[9px] font-semibold text-slate-500"><Clock3 className="h-3 w-3" /> 45 min</span>
+                        <p className="text-xs font-bold text-foreground">Polish &amp; submit</p>
+                        <span className="inline-flex flex-none items-center gap-1 text-[9px] font-semibold text-muted-foreground"><Clock3 className="h-3 w-3" /> 45 min</span>
                       </div>
-                      <p className="mt-1 text-[10px] leading-4 text-slate-500">Finish formatting, citations, final checks, and prepare the project for submission.</p>
+                      <p className="mt-1 text-[10px] leading-4 text-muted-foreground">Finish formatting, citations, final checks, and prepare the project for submission.</p>
                     </div>
                   </div>
                 </div>
 
                 <div className="mt-3 grid grid-cols-5 gap-1.5">
-                  <div className="rounded-lg border border-slate-200 bg-white px-1.5 py-2 text-center"><p className="text-[8px] font-semibold text-slate-400">MON</p><div className="mt-1 rounded-md bg-blue-50 px-1 py-1 text-[8px] font-semibold text-blue-700">Step 1</div></div>
-                  <div className="rounded-lg border border-slate-200 bg-white px-1.5 py-2 text-center"><p className="text-[8px] font-semibold text-slate-400">TUE</p><div className="mt-1 rounded-md bg-blue-50 px-1 py-1 text-[8px] font-semibold text-blue-700">Step 2</div></div>
-                  <div className="rounded-lg border border-slate-200 bg-white px-1.5 py-2 text-center"><p className="text-[8px] font-semibold text-slate-400">WED</p><div className="mt-1 rounded-md bg-blue-50 px-1 py-1 text-[8px] font-semibold text-blue-700">Step 3</div></div>
-                  <div className="rounded-lg border border-slate-200 bg-white px-1.5 py-2 text-center"><p className="text-[8px] font-semibold text-slate-400">THU</p><div className="mt-1 rounded-md bg-blue-50 px-1 py-1 text-[8px] font-semibold text-blue-700">Step 4</div></div>
-                  <div className="rounded-lg border border-slate-200 bg-white px-1.5 py-2 text-center"><p className="text-[8px] font-semibold text-slate-400">FRI</p><div className="mt-1 rounded-md bg-emerald-50 px-1 py-1 text-[8px] font-semibold text-emerald-700">Due</div></div>
+                  <div className="rounded-lg border border-border bg-secondary px-1.5 py-2 text-center"><p className="text-[8px] font-semibold text-muted-foreground/75">MON</p><div className="mt-1 rounded-md bg-primary/10 px-1 py-1 text-[8px] font-semibold text-primary">Step 1</div></div>
+                  <div className="rounded-lg border border-border bg-secondary px-1.5 py-2 text-center"><p className="text-[8px] font-semibold text-muted-foreground/75">TUE</p><div className="mt-1 rounded-md bg-primary/10 px-1 py-1 text-[8px] font-semibold text-primary">Step 2</div></div>
+                  <div className="rounded-lg border border-border bg-secondary px-1.5 py-2 text-center"><p className="text-[8px] font-semibold text-muted-foreground/75">WED</p><div className="mt-1 rounded-md bg-primary/10 px-1 py-1 text-[8px] font-semibold text-primary">Step 3</div></div>
+                  <div className="rounded-lg border border-border bg-secondary px-1.5 py-2 text-center"><p className="text-[8px] font-semibold text-muted-foreground/75">THU</p><div className="mt-1 rounded-md bg-primary/10 px-1 py-1 text-[8px] font-semibold text-primary">Step 4</div></div>
+                  <div className="rounded-lg border border-border bg-secondary px-1.5 py-2 text-center"><p className="text-[8px] font-semibold text-muted-foreground/75">FRI</p><div className="mt-1 rounded-md bg-emerald-500/10 px-1 py-1 text-[8px] font-semibold text-emerald-400">Due</div></div>
                 </div>
 
-                <p className="mt-3 text-center text-[9px] leading-4 text-slate-400">Based directly on Praelecta&rsquo;s current project setup and roadmap flow.</p>
+                <p className="mt-3 text-center text-[9px] leading-4 text-muted-foreground/75">Based directly on Praelecta&rsquo;s current project setup and roadmap flow.</p>
               </div>
             </div>
 
-            <div className="border-t border-white/10 bg-white/[0.04] px-6 py-4 sm:px-8">
-                <div className="flex items-start gap-3 text-xs leading-5 text-slate-300">
+            <div className="border-t border-border bg-card/[0.04] px-6 py-4 sm:px-8">
+                <div className="flex items-start gap-3 text-xs leading-5 text-muted-foreground">
                   <CheckCircle2 className="mt-0.5 h-4 w-4 flex-none text-emerald-400" />
-                  <p><span className="font-semibold text-white">If a project takes longer than expected, we can recover.</span> After a project work session, you can ask for more time; we check open gaps before the due date and schedule additional project sessions there. If there is not enough free time, we show lower-priority calendar items that could be moved or removed.</p>
+                  <p><span className="font-semibold text-foreground">If a project takes longer than expected, we can recover.</span> After a project work session, you can ask for more time; we check open gaps before the due date and schedule additional project sessions there. If there is not enough free time, we show lower-priority calendar items that could be moved or removed.</p>
                 </div>
               </div>
           </div>

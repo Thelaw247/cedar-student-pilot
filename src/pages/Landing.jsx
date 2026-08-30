@@ -12,23 +12,23 @@ import LandingEnd from '@/components/landing/LandingEnd';
 
 function LandingFooter() {
   return (
-    <footer className="border-t border-slate-200 bg-white px-4 py-8 sm:px-6">
+    <footer className="border-t border-border bg-background/60 px-4 py-8 sm:px-6">
       <div className="mx-auto flex max-w-6xl flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2.5">
           <img src={BRAND_MARK_URL} alt="" className="h-7 w-7 object-contain" />
           <div>
-            <p className="text-sm font-semibold text-slate-950">Praelecta</p>
-            <p className="text-xs text-slate-500">Made in Canada · Your recordings stay private to you</p>
+            <p className="text-sm font-semibold text-foreground">Praelecta</p>
+            <p className="text-xs text-muted-foreground">Made in Canada · Your recordings stay private to you</p>
           </div>
         </div>
-        <div className="flex flex-wrap gap-x-5 gap-y-2 text-xs font-medium text-slate-500">
-          <a href="#recording" className="hover:text-slate-950">Recording</a>
-          <a href="#test-coverage" className="hover:text-slate-950">Test coverage</a>
-          <a href="#study-schedule" className="hover:text-slate-950">Study schedule</a>
-          <a href="#study-system" className="hover:text-slate-950">Study tools</a>
-          <a href="#pricing" className="hover:text-slate-950">Pricing</a>
-          <Link to="/privacy" className="hover:text-slate-950">Privacy</Link>
-          <Link to="/login" className="hover:text-slate-950">Sign in</Link>
+        <div className="flex flex-wrap gap-x-5 gap-y-2 text-xs font-medium text-muted-foreground">
+          <a href="#recording" className="hover:text-foreground">Recording</a>
+          <a href="#test-coverage" className="hover:text-foreground">Test coverage</a>
+          <a href="#study-schedule" className="hover:text-foreground">Study schedule</a>
+          <a href="#study-system" className="hover:text-foreground">Study tools</a>
+          <a href="#pricing" className="hover:text-foreground">Pricing</a>
+          <Link to="/privacy" className="hover:text-foreground">Privacy</Link>
+          <Link to="/login" className="hover:text-foreground">Sign in</Link>
         </div>
       </div>
     </footer>
@@ -57,7 +57,10 @@ export default function Landing() {
   }, []);
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-white text-slate-950 selection:bg-blue-100 selection:text-blue-950">
+    <div className="landing-surface relative min-h-screen overflow-x-hidden bg-background text-foreground selection:bg-primary/25 selection:text-foreground">
+      {/* The owner's waveform, held behind everything and dimmed so the page
+          stays readable. Fixed, so scrolling moves content across it. */}
+      <div className="landing-backdrop" aria-hidden="true" />
       <LandingNav />
       <main>
         <LandingHero />

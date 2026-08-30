@@ -43,12 +43,12 @@ export default function LandingHero() {
       <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[620px] bg-[radial-gradient(circle_at_50%_5%,rgba(46,102,255,0.13),transparent_42%)]" />
       <div className="mx-auto max-w-6xl">
         <div className="mx-auto max-w-4xl text-center">
-          <p className="text-sm font-semibold text-blue-600">The thought that hits mid-lecture</p>
-          <h1 className="mx-auto mt-3 max-w-4xl text-balance text-4xl font-bold leading-[1.02] tracking-[-0.05em] text-slate-950 sm:text-5xl lg:text-6xl">Afraid you missed something important?</h1>
-          <p className="mx-auto mt-5 max-w-3xl text-balance text-base leading-7 text-slate-600 sm:text-lg">We record the lecture, so you never have to wonder what you missed, then turn it into exactly what you need to study.
+          <p className="text-sm font-semibold text-primary">The thought that hits mid-lecture</p>
+          <h1 className="mx-auto mt-3 max-w-4xl text-balance text-4xl font-bold leading-[1.02] tracking-[-0.05em] text-foreground sm:text-5xl lg:text-6xl">Afraid you missed something important?</h1>
+          <p className="mx-auto mt-5 max-w-3xl text-balance text-base leading-7 text-muted-foreground sm:text-lg">We record the lecture, so you never have to wonder what you missed, then turn it into exactly what you need to study.
 
           </p>
-          <p className="mx-auto mt-5 max-w-2xl text-lg font-bold tracking-[-0.02em] text-slate-950 sm:text-xl">
+          <p className="mx-auto mt-5 max-w-2xl text-lg font-bold tracking-[-0.02em] text-foreground sm:text-xl">
             Nothing gets past us.
           </p>
         </div>
@@ -58,45 +58,45 @@ export default function LandingHero() {
           <a
             key={feature.number}
             href={feature.href}
-            className="group relative overflow-hidden rounded-[26px] border border-slate-200 bg-white p-6 shadow-[0_18px_55px_-35px_rgba(15,23,42,0.35)] transition-all hover:-translate-y-1 hover:border-blue-200 hover:shadow-[0_24px_65px_-32px_rgba(46,102,255,0.28)] sm:p-7">
+            className="group relative overflow-hidden rounded-[26px] border border-border bg-card p-6 shadow-[0_18px_55px_-35px_rgba(15,23,42,0.35)] transition-all hover:-translate-y-1 hover:border-primary/30 hover:shadow-[0_24px_65px_-32px_rgba(46,102,255,0.28)] sm:p-7">
             
               <div className="flex items-start justify-between gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                   <feature.icon className="h-6 w-6" />
                 </div>
-                <span className="text-4xl font-black tracking-[-0.06em] text-slate-100 transition-colors group-hover:text-blue-100">{feature.number}</span>
+                <span className="text-4xl font-black tracking-[-0.06em] text-primary/25 transition-colors group-hover:text-primary/25">{feature.number}</span>
               </div>
-              <p className="mt-6 text-[11px] font-bold uppercase tracking-[0.14em] text-blue-600">{feature.label}</p>
-              <h2 className="mt-2 text-2xl font-bold tracking-[-0.035em] text-slate-950">{feature.title}</h2>
-              <p className="mt-3 text-sm leading-6 text-slate-600">{feature.body}</p>
-              <span className="mt-6 inline-flex items-center gap-1 text-xs font-semibold text-slate-500 transition-colors group-hover:text-blue-600">
+              <p className="mt-6 text-[11px] font-bold uppercase tracking-[0.14em] text-primary">{feature.label}</p>
+              <h2 className="mt-2 text-2xl font-bold tracking-[-0.035em] text-foreground">{feature.title}</h2>
+              <p className="mt-3 text-sm leading-6 text-muted-foreground">{feature.body}</p>
+              <span className="mt-6 inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground transition-colors group-hover:text-primary">
                 See it in Praelecta <ChevronRight className="h-3.5 w-3.5" />
               </span>
             </a>
           )}
         </div>
 
-        <div className="mx-auto mt-8 max-w-5xl rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 sm:px-6">
+        <div className="mx-auto mt-8 max-w-5xl rounded-2xl border border-border bg-muted px-4 py-4 sm:px-6">
           <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-2 text-xs font-semibold sm:text-sm">
-            <span className="rounded-lg bg-white px-3 py-2 text-slate-500 shadow-sm">Lecture</span>
-            <ChevronRight className="h-4 w-4 text-slate-300" />
-            <span className="rounded-lg bg-blue-50 px-3 py-2 text-blue-700">Record it</span>
-            <ChevronRight className="h-4 w-4 text-slate-300" />
-            <span className="rounded-lg bg-blue-50 px-3 py-2 text-blue-700">Choose what&rsquo;s tested</span>
-            <ChevronRight className="h-4 w-4 text-slate-300" />
-            <span className="rounded-lg bg-blue-50 px-3 py-2 text-blue-700">Book the study</span>
-            <ChevronRight className="h-4 w-4 text-slate-300" />
-            <span className="rounded-lg bg-blue-50 px-3 py-2 text-blue-700">Run the study session</span>
-            <ChevronRight className="h-4 w-4 text-slate-300" />
-            <span className="rounded-lg bg-white px-3 py-2 text-slate-950 shadow-sm">Exam</span>
+            <span className="rounded-lg bg-secondary px-3 py-2 text-muted-foreground shadow-sm">Lecture</span>
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            <span className="rounded-lg bg-primary/10 px-3 py-2 text-primary">Record it</span>
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            <span className="rounded-lg bg-primary/10 px-3 py-2 text-primary">Choose what&rsquo;s tested</span>
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            <span className="rounded-lg bg-primary/10 px-3 py-2 text-primary">Book the study</span>
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            <span className="rounded-lg bg-primary/10 px-3 py-2 text-primary">Run the study session</span>
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            <span className="rounded-lg bg-secondary px-3 py-2 text-foreground shadow-sm">Exam</span>
           </div>
         </div>
 
         <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-          <Link to="/register" className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#2E66FF] px-5 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#2459e8] sm:w-auto">
+          <Link to="/register" className="auth-cta inline-flex w-full items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold text-primary-foreground sm:w-auto">
             Start free <ArrowRight className="h-4 w-4" />
           </Link>
-          <a href="#recording" className="inline-flex w-full items-center justify-center rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-800 transition-colors hover:bg-slate-50 sm:w-auto">
+          <a href="#recording" className="inline-flex w-full items-center justify-center rounded-xl border border-border bg-card px-5 py-3 text-sm font-semibold text-foreground/85 transition-colors hover:bg-muted sm:w-auto">
             See the four features
           </a>
         </div>

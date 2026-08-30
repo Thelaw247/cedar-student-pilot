@@ -36,45 +36,45 @@ const COMMITMENTS = [
 
 export default function LandingWhyStudents() {
   return (
-    <section id="why-students" className="border-t border-slate-200 bg-white px-4 py-20 sm:px-6 lg:py-24">
+    <section id="why-students" className="border-t border-border bg-card px-4 py-20 sm:px-6 lg:py-24">
       <div className="mx-auto max-w-6xl">
         <div className="mx-auto max-w-3xl text-center">
-          <p className="text-sm font-semibold text-blue-600">Sound familiar?</p>
-          <h2 className="mt-2 text-3xl font-bold tracking-[-0.04em] text-slate-950 sm:text-4xl">
+          <p className="text-sm font-semibold text-primary">Sound familiar?</p>
+          <h2 className="mt-2 text-3xl font-bold tracking-[-0.04em] text-foreground sm:text-4xl">
             We built Praelecta for the three sentences every student says
           </h2>
         </div>
 
         <div className="mt-10 grid gap-4 md:grid-cols-3">
           {PAINS.map((p) => (
-            <div key={p.quote} className="rounded-[26px] border border-slate-200 bg-white p-6 shadow-[0_18px_55px_-35px_rgba(15,23,42,0.35)] sm:p-7">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
+            <div key={p.quote} className="rounded-[26px] border border-border bg-card p-6 shadow-[0_18px_55px_-35px_rgba(15,23,42,0.35)] sm:p-7">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                 <p.icon className="h-5 w-5" />
               </div>
-              <p className="mt-5 text-lg font-bold tracking-[-0.02em] text-slate-950">{p.quote}</p>
-              <p className="mt-3 text-sm leading-6 text-slate-600">{p.answer}</p>
+              <p className="mt-5 text-lg font-bold tracking-[-0.02em] text-foreground">{p.quote}</p>
+              <p className="mt-3 text-sm leading-6 text-muted-foreground">{p.answer}</p>
             </div>
           ))}
         </div>
 
-        <div className="mt-14 rounded-[26px] border border-slate-200 bg-slate-50 p-7 sm:p-9">
+        <div className="mt-14 rounded-[26px] border border-border bg-muted p-7 sm:p-9">
           <div className="flex items-center gap-2">
-            <ShieldCheck className="h-5 w-5 text-blue-600" />
-            <h3 className="text-xl font-bold tracking-[-0.03em] text-slate-950">Four things we will never do to you</h3>
+            <ShieldCheck className="h-5 w-5 text-primary" />
+            <h3 className="text-xl font-bold tracking-[-0.03em] text-foreground">Four things we will never do to you</h3>
           </div>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
             Study apps have a reputation problem — hidden quotas, paywalls dressed as errors, cancel mazes.
             These four commitments are enforced in our code, not just our copy.
           </p>
           <div className="mt-6 grid gap-x-8 gap-y-5 sm:grid-cols-2">
             {COMMITMENTS.map((c) => (
               <div key={c.title} className="flex items-start gap-3">
-                <div className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl bg-white text-blue-600 shadow-sm">
+                <div className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl bg-secondary text-primary">
                   <c.icon className="h-4 w-4" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-slate-950">{c.title}</p>
-                  <p className="mt-1 text-sm leading-6 text-slate-600">{c.body}</p>
+                  <p className="text-sm font-semibold text-foreground">{c.title}</p>
+                  <p className="mt-1 text-sm leading-6 text-muted-foreground">{c.body}</p>
                 </div>
               </div>
             ))}
