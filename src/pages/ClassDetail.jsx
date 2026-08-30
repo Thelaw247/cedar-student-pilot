@@ -240,14 +240,6 @@ function LectureTab({ lectures, coverage, classId, cls, onUpdate, autoRecord, on
   );
 }
 
-// Lecture processing is asynchronous: the server acknowledges with 202 and
-// transcribes/analyzes in the background (a long lecture takes minutes —
-// longer than a browser reliably holds one request open). Poll the lecture
-// row until it leaves 'processing'. 'complete' resolves; 'pending' means the
-// server hit an error and released the recording for another attempt.
-const PROCESS_POLL_MS = 5000;
-const PROCESS_POLL_LIMIT_MS = 45 * 60 * 1000; // generous ceiling for multi-hour recordings
-
 /**
  * Entry sheet for recording (Design Blueprint fix CD-2). The recording ENGINE
  * no longer lives here — it moved verbatim into RecordingProvider (mounted in

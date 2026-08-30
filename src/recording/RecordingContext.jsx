@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
 import { saveRecording, getRecording, clearRecording } from '@/lib/recordingStore';
+import { LECTURE_COMPLETE, LECTURE_PENDING } from '@/lib/lectureStatus';
 import { useUpgrade } from '@/components/monetization/UpgradeContext';
 
 /**
@@ -30,11 +31,21 @@ const SEGMENT_ROTATE_SECONDS = 90 * 60;
 const MAX_TOTAL_SECONDS = 6 * 60 * 60;
 const MAX_UPLOAD_ATTEMPTS = 3;
 
-// Poll the lecture row after the 202-accepted processing call. Mirrors the
-// server's own stale-claim window (PROCESSING_STALE_MINUTES) with margin.
+// Poll the lecture row after the 202-accepted processing call.
+//
+// The terminal status is 'complete'. It is imported rather than typed here
+// because it was once typed here, as 'completed', which is the vocabulary of
+// assignments and study sessions and a value the lectures CHECK constraint
+// rejects outright. The success branch was therefore unreachable: every save
+// polled until it gave up, so a lecture that had finished in two minutes
+// looked hung, and each retry created another lecture and charged again.
+//
+// The ceiling is generous because a six-hour recording legitimately takes a
+// long time, and being impatient here is expensive: giving up early is what
+// strands the local copy and invites the duplicate.
 async function waitForLectureProcessing(lectureId) {
   const POLL_INTERVAL_MS = 3000;
-  const MAX_WAIT_MS = 18 * 60 * 1000;
+  const MAX_WAIT_MS = 45 * 60 * 1000;
   const start = Date.now();
   while (Date.now() - start < MAX_WAIT_MS) {
     await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
@@ -44,8 +55,8 @@ async function waitForLectureProcessing(lectureId) {
     } catch (e) {
       continue; // transient fetch failure — keep polling
     }
-    if (lecture?.status === 'completed') return lecture;
-    if (lecture?.status === 'pending') {
+    if (lecture?.status === LECTURE_COMPLETE) return lecture;
+    if (lecture?.status === LECTURE_PENDING) {
       throw new Error("Processing didn't finish. Your recording is saved — tap Save & Process to try again.");
     }
   }
@@ -82,6 +93,10 @@ export function RecordingProvider({ children }) {
   // recoverSession (before React state flushes); state mirrors it for the UI.
   const [recoveredBlob, setRecoveredBlob] = useState(null);
   const recoveredBlobRef = useRef(null);
+  // Mirrors pendingLectureId so saveAndProcess can read it in the same tick
+  // as recoverSession, and so a recovered session inherits the lecture the
+  // previous attempt already created instead of creating a second one.
+  const pendingLectureIdRef = useRef(null);
 
   const streamRef = useRef(null);
   const recorderRef = useRef(null);
@@ -167,8 +182,29 @@ export function RecordingProvider({ children }) {
         });
       }
     };
+    // A phone browser can stop the recorder out from under us: the tab is
+    // backgrounded, the OS reclaims the microphone, a call comes in. Nothing
+    // used to notice — the clock kept counting and the pill kept saying
+    // "recording" while no audio was arriving, and the student only found out
+    // when they stopped. Treat it as the end of the recording and move to
+    // "ready to save" so the audio captured so far is offered immediately.
+    //
+    // stopCurrentSegment installs its own onstop for deliberate stops, so
+    // reaching this handler means the recorder ended on its own.
+    recorder.onstop = () => {
+      if (recordingRef.current && !rotatingRef.current) handleUnexpectedStop();
+    };
+    recorder.onerror = () => {
+      if (recordingRef.current && !rotatingRef.current) handleUnexpectedStop();
+    };
     recorder.start(15000);
     recorderRef.current = recorder;
+  };
+
+  // The recording ended without us asking. Finalize what we have and say so.
+  const handleUnexpectedStop = () => {
+    setSaveError('Recording stopped — your phone or browser interrupted it. Everything up to that point is safe. Tap Save & process to keep it.');
+    finalizeRecording({ interrupted: true });
   };
 
   // Stops the current segment's recorder, resolving with its Blob. Callers
@@ -219,7 +255,7 @@ export function RecordingProvider({ children }) {
 
   // Finalizes the whole recording: stop, upload the last segment, move to
   // "ready to save". Used by manual Stop and by the 6-hour ceiling.
-  const finalizeRecording = async ({ hitAbsoluteLimit = false } = {}) => {
+  const finalizeRecording = async ({ hitAbsoluteLimit = false, interrupted = false } = {}) => {
     if (rotatingRef.current) return;
     rotatingRef.current = true;
     setRecording(false);
@@ -238,6 +274,7 @@ export function RecordingProvider({ children }) {
         seconds: secondsRef.current,
         timestamp: Date.now(),
         parts: uploadedPartsRef.current,
+        lectureId: pendingLectureIdRef.current,
       });
       setReadyToSave(true);
     } catch (e) {
@@ -287,6 +324,7 @@ export function RecordingProvider({ children }) {
       setRecordingLimitReached(false);
       setSaveError('');
       setPendingLectureId(null);
+      pendingLectureIdRef.current = null;
       setReviewLectureId(null);
       setLiveNotes('');
       setSeconds(0);
@@ -325,8 +363,12 @@ export function RecordingProvider({ children }) {
     clsRef.current = { id: classInfo.id, name: classInfo.name, color: classInfo.color };
     uploadedPartsRef.current = parts;
     setSavedSegmentCount(parts.length);
-    recoveredBlobRef.current = rec.blob || null;
-    setRecoveredBlob(rec.blob || null);
+    recoveredBlobRef.current = rec.blob && rec.blob.size > 0 ? rec.blob : null;
+    setRecoveredBlob(rec.blob && rec.blob.size > 0 ? rec.blob : null);
+    // Reuse the lecture the interrupted attempt already created. This is the
+    // difference between a retry and a duplicate.
+    pendingLectureIdRef.current = rec.lectureId || null;
+    setPendingLectureId(rec.lectureId || null);
     setSeconds(rec.seconds || 0);
     secondsRef.current = rec.seconds || 0;
     setReadyToSave(true);
@@ -363,7 +405,35 @@ export function RecordingProvider({ children }) {
         duration_seconds: durationSeconds,
       });
 
-      let lectureId = pendingLectureId;
+      // pendingLectureId can be a tick behind (recoverSession seeds both in
+      // the same render), so the ref is the source of truth here.
+      let lectureId = pendingLectureIdRef.current || pendingLectureId;
+
+      // The server may have finished while the client wasn't watching — a
+      // refresh, a closed tab, a dead poll. Ask before doing anything
+      // expensive; re-processing would charge for work already paid for.
+      if (lectureId) {
+        try {
+          const existing = await base44.entities.Lecture.get(lectureId);
+          if (existing?.status === LECTURE_COMPLETE) {
+            await clearRecording(activeCls.id);
+            uploadedPartsRef.current = [];
+            setSavedSegmentCount(0);
+            recoveredBlobRef.current = null;
+            setRecoveredBlob(null);
+            setPendingLectureId(null);
+            pendingLectureIdRef.current = null;
+            setProcessing(false);
+            setReadyToSave(false);
+            setReviewLectureId(lectureId);
+            window.dispatchEvent(new Event('cedar-data-changed'));
+            return;
+          }
+        } catch (e) {
+          // Can't reach it (deleted, offline) — fall through and process.
+        }
+      }
+
       if (!lectureId) {
         const today = new Date().toISOString().split('T')[0];
         const lecture = await base44.entities.Lecture.create({
@@ -378,6 +448,16 @@ export function RecordingProvider({ children }) {
         });
         lectureId = lecture.id;
         setPendingLectureId(lectureId);
+        pendingLectureIdRef.current = lectureId;
+        // Write the id next to the audio before doing anything else. If the
+        // student closes the tab one second from now, the next attempt finds
+        // this lecture and resumes it instead of creating another.
+        await saveRecording(activeCls.id, new Blob([], { type: 'audio/webm' }), {
+          seconds: durationSeconds,
+          timestamp: Date.now(),
+          parts,
+          lectureId,
+        });
       }
 
       await base44.functions.invoke('processLectureRecording', { lecture_id: lectureId });
@@ -393,7 +473,10 @@ export function RecordingProvider({ children }) {
         } catch (e) { /* non-fatal: the recording itself is safely saved */ }
       }
       await clearRecording(activeCls.id);
+      uploadedPartsRef.current = [];
+      setSavedSegmentCount(0);
       setPendingLectureId(null);
+      pendingLectureIdRef.current = null;
       setProcessing(false);
       setReadyToSave(false);
       setReviewLectureId(lectureId);
@@ -428,6 +511,7 @@ export function RecordingProvider({ children }) {
     setRecoveredBlob(null);
     recoveredBlobRef.current = null;
     setPendingLectureId(null);
+    pendingLectureIdRef.current = null;
     setLiveNotes('');
     setCls(null);
     clsRef.current = null;
@@ -481,5 +565,5 @@ export async function findRecoverableRecording(classId) {
   if (!rec) return null;
   const parts = Array.isArray(rec.parts) ? rec.parts : [];
   if ((!rec.blob || rec.blob.size === 0) && parts.length === 0) return null;
-  return rec;
+  return { ...rec, parts, lectureId: rec.lectureId || null };
 }

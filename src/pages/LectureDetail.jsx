@@ -13,6 +13,7 @@ import Widget from '@/components/ui/Widget';
 import { useUpgrade } from '@/components/monetization/UpgradeContext';
 import { useFeatureGate } from '@/components/monetization/useFeatureGate';
 import { Lock } from 'lucide-react';
+import { LECTURE_COMPLETE } from '@/lib/lectureStatus';
 
 export default function LectureDetail() {
   const { lectureId } = useParams();
@@ -346,7 +347,7 @@ export default function LectureDetail() {
       </div>
 
       {/* Post-value upsell — Free tier, completed lecture, dismissible */}
-      {tier === 'free' && lecture.status === 'complete' && lecture.ai_title && !upsellDismissed && (
+      {tier === 'free' && lecture.status === LECTURE_COMPLETE && lecture.ai_title && !upsellDismissed && (
         <div className="rounded-2xl border border-primary/25 bg-primary/[0.04] p-4 mb-6 flex items-start gap-3">
           <Sparkles className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
           <div className="flex-1">

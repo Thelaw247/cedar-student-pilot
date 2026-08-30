@@ -72,6 +72,11 @@ export async function saveRecording(classId, blob, meta = {}) {
         seconds: meta.seconds ?? 0,
         timestamp: meta.timestamp ?? Date.now(),
         mimeType: blob?.type || 'audio/webm',
+        // The Lecture row this recording already created, if it got that far.
+        // Without this a retry after a refresh cannot tell that the work is
+        // already done (or already queued) and creates a duplicate lecture,
+        // charging the student a second time for the same audio.
+        lectureId: meta.lectureId ?? null,
         // Segments already uploaded to R2 for a recording that has been
         // rotated (see ClassDetail's chunking logic). Lets a crash-recovered
         // recording resume without re-uploading segments it already has.
@@ -100,10 +105,15 @@ export async function getRecording(classId) {
       req.onerror = () => reject(req.error);
     });
     db.close();
-    // Only treat it as recoverable if there's actual audio with some length.
-    if (rec && rec.blob && rec.blob.size > 0) {
-      return { ...rec, parts: Array.isArray(rec.parts) ? rec.parts : [] };
-    }
+    // Recoverable means "there is still something to save": either local
+    // bytes that never reached R2, or segments that did but were never
+    // attached to a lecture. Requiring local bytes used to strand a
+    // recording that had uploaded every segment and then failed at the
+    // final step — exactly the case where the audio is most at risk.
+    if (!rec) return null;
+    const parts = Array.isArray(rec.parts) ? rec.parts : [];
+    const hasBytes = !!rec.blob && rec.blob.size > 0;
+    if (hasBytes || parts.length > 0) return { ...rec, parts };
     return null;
   } catch (e) {
     return null;

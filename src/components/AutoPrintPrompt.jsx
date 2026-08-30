@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { userStorageKey } from '@/lib/currentUser';
 import { Printer, X, Loader2 } from 'lucide-react';
+import { LECTURE_COMPLETE } from '@/lib/lectureStatus';
 
 export default function AutoPrintPrompt() {
   const [todaysLectures, setTodaysLectures] = useState([]);
@@ -23,7 +24,7 @@ export default function AutoPrintPrompt() {
       try {
         const today = new Date().toISOString().split('T')[0];
         const lecs = await base44.entities.Lecture.filter({ date: today }, '-created_date');
-        const withTranscripts = lecs.filter(l => l.transcript && l.transcript.length > 50 && l.status === 'complete');
+        const withTranscripts = lecs.filter(l => l.transcript && l.transcript.length > 50 && l.status === LECTURE_COMPLETE);
         setTodaysLectures(withTranscripts);
       } catch (e) { /* skip */ }
       setChecking(false);
