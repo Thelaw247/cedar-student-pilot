@@ -29,7 +29,7 @@ export default function ReviewScheduleSection() {
 
   return (
     <div>
-      <p className="text-sm text-muted-foreground mb-3">Set preferred times for daily lecture reviews. Praelecta will remind you to review your lectures at these times.</p>
+      <p className="text-sm text-muted-foreground mb-3">Set preferred times for daily lecture reviews. We’ll remind you to review your lectures at these times.</p>
 
       {times.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-3">

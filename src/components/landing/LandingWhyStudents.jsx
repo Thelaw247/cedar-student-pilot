@@ -18,7 +18,7 @@ const PAINS = [
   {
     icon: PenLine,
     quote: '“I can’t listen and take notes at the same time.”',
-    answer: 'Just listen. Praelecta takes the notes — transcript, summary and key concepts, minutes after class ends.',
+    answer: 'Just listen. We take the notes — transcript, summary and key concepts, minutes after class ends.',
   },
   {
     icon: Layers,
@@ -31,7 +31,7 @@ const COMMITMENTS = [
   { icon: Mic, title: 'A recording never stops mid-lecture', body: 'Long classes rotate segments silently for up to six hours. Your audio is never held hostage to a limit.' },
   { icon: Eye, title: 'Every limit is visible before you hit it', body: 'Your credit balance is always on screen, and every action shows its cost up front. No surprise walls.' },
   { icon: LogOut, title: 'Cancel in one tap', body: 'Leaving takes one tap in Settings — no chat with support, no retention maze. What you already made stays yours.' },
-  { icon: BookOpenCheck, title: 'Your lectures, never your assignments', body: 'Praelecta helps you learn what your professor actually said. It doesn’t write essays, and recording starts with permission.' },
+  { icon: BookOpenCheck, title: 'Your lectures, never your assignments', body: 'We help you learn what your professor actually said. We don’t write essays, and recording starts with permission.' },
 ];
 
 export default function LandingWhyStudents() {
@@ -41,7 +41,7 @@ export default function LandingWhyStudents() {
         <div className="mx-auto max-w-3xl text-center">
           <p className="text-sm font-semibold text-blue-600">Sound familiar?</p>
           <h2 className="mt-2 text-3xl font-bold tracking-[-0.04em] text-slate-950 sm:text-4xl">
-            Praelecta was built for the three sentences every student says
+            We built Praelecta for the three sentences every student says
           </h2>
         </div>
 
@@ -60,11 +60,11 @@ export default function LandingWhyStudents() {
         <div className="mt-14 rounded-[26px] border border-slate-200 bg-slate-50 p-7 sm:p-9">
           <div className="flex items-center gap-2">
             <ShieldCheck className="h-5 w-5 text-blue-600" />
-            <h3 className="text-xl font-bold tracking-[-0.03em] text-slate-950">Four things Praelecta will never do to you</h3>
+            <h3 className="text-xl font-bold tracking-[-0.03em] text-slate-950">Four things we will never do to you</h3>
           </div>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
             Study apps have a reputation problem — hidden quotas, paywalls dressed as errors, cancel mazes.
-            These four commitments are enforced in Praelecta&rsquo;s code, not just its copy.
+            These four commitments are enforced in our code, not just our copy.
           </p>
           <div className="mt-6 grid gap-x-8 gap-y-5 sm:grid-cols-2">
             {COMMITMENTS.map((c) => (

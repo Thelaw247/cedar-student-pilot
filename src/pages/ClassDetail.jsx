@@ -785,7 +785,7 @@ function HandbookTab({ cls, lectures }) {
     return (
       <LockedFeature
         title={`The ${cls.name} handbook`}
-        description="Praelecta writes a living handbook for this class from your own lectures — every chapter in your professor's words, updated as you record."
+        description="We write a living handbook for this class from your own lectures — every chapter in your professor's words, updated as you record."
         source="handbook"
         requiredTierName="Scholar"
         ctaLabel="See plans"

@@ -20,7 +20,7 @@ export const TIERS = {
   free: {
     id: 'free',
     name: 'Free',
-    blurb: 'See exactly what Praelecta does — 2 full lectures on us.',
+    blurb: 'See exactly what we do — 2 full lectures on us.',
     monthly: 0,
     semester: 0,
     creditsPerMonth: 20,

@@ -91,7 +91,7 @@ export default function Settings() {
         <Toggle label="Assignment deadlines" description="Reminders for upcoming due dates" settingKey="assignmentDeadlines" />
         <div className="mt-3 rounded-lg bg-muted/50 p-3 flex items-start gap-2">
           <AlertCircle className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0 mt-0.5" />
-          <p className="text-[11px] text-muted-foreground">When study session reminders are on, Praelecta also sends email fallbacks if you haven't opened the app.</p>
+          <p className="text-[11px] text-muted-foreground">When study session reminders are on, we also send email fallbacks if you haven't opened the app.</p>
         </div>
       </SettingsSection>
 

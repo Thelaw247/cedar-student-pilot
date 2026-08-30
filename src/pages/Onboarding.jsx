@@ -29,7 +29,7 @@ const GOALS = [
 ];
 
 const STUDY_STYLES = [
-  { id: 'cram', label: 'Cramming from messy notes the night before', answer: 'Praelecta turns every lecture into a summary and flashcards the day it happens — studying starts already done.' },
+  { id: 'cram', label: 'Cramming from messy notes the night before', answer: 'We turn every lecture into a summary and flashcards the day it happens — studying starts already done.' },
   { id: 'reread', label: 'Re-reading or re-listening to everything', answer: 'Searchable transcripts and summaries take you straight to the part that matters — no more re-listening.' },
   { id: 'flashcards', label: 'Making my own flashcards by hand', answer: 'Flashcards make themselves from every recorded lecture.' },
   { id: 'unsure', label: "I never know what to study first", answer: 'Exam topic prediction ranks what to study first — from your own lectures.' },
@@ -42,9 +42,9 @@ const COURSE_LOADS = [
 ];
 
 const PROMISES = {
-  'fast-prof': { title: 'Never miss a word again', lines: ['Record the lecture — Praelecta transcribes every word', 'Replay anything at your own speed, with the transcript beside it', 'A clean summary and key concepts, minutes after class ends'] },
-  notes: { title: 'Just listen. Praelecta takes the notes.', lines: ['Hit record and put the pen down', 'Transcript, summary and action items appear after class', 'Your own quick notes attach to the exact lecture'] },
-  exams: { title: 'Walk into every exam covered', lines: ['Every lecture becomes flashcards and practice questions', 'Praelecta flags every exam mention your prof drops', 'Exam-topic prediction shows what to study first'] },
+  'fast-prof': { title: 'Never miss a word again', lines: ['Record the lecture — we transcribe every word', 'Replay anything at your own speed, with the transcript beside it', 'A clean summary and key concepts, minutes after class ends'] },
+  notes: { title: 'Just listen. We take the notes.', lines: ['Hit record and put the pen down', 'Transcript, summary and action items appear after class', 'Your own quick notes attach to the exact lecture'] },
+  exams: { title: 'Walk into every exam covered', lines: ['Every lecture becomes flashcards and practice questions', 'We flag every exam mention your prof drops', 'Exam-topic prediction shows what to study first'] },
   organized: { title: 'Your semester, already structured', lines: ['Import your timetable once — every class scheduled', 'Study sessions planned around your real deadlines', 'One place for lectures, notes, flashcards and plans'] },
 };
 
@@ -142,7 +142,7 @@ export default function Onboarding() {
 
           {/* Q1 — the struggle (persona) */}
           {step === 0 && (
-            <QuestionShell title="What&rsquo;s your biggest struggle this semester?" sub="Praelecta shapes itself around your answer.">
+            <QuestionShell title="What&rsquo;s your biggest struggle this semester?" sub="We shape the app around your answer.">
               <div className="space-y-2.5">
                 {GOALS.map((g) => (
                   <button key={g.id} type="button" onClick={() => pick(setGoal, 'cedar-goal', g.id, 1)}
@@ -209,7 +209,7 @@ export default function Onboarding() {
               <div className="flex items-start gap-2 rounded-xl bg-muted/40 px-4 py-3 mb-6">
                 <Shield className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
                 <p className="text-xs text-muted-foreground">
-                  Your recordings stay private to you. Praelecta helps you learn your own lectures — it never does
+                  Your recordings stay private to you. We help you learn your own lectures — we never do
                   assignments — and recording consent is built into every class.
                 </p>
               </div>

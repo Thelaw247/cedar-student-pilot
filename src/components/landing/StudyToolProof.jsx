@@ -52,10 +52,10 @@ export default function StudyToolProof() {
               </div>
             </div>
             <h2 className="mt-5 text-4xl font-bold leading-[1.04] tracking-[-0.05em] text-slate-950 sm:text-5xl">
-              Tell Praelecta exactly what the test covers.
+              Tell us exactly what the test covers.
             </h2>
             <p className="mt-5 max-w-xl text-base leading-7 text-slate-600">
-              Pick the lectures once. Praelecta uses that exact slice of the course for the study material you create next instead of making you paste notes into a new tool and explain the class again.
+              Pick the lectures once. We use that exact slice of the course for the study material you create next instead of making you paste notes into a new tool and explain the class again.
             </p>
 
             <div className="mt-7 rounded-2xl border border-blue-100 bg-blue-50/70 p-5">

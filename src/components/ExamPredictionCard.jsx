@@ -58,7 +58,7 @@ export default function ExamPredictionCard({ classId }) {
         </span>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-muted-foreground">Exam topic predictions</p>
-          <p className="text-[11px] text-muted-foreground">Praelecta reads every lecture and predicts what your exam will cover. Unlocks with {requiredTierName}.</p>
+          <p className="text-[11px] text-muted-foreground">We read every lecture and predict what your exam will cover. Unlocks with {requiredTierName}.</p>
         </div>
         <button onClick={lock}
           className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-muted text-muted-foreground text-xs font-medium hover:text-foreground transition-colors flex-shrink-0">

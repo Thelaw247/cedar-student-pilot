@@ -31,10 +31,10 @@ export default function RecordingFeature() {
               Record the lecture. Keep what your professor actually taught.
             </h2>
             <p className="mt-5 max-w-xl text-base leading-7 text-slate-600">
-              With permission, start a recording from the class. When it ends, Praelecta keeps the lecture with the course instead of leaving you with an audio file you have to sort out later.
+              With permission, start a recording from the class. When it ends, we keep the lecture with the course instead of leaving you with an audio file you have to sort out later.
             </p>
             <div className="mt-7 space-y-3 text-sm text-slate-700">
-              <div className="flex gap-3"><ShieldCheck className="mt-0.5 h-5 w-5 flex-none text-blue-600" /><span>Praelecta asks you to confirm recording permission for the class first.</span></div>
+              <div className="flex gap-3"><ShieldCheck className="mt-0.5 h-5 w-5 flex-none text-blue-600" /><span>We ask you to confirm recording permission for the class first.</span></div>
               <div className="flex gap-3"><FileText className="mt-0.5 h-5 w-5 flex-none text-blue-600" /><span>The recording becomes a lecture record with transcript, summary, concepts, formulas, notes, and exam mentions.</span></div>
               <div className="flex gap-3"><BookOpen className="mt-0.5 h-5 w-5 flex-none text-blue-600" /><span>That same lecture can later feed the class handbook, test coverage, flashcards, practice, and reviews.</span></div>
             </div>
