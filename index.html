@@ -5,6 +5,7 @@
     <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
     <meta name="theme-color" content="#2E66FF" />
@@ -14,14 +15,15 @@
     <meta property="og:description" content="Record the lecture. Praelecta takes the notes — transcript, summary and flashcards, minutes after class ends." />
     <!-- og:image / twitter:image stay absolute deliberately: social scrapers
          (Facebook, LinkedIn, Slack, iMessage) do not resolve relative paths.
-         Now served from our own origin, not the Base44 CDN — that copy was the
-         retired Cedar icon and would have shown the old brand on every shared
-         link. Swap the host to the real domain at the DNS move; the path is
-         already correct. -->
-    <meta property="og:image" content="https://cedar-student-pilot.dewetluus.workers.dev/og-image-1200x630.png" />
+         Points at the 512 app icon we already ship, so there is one brand
+         asset to keep current instead of a second file that can drift. The
+         art is square, so the Twitter card is the small summary type rather
+         than the wide one. Swap the host to the real domain at the DNS move;
+         the path is already correct. -->
+    <meta property="og:image" content="https://cedar-student-pilot.dewetluus.workers.dev/android-chrome-512x512.png" />
     <meta property="og:type" content="website" />
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:image" content="https://cedar-student-pilot.dewetluus.workers.dev/og-image-1200x630.png" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:image" content="https://cedar-student-pilot.dewetluus.workers.dev/android-chrome-512x512.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
