@@ -17,7 +17,7 @@ export const COST_PER_30MIN_CLEAN = 3;
 
 // exam_prediction and lecture_review both run on the QUALITY model. Priced at
 // 1 and 2 credits they cost $0.0066 and $0.0093 per credit — above what a
-// recorded minute costs. At 2 and 3 every credit in Cedar costs at most the
+// recorded minute costs. At 2 and 3 every credit in Praelecta costs at most the
 // lecture rate. Repriced 30 Aug 2026, before the first paying subscriber.
 export const FEATURE_COSTS = {
   handbook: 5,

@@ -13,7 +13,7 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 // Groq's free-tier direct attachment limit is 25 MB. Stay one MiB below it so
 // multipart/form-data overhead and provider-side rounding cannot turn an
-// accepted Cedar upload into an unprocessable recording later in the flow.
+// accepted Praelecta upload into an unprocessable recording later in the flow.
 export const MAX_RECORDING_BYTES = 24 * 1024 * 1024;
 const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
 const UPLOAD_EXPIRY_SECONDS = 5 * 60;

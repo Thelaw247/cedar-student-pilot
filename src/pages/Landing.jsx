@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { CEDAR_LOGO_URL } from '@/lib/brand';
+import { BRAND_MARK_URL } from '@/lib/brand';
 import LandingNav from '@/components/landing/LandingNav';
 import LandingHero from '@/components/landing/LandingHero';
 import RecordingFeature from '@/components/landing/RecordingFeature';
@@ -15,9 +15,9 @@ function LandingFooter() {
     <footer className="border-t border-slate-200 bg-white px-4 py-8 sm:px-6">
       <div className="mx-auto flex max-w-6xl flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2.5">
-          <img src={CEDAR_LOGO_URL} alt="" className="h-7 w-7 object-contain" />
+          <img src={BRAND_MARK_URL} alt="" className="h-7 w-7 object-contain" />
           <div>
-            <p className="text-sm font-semibold text-slate-950">Cedar Student Pilot</p>
+            <p className="text-sm font-semibold text-slate-950">Praelecta</p>
             <p className="text-xs text-slate-500">Made in Canada · Your recordings stay private to you</p>
           </div>
         </div>
@@ -38,7 +38,7 @@ function LandingFooter() {
 export default function Landing() {
   useEffect(() => {
     const previousTitle = document.title;
-    document.title = 'Cedar Student Pilot — Stop Rebuilding Your Class Before Every Exam';
+    document.title = 'Praelecta — Stop Rebuilding Your Class Before Every Exam';
 
     let description = document.querySelector('meta[name="description"]');
     const previousDescription = description?.getAttribute('content') || null;
@@ -47,7 +47,7 @@ export default function Landing() {
       description.setAttribute('name', 'description');
       document.head.appendChild(description);
     }
-    description.setAttribute('content', 'Keep the lecture, choose the exact test coverage, schedule research-backed study sessions, and use connected study tools and project plans in Cedar Student Pilot.');
+    description.setAttribute('content', 'Keep the lecture, choose the exact test coverage, schedule research-backed study sessions, and use connected study tools and project plans in Praelecta.');
 
     return () => {
       document.title = previousTitle;

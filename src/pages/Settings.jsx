@@ -91,7 +91,7 @@ export default function Settings() {
         <Toggle label="Assignment deadlines" description="Reminders for upcoming due dates" settingKey="assignmentDeadlines" />
         <div className="mt-3 rounded-lg bg-muted/50 p-3 flex items-start gap-2">
           <AlertCircle className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0 mt-0.5" />
-          <p className="text-[11px] text-muted-foreground">When study session reminders are on, Cedar also sends email fallbacks if you haven't opened the app.</p>
+          <p className="text-[11px] text-muted-foreground">When study session reminders are on, Praelecta also sends email fallbacks if you haven't opened the app.</p>
         </div>
       </SettingsSection>
 
@@ -133,7 +133,7 @@ export default function Settings() {
         </div>
       </SettingsSection>
 
-      <p className="text-center text-xs text-muted-foreground mt-8 mb-4">Cedar Student Pilot • v1.0</p>
+      <p className="text-center text-xs text-muted-foreground mt-8 mb-4">Praelecta • v1.0</p>
     </div>
   );
 }

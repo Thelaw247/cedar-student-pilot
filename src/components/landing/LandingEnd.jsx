@@ -5,17 +5,17 @@ import { ArrowRight, BarChart3, BookOpen, Brain, FileText, Headphones, RotateCcw
 const supportRows = [
   {
     icon: FileText,
-    from: 'Because Cedar has the lecture',
+    from: 'Because Praelecta has the lecture',
     title: 'you also get the transcript, summary, concepts, formulas, notes, exam mentions, and class handbook.',
   },
   {
     icon: Brain,
-    from: 'Because Cedar knows the test coverage',
+    from: 'Because Praelecta knows the test coverage',
     title: 'flashcards, practice questions, lecture reviews, and study material can use that same portion of the course.',
   },
   {
     icon: Headphones,
-    from: 'Because Cedar booked the study',
+    from: 'Because Praelecta booked the study',
     title: 'you can open the session, use the focus timer, rebook it when life changes, and track what you actually completed.',
   },
 ];
@@ -28,7 +28,7 @@ export default function LandingEnd() {
           <div className="mx-auto max-w-3xl text-center">
             <p className="text-sm font-semibold text-blue-600">The rest comes with the workflow</p>
             <h2 className="mt-2 text-3xl font-bold tracking-[-0.04em] text-slate-950 sm:text-4xl">Three core jobs. Everything else connects underneath them.</h2>
-            <p className="mt-4 text-base leading-7 text-slate-600">Cedar does not ask you to maintain a separate system for every feature. The useful extras come from the lecture, the test scope, and the study sessions you already set up.</p>
+            <p className="mt-4 text-base leading-7 text-slate-600">Praelecta does not ask you to maintain a separate system for every feature. The useful extras come from the lecture, the test scope, and the study sessions you already set up.</p>
           </div>
 
           <div className="mx-auto mt-10 max-w-4xl divide-y divide-slate-200 overflow-hidden rounded-[26px] border border-slate-200 bg-white">
@@ -56,7 +56,7 @@ export default function LandingEnd() {
           <div className="rounded-[26px] border border-slate-200 bg-white p-7 sm:p-8">
             <p className="text-sm font-semibold text-blue-600">Pricing</p>
             <h2 className="mt-2 text-3xl font-bold tracking-[-0.04em] text-slate-950">Start free. Pay for more processing when you need it.</h2>
-            <p className="mt-4 max-w-xl text-sm leading-6 text-slate-600">Cedar has Free, Student, Scholar, and Unlimited plans. The paid tiers increase how much lecture processing and study generation you can use — and every plan can be paid <span className="font-semibold text-slate-900">by the semester</span>, one bill that matches your term. No other study app does that.</p>
+            <p className="mt-4 max-w-xl text-sm leading-6 text-slate-600">Praelecta has Free, Student, Scholar, and Unlimited plans. The paid tiers increase how much lecture processing and study generation you can use — and every plan can be paid <span className="font-semibold text-slate-900">by the semester</span>, one bill that matches your term. No other study app does that.</p>
             <div className="mt-6 flex flex-wrap gap-2">
               {['Free', 'Student', 'Scholar', 'Unlimited'].map((plan) => (
                 <span key={plan} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700">{plan}</span>
@@ -68,7 +68,7 @@ export default function LandingEnd() {
           <div className="rounded-[26px] bg-slate-950 p-7 text-white sm:p-8">
             <ShieldCheck className="h-6 w-6 text-blue-400" />
             <h2 className="mt-5 text-2xl font-bold tracking-[-0.03em]">Your recording starts with permission.</h2>
-            <p className="mt-3 text-sm leading-6 text-slate-300">Cedar asks you to confirm that you have permission before recording a class. You decide what gets recorded, which lectures a test covers, and which study sessions you use.</p>
+            <p className="mt-3 text-sm leading-6 text-slate-300">Praelecta asks you to confirm that you have permission before recording a class. You decide what gets recorded, which lectures a test covers, and which study sessions you use.</p>
             <Link to="/privacy" className="mt-6 inline-flex text-sm font-semibold text-blue-300 hover:text-white">Read the privacy policy</Link>
           </div>
         </div>
@@ -92,7 +92,7 @@ export default function LandingEnd() {
           <div className="relative z-10">
             <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-blue-700/90">Lecture → test → study</p>
             <h2 className="mx-auto mt-3 max-w-3xl text-3xl font-bold tracking-[-0.04em] text-slate-950 drop-shadow-[0_1px_0_rgba(255,255,255,0.6)] sm:text-4xl">Keep the class. Know what matters. Make time to study it.</h2>
-            <p className="mx-auto mt-4 max-w-2xl text-sm font-medium leading-6 text-slate-700 sm:text-base">That is the job Cedar is built to do from the first lecture to the final exam.</p>
+            <p className="mx-auto mt-4 max-w-2xl text-sm font-medium leading-6 text-slate-700 sm:text-base">That is the job Praelecta is built to do from the first lecture to the final exam.</p>
             <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
               <Link to="/register" className="inline-flex items-center justify-center gap-2 rounded-2xl border border-blue-400/45 bg-[#2E66FF]/90 px-5 py-3 text-sm font-semibold text-white shadow-[0_14px_32px_-18px_rgba(46,102,255,0.85),inset_0_1px_0_rgba(255,255,255,0.35)] backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:bg-[#2E66FF]">Start free <ArrowRight className="h-4 w-4" /></Link>
               <Link to="/login" className="inline-flex items-center justify-center rounded-2xl border border-white/65 bg-white/34 px-5 py-3 text-sm font-semibold text-slate-900 shadow-[0_10px_28px_-20px_rgba(15,23,42,0.45),inset_0_1px_0_rgba(255,255,255,0.88)] backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:bg-white/52">Sign in</Link>

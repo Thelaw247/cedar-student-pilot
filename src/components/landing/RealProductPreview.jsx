@@ -64,16 +64,16 @@ export default function RealProductPreview() {
               </div>
             </div>
             <h2 className="mt-5 text-4xl font-bold leading-[1.04] tracking-[-0.05em] text-slate-950 sm:text-5xl">
-              Give Cedar the exam date. Get the study sessions on your calendar.
+              Give Praelecta the exam date. Get the study sessions on your calendar.
             </h2>
             <p className="mt-5 max-w-xl text-base leading-7 text-slate-600">
-              Cedar spreads study across the days before the test, checks the classes, events, and study blocks already on your calendar, and places the new sessions into open time instead of stacking everything into one cram night.
+              Praelecta spreads study across the days before the test, checks the classes, events, and study blocks already on your calendar, and places the new sessions into open time instead of stacking everything into one cram night.
             </p>
 
             <div className="mt-7 rounded-2xl border border-blue-100 bg-white p-5">
               <p className="text-xs font-bold uppercase tracking-[0.12em] text-blue-700">Built around research-backed spacing</p>
               <p className="mt-2 text-sm leading-6 text-slate-600">
-                Distributed practice — studying across separate sessions instead of massing the same work together — has strong evidence for better long-term retention. Cedar uses that principle when it spreads sessions across the time before your exam.
+                Distributed practice — studying across separate sessions instead of massing the same work together — has strong evidence for better long-term retention. Praelecta uses that principle when it spreads sessions across the time before your exam.
               </p>
               <a href="https://pubmed.ncbi.nlm.nih.gov/16719566/" target="_blank" rel="noreferrer" className="mt-3 inline-flex text-xs font-semibold text-blue-600 hover:text-blue-700">
                 Research basis: Cepeda et al., Psychological Bulletin (2006)
@@ -91,7 +91,7 @@ export default function RealProductPreview() {
             <div className="border-b border-slate-200 bg-white p-4 sm:px-5">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.13em] text-slate-400">Actual Cedar calendar component · sample schedule</p>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.13em] text-slate-400">Actual Praelecta calendar component · sample schedule</p>
                   <h3 className="mt-1 text-lg font-bold tracking-[-0.025em] text-slate-950">PHYS 117 Midterm</h3>
                   <p className="mt-0.5 text-xs text-slate-500">Exam: {prettyDate(examDate)}</p>
                 </div>
@@ -110,7 +110,7 @@ export default function RealProductPreview() {
             </div>
 
             <div className="border-t border-slate-200 bg-slate-50 p-4 sm:px-5">
-              <p className="text-xs font-semibold text-slate-700">What Cedar is doing here</p>
+              <p className="text-xs font-semibold text-slate-700">What Praelecta is doing here</p>
               <div className="mt-3 grid gap-2 sm:grid-cols-2">
                 <p className="rounded-lg bg-white px-3 py-2 text-[11px] leading-5 text-slate-500">Monday–Wednesday: study is distributed instead of saved for Thursday night.</p>
                 <p className="rounded-lg bg-white px-3 py-2 text-[11px] leading-5 text-slate-500">Thursday: a shorter final review is kept open before Friday&rsquo;s exam.</p>

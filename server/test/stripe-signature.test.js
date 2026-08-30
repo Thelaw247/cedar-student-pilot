@@ -3,7 +3,7 @@ import crypto from 'node:crypto';
 import test from 'node:test';
 import { checkoutIntegrationIdentifier, verifyStripeSignature } from '../lib/stripe.js';
 
-test('creates a Stripe-compliant Cedar integration identifier', () => {
+test('creates a Stripe-compliant Praelecta integration identifier', () => {
   const first = checkoutIntegrationIdentifier();
   const second = checkoutIntegrationIdentifier();
   assert.match(first, /^cedar_checkout_[a-z]{8}$/);

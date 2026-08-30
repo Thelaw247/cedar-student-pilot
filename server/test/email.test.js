@@ -10,7 +10,7 @@ test('email configuration requires both provider key and sender', () => {
     assert.equal(emailIsConfigured(), false);
     process.env.RESEND_API_KEY = 're_test';
     assert.equal(emailIsConfigured(), false);
-    process.env.EMAIL_FROM_ADDRESS = 'Cedar <hello@example.test>';
+    process.env.EMAIL_FROM_ADDRESS = 'Praelecta <hello@example.test>';
     assert.equal(emailIsConfigured(), true);
   } finally {
     if (old.key === undefined) delete process.env.RESEND_API_KEY; else process.env.RESEND_API_KEY = old.key;
@@ -25,7 +25,7 @@ test('escapes user-controlled reminder content', () => {
 test('sends through Resend with a bounded idempotency key', async () => {
   const old = { key: process.env.RESEND_API_KEY, from: process.env.EMAIL_FROM_ADDRESS, fetch: global.fetch };
   process.env.RESEND_API_KEY = ' re_test ';
-  process.env.EMAIL_FROM_ADDRESS = ' Cedar <hello@example.test> ';
+  process.env.EMAIL_FROM_ADDRESS = ' Praelecta <hello@example.test> ';
   let request;
   global.fetch = async (url, options) => {
     request = { url, options };

@@ -11,7 +11,7 @@ export default defineConfig(({ mode }) => ({
     alias: {
       // Resolve this exact path before the broad "@" alias. This prevents the
       // Cloudflare bundle from importing @base44/sdk at all; components keep
-      // their compatibility import while receiving the Cedar client directly.
+      // their compatibility import while receiving the Praelecta client directly.
       ...(mode === 'cloudflare' ? {
         '@/api/base44Client': fileURLToPath(new URL('./src/api/cedarClientAdapter.js', import.meta.url)),
         '@/lib/base44PublicSettings': fileURLToPath(new URL('./src/lib/base44PublicSettings.cloudflare.js', import.meta.url)),

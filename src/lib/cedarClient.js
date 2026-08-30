@@ -136,7 +136,7 @@ async function authHeaders() {
  * @param {{method?: string, body?: any, headers?: Record<string, string>}} options
  */
 async function apiRequest(path, { method = 'GET', body, headers = {} } = {}) {
-  if (!RENDER_API_URL) throw new Error('The Cedar API URL is not configured');
+  if (!RENDER_API_URL) throw new Error('The Praelecta API URL is not configured');
   const response = await fetch(`${RENDER_API_URL}${path}`, {
     method,
     headers: {

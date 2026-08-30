@@ -31,10 +31,10 @@ export default function RecordingFeature() {
               Record the lecture. Keep what your professor actually taught.
             </h2>
             <p className="mt-5 max-w-xl text-base leading-7 text-slate-600">
-              With permission, start a recording from the class. When it ends, Cedar keeps the lecture with the course instead of leaving you with an audio file you have to sort out later.
+              With permission, start a recording from the class. When it ends, Praelecta keeps the lecture with the course instead of leaving you with an audio file you have to sort out later.
             </p>
             <div className="mt-7 space-y-3 text-sm text-slate-700">
-              <div className="flex gap-3"><ShieldCheck className="mt-0.5 h-5 w-5 flex-none text-blue-600" /><span>Cedar asks you to confirm recording permission for the class first.</span></div>
+              <div className="flex gap-3"><ShieldCheck className="mt-0.5 h-5 w-5 flex-none text-blue-600" /><span>Praelecta asks you to confirm recording permission for the class first.</span></div>
               <div className="flex gap-3"><FileText className="mt-0.5 h-5 w-5 flex-none text-blue-600" /><span>The recording becomes a lecture record with transcript, summary, concepts, formulas, notes, and exam mentions.</span></div>
               <div className="flex gap-3"><BookOpen className="mt-0.5 h-5 w-5 flex-none text-blue-600" /><span>That same lecture can later feed the class handbook, test coverage, flashcards, practice, and reviews.</span></div>
             </div>
@@ -67,7 +67,7 @@ export default function RecordingFeature() {
                 <p className="text-[10px] font-semibold text-slate-500">Your notes &amp; cues</p>
                 <p className="mt-2 text-[11px] leading-5 text-slate-600">Prof emphasized equilibrium equations and said free-body diagrams will be on the midterm.</p>
               </div>
-              <p className="mt-3 text-center text-[10px] text-slate-400">Based on Cedar&rsquo;s current recording screen</p>
+              <p className="mt-3 text-center text-[10px] text-slate-400">Based on Praelecta&rsquo;s current recording screen</p>
             </div>
 
             <div className="rounded-[26px] border border-slate-200 bg-white p-5 shadow-[0_22px_60px_-38px_rgba(15,23,42,0.4)] sm:p-6">
@@ -96,7 +96,7 @@ export default function RecordingFeature() {
                 <p className="text-xs font-semibold text-slate-800">Transcript</p>
                 <p className="mt-2 line-clamp-4 text-[11px] leading-5 text-slate-500">“The first thing I want you to do on every equilibrium problem is isolate the body. Draw the forces you actually know are acting on it before you write a single equation…”</p>
               </div>
-              <p className="mt-3 text-center text-[10px] text-slate-400">Structured from the same fields shown on Cedar&rsquo;s lecture detail screen</p>
+              <p className="mt-3 text-center text-[10px] text-slate-400">Structured from the same fields shown on Praelecta&rsquo;s lecture detail screen</p>
             </div>
           </div>
         </div>

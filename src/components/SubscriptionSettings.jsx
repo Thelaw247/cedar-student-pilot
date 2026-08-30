@@ -54,7 +54,7 @@ export default function SubscriptionSettings() {
     setBusy(key);
     setError(null);
     if (window.self !== window.top) {
-      setError('Checkout only works from the published app. Open Cedar in a new tab to complete your purchase.');
+      setError('Checkout only works from the published app. Open Praelecta in a new tab to complete your purchase.');
       setBusy(null);
       return;
     }

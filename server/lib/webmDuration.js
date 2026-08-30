@@ -4,7 +4,7 @@
  * MediaRecorder writes WebM in streaming mode: the header is emitted before
  * the length is known and is never rewritten, so the Segment `Duration`
  * element is absent and metadata parsers report `undefined`. Every browser
- * recording Cedar receives has that shape.
+ * recording Praelecta receives has that shape.
  *
  * The timing data is still present in the body — each Cluster carries an
  * absolute timestamp and each block a relative offset — so the real duration

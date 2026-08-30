@@ -95,8 +95,8 @@ router.post('/', async (req, res) => {
       try {
         await sendEmail({
           to: recipient,
-          subject: `Cedar reminder: ${String(session.title || 'Study session').replace(/[\r\n]/g, ' ')}`,
-          html: `<p>Your <strong>${title}</strong> session starts at ${time}${diff ? ` (in about ${diff} minutes)` : ''}.</p><p>Open Cedar Student Pilot when you are ready to begin.</p>`,
+          subject: `Praelecta reminder: ${String(session.title || 'Study session').replace(/[\r\n]/g, ' ')}`,
+          html: `<p>Your <strong>${title}</strong> session starts at ${time}${diff ? ` (in about ${diff} minutes)` : ''}.</p><p>Open Praelecta when you are ready to begin.</p>`,
           text: `Your ${session.title || 'study'} session starts at ${session.scheduled_time || 'soon'}${diff ? ` (in about ${diff} minutes)` : ''}.`,
           idempotencyKey: `study-reminder/${session.id}/${todayStr}`,
         });

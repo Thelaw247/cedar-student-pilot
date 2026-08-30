@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Menu, X } from 'lucide-react';
-import { CEDAR_LOGO_URL } from '@/lib/brand';
+import { BRAND_MARK_URL } from '@/lib/brand';
 
 const links = [
   { label: 'Recording', href: '#recording' },
@@ -18,9 +18,9 @@ export default function LandingNav() {
     <header className="fixed inset-x-0 top-0 z-50 border-b border-slate-200/80 bg-white/95 backdrop-blur-lg">
       <nav className="mx-auto max-w-6xl px-4 sm:px-6">
         <div className="flex h-16 items-center justify-between">
-          <Link to="/" onClick={() => setMenuOpen(false)} className="flex items-center gap-2.5" aria-label="Cedar Student Pilot home">
-            <img src={CEDAR_LOGO_URL} alt="" className="h-8 w-8 object-contain" />
-            <span className="text-sm font-semibold text-slate-950">Cedar Student Pilot</span>
+          <Link to="/" onClick={() => setMenuOpen(false)} className="flex items-center gap-2.5" aria-label="Praelecta home">
+            <img src={BRAND_MARK_URL} alt="" className="h-8 w-8 object-contain" />
+            <span className="text-sm font-semibold text-slate-950">Praelecta</span>
           </Link>
 
           <div className="hidden items-center gap-6 md:flex">

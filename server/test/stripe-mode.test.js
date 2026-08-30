@@ -51,7 +51,7 @@ test('derives checkout credits and tiers from the configured Stripe price', () =
     assert.throws(() => checkoutEntitlement({
       mode: 'subscription', metadata: {},
       line_items: { data: [{ quantity: 1, price: 'price_unknown' }] },
-    }), /unknown Cedar price/);
+    }), /unknown Praelecta price/);
   } finally {
     if (old.expected === undefined) delete process.env.STRIPE_EXPECTED_MODE; else process.env.STRIPE_EXPECTED_MODE = old.expected;
     if (old.key === undefined) delete process.env.STRIPE_SECRET_KEY; else process.env.STRIPE_SECRET_KEY = old.key;

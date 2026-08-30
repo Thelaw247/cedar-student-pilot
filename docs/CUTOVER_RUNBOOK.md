@@ -1,6 +1,6 @@
-# Cedar Cutover Runbook
+# Praelecta Cutover Runbook
 
-The launch-day sequence for moving Cedar Student Pilot from staging to
+The launch-day sequence for moving Praelecta from staging to
 production. Written Aug 28, 2026, against the verified staging stack
 (Supabase dyowooyijuxghwnwuxcr · Render srv-da4h7arbc2fs73b96pjg ·
 Cloudflare worker cedar-student-pilot · Stripe acct_1ToUnnRecX8K7mfK).

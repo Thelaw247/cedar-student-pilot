@@ -16,7 +16,7 @@ const coreFeatures = [
   icon: Target,
   label: 'Exact test coverage',
   title: 'Set what the test covers.',
-  body: 'Choose the exact lectures you are responsible for before Cedar builds anything to study.',
+  body: 'Choose the exact lectures you are responsible for before Praelecta builds anything to study.',
   href: '#test-coverage'
 },
 {
@@ -45,11 +45,11 @@ export default function LandingHero() {
         <div className="mx-auto max-w-4xl text-center">
           <p className="text-sm font-semibold text-blue-600">The thought that hits mid-lecture</p>
           <h1 className="mx-auto mt-3 max-w-4xl text-balance text-4xl font-bold leading-[1.02] tracking-[-0.05em] text-slate-950 sm:text-5xl lg:text-6xl">Afraid you missed something important?</h1>
-          <p className="mx-auto mt-5 max-w-3xl text-balance text-base leading-7 text-slate-600 sm:text-lg">Cedar records the lecture, so you never have to wonder what you missed, and then turns it into exactly what you need to study.
+          <p className="mx-auto mt-5 max-w-3xl text-balance text-base leading-7 text-slate-600 sm:text-lg">Praelecta records the lecture, so you never have to wonder what you missed, and then turns it into exactly what you need to study.
 
           </p>
           <p className="mx-auto mt-5 max-w-2xl text-lg font-bold tracking-[-0.02em] text-slate-950 sm:text-xl">
-            Nothing gets past Cedar.
+            Nothing gets past Praelecta.
           </p>
         </div>
 
@@ -70,7 +70,7 @@ export default function LandingHero() {
               <h2 className="mt-2 text-2xl font-bold tracking-[-0.035em] text-slate-950">{feature.title}</h2>
               <p className="mt-3 text-sm leading-6 text-slate-600">{feature.body}</p>
               <span className="mt-6 inline-flex items-center gap-1 text-xs font-semibold text-slate-500 transition-colors group-hover:text-blue-600">
-                See it in Cedar <ChevronRight className="h-3.5 w-3.5" />
+                See it in Praelecta <ChevronRight className="h-3.5 w-3.5" />
               </span>
             </a>
           )}

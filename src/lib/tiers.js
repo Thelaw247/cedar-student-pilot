@@ -20,7 +20,7 @@ export const TIERS = {
   free: {
     id: 'free',
     name: 'Free',
-    blurb: 'See exactly what Cedar does — 2 full lectures on us.',
+    blurb: 'See exactly what Praelecta does — 2 full lectures on us.',
     monthly: 0,
     semester: 0,
     creditsPerMonth: 20,
@@ -107,7 +107,7 @@ export const CREDIT_PACKS = [
 ];
 
 /**
- * What each action costs in Cedar credits. MUST stay in sync with
+ * What each action costs in credits. MUST stay in sync with
  * base44/shared/credits.ts — that file is the enforcing copy; this one is for
  * display only. The server is always the authority.
  */

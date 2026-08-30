@@ -1,4 +1,4 @@
-# Cedar API
+# Praelecta API
 
 The Express API is deployed independently from the frontend. It must never
 receive a Supabase service-role key in browser-facing code.

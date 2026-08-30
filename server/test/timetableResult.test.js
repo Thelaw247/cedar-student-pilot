@@ -10,7 +10,7 @@ test('normalizes dates and course codes', () => {
 
 test('merges repeated course rows while preserving different schedule rules', () => {
   const classes = consolidateTimetableClasses([
-    { course_code: 'CHEM 112', name: 'General Chemistry', component: 'Lecture', instructor: 'Dr. Cedar', room: 'ARTS 101', days_of_week: ['Mon', 'Wed'], start_time: '09:30', end_time: '10:20', start_date: '2026-09-03', end_date: '2026-12-04' },
+    { course_code: 'CHEM 112', name: 'General Chemistry', component: 'Lecture', instructor: 'Dr. Okafor', room: 'ARTS 101', days_of_week: ['Mon', 'Wed'], start_time: '09:30', end_time: '10:20', start_date: '2026-09-03', end_date: '2026-12-04' },
     { course_code: 'chem 112', name: 'General Chemistry', component: 'Lab', room: 'THORV 120', days_of_week: ['Thu'], start_time: '14:30', end_time: '17:20', start_date: '2026-09-10', end_date: '2026-11-26' },
   ]);
   assert.equal(classes.length, 1);

@@ -21,7 +21,7 @@ router.post('/', requireAuth, async (req, res) => {
     const session = await stripeGet(`checkout/sessions/${encodeURIComponent(sessionId)}?expand[]=line_items.data.price`);
     if (session.payment_status !== 'paid') return res.status(402).json({ error: 'Payment not confirmed yet' });
     if (session.metadata?.base44_app_id !== appId()) {
-      return res.status(403).json({ error: 'This checkout session does not belong to Cedar' });
+      return res.status(403).json({ error: 'This checkout session does not belong to Praelecta' });
     }
     if (session.metadata?.user_id !== user.id) {
       return res.status(403).json({ error: 'This checkout session does not belong to you' });

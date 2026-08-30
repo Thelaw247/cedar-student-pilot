@@ -1,4 +1,4 @@
-# Cedar auth email templates
+# Praelecta auth email templates
 
 Supabase Auth sends these (its dashboard holds the live copy; this folder is
 the versioned source of truth — edit here, paste there).
@@ -7,7 +7,7 @@ the versioned source of truth — edit here, paste there).
 
 1. Supabase dashboard → project dyowooyijuxghwnwuxcr → Authentication →
    Emails → "Reset password".
-   - Subject: `Reset your Cedar password`
+   - Subject: `Reset your Praelecta password`
    - Body: paste `recovery.html` (Source/HTML mode).
 2. Authentication → URL Configuration — REQUIRED for the link to land:
    - Site URL: `https://cedar-student-pilot.dewetluus.workers.dev`
@@ -26,7 +26,7 @@ the versioned source of truth — edit here, paste there).
 - At cutover (runbook Phase 0): verify the domain in Resend, then set
   Authentication → Emails → SMTP Settings to Resend's SMTP
   (smtp.resend.com, username `resend`, password = API key, from =
-  no-reply@<domain>). Every auth email then sends from the Cedar domain
+  no-reply@<domain>). Every auth email then sends from the Praelecta domain
   with real deliverability — templates above unchanged.
 - Requests for addresses with no account return 200 and send nothing
   (anti-enumeration) — expected, not a bug.

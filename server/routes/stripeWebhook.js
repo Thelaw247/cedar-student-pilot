@@ -60,7 +60,7 @@ router.post('/', async (req, res) => {
           return res.json({ received: true, ignored: 'unscoped_checkout' });
         }
         const userId = session?.metadata?.user_id;
-        if (!userId) throw new Error('Paid Cedar checkout is missing user metadata');
+        if (!userId) throw new Error('Paid Praelecta checkout is missing user metadata');
         const entitlement = checkoutEntitlement(session);
 
         if (entitlement.kind === 'subscription') {
@@ -91,7 +91,7 @@ router.post('/', async (req, res) => {
           return res.json({ received: true, ignored: 'different_app' });
         }
         if (!context.userId || !context.tier) {
-          throw new Error('Paid Cedar invoice could not be mapped to a user and tier');
+          throw new Error('Paid Praelecta invoice could not be mapped to a user and tier');
         }
 
         if (billingReason === 'subscription_update') {

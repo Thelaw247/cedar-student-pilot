@@ -250,7 +250,7 @@ export default function SemesterSetup() {
   if (step === 0) {
     return (
       <div className="max-w-md mx-auto px-4 sm:px-6 py-6 lg:py-12 animate-fade-in text-center">
-        <h1 className="font-heading text-2xl sm:text-3xl font-bold mb-2">Welcome to Cedar</h1>
+        <h1 className="font-heading text-2xl sm:text-3xl font-bold mb-2">Welcome to Praelecta</h1>
         <p className="text-muted-foreground text-sm mb-8">Let's set up your profile before your semester.</p>
 
         <div className="relative inline-block mb-6">

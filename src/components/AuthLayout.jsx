@@ -1,48 +1,70 @@
 import React from "react";
 import { Check } from "lucide-react";
+import { BRAND_MARK_URL } from "@/lib/brand";
 
 /**
- * Auth shell for Login, Register, Forgot-/Reset-password and the OAuth
- * consent screens (Aug 2026 glass redesign). One constant visual world in
- * both themes — like the recording island: the glass brandmark blown up to
- * fill the viewport, heavily blurred and darkened, with the crisp mark and
- * the form card floating on top. Pure presentation: every page's form logic
- * is untouched, and the card interior keeps theme tokens so the forms render
- * correctly in light and dark.
+ * Auth shell for Login, Register, Forgot-/Reset-password and the OAuth consent
+ * screens.
  *
- * Assets (public/): logo-glass-160.png is the crisp transparent brandmark;
- * logo-glass-blur-512.png is a palette-quantized copy used only as background
- * art — the heavy blur hides the quantization, and it keeps the page light.
+ * The background is a scattered field of pilcrows — the brandmark repeated
+ * small, like a manuscript page marked up by a scribe. It replaces the old
+ * treatment (one huge brandmark blurred behind the form), which worked for the
+ * Cedar graduation cap because that shape had enough internal detail to blur
+ * into something atmospheric. The pilcrow is a simple two-stem glyph and blurs
+ * into a shapeless smudge, so it is tiled instead of magnified.
+ *
+ * It is also cheaper than what it replaces: the field is one inline SVG in a
+ * data URI and the glow and vignette are gradients, so nothing blocks paint.
+ * The old version fetched a PNG before the form could render.
+ *
+ * Layer order, bottom to top: flat navy, brand glow, mark field, vignette.
  */
+
+// The mark, tiled at low opacity. Geometry matches public/logo-mark.png
+// exactly: a 150-unit lobe and a 74-unit stem.
+const FIELD = encodeURIComponent(
+  `<svg xmlns="http://www.w3.org/2000/svg" width="150" height="190" viewBox="0 0 150 190">` +
+    `<g fill="#2E66FF" fill-opacity="0.075">` +
+      `<g transform="translate(30 18) scale(0.075) rotate(-4)">` +
+        `<circle cx="0" cy="0" r="150"/>` +
+        `<rect x="88" y="-128" width="74" height="598" rx="37"/>` +
+        `<rect x="-52" y="-70" width="74" height="540"/>` +
+      `</g>` +
+      `<g transform="translate(112 112) scale(0.062) rotate(5)">` +
+        `<circle cx="0" cy="0" r="150"/>` +
+        `<rect x="88" y="-128" width="74" height="598" rx="37"/>` +
+        `<rect x="-52" y="-70" width="74" height="540"/>` +
+      `</g>` +
+    `</g>` +
+  `</svg>`,
+);
+
 const TRUST = ["Records & transcribes", "Summaries & flashcards", "Private to you"];
 
-// eslint-disable-next-line no-unused-vars -- icon is accepted for API stability; the glass brandmark is the hero now
+// eslint-disable-next-line no-unused-vars -- icon is accepted for API stability; the brandmark is the hero
 export default function AuthLayout({ icon = undefined, title, subtitle = "", footer = null, children = null }) {
   return (
     <div className="relative min-h-screen overflow-hidden flex flex-col" style={{ backgroundColor: "#0B0E16" }}>
-      {/* Background: the brandmark over the whole screen, blurred and darkened */}
       <div aria-hidden="true" className="absolute inset-0 pointer-events-none select-none">
-        <img
-          src="/logo-glass-blur-512.png"
-          alt=""
-          className="absolute left-1/2 top-1/2 w-[115vmax] max-w-none -translate-x-1/2 -translate-y-1/2 rotate-[8deg] blur-[70px] opacity-50"
-        />
-        {/* Darkening + vignette so the form stays the focal point */}
+        {/* Brand glow, so the card sits in light rather than on flat black */}
         <div
           className="absolute inset-0"
           style={{
             background:
-              "radial-gradient(ellipse at 50% 38%, rgba(11,14,22,0.45) 0%, rgba(11,14,22,0.82) 68%, rgba(11,14,22,0.94) 100%)",
+              "radial-gradient(ellipse 70% 60% at 50% 42%, rgba(30,58,138,0.55) 0%, rgba(11,14,22,0) 70%)",
           }}
         />
-        {/* Faint dot grid for texture, faded out toward the edges */}
+        {/* The field */}
+        <div
+          className="absolute inset-0"
+          style={{ backgroundImage: `url("data:image/svg+xml,${FIELD}")`, backgroundRepeat: "repeat" }}
+        />
+        {/* Vignette, pulling the edges down so the form is the focal point */}
         <div
           className="absolute inset-0"
           style={{
-            backgroundImage: "radial-gradient(rgba(255,255,255,0.05) 1px, transparent 1px)",
-            backgroundSize: "26px 26px",
-            maskImage: "radial-gradient(ellipse at 50% 40%, black 0%, transparent 72%)",
-            WebkitMaskImage: "radial-gradient(ellipse at 50% 40%, black 0%, transparent 72%)",
+            background:
+              "radial-gradient(ellipse 62% 58% at 50% 45%, rgba(11,14,22,0) 30%, rgba(11,14,22,0.85) 78%, #0B0E16 100%)",
           }}
         />
       </div>
@@ -51,17 +73,15 @@ export default function AuthLayout({ icon = undefined, title, subtitle = "", foo
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
             <img
-              src="/logo-glass-160.png"
-              alt="Cedar"
-              className="w-16 h-16 mx-auto mb-4 drop-shadow-[0_10px_28px_rgba(46,102,255,0.45)]"
+              src={BRAND_MARK_URL}
+              alt="Praelecta"
+              className="h-16 w-auto mx-auto mb-4 drop-shadow-[0_10px_28px_rgba(46,102,255,0.45)]"
             />
             <h1 className="font-heading text-2xl sm:text-3xl font-bold tracking-tight text-white text-balance">{title}</h1>
             {subtitle && <p className="text-sm text-white/60 mt-2">{subtitle}</p>}
           </div>
 
-          <div className="bg-card rounded-3xl shadow-3 ring-1 ring-white/10 p-6 sm:p-8">
-            {children}
-          </div>
+          <div className="bg-card rounded-3xl shadow-3 ring-1 ring-white/10 p-6 sm:p-8">{children}</div>
 
           {footer && <p className="text-center text-sm text-white/70 mt-6">{footer}</p>}
 

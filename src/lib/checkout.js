@@ -12,7 +12,7 @@ import { base44 } from '@/api/base44Client';
  */
 export async function startCheckout(payload) {
   if (window.self !== window.top) {
-    throw new Error('Checkout only works from the published app. Open Cedar in a new tab to complete your purchase.');
+    throw new Error('Checkout only works from the published app. Open Praelecta in a new tab to complete your purchase.');
   }
   const res = await base44.functions.invoke('createCheckoutSession', payload);
   const url = res?.data?.url || res?.data?.checkout_url;

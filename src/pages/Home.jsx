@@ -180,7 +180,7 @@ export default function Home() {
     return (
       <div className="max-w-md mx-auto px-4 py-16 text-center">
         <GraduationCap className="w-12 h-12 text-muted-foreground mx-auto mb-4" strokeWidth={1.5} />
-        <h1 className="font-heading text-xl font-bold mb-2">Welcome to Cedar</h1>
+        <h1 className="font-heading text-xl font-bold mb-2">Welcome to Praelecta</h1>
         <p className="text-sm text-muted-foreground mb-6">
           Set up your semester to start tracking classes, lectures, and study sessions.
         </p>
@@ -196,7 +196,7 @@ export default function Home() {
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 lg:py-10 animate-fade-in">
       {/* Profile access, top left. Hidden from lg up because the Sidebar
           already shows the same button there and two would be a duplicate.
-          Replaces the old Cedar logo lockup here — the brand mark stays in
+          Replaces the old Praelecta logo lockup here — the brand mark stays in
           the favicon, home-screen icon, and marketing; this corner is
           profile-only now. */}
       <div className="mb-6 lg:hidden flex items-center justify-between">

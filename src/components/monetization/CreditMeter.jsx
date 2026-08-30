@@ -30,7 +30,7 @@ export default function CreditMeter({ className = '' }) {
     <button
       type="button"
       onClick={() => openUpgrade({ source: empty ? 'out-of-credits' : 'meter' })}
-      aria-label={`${available} Cedar credits remaining — see plans`}
+      aria-label={`${available} credits remaining — see plans`}
       className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-sm font-medium tabular-nums transition-colors duration-micro hover:border-primary/40 hover:text-primary ${tone} ${className}`}
     >
       <Sparkles className="w-3.5 h-3.5" strokeWidth={2} />

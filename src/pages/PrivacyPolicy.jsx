@@ -23,12 +23,12 @@ export default function PrivacyPolicy() {
       </div>
 
       <p className="text-sm text-muted-foreground leading-relaxed mb-8">
-        This policy explains what Cedar Student Pilot collects, how it’s used, and the control you have over it.
+        This policy explains what Praelecta collects, how it’s used, and the control you have over it.
         It’s written to be read — not to be dense. If anything here is unclear, reach out and we’ll explain it plainly.
       </p>
 
       <Section icon={Database} title="What we store">
-        <p>Cedar stores only what it needs to be your study companion:</p>
+        <p>Praelecta stores only what it needs to be your study companion:</p>
         <ul className="list-disc pl-5 space-y-1.5 mt-2">
           <li><span className="font-medium text-foreground">Lecture recordings and transcripts</span> that you choose to record, along with the AI-generated summaries, concepts, and flashcards built from them.</li>
           <li><span className="font-medium text-foreground">Your notes</span> typed during or after class.</li>
@@ -41,7 +41,7 @@ export default function PrivacyPolicy() {
       <Section icon={Lock} title="Your recordings stay yours">
         <p>
           Lecture recordings and transcripts are private to your account. They are never shown to other students, never
-          shared between accounts, and never made public by Cedar. Recording a lecture requires your instructor’s
+          shared between accounts, and never made public by Praelecta. Recording a lecture requires your instructor’s
           permission, which the app asks you to confirm before your first recording in each class.
         </p>
       </Section>
@@ -83,7 +83,7 @@ export default function PrivacyPolicy() {
         </p>
       </Section>
 
-      <p className="text-center text-xs text-muted-foreground mt-8 mb-4">Cedar Student Pilot • Privacy Policy • {EFFECTIVE_DATE}</p>
+      <p className="text-center text-xs text-muted-foreground mt-8 mb-4">Praelecta • Privacy Policy • {EFFECTIVE_DATE}</p>
     </div>
   );
 }

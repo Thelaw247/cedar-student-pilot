@@ -95,16 +95,16 @@ function lineItemPriceId(item) {
   return typeof item?.price === 'string' ? item.price : item?.price?.id;
 }
 
-/** Validate a paid Checkout Session and derive its Cedar entitlement. */
+/** Validate a paid Checkout Session and derive its Praelecta entitlement. */
 export function checkoutEntitlement(session) {
   const items = session?.line_items?.data;
   if (!Array.isArray(items) || items.length !== 1 || Number(items[0]?.quantity || 0) !== 1) {
-    throw new Error('Cedar checkout must contain exactly one priced item');
+    throw new Error('Praelecta checkout must contain exactly one priced item');
   }
   const entitlement = entitlementForPriceId(lineItemPriceId(items[0]));
-  if (!entitlement) throw new Error('Checkout uses an unknown Cedar price');
+  if (!entitlement) throw new Error('Checkout uses an unknown Praelecta price');
   const expectedCheckoutMode = entitlement.kind === 'pack' ? 'payment' : 'subscription';
-  if (session.mode !== expectedCheckoutMode) throw new Error('Checkout mode does not match its Cedar price');
+  if (session.mode !== expectedCheckoutMode) throw new Error('Checkout mode does not match its Praelecta price');
 
   const metadata = session.metadata || {};
   if (entitlement.kind === 'subscription') {
@@ -125,11 +125,11 @@ export function checkoutEntitlement(session) {
 export function subscriptionEntitlement(subscription) {
   const items = subscription?.items?.data;
   if (!Array.isArray(items) || items.length !== 1 || Number(items[0]?.quantity || 0) !== 1) {
-    throw new Error('Cedar subscription must contain exactly one priced item');
+    throw new Error('Praelecta subscription must contain exactly one priced item');
   }
   const entitlement = entitlementForPriceId(lineItemPriceId(items[0]));
   if (!entitlement || entitlement.kind !== 'subscription') {
-    throw new Error('Subscription uses an unknown Cedar price');
+    throw new Error('Subscription uses an unknown Praelecta price');
   }
   const metadataTier = subscription?.metadata?.cedar_tier;
   const metadataPeriod = subscription?.metadata?.cedar_period;

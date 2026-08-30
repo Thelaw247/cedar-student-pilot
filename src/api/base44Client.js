@@ -91,7 +91,7 @@ const base44Sdk = new Proxy(rawClient, {
 // staging flag is present. Cloudflare Pages can therefore exercise the new
 // stack without changing or republishing the live Base44 application.
 // Both adapters intentionally expose the same dynamic compatibility surface,
-// but the Base44 SDK's generated proxy types and Cedar's handwritten adapter
+// but the Base44 SDK's generated proxy types and Praelecta's handwritten adapter
 // cannot be expressed as a useful static union. Type the boundary once here so
 // every consumer does not need an unsafe cast of its own.
 /** @type {any} */

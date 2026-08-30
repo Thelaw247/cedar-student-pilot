@@ -52,10 +52,10 @@ export default function StudyToolProof() {
               </div>
             </div>
             <h2 className="mt-5 text-4xl font-bold leading-[1.04] tracking-[-0.05em] text-slate-950 sm:text-5xl">
-              Tell Cedar exactly what the test covers.
+              Tell Praelecta exactly what the test covers.
             </h2>
             <p className="mt-5 max-w-xl text-base leading-7 text-slate-600">
-              Pick the lectures once. Cedar uses that exact slice of the course for the study material you create next instead of making you paste notes into a new tool and explain the class again.
+              Pick the lectures once. Praelecta uses that exact slice of the course for the study material you create next instead of making you paste notes into a new tool and explain the class again.
             </p>
 
             <div className="mt-7 rounded-2xl border border-blue-100 bg-blue-50/70 p-5">
@@ -71,7 +71,7 @@ export default function StudyToolProof() {
           <div className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_24px_70px_-38px_rgba(15,23,42,0.3)]">
             <div className="flex flex-col gap-3 border-b border-slate-200 bg-slate-50 p-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.13em] text-slate-400">Actual Cedar component · sample data</p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.13em] text-slate-400">Actual Praelecta component · sample data</p>
                 <p className="mt-1 text-sm font-semibold text-slate-950">PHYS 117 Midterm</p>
               </div>
               <div className="inline-flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-xs font-semibold text-blue-700 shadow-sm">

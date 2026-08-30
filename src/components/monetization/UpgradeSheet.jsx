@@ -14,10 +14,10 @@ import { track } from '@/lib/analytics';
  * always visible and "not now" costs nothing.
  */
 const ENTRY_COPY = {
-  generic: { title: 'Do more with Cedar', sub: 'Pick the plan that fits your semester.' },
-  meter: { title: 'Your Cedar credits', sub: 'Credits power recording, handbooks and AI study tools. Plans refresh them every month.' },
+  generic: { title: 'Do more with Praelecta', sub: 'Pick the plan that fits your semester.' },
+  meter: { title: 'Your credits', sub: 'Credits power recording, handbooks and AI study tools. Plans refresh them every month.' },
   'out-of-credits': { title: "You're out of credits", sub: 'Everything you recorded is safe — it processes the moment you top up.' },
-  handbook: { title: 'Every class, its own handbook', sub: 'Cedar writes a living handbook from your own lectures, chapter by chapter.' },
+  handbook: { title: 'Every class, its own handbook', sub: 'Praelecta writes a living handbook from your own lectures, chapter by chapter.' },
   recording: { title: 'Keep every lecture covered', sub: 'Student covers about 20 recorded lectures a month — every class, all semester.' },
   schedule: { title: 'Your week, already planned', sub: 'AI study schedules build themselves around your classes and deadlines.' },
   history: { title: 'See your whole semester', sub: 'Full proficiency history and every handbook ship with Scholar.' },
@@ -29,7 +29,7 @@ const ENTRY_COPY = {
 // student named on day one.
 const GOAL_SOURCES = {
   'fast-prof': { title: 'Never miss a word again', sub: 'Student covers about 20 recorded, transcribed lectures a month.' },
-  notes: { title: 'Just listen. Cedar takes the notes.', sub: 'Every plan turns lectures into transcripts, summaries and flashcards.' },
+  notes: { title: 'Just listen. Praelecta takes the notes.', sub: 'Every plan turns lectures into transcripts, summaries and flashcards.' },
   exams: { title: 'Walk into every exam covered', sub: 'AI reviews and practice ship with Student; exam topic prediction with Scholar.' },
   organized: { title: 'Your semester, already structured', sub: 'Smart rebooking ships with Student; AI study schedules with Scholar.' },
 };

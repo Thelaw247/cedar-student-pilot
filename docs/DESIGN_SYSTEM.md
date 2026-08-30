@@ -1,4 +1,4 @@
-# Cedar design system
+# Praelecta design system
 
 The token layer every surface draws from. Values live in exactly two files —
 `src/index.css` (the CSS variables) and `tailwind.config.js` (the class

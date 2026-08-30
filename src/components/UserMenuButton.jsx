@@ -6,7 +6,7 @@ import ResolvedAvatarImage from '@/components/ResolvedAvatarImage';
 import { getInitials, getAvatarColor } from '@/lib/avatar';
 
 /**
- * Top-left profile access. Replaces the Cedar logo lockup in both the desktop
+ * Top-left profile access. Replaces the Praelecta logo lockup in both the desktop
  * Sidebar and the mobile Home header — the brand mark stays everywhere else
  * (favicon, home-screen icon, marketing) but this corner is profile-only now.
  *
