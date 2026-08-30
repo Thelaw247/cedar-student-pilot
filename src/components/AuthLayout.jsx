@@ -69,7 +69,9 @@ export default function AuthLayout({ icon = undefined, title, subtitle = "", foo
             {subtitle && <p className="text-sm text-white/60 mt-2">{subtitle}</p>}
           </div>
 
-          <div className="bg-card rounded-3xl shadow-3 ring-1 ring-white/10 p-6 sm:p-8">{children}</div>
+          <div className="auth-surface relative isolate overflow-hidden bg-card text-card-foreground rounded-3xl p-6 sm:p-8 ring-1 ring-white/10 shadow-[0_24px_64px_-16px_rgba(0,0,0,0.75)] before:pointer-events-none before:absolute before:inset-x-8 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/30 before:to-transparent">
+            {children}
+          </div>
 
           {footer && <p className="text-center text-sm text-white/70 mt-6">{footer}</p>}
 
