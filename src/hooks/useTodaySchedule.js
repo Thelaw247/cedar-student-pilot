@@ -12,7 +12,7 @@ import { getCurrentClass, getNextClass } from '@/lib/currentClass';
  * (Home.jsx's todayClasses vs the older DailyProgressRing computation).
  */
 export function useTodaySchedule() {
-  const [classes, setClasses] = useState([]);
+  const [allClasses, setClasses] = useState([]);
   const [loaded, setLoaded] = useState(false);
   const [now, setNow] = useState(new Date());
 
@@ -36,7 +36,7 @@ export function useTodaySchedule() {
     return () => clearInterval(t);
   }, []);
 
-  const todayClasses = classesOnDate(classes, now);
+  const todayClasses = classesOnDate(allClasses, now);
 
   const current = getCurrentClass(todayClasses, now);
   const next = getNextClass(todayClasses, now);
@@ -46,5 +46,9 @@ export function useTodaySchedule() {
     return (eh * 60 + em) > nowMin;
   });
 
-  return { loaded, todayClasses, current, next, remaining, now };
+  // allClasses is every class in the active semester, not just today's. The
+  // record picker needs it: a lecture worth recording is not always one the
+  // timetable expected — a rescheduled seminar, a guest lecture, a make-up
+  // class, or a student who simply has not entered a timetable yet.
+  return { loaded, classes: allClasses, todayClasses, current, next, remaining, now };
 }

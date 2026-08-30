@@ -116,6 +116,56 @@ export function RecordingProvider({ children }) {
   // A session exists whenever there is anything the island should show.
   const active = !!cls && (recording || readyToSave || processing || uploadingSegment || !!saveError || !!reviewLectureId || !!recoveredBlob);
 
+  // WHY THE RECORDING DIED AT 34 MINUTES.
+  //
+  // Nothing in this app asked the phone to stay awake. On a phone browser a
+  // lecture recording is a page that has to survive being ignored for an
+  // hour: the student puts the phone face-down, the screen dims and locks,
+  // and the OS suspends the page and reclaims the microphone. There is no
+  // app-level timer anywhere near 34 minutes — the shortest one here is the
+  // 90-minute segment rotation — so the stop came from outside.
+  //
+  // A screen wake lock is the documented way to say "this page is doing
+  // something the user cares about, don't put it to sleep". It is best
+  // effort by design: the browser can refuse it, and it is dropped whenever
+  // the page is hidden, so it has to be re-acquired when the page comes back
+  // rather than requested once. Everything here is wrapped because Safari
+  // shipped it late and older iOS simply has no navigator.wakeLock.
+  //
+  // This does not make an interruption impossible — a phone call still takes
+  // the microphone. It removes the ordinary cause. The onstop/onerror
+  // handling below is what covers the rest.
+  useEffect(() => {
+    if (!recording) return undefined;
+    let sentinel = null;
+    let released = false;
+
+    const acquire = async () => {
+      if (released || document.visibilityState !== 'visible') return;
+      if (!navigator.wakeLock?.request) return;
+      try {
+        sentinel = await navigator.wakeLock.request('screen');
+        sentinel.addEventListener?.('release', () => { sentinel = null; });
+      } catch {
+        // Refused (low battery, unsupported, not a user gesture). The
+        // recording continues; it is just no longer protected from sleep.
+        sentinel = null;
+      }
+    };
+
+    // Re-take it every time the page becomes visible: the lock is dropped on
+    // hide, so without this it would be lost the first time the student
+    // switched apps and never come back.
+    const onVisible = () => { if (document.visibilityState === 'visible') acquire(); };
+    acquire();
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      released = true;
+      document.removeEventListener('visibilitychange', onVisible);
+      try { sentinel?.release?.(); } catch { /* already gone */ }
+    };
+  }, [recording]);
+
   // Leaving the site mid-recording would kill the mic — warn first. IndexedDB
   // still has the audio, so this is a guardrail, not a data-loss cliff.
   useEffect(() => {
