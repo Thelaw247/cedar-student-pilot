@@ -232,14 +232,14 @@ export default function StudySystemFeature() {
                 </div>
 
                 <div className="mt-3 grid grid-cols-5 gap-1.5">
-                  <div className="rounded-lg border border-border bg-secondary px-1.5 py-2 text-center"><p className="text-[8px] font-semibold text-muted-foreground/75">MON</p><div className="mt-1 rounded-md bg-primary/10 px-1 py-1 text-[8px] font-semibold text-primary">Step 1</div></div>
-                  <div className="rounded-lg border border-border bg-secondary px-1.5 py-2 text-center"><p className="text-[8px] font-semibold text-muted-foreground/75">TUE</p><div className="mt-1 rounded-md bg-primary/10 px-1 py-1 text-[8px] font-semibold text-primary">Step 2</div></div>
-                  <div className="rounded-lg border border-border bg-secondary px-1.5 py-2 text-center"><p className="text-[8px] font-semibold text-muted-foreground/75">WED</p><div className="mt-1 rounded-md bg-primary/10 px-1 py-1 text-[8px] font-semibold text-primary">Step 3</div></div>
-                  <div className="rounded-lg border border-border bg-secondary px-1.5 py-2 text-center"><p className="text-[8px] font-semibold text-muted-foreground/75">THU</p><div className="mt-1 rounded-md bg-primary/10 px-1 py-1 text-[8px] font-semibold text-primary">Step 4</div></div>
-                  <div className="rounded-lg border border-border bg-secondary px-1.5 py-2 text-center"><p className="text-[8px] font-semibold text-muted-foreground/75">FRI</p><div className="mt-1 rounded-md bg-emerald-500/10 px-1 py-1 text-[8px] font-semibold text-emerald-400">Due</div></div>
+                  <div className="rounded-lg border border-border bg-secondary px-1.5 py-2 text-center"><p className="text-[8px] font-semibold text-muted-foreground/80">MON</p><div className="mt-1 rounded-md bg-primary/10 px-1 py-1 text-[8px] font-semibold text-primary">Step 1</div></div>
+                  <div className="rounded-lg border border-border bg-secondary px-1.5 py-2 text-center"><p className="text-[8px] font-semibold text-muted-foreground/80">TUE</p><div className="mt-1 rounded-md bg-primary/10 px-1 py-1 text-[8px] font-semibold text-primary">Step 2</div></div>
+                  <div className="rounded-lg border border-border bg-secondary px-1.5 py-2 text-center"><p className="text-[8px] font-semibold text-muted-foreground/80">WED</p><div className="mt-1 rounded-md bg-primary/10 px-1 py-1 text-[8px] font-semibold text-primary">Step 3</div></div>
+                  <div className="rounded-lg border border-border bg-secondary px-1.5 py-2 text-center"><p className="text-[8px] font-semibold text-muted-foreground/80">THU</p><div className="mt-1 rounded-md bg-primary/10 px-1 py-1 text-[8px] font-semibold text-primary">Step 4</div></div>
+                  <div className="rounded-lg border border-border bg-secondary px-1.5 py-2 text-center"><p className="text-[8px] font-semibold text-muted-foreground/80">FRI</p><div className="mt-1 rounded-md bg-emerald-500/10 px-1 py-1 text-[8px] font-semibold text-emerald-400">Due</div></div>
                 </div>
 
-                <p className="mt-3 text-center text-[9px] leading-4 text-muted-foreground/75">Based directly on Praelecta&rsquo;s current project setup and roadmap flow.</p>
+                <p className="mt-3 text-center text-[9px] leading-4 text-muted-foreground/80">Based directly on Praelecta&rsquo;s current project setup and roadmap flow.</p>
               </div>
             </div>
 

@@ -91,7 +91,7 @@ export default function RealProductPreview() {
             <div className="border-b border-border bg-card p-4 sm:px-5">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.13em] text-muted-foreground/75">Actual Praelecta calendar component · sample schedule</p>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.13em] text-muted-foreground/80">Actual Praelecta calendar component · sample schedule</p>
                   <h3 className="mt-1 text-lg font-bold tracking-[-0.025em] text-foreground">PHYS 117 Midterm</h3>
                   <p className="mt-0.5 text-xs text-muted-foreground">Exam: {prettyDate(examDate)}</p>
                 </div>

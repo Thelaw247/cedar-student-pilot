@@ -44,7 +44,7 @@ export default function RecordingFeature() {
             <div className="rounded-[26px] border border-border bg-card p-5 shadow-[0_22px_60px_-38px_rgba(15,23,42,0.4)]">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/75">PHYS 117</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/80">PHYS 117</p>
                   <p className="mt-1 text-sm font-bold text-foreground">Record Lecture</p>
                 </div>
                 <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-1 text-[9px] font-semibold text-emerald-400"><ShieldCheck className="h-3 w-3" /> Permission confirmed</span>
@@ -67,7 +67,7 @@ export default function RecordingFeature() {
                 <p className="text-[10px] font-semibold text-muted-foreground">Your notes &amp; cues</p>
                 <p className="mt-2 text-[11px] leading-5 text-muted-foreground">Prof emphasized equilibrium equations and said free-body diagrams will be on the midterm.</p>
               </div>
-              <p className="mt-3 text-center text-[10px] text-muted-foreground/75">Based on Praelecta&rsquo;s current recording screen</p>
+              <p className="mt-3 text-center text-[10px] text-muted-foreground/80">Based on Praelecta&rsquo;s current recording screen</p>
             </div>
 
             <div className="rounded-[26px] border border-border bg-card p-5 shadow-[0_22px_60px_-38px_rgba(15,23,42,0.4)] sm:p-6">
@@ -96,7 +96,7 @@ export default function RecordingFeature() {
                 <p className="text-xs font-semibold text-foreground/85">Transcript</p>
                 <p className="mt-2 line-clamp-4 text-[11px] leading-5 text-muted-foreground">“The first thing I want you to do on every equilibrium problem is isolate the body. Draw the forces you actually know are acting on it before you write a single equation…”</p>
               </div>
-              <p className="mt-3 text-center text-[10px] text-muted-foreground/75">Structured from the same fields shown on Praelecta&rsquo;s lecture detail screen</p>
+              <p className="mt-3 text-center text-[10px] text-muted-foreground/80">Structured from the same fields shown on Praelecta&rsquo;s lecture detail screen</p>
             </div>
           </div>
         </div>

@@ -71,7 +71,7 @@ export default function StudyToolProof() {
           <div className="overflow-hidden rounded-[28px] border border-border bg-card shadow-[0_24px_70px_-38px_rgba(15,23,42,0.3)]">
             <div className="flex flex-col gap-3 border-b border-border bg-muted p-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.13em] text-muted-foreground/75">Actual Praelecta component · sample data</p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.13em] text-muted-foreground/80">Actual Praelecta component · sample data</p>
                 <p className="mt-1 text-sm font-semibold text-foreground">PHYS 117 Midterm</p>
               </div>
               <div className="inline-flex items-center gap-2 rounded-xl bg-secondary px-3 py-2 text-xs font-semibold text-primary shadow-sm">

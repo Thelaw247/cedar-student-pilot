@@ -169,6 +169,17 @@
    chip into a visible darker rectangle. Depth comes from the gradient sheen
    and the hairline highlight instead. */
 .auth-surface {
+/* The brand blue at its light-theme lightness (59%) only reaches 3.97:1 on
+   this ground — fine for headings, a fail for the small labels and inline
+   links both dark surfaces use it for. Lifting it to 67% clears AA on the
+   page, on cards and on secondary panels (5.47 / 5.14 / 4.75) at the same hue
+   and saturation, so it is recognisably the same blue.
+
+   The primary CTA is unaffected: .auth-cta paints its own gradient at the
+   original values, so the button a student clicks is still exactly brand
+   blue. This token governs blue TEXT, not the button. */
+  --primary: 224 100% 67%;
+
   --background: 222 33% 8%;
   --foreground: 210 40% 96%;
   --card: 222 33% 8%;
@@ -251,6 +262,17 @@
    the auth card and the app one product rather than three.
    --------------------------------------------------------------------------- */
 .landing-surface {
+/* The brand blue at its light-theme lightness (59%) only reaches 3.97:1 on
+   this ground — fine for headings, a fail for the small labels and inline
+   links both dark surfaces use it for. Lifting it to 67% clears AA on the
+   page, on cards and on secondary panels (5.47 / 5.14 / 4.75) at the same hue
+   and saturation, so it is recognisably the same blue.
+
+   The primary CTA is unaffected: .auth-cta paints its own gradient at the
+   original values, so the button a student clicks is still exactly brand
+   blue. This token governs blue TEXT, not the button. */
+  --primary: 224 100% 67%;
+
   --background: 222 33% 8%;
   --foreground: 210 40% 96%;
   --card: 222 30% 11%;
