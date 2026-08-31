@@ -5,6 +5,7 @@ import { requestSecurity } from './lib/http.js';
 import { creditSignal } from './lib/creditSignal.js';
 import { logStripeBootStatus } from './lib/stripeBootCheck.js';
 import { canDeleteAuthUsers } from './lib/accountDeletion.js';
+import { logSchedulerStatus } from './lib/schedulerCheck.js';
 import { checkR2Connection } from './lib/r2.js';
 import stripeWebhookRouter from './routes/stripeWebhook.js';
 import meRouter from './routes/me.js';
@@ -138,6 +139,9 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
     // Account deletion needs DELETE on auth.users, which only the postgres role
     // holds. Nothing surfaces a missing grant until someone tries to delete
     // their account — once — so ask at boot instead.
+    // Both cron routes are behind a shared secret. Missing means 401 for any
+    // scheduler pointed at them, which is a bad thing to discover by wiring one.
+    logSchedulerStatus();
     canDeleteAuthUsers(pool)
       .then((s) => (s.ok ? console.log(`[boot] ${s.message}`) : console.error(`[boot] ${s.message}`)))
       .catch((e) => console.error(`[boot] account deletion: privilege check failed — ${e.message}`));
