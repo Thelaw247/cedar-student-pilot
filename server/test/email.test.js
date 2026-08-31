@@ -48,34 +48,40 @@ test('sends through Resend with a bounded idempotency key', async () => {
 });
 
 // ---------------------------------------------------------------------------
-// Sender-domain guard. praelecta.ca is a Google Workspace domain with a single
-// SPF record; app mail belongs on send.praelecta.ca with its own SPF, DKIM and
-// reputation. Getting this wrong still sends — it just fails authentication —
-// so it is caught at boot rather than by a user who never got their email.
+// Sender-domain guard. The sender has to be a domain we control and have
+// verified with the provider, or DMARC rejects it — praelecta.ca is p=reject
+// with strict alignment. The root and any subdomain are both fine; choosing
+// between them is a product decision, not something to enforce here.
 
 import { readFileSync } from 'node:fs';
 import { emailStatus, logEmailStatus } from '../lib/email.js';
 
-const GOOD = { RESEND_API_KEY: 're_x', EMAIL_FROM_ADDRESS: 'noreply@send.praelecta.ca' };
+const GOOD = { RESEND_API_KEY: 're_x', EMAIL_FROM_ADDRESS: 'noreply@praelecta.ca' };
 
-test('a sender on the app mail subdomain is accepted', () => {
+test('the root domain is a valid sender', () => {
   const s = emailStatus(GOOD);
-  assert.equal(s.ok, true);
-  assert.match(s.message, /send\.praelecta\.ca/);
+  assert.equal(s.ok, true, 'the root domain is the normal choice and must not be treated as an error');
+  assert.match(s.message, /praelecta\.ca/);
 });
 
-test('the Workspace root domain is rejected as a sender', () => {
-  const s = emailStatus({ ...GOOD, EMAIL_FROM_ADDRESS: 'noreply@praelecta.ca' });
-  assert.equal(s.ok, false, 'root-domain sending would need Resend added to the Workspace SPF record');
-  assert.match(s.message, /root SPF/);
+test('a subdomain is equally valid', () => {
+  assert.equal(emailStatus({ ...GOOD, EMAIL_FROM_ADDRESS: 'noreply@send.praelecta.ca' }).ok, true);
 });
 
-test('a support address is not a sending address either', () => {
-  assert.equal(emailStatus({ ...GOOD, EMAIL_FROM_ADDRESS: 'help@praelecta.ca' }).ok, false);
+test('a domain we do not control is rejected', () => {
+  const s = emailStatus({ ...GOOD, EMAIL_FROM_ADDRESS: 'noreply@gmail.com' });
+  assert.equal(s.ok, false, 'an unverifiable sender would fail DMARC on every message');
+  assert.match(s.message, /not praelecta\.ca/);
+});
+
+test('a lookalike domain does not slip through the suffix check', () => {
+  for (const bad of ['noreply@notpraelecta.ca', 'noreply@praelecta.ca.evil.com', 'noreply@xpraelecta.ca']) {
+    assert.equal(emailStatus({ ...GOOD, EMAIL_FROM_ADDRESS: bad }).ok, false, bad);
+  }
 });
 
 test('the domain check is case-insensitive', () => {
-  assert.equal(emailStatus({ ...GOOD, EMAIL_FROM_ADDRESS: 'NoReply@Send.Praelecta.CA' }).ok, true);
+  assert.equal(emailStatus({ ...GOOD, EMAIL_FROM_ADDRESS: 'NoReply@Praelecta.CA' }).ok, true);
 });
 
 test('a missing key or sender is named, not just flagged', () => {
@@ -93,7 +99,7 @@ test('problems log as errors so they show in a deploy log', () => {
   const seen = { log: [], error: [] };
   const logger = { log: (m) => seen.log.push(m), error: (m) => seen.error.push(m) };
   logEmailStatus(GOOD, logger);
-  logEmailStatus({ ...GOOD, EMAIL_FROM_ADDRESS: 'noreply@praelecta.ca' }, logger);
+  logEmailStatus({ ...GOOD, EMAIL_FROM_ADDRESS: 'noreply@gmail.com' }, logger);
   assert.equal(seen.log.length, 1);
   assert.equal(seen.error.length, 1);
 });

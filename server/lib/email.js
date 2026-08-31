@@ -7,25 +7,31 @@ export function emailIsConfigured() {
 }
 
 /**
- * Where the app's own mail is sent FROM, and why it must not be the root domain.
+ * Where the app's own mail is sent FROM.
  *
- * praelecta.ca is a Google Workspace domain — it carries the human mailboxes and
- * a root SPF record listing Google. A domain gets exactly ONE SPF record, so
- * adding Resend to the root means editing that same record, and a mistake there
- * breaks every human email as well as every app email. It also means Workspace
- * and Resend share one reputation: a bounce-heavy reminder run would damage
- * deliverability for mail a person actually typed.
+ * This has to be a domain we control and have verified with the provider, or
+ * DMARC rejects it — praelecta.ca is p=reject with strict alignment. Beyond
+ * that the check stays out of the way.
  *
- * So app mail lives on send.praelecta.ca, with its own SPF, its own DKIM and its
- * own reputation. The root DMARC is p=reject with sp=reject and strict
- * alignment, which the subdomain satisfies because Resend signs with
- * d=send.praelecta.ca — DKIM aligns strictly, and DMARC passes on DKIM alone.
+ * An earlier version of this forced a send.praelecta.ca subdomain and treated
+ * the root as an error. That was wrong and worth recording. Resend does
+ * recommend a subdomain, but the reason is reputation isolation, which matters
+ * to high-volume senders and not to a pre-launch app sending confirmations,
+ * password resets and reminders to people who asked for them. The cost was
+ * real and immediate: every user would see noreply@send.praelecta.ca.
  *
- * A root-domain FROM address would still SEND. It would just fail SPF until
- * someone edited the Workspace record, which is exactly the silent, weeks-later
- * failure this warns about at boot instead.
+ * The "only one SPF record" concern was overstated too. Merging Google and the
+ * mail provider into one record is routine — two includes against a ten-lookup
+ * limit — and DKIM was never a conflict, since Google signs with the
+ * google._domainkey selector and Resend with resend._domainkey. Different
+ * selectors on one domain is what selectors are for.
+ *
+ * So: any address on praelecta.ca or a subdomain of it is accepted, and the
+ * choice between them is a product decision rather than something enforced
+ * here. What IS still worth catching is a sender on a domain we do not control
+ * at all, which cannot be verified and will fail DMARC outright.
  */
-const APP_MAIL_SUBDOMAIN = 'send.praelecta.ca';
+const MAIL_DOMAIN = 'praelecta.ca';
 
 export function emailStatus(env = process.env) {
   const key = String(env.RESEND_API_KEY || '').trim();
@@ -35,10 +41,11 @@ export function emailStatus(env = process.env) {
     return { ok: false, message: `outbound email: ${missing.join(' and ')} not set — study reminders and transcript exports will fail` };
   }
   const domain = from.split('@').pop().toLowerCase();
-  if (domain !== APP_MAIL_SUBDOMAIN) {
+  const ours = domain === MAIL_DOMAIN || domain.endsWith(`.${MAIL_DOMAIN}`);
+  if (!ours) {
     return {
       ok: false,
-      message: `outbound email: sending from ${domain}, not ${APP_MAIL_SUBDOMAIN} — app mail on the Workspace root domain has to be added to the single root SPF record or it fails authentication`,
+      message: `outbound email: sending from ${domain}, which is not ${MAIL_DOMAIN} or a subdomain of it — it cannot be verified with the provider and will fail DMARC`,
     };
   }
   return { ok: true, message: `outbound email: configured, sending from ${domain}` };
