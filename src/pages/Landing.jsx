@@ -28,6 +28,7 @@ function LandingFooter() {
           <a href="#study-system" className="hover:text-foreground">Study tools</a>
           <a href="#pricing" className="hover:text-foreground">Pricing</a>
           <Link to="/privacy" className="hover:text-foreground">Privacy</Link>
+          <Link to="/terms" className="hover:text-foreground">Terms</Link>
           <Link to="/login" className="hover:text-foreground">Sign in</Link>
         </div>
       </div>

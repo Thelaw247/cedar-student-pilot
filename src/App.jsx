@@ -21,6 +21,7 @@ const LectureDetail = lazy(() => import('./pages/LectureDetail'));
 const StudyPlanner = lazy(() => import('./pages/StudyPlanner'));
 const SettingsPage = lazy(() => import('./pages/Settings'));
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
+const Terms = lazy(() => import('./pages/Terms'));
 const SemesterSetup = lazy(() => import('./pages/SemesterSetup'));
 const FocusMode = lazy(() => import('./pages/FocusMode'));
 const Analytics = lazy(() => import('./pages/Analytics'));
@@ -69,9 +70,14 @@ const AuthenticatedApp = () => {
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/oauth-consent" element={<OAuthConsent />} />
-      {/* The privacy policy is a legal document and has to be readable without
-          signing in, so it sits outside the authenticated Layout. */}
+      {/* The privacy policy and terms are legal documents and have to be
+          readable without signing in, so they sit outside the authenticated
+          Layout. Stripe and the app stores both link to them from outside the
+          app; inside ProtectedRoute they would redirect a visitor to /login,
+          and because the Worker serves a single-page app that redirect returns
+          200, so nothing would look broken while being entirely broken. */}
       <Route path="/privacy" element={<PrivacyPolicy />} />
+      <Route path="/terms" element={<Terms />} />
 
       {/* Everything below requires a signed-in user. */}
       <Route element={<ProtectedRoute unauthenticatedElement={<RedirectToLogin />} />}>

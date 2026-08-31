@@ -83,7 +83,9 @@ export default function PrivacyPolicy() {
         </p>
       </Section>
 
-      <p className="text-center text-xs text-muted-foreground mt-8 mb-4">Praelecta • Privacy Policy • {EFFECTIVE_DATE}</p>
+      <p className="text-center text-xs text-muted-foreground mt-8 mb-4">
+        Praelecta • Privacy Policy • {EFFECTIVE_DATE} • <Link to="/terms" className="hover:text-foreground">Terms of Service</Link>
+      </p>
     </div>
   );
 }
