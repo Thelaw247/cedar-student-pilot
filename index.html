@@ -23,12 +23,20 @@
          and at 16KB it is far under WhatsApp's 600KB ceiling, above which it
          silently shows no image at all. Versioned filename because WhatsApp
          caches a preview for days with no way to purge it — publish
-         og-card-v2.jpg rather than editing this file in place. Swap the host
-         to the real domain at the DNS move. -->
-    <meta property="og:image" content="https://cedar-student-pilot.dewetluus.workers.dev/og-card-v1.jpg" />
+         og-card-v2.jpg rather than editing this file in place. Host swapped
+         to praelecta.ca now the domain resolves; verified the file serves
+         there as image/jpeg before changing this. -->
+    <meta property="og:image" content="https://praelecta.ca/og-card-v1.jpg" />
     <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://praelecta.ca/" />
+    <!-- Two hosts serve this identical app - praelecta.ca and the workers.dev
+         origin behind it - so without a canonical, search engines see duplicate
+         content and pick a winner themselves, which may be the one nobody is
+         meant to see. Absolute and hardcoded rather than derived: a canonical
+         that points at whatever host served the page tells a crawler nothing. -->
+    <link rel="canonical" href="https://praelecta.ca/" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:image" content="https://cedar-student-pilot.dewetluus.workers.dev/og-card-v1.jpg" />
+    <meta name="twitter:image" content="https://praelecta.ca/og-card-v1.jpg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
