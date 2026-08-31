@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { pool } from './lib/db.js';
 import { requestSecurity } from './lib/http.js';
 import { creditSignal } from './lib/creditSignal.js';
+import { logStripeBootStatus } from './lib/stripeBootCheck.js';
 import { checkR2Connection } from './lib/r2.js';
 import stripeWebhookRouter from './routes/stripeWebhook.js';
 import meRouter from './routes/me.js';
@@ -130,5 +131,8 @@ app.use((req, res) => {
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`${SERVICE_NAME} listening on port ${PORT}`);
+    // Non-fatal on purpose — see lib/stripeBootCheck.js. Logged after listen so
+    // a Stripe misconfiguration can never stop the service binding its port.
+    logStripeBootStatus();
   });
 }
