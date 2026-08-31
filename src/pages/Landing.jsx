@@ -57,8 +57,12 @@ export default function Landing() {
     };
   }, []);
 
+  // No bg-background on the wrapper below, deliberately. This element is
+  // positioned, so an opaque background on it paints in the positioned-element
+  // pass - above the z-index:-1 backdrop rather than below it - and hid the
+  // waveform completely. The base colour is painted by .landing-backdrop.
   return (
-    <div className="landing-surface relative min-h-screen overflow-x-hidden bg-background text-foreground selection:bg-primary/25 selection:text-foreground">
+    <div className="landing-surface relative min-h-screen overflow-x-hidden text-foreground selection:bg-primary/25 selection:text-foreground">
       {/* The owner's waveform, held behind everything and dimmed so the page
           stays readable. Fixed, so scrolling moves content across it. */}
       <div className="landing-backdrop" aria-hidden="true" />
