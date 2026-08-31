@@ -1,5 +1,12 @@
 # Declarative staging topology. This file is inert until explicitly connected
 # as a Render Blueprint; committing it does not create or modify services.
+#
+# Inert is not harmless. The values below were the staging ones - workers.dev
+# origins and STRIPE_EXPECTED_MODE=test - while the live dashboard had moved on
+# to praelecta.ca and live mode. Syncing this blueprint would have silently
+# reverted a working payment configuration to test mode and pointed checkout at
+# a host being retired. Kept matching the live dashboard so that syncing it is
+# boring rather than destructive.
 services:
   - type: web
     name: cedar-api-staging
@@ -21,13 +28,16 @@ services:
       - key: NODE_ENV
         value: production
       - key: ALLOWED_ORIGINS
-        value: https://cedar-student-pilot.dewetluus.workers.dev
+        value: https://praelecta.ca,https://www.praelecta.ca,https://cedar-student-pilot.dewetluus.workers.dev,https://cedar-staging-jeu6.onrender.com
       - key: APP_ORIGIN
-        value: https://cedar-student-pilot.dewetluus.workers.dev
+        value: https://praelecta.ca
       - key: CEDAR_APP_ID
         value: cedar-student-pilot
+      # Live. The key and this must agree or every Stripe call throws; the
+      # service logs which mode it resolved at boot, so a mismatch is visible
+      # in the deploy log rather than at a student's first checkout.
       - key: STRIPE_EXPECTED_MODE
-        value: test
+        value: live
       - key: ACADEMIC_CHAT_ENABLED
         value: "false"
       - key: REMINDERS_TIME_ZONE
@@ -83,7 +93,7 @@ services:
       ignoredPaths: []
     envVars:
       - key: CEDAR_API_URL
-        value: https://cedar-api-staging.onrender.com
+        value: https://api.praelecta.ca
       - key: GRANT_TRIGGER_TOKEN
         fromService:
           type: web
@@ -108,7 +118,7 @@ services:
       ignoredPaths: []
     envVars:
       - key: CEDAR_API_URL
-        value: https://cedar-api-staging.onrender.com
+        value: https://api.praelecta.ca
       - key: REMINDERS_TRIGGER_TOKEN
         fromService:
           type: web
