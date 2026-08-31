@@ -3,7 +3,7 @@ import { requireAuth } from '../middleware/requireAuth.js';
 import { gateFeature, settleFeature } from '../lib/credits.js';
 import { parseTimetableDataUrl } from '../lib/timetableFile.js';
 import { consolidateTimetableClasses } from '../lib/timetableResult.js';
-import { QUALITY_MODEL } from '../lib/llm.js';
+import { QUALITY_MODEL, createLlmUsage, recordGeminiUsage } from '../lib/llm.js';
 
 // Direct port of base44/functions/parseTimetableUpload/entry.ts, with ONE
 // real change: the original never routed through llm.ts because Base44's
@@ -16,6 +16,12 @@ import { QUALITY_MODEL } from '../lib/llm.js';
 // Deliberately still gateFeature'd at cost 0, same as the original: this
 // runs during onboarding and must never be blocked, but still needs to show
 // up in usage_events so its real cost is visible in the margin numbers.
+//
+// That last part was not actually true until now. This was the only one of
+// twelve settleFeature callers that passed no llmUsage, so every timetable
+// import recorded zero tokens and zero cost — on the slowest feature measured
+// (85s average) and the one given away free. Exactly the number the comment
+// above says it exists to produce.
 
 const router = express.Router();
 
@@ -88,6 +94,7 @@ router.post('/', requireAuth, async (req, res) => {
 
     const gate = await gateFeature(userId, 'timetable_import', res);
     if (!gate.ok) return; // gateFeature already sent the 402
+    const llmUsage = createLlmUsage();
 
     const key = process.env.GEMINI_API_KEY;
     if (!key) {
@@ -123,11 +130,15 @@ router.post('/', requireAuth, async (req, res) => {
       throw providerError;
     }
     const data = await geminiRes.json();
+    // Before anything can throw on a malformed body: a call that reached Gemini
+    // cost money whether or not its output parsed, and that is the cost this
+    // feature exists to measure.
+    recordGeminiUsage(llmUsage, data, QUALITY_MODEL);
     const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
     const result = text ? JSON.parse(text) : { classes: [] };
     const classes = consolidateTimetableClasses(result.classes);
 
-    await settleFeature(gate, { feature: 'timetable_import', calls: 1, usedGemini: true });
+    await settleFeature(gate, { feature: 'timetable_import', llmUsage });
 
     res.json({ classes });
   } catch (error) {

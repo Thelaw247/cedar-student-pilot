@@ -81,6 +81,21 @@ function usageFromGemini(data, requestedModel) {
   };
 }
 
+/**
+ * Record a Gemini response against a usage tracker.
+ *
+ * For calls that cannot go through invokeLLM — parseTimetableUpload talks to
+ * Gemini directly because it needs inline image input — this is how they still
+ * report tokens and cost. Exported rather than reimplemented at the call site
+ * on purpose: token accounting that exists in two places drifts, and the whole
+ * point of the number is that the margin model can be trusted.
+ */
+export function recordGeminiUsage(tracker, data, requestedModel) {
+  const usage = usageFromGemini(data, requestedModel);
+  addUsage(tracker, usage);
+  return usage;
+}
+
 const endpoint = (model, key) =>
   `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`;
 
