@@ -46,3 +46,60 @@ test('sends through Resend with a bounded idempotency key', async () => {
     if (old.from === undefined) delete process.env.EMAIL_FROM_ADDRESS; else process.env.EMAIL_FROM_ADDRESS = old.from;
   }
 });
+
+// ---------------------------------------------------------------------------
+// Sender-domain guard. praelecta.ca is a Google Workspace domain with a single
+// SPF record; app mail belongs on send.praelecta.ca with its own SPF, DKIM and
+// reputation. Getting this wrong still sends — it just fails authentication —
+// so it is caught at boot rather than by a user who never got their email.
+
+import { readFileSync } from 'node:fs';
+import { emailStatus, logEmailStatus } from '../lib/email.js';
+
+const GOOD = { RESEND_API_KEY: 're_x', EMAIL_FROM_ADDRESS: 'noreply@send.praelecta.ca' };
+
+test('a sender on the app mail subdomain is accepted', () => {
+  const s = emailStatus(GOOD);
+  assert.equal(s.ok, true);
+  assert.match(s.message, /send\.praelecta\.ca/);
+});
+
+test('the Workspace root domain is rejected as a sender', () => {
+  const s = emailStatus({ ...GOOD, EMAIL_FROM_ADDRESS: 'noreply@praelecta.ca' });
+  assert.equal(s.ok, false, 'root-domain sending would need Resend added to the Workspace SPF record');
+  assert.match(s.message, /root SPF/);
+});
+
+test('a support address is not a sending address either', () => {
+  assert.equal(emailStatus({ ...GOOD, EMAIL_FROM_ADDRESS: 'help@praelecta.ca' }).ok, false);
+});
+
+test('the domain check is case-insensitive', () => {
+  assert.equal(emailStatus({ ...GOOD, EMAIL_FROM_ADDRESS: 'NoReply@Send.Praelecta.CA' }).ok, true);
+});
+
+test('a missing key or sender is named, not just flagged', () => {
+  assert.match(emailStatus({ EMAIL_FROM_ADDRESS: GOOD.EMAIL_FROM_ADDRESS }).message, /RESEND_API_KEY/);
+  assert.match(emailStatus({ RESEND_API_KEY: 're_x' }).message, /EMAIL_FROM_ADDRESS/);
+  assert.match(emailStatus({}).message, /RESEND_API_KEY and EMAIL_FROM_ADDRESS/);
+});
+
+test('the API key never reaches the message', () => {
+  const secret = 're_supersecretapikeyvalue';
+  assert.ok(!emailStatus({ ...GOOD, RESEND_API_KEY: secret }).message.includes(secret));
+});
+
+test('problems log as errors so they show in a deploy log', () => {
+  const seen = { log: [], error: [] };
+  const logger = { log: (m) => seen.log.push(m), error: (m) => seen.error.push(m) };
+  logEmailStatus(GOOD, logger);
+  logEmailStatus({ ...GOOD, EMAIL_FROM_ADDRESS: 'noreply@praelecta.ca' }, logger);
+  assert.equal(seen.log.length, 1);
+  assert.equal(seen.error.length, 1);
+});
+
+test('the check is wired into index.js', () => {
+  const src = readFileSync(new URL('../index.js', import.meta.url), 'utf8')
+    .split('\n').map((l) => l.replace(/\/\/.*$/, '')).join('\n');
+  assert.match(src, /logEmailStatus\(\)/);
+});

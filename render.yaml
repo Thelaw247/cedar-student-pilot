@@ -66,6 +66,10 @@ services:
         sync: false
       - key: RESEND_API_KEY
         sync: false
+      # Must be on send.praelecta.ca, not the root. The root is a Google
+      # Workspace domain with one SPF record; app mail belongs on its own
+      # subdomain with its own SPF, DKIM and reputation. The service logs a
+      # boot error if this is set to anything else.
       - key: EMAIL_FROM_ADDRESS
         sync: false
       - key: GRANT_TRIGGER_TOKEN
