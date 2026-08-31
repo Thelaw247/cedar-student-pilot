@@ -4,6 +4,7 @@ import { pool } from './lib/db.js';
 import { requestSecurity } from './lib/http.js';
 import { creditSignal } from './lib/creditSignal.js';
 import { logStripeBootStatus } from './lib/stripeBootCheck.js';
+import { canDeleteAuthUsers } from './lib/accountDeletion.js';
 import { checkR2Connection } from './lib/r2.js';
 import stripeWebhookRouter from './routes/stripeWebhook.js';
 import meRouter from './routes/me.js';
@@ -132,7 +133,13 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`${SERVICE_NAME} listening on port ${PORT}`);
     // Non-fatal on purpose — see lib/stripeBootCheck.js. Logged after listen so
-    // a Stripe misconfiguration can never stop the service binding its port.
+    // a misconfiguration can never stop the service binding its port.
     logStripeBootStatus();
+    // Account deletion needs DELETE on auth.users, which only the postgres role
+    // holds. Nothing surfaces a missing grant until someone tries to delete
+    // their account — once — so ask at boot instead.
+    canDeleteAuthUsers(pool)
+      .then((s) => (s.ok ? console.log(`[boot] ${s.message}`) : console.error(`[boot] ${s.message}`)))
+      .catch((e) => console.error(`[boot] account deletion: privilege check failed — ${e.message}`));
   });
 }

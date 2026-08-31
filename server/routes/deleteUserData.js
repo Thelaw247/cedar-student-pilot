@@ -2,8 +2,8 @@ import express from 'express';
 import { pool } from '../lib/db.js';
 import { requireAuth } from '../middleware/requireAuth.js';
 import { stripeDelete } from '../lib/stripe.js';
-import { TIER_GRANT, periodKey } from '../lib/credits.js';
 import { deleteAllOwnedObjects, r2IsConfigured } from '../lib/r2.js';
+import { deleteAuthUser } from '../lib/accountDeletion.js';
 
 // Direct port of base44/functions/deleteUserData/entry.ts. Same ordering
 // discipline as the original: cancel Stripe FIRST (see that file's preserved
@@ -17,10 +17,11 @@ import { deleteAllOwnedObjects, r2IsConfigured } from '../lib/r2.js';
 // explicitly scoped by user_id. That WHERE clause is the only thing standing
 // between this and deleting someone else's data.
 //
-// The auth.users row itself is NOT deleted — login persists, only data and
-// billing reset to a fresh state, matching the original's own behavior
-// ("signing in again will start a fresh free-tier account", not "you need to
-// sign up again").
+// CHANGED from the original: the auth.users row IS now deleted. The original
+// kept the login and reset the account to a fresh free tier, but the button
+// says "Permanently delete your account", and App Store guideline 5.1.1(v)
+// requires account deletion rather than a data wipe. See lib/accountDeletion.js
+// for why one delete is sufficient and what has to be true for it to work.
 
 const router = express.Router();
 
@@ -42,6 +43,7 @@ router.post('/', requireAuth, async (req, res) => {
     const summary = {};
     const errors = [];
     let totalDeleted = 0;
+    let authUserDeleted = false;
 
     // ---------------------------------------------------- 1. stop billing ---
     let subscriptionCancelled = false;
@@ -114,35 +116,30 @@ router.post('/', requireAuth, async (req, res) => {
         totalDeleted += result.rowCount;
       }
 
-      // credit_balances is RESET, not deleted (the auth provisioning trigger
-      // only fires on auth.users INSERT, and the login intentionally remains).
-      await db.query(
-        `update credit_balances set tier = 'free', subscription_credits = $1, purchased_credits = 0,
-           period_key = $2, last_grant_date = current_date, fair_use_flagged = false,
-           applied_credit_operations = '{}', fulfilled_stripe_anchors = '{}',
-           stripe_customer_id = null, stripe_subscription_id = null, updated_at = now()
-         where user_id = $3`,
-        [TIER_GRANT.free, periodKey(), userId],
-      );
-      await db.query(
-        'update profiles set full_name = null, avatar_url = null where id = $1',
-        [userId],
-      );
+      // The account itself, last and inside the same transaction. Every FK to
+      // auth.users cascades, so this also removes credit_balances, profiles and
+      // anything the explicit deletes above did not name. Doing it here rather
+      // than after the commit means a failure rolls the whole thing back: the
+      // account is either gone or untouched, never an empty shell the user has
+      // no way to remove.
+      authUserDeleted = (await deleteAuthUser(db, userId)) === 1;
+      if (!authUserDeleted) throw new Error('auth user row was not deleted');
       await db.query('commit');
     } catch (error) {
       await db.query('rollback').catch(() => {});
-      console.error('[deleteUserData] database reset failed', error);
+      console.error('[deleteUserData] account deletion failed', error);
       return res.status(500).json({
         status: 'aborted',
         reason: 'database_delete_failed',
-        message: 'The database reset failed and all relational data was rolled back. Please try again.',
+        message: 'Your account could not be deleted and nothing was changed. Please try again, or contact support.',
       });
     } finally {
       db.release();
     }
 
-    console.log('[deleteUserData] reset complete', JSON.stringify({
-      user_id: userId, total_deleted: totalDeleted, subscription_cancelled: subscriptionCancelled, error_count: errors.length,
+    console.log('[deleteUserData] account deleted', JSON.stringify({
+      user_id: userId, total_deleted: totalDeleted, auth_user_deleted: authUserDeleted,
+      subscription_cancelled: subscriptionCancelled, error_count: errors.length,
     }));
 
     res.json({
@@ -152,7 +149,8 @@ router.post('/', requireAuth, async (req, res) => {
       subscription_cancelled: subscriptionCancelled,
       cancelled_subscription_id: cancelledSubscriptionId,
       errors,
-      note: 'All app data and active stored files have been deleted, and any active subscription cancelled. No refund was issued. Your login remains available and is reset to a fresh free tier. Provider backups follow their configured retention policies.',
+      auth_user_deleted: authUserDeleted,
+      note: 'The account has been deleted along with all app data and stored files, and any active subscription was cancelled. No refund was issued. Signing in again is not possible; a new account would have to be created. Provider backups follow their configured retention policies.',
     });
   } catch (error) {
     res.status(500).json({ error: error.message });

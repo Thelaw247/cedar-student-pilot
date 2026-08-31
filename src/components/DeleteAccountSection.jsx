@@ -34,7 +34,8 @@ export default function DeleteAccountSection() {
       const data = response.data || { status: 'complete' };
 
       // The function aborts without deleting anything if the subscription
-      // could not be cancelled — surface that instead of claiming success.
+      // could not be cancelled, or if the account row itself could not be
+      // removed — surface that instead of claiming success.
       if (data.status === 'aborted') {
         setDeleteError(data.message || 'Your subscription could not be cancelled, so nothing was deleted.');
         setDeleting(false);
@@ -50,10 +51,11 @@ export default function DeleteAccountSection() {
       setConfirming(false);
       setConfirmText('');
 
-      // Everything is gone, including the credit balance. Staying signed in
-      // would show a half-empty app built on records that no longer exist, so
-      // sign out and let them start clean.
-      setTimeout(() => { void logout(); }, 4000);
+      // The account is gone, and deleting it cascaded away its sessions, so the
+      // token in this tab is already dead. logout() is a courtesy to clear
+      // local state — it can legitimately fail against a user that no longer
+      // exists, and that must not surface as an error after a success message.
+      setTimeout(() => { void Promise.resolve(logout()).catch(() => {}); }, 4000);
     } catch (e) {
       console.error(e);
       setDeleteError('Something went wrong. Please try again, or contact support if it keeps happening.');
@@ -67,14 +69,14 @@ export default function DeleteAccountSection() {
         <div className="flex items-start gap-2">
           <Check className="w-4 h-4 text-emerald-600 mt-0.5 flex-shrink-0" />
           <div>
-            <p className="text-sm font-medium text-emerald-700 dark:text-emerald-500">Your account has been reset</p>
+            <p className="text-sm font-medium text-emerald-700 dark:text-emerald-500">Your account has been deleted</p>
             <p className="text-xs text-muted-foreground mt-1">
               {typeof deleteResult.total_deleted === 'number'
                 ? `${deleteResult.total_deleted} record${deleteResult.total_deleted !== 1 ? 's' : ''} removed.`
                 : 'Your data has been removed.'}
               {deleteResult.subscription_cancelled && ' Your subscription has been cancelled.'}
             </p>
-            <p className="text-xs text-muted-foreground mt-1">Signing you out… signing in again will start a fresh free account.</p>
+            <p className="text-xs text-muted-foreground mt-1">Signing you out… this email can be used to sign up again from scratch, but nothing from this account will come back.</p>
           </div>
         </div>
       </div>
@@ -104,6 +106,7 @@ export default function DeleteAccountSection() {
             <li>• Classes, semesters, schedule and calendar events</li>
             <li>• Your credit balance, including any credits you paid for</li>
             <li>• Cached handbooks and all usage history</li>
+            <li>• The account itself — this email will no longer sign in</li>
           </ul>
           <p className="text-xs text-muted-foreground mt-2">
             Any active subscription is cancelled immediately. <span className="font-medium text-foreground">No refund is issued</span>, and purchased credits are not recoverable. Export a copy first if you want to keep anything.
