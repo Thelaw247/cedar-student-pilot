@@ -15,7 +15,7 @@ export default function LandingNav() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <header className="fixed inset-x-0 top-0 z-50 border-b border-border bg-background/85 backdrop-blur-lg">
+    <header className="fixed inset-x-0 top-0 z-50 bg-background/85 backdrop-blur-lg">
       <nav className="mx-auto max-w-6xl px-4 sm:px-6">
         <div className="flex h-16 items-center justify-between">
           <Link to="/" onClick={() => setMenuOpen(false)} className="flex items-center gap-2.5" aria-label="Praelecta home">

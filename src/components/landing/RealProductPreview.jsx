@@ -52,7 +52,7 @@ export default function RealProductPreview() {
   ];
 
   return (
-    <section id="study-schedule" className="border-y border-border bg-background/40 px-4 py-20 sm:px-6 lg:py-28">
+    <section id="study-schedule" className="px-4 py-20 sm:px-6 lg:py-28">
       <div className="mx-auto max-w-6xl">
         <div className="grid gap-12 lg:grid-cols-[0.76fr_1.24fr] lg:items-center">
           <div>

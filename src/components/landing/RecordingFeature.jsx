@@ -16,7 +16,7 @@ function OutputRow({ icon: Icon, title, children, tone = 'blue' }) {
 
 export default function RecordingFeature() {
   return (
-    <section id="recording" className="border-y border-border bg-background/25 px-4 py-20 sm:px-6 lg:py-28">
+    <section id="recording" className="px-4 py-20 sm:px-6 lg:py-28">
       <div className="mx-auto max-w-6xl">
         <div className="grid gap-12 lg:grid-cols-[0.78fr_1.22fr] lg:items-center">
           <div>

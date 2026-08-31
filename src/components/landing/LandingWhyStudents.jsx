@@ -36,7 +36,7 @@ const COMMITMENTS = [
 
 export default function LandingWhyStudents() {
   return (
-    <section id="why-students" className="border-t border-border bg-background/25 px-4 py-20 sm:px-6 lg:py-24">
+    <section id="why-students" className="px-4 py-20 sm:px-6 lg:py-24">
       <div className="mx-auto max-w-6xl">
         <div className="mx-auto max-w-3xl text-center">
           <p className="text-sm font-semibold text-primary">Sound familiar?</p>

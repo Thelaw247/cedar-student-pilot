@@ -51,7 +51,7 @@ export default function LandingEnd() {
         </div>
       </section>
 
-      <section id="pricing" className="border-t border-border bg-background/40 px-4 py-20 sm:px-6 lg:py-24">
+      <section id="pricing" className="px-4 py-20 sm:px-6 lg:py-24">
         <div className="mx-auto grid max-w-6xl gap-6 lg:grid-cols-[1fr_.9fr] lg:items-stretch">
           <div className="rounded-[26px] border border-border bg-card p-7 sm:p-8">
             <p className="text-sm font-semibold text-primary">Pricing</p>
@@ -74,15 +74,7 @@ export default function LandingEnd() {
         </div>
       </section>
 
-      <section className="relative isolate overflow-hidden bg-background/40 px-4 pb-24 sm:px-6 lg:pb-28">
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 top-8 -z-10 overflow-hidden">
-          <div className="absolute left-[2%] top-[10%] h-72 w-72 rounded-full bg-primary/35 blur-[82px]" />
-          <div className="absolute left-[31%] top-[38%] h-56 w-56 rounded-full bg-primary/30 blur-[78px]" />
-          <div className="absolute right-[4%] top-[4%] h-72 w-72 rounded-full bg-sky-500/25 blur-[88px]" />
-          <div className="absolute bottom-[-18%] left-[47%] h-80 w-80 rounded-full bg-indigo-500/25 blur-[105px]" />
-          <div className="absolute right-[23%] bottom-[3%] h-48 w-48 rounded-full bg-primary/25 blur-[70px]" />
-        </div>
-
+      <section className="relative isolate overflow-hidden px-4 pb-24 sm:px-6 lg:pb-28">
         <div className="relative mx-auto max-w-6xl overflow-hidden rounded-[34px] border border-white/12 bg-[linear-gradient(135deg,rgba(255,255,255,0.08),rgba(46,102,255,0.07)_44%,rgba(255,255,255,0.03))] px-6 py-14 text-center shadow-[0_34px_95px_-30px_rgba(0,0,0,0.75),inset_0_1px_0_rgba(255,255,255,0.16),inset_0_-1px_0_rgba(0,0,0,0.35)] backdrop-blur-[34px] backdrop-saturate-[195%] sm:px-10 sm:py-16">
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_14%_2%,rgba(255,255,255,0.10),transparent_30%),radial-gradient(circle_at_78%_12%,rgba(96,165,250,0.16),transparent_34%),radial-gradient(circle_at_58%_100%,rgba(46,102,255,0.22),transparent_42%)]" />
           <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-white/45 to-transparent" />

@@ -329,14 +329,4 @@
   background-position: center;
   opacity: 0.5;
 }
-/* A vignette so the edges fall away and the centre column stays the brightest
-   part of the page, and a floor of solid background colour underneath so the
-   artwork never decides the contrast ratio of the text sitting on it. */
-.landing-backdrop::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(120% 80% at 50% 0%, hsl(224 100% 59% / 0.10), transparent 60%),
-    linear-gradient(180deg, hsl(222 33% 8% / 0.30) 0%, hsl(222 33% 8% / 0.55) 55%, hsl(222 33% 8% / 0.72) 100%);
-}
+
