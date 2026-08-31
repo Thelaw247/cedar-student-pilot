@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronLeft, Shield, Lock, Database, Trash2, Mail, Server } from 'lucide-react';
-import { PRIVACY_EFFECTIVE_DATE } from '@/lib/legal';
+import { PRIVACY_EFFECTIVE_DATE, SUPPORT_EMAIL, SUPPORT_MAILTO } from '@/lib/legal';
 
 // Shown to users, and shared with lib/legal.js so the recorded consent
 // version and the date on this page cannot drift apart.
@@ -26,7 +26,7 @@ export default function PrivacyPolicy() {
 
       <p className="text-sm text-muted-foreground leading-relaxed mb-8">
         This policy explains what Praelecta collects, how it’s used, and the control you have over it.
-        It’s written to be read — not to be dense. If anything here is unclear, reach out and we’ll explain it plainly.
+        It’s written to be read — not to be dense. If anything here is unclear, email us and we’ll explain it plainly.
       </p>
 
       <Section icon={Database} title="What we store">
@@ -79,8 +79,8 @@ export default function PrivacyPolicy() {
 
       <Section icon={Mail} title="Contact">
         <p>
-          Questions about your privacy, or a request about your data? Reach out through the in-app support link and we’ll
-          respond. For account holders in Canada, you have rights under applicable provincial and federal privacy law,
+          Questions about your privacy, or a request about your data? Email{' '}
+          <a href={SUPPORT_MAILTO} className="text-primary hover:underline">{SUPPORT_EMAIL}</a> and we’ll respond. For account holders in Canada, you have rights under applicable provincial and federal privacy law,
           including the right to access and correct your personal information.
         </p>
       </Section>

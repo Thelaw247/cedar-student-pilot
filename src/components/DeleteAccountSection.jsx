@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
+import { SUPPORT_EMAIL } from '@/lib/legal';
 import { Loader2, Trash2, AlertTriangle, Check } from 'lucide-react';
 
 /**
@@ -58,7 +59,7 @@ export default function DeleteAccountSection() {
       setTimeout(() => { void Promise.resolve(logout()).catch(() => {}); }, 4000);
     } catch (e) {
       console.error(e);
-      setDeleteError('Something went wrong. Please try again, or contact support if it keeps happening.');
+      setDeleteError(`Something went wrong. Please try again, or email ${SUPPORT_EMAIL} if it keeps happening.`);
     }
     setDeleting(false);
   };

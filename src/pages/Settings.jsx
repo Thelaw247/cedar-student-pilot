@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { Sun, Moon, Bell, Sparkles, Clock, Palette, Check, AlertCircle, GraduationCap, BookOpen, Shield, User, Zap, LineChart, ArrowRight } from 'lucide-react';
+import { Sun, Moon, Bell, Sparkles, Clock, Palette, Check, AlertCircle, GraduationCap, BookOpen, Shield, User, Zap, LineChart, ArrowRight, LifeBuoy, Mail } from 'lucide-react';
 import { getSetting, setSetting } from '@/lib/settings';
 import ProfileSettings from '@/components/ProfileSettings';
 import DeleteAccountSection from '@/components/DeleteAccountSection';
@@ -11,6 +11,7 @@ import LearningModeToggle from '@/components/LearningModeToggle';
 import ConceptDecaySettings from '@/components/ConceptDecaySettings';
 import DataExportSection from '@/components/DataExportSection';
 import Widget from '@/components/ui/Widget';
+import { SUPPORT_EMAIL, SUPPORT_MAILTO } from '@/lib/legal';
 
 export default function Settings() {
   const [isDark, setIsDark] = useState(false);
@@ -130,6 +131,28 @@ export default function Settings() {
         <ProfileSettings />
         <div className="mt-5 pt-4 border-t border-border">
           <DeleteAccountSection />
+        </div>
+      </SettingsSection>
+
+      {/* The support section the privacy policy and terms have always pointed
+          at. Both said "reach out through the in-app support link" while no
+          such link existed anywhere in the app — a promise with nothing behind
+          it. A plain mailto rather than a ticket form: it works offline, it
+          works from the user's own mail client with their own address attached,
+          and there is nothing to maintain. */}
+      <SettingsSection icon={LifeBuoy} title="Support">
+        <p className="text-sm text-muted-foreground">
+          Something broken, a billing question, or a request about your data? Email us and a person will answer.
+        </p>
+        <a
+          href={SUPPORT_MAILTO}
+          className="mt-3 inline-flex items-center gap-2 rounded-lg border border-border bg-muted px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+        >
+          <Mail className="w-4 h-4 text-primary" /> {SUPPORT_EMAIL}
+        </a>
+        <div className="mt-5 pt-4 border-t border-border flex flex-wrap gap-x-5 gap-y-2 text-sm">
+          <Link to="/privacy" className="text-muted-foreground hover:text-foreground transition-colors">Privacy Policy</Link>
+          <Link to="/terms" className="text-muted-foreground hover:text-foreground transition-colors">Terms of Service</Link>
         </div>
       </SettingsSection>
 

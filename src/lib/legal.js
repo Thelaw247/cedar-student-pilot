@@ -13,5 +13,18 @@
 
 export const LEGAL_VERSION = '2026-08-31';
 
+/**
+ * The address a user can actually reach a person at.
+ *
+ * Both legal documents told people to "reach out through the in-app support
+ * link", and two error messages said "contact support". None of it existed —
+ * there was no support link, route or address anywhere in the app, so every one
+ * of those was a dead end. Stripe's business profile and App Store Connect both
+ * want a reachable support contact as well, so it lives here once rather than
+ * being typed into five places that then drift.
+ */
+export const SUPPORT_EMAIL = 'help@praelecta.ca';
+export const SUPPORT_MAILTO = `mailto:${SUPPORT_EMAIL}`;
+
 export const TERMS_EFFECTIVE_DATE = 'August 31, 2026';
 export const PRIVACY_EFFECTIVE_DATE = 'August 2, 2026';

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { startCheckout as beginCheckout } from '@/lib/checkout';
 import { TIERS, TIER_ORDER, CREDIT_PACKS, CREDITS_PER_LECTURE, PLAN_FEATURES, planHas } from '@/lib/tiers';
+import { SUPPORT_EMAIL } from '@/lib/legal';
 import { Check, Loader2, ArrowLeft, Zap, Sparkles, AlertCircle } from 'lucide-react';
 
 /**
@@ -43,7 +44,7 @@ export default function Subscription() {
       return;
     } catch (e) {
       console.error('[subscription] checkout failed', e);
-      setError(e?.message || 'Could not start checkout. Please try again, or contact support if it keeps happening.');
+      setError(e?.message || `Could not start checkout. Please try again, or email ${SUPPORT_EMAIL} if it keeps happening.`);
     }
     setBusy('');
   };

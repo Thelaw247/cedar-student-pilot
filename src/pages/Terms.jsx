@@ -5,7 +5,7 @@ import {
   ShieldCheck, Sparkles, Ban, Server, AlertTriangle, Scale, Mail,
 } from 'lucide-react';
 import { TIERS, TIER_ORDER, CREDIT_PACKS, CREDIT_COSTS } from '@/lib/tiers';
-import { TERMS_EFFECTIVE_DATE } from '@/lib/legal';
+import { TERMS_EFFECTIVE_DATE, SUPPORT_EMAIL, SUPPORT_MAILTO } from '@/lib/legal';
 
 // Shown to users, and shared with lib/legal.js so the recorded consent
 // version and the date on this page cannot drift apart.
@@ -254,8 +254,8 @@ export default function Terms() {
 
       <Section icon={Mail} title="Contact">
         <p>
-          Questions about these terms, a billing problem, or something that doesn’t look right? Reach out through the
-          in-app support link and a person will answer.
+          Questions about these terms, a billing problem, or something that doesn’t look right? Email{' '}
+          <a href={SUPPORT_MAILTO} className="text-primary hover:underline">{SUPPORT_EMAIL}</a> and a person will answer.
         </p>
       </Section>
 
