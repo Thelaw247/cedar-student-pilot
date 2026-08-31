@@ -5,9 +5,11 @@ import {
   ShieldCheck, Sparkles, Ban, Server, AlertTriangle, Scale, Mail,
 } from 'lucide-react';
 import { TIERS, TIER_ORDER, CREDIT_PACKS, CREDIT_COSTS } from '@/lib/tiers';
+import { TERMS_EFFECTIVE_DATE } from '@/lib/legal';
 
-// Effective date is shown to users; update when the terms materially change.
-const EFFECTIVE_DATE = 'August 31, 2026';
+// Shown to users, and shared with lib/legal.js so the recorded consent
+// version and the date on this page cannot drift apart.
+const EFFECTIVE_DATE = TERMS_EFFECTIVE_DATE;
 
 // Naming the province is better than the generic fallback used when this is
 // null — it decides which courts hear a dispute and which consumer-protection

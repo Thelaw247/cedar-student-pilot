@@ -1,9 +1,11 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronLeft, Shield, Lock, Database, Trash2, Mail, Server } from 'lucide-react';
+import { PRIVACY_EFFECTIVE_DATE } from '@/lib/legal';
 
-// Effective date is shown to users; update when the policy materially changes.
-const EFFECTIVE_DATE = 'August 2, 2026';
+// Shown to users, and shared with lib/legal.js so the recorded consent
+// version and the date on this page cannot drift apart.
+const EFFECTIVE_DATE = PRIVACY_EFFECTIVE_DATE;
 
 export default function PrivacyPolicy() {
   return (

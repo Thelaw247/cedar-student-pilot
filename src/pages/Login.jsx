@@ -77,6 +77,24 @@ export default function Login() {
             )}
           </div>
 
+          {/* Supabase creates the account on a first OAuth sign-in, so this
+              button is a signup path too. Register.jsx gates the same buttons
+              behind an explicit checkbox; here, where the person believes they
+              already have an account, notice at the point of action is the
+              honest equivalent — a consent box would imply they are signing up
+              when usually they are not. */}
+          <p className="-mt-3 mb-6 text-center text-xs leading-relaxed text-muted-foreground">
+            First time using Apple or Facebook here creates an account and accepts our{" "}
+            <Link to="/terms" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+              Terms of Service
+            </Link>{" "}
+            and{" "}
+            <Link to="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+              Privacy Policy
+            </Link>
+            .
+          </p>
+
           <div className="relative mb-6">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-border" />

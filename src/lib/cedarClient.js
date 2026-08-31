@@ -328,12 +328,23 @@ const auth = {
     if (error) throw error;
     return data;
   },
-  async register({ email, password }) {
+  async register({ email, password, legalVersion }) {
+    // Consent is recorded at the moment the account is created, not inferred
+    // from a signup date against whatever the documents say today. Refusing
+    // without it means no future change to the signup UI can quietly create an
+    // account that agreed to nothing — the client is the second line after the
+    // checkbox, the same way the server is the authority on credits.
+    if (!legalVersion) throw new Error('Terms acceptance is required to create an account');
     const emailRedirectTo = `${window.location.origin}/today`;
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { emailRedirectTo },
+      options: {
+        emailRedirectTo,
+        // Lands in raw_user_meta_data — no schema change, and it travels with
+        // the account rather than living in a table that can drift from it.
+        data: { legal_version: legalVersion, legal_accepted_at: new Date().toISOString() },
+      },
     });
     if (error) throw error;
     return data;

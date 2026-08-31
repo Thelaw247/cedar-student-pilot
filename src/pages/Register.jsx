@@ -1,9 +1,10 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { UserPlus, Mail, Lock, Loader2 } from "lucide-react";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import AuthLayout from "@/components/AuthLayout";
@@ -11,6 +12,7 @@ import AppleIcon from "@/components/AppleIcon";
 import FacebookIcon from "@/components/FacebookIcon";
 import { toast } from "@/components/ui/use-toast";
 import { safeReturnTo } from "@/lib/authReturnTo";
+import { LEGAL_VERSION } from "@/lib/legal";
 
 const USE_SUPABASE = import.meta.env.VITE_BACKEND_MODE === "supabase";
 const APPLE_AUTH_ENABLED = !USE_SUPABASE || import.meta.env.VITE_ENABLE_APPLE_AUTH === "true";
@@ -32,17 +34,38 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
   const [showOtp, setShowOtp] = useState(false);
   const [otpCode, setOtpCode] = useState("");
+  // Unticked by default and never pre-ticked. A pre-checked consent box is not
+  // consent, it is a dark pattern, and in several jurisdictions it is not valid
+  // agreement at all.
+  const [agreed, setAgreed] = useState(false);
+  const [agreeError, setAgreeError] = useState(false);
+  const agreeRef = useRef(null);
+
+  // Every path that can create an account goes through this — the email form
+  // and both social buttons. Supabase's OAuth sign-in creates the account on
+  // first use, so gating only the form would leave the Apple and Facebook
+  // buttons as a way to sign up having agreed to nothing.
+  const requireAgreement = () => {
+    if (agreed) return true;
+    setAgreeError(true);
+    setError("");
+    agreeRef.current?.focus();
+    return false;
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    if (!requireAgreement()) return;
     if (password !== confirmPassword) {
       setError("Passwords do not match");
       return;
     }
     setLoading(true);
     try {
-      await base44.auth.register({ email, password });
+      // The version is recorded against the account, so what they agreed to is
+      // provable later rather than assumed from the signup date.
+      await base44.auth.register({ email, password, legalVersion: LEGAL_VERSION });
       setShowOtp(true);
     } catch (err) {
       setError(registrationErrorMessage(err));
@@ -86,10 +109,12 @@ export default function Register() {
   };
 
   const handleApple = () => {
+    if (!requireAgreement()) return;
     base44.auth.loginWithProvider("apple", safeReturnTo());
   };
 
   const handleFacebook = () => {
+    if (!requireAgreement()) return;
     base44.auth.loginWithProvider("facebook", safeReturnTo());
   };
 
@@ -259,6 +284,42 @@ export default function Register() {
             />
           </div>
         </div>
+        <div className="pt-1">
+          <div className="flex items-start gap-3">
+            <Checkbox
+              id="legal-consent"
+              ref={agreeRef}
+              checked={agreed}
+              onCheckedChange={(value) => {
+                setAgreed(value === true);
+                if (value === true) setAgreeError(false);
+              }}
+              aria-describedby={agreeError ? "legal-consent-error" : undefined}
+              aria-invalid={agreeError || undefined}
+              className={`mt-0.5 ${agreeError ? "border-destructive" : ""}`}
+            />
+            <Label htmlFor="legal-consent" className="text-sm font-normal leading-relaxed text-muted-foreground cursor-pointer">
+              I agree to the{" "}
+              <Link to="/terms" target="_blank" rel="noopener noreferrer" className="text-primary font-medium hover:underline">
+                Terms of Service
+              </Link>{" "}
+              and{" "}
+              <Link to="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary font-medium hover:underline">
+                Privacy Policy
+              </Link>
+              .
+            </Label>
+          </div>
+          {agreeError && (
+            <p id="legal-consent-error" className="mt-2 ml-7 text-sm text-destructive">
+              Please agree to the Terms of Service and Privacy Policy to create an account.
+            </p>
+          )}
+        </div>
+
+        {/* Deliberately NOT disabled while unticked. A dead button with no
+            explanation is the most common accessibility failure on a signup
+            form — the guard runs on submit and says what is missing instead. */}
         <Button type="submit" className="auth-cta w-full h-12 font-medium" disabled={loading}>
           {loading ? (
             <>
