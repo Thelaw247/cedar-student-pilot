@@ -5,15 +5,23 @@
  * every subscription tier must be cheaper per credit than every pack.
  */
 
+// LIVE catalogue, created 31 Aug 2026 and verified against the live account
+// price by price: amount, currency (CAD), interval and metadata all match the
+// test catalogue exactly. Semester prices are interval month x 4 — that is the
+// field most easily got wrong, and getting it wrong charges a student four
+// times a year at the semester rate.
+//
+// The IDs these replace pointed at prices that no longer exist in the live
+// account at all, so live checkout would have thrown rather than mischarged.
 const LIVE_SUBSCRIPTION_PRICES = {
-  student:   { monthly: 'price_1U4ZFbRecX8K7mfKozUiB8wl', semester: 'price_1U5YKeRecX8K7mfKx4tqSr5I' },
-  scholar:   { monthly: 'price_1U4ZFRRecX8K7mfK28s9gC59', semester: 'price_1U4ZFRRecX8K7mfKHwa5C3We' },
-  unlimited: { monthly: 'price_1U4ZFNRecX8K7mfKAbJhIiKA', semester: 'price_1U5YKiRecX8K7mfKGdP4kMkK' },
+  student:   { monthly: 'price_1UAJQzRecX8K7mfKfVIc5Qhl', semester: 'price_1UAJQzRecX8K7mfKCSlrCfKS' },
+  scholar:   { monthly: 'price_1UAJQwRecX8K7mfKlqg6F97E', semester: 'price_1UAJQwRecX8K7mfKqRMvqsty' },
+  unlimited: { monthly: 'price_1UAJQuRecX8K7mfKmXZAWdL8', semester: 'price_1UAJQuRecX8K7mfK7K025rd8' },
 };
 const LIVE_PACK_PRICES = {
-  small:  { priceId: 'price_1U5YKmRecX8K7mfKs8jgOUcs', credits: 100 },
-  medium: { priceId: 'price_1U5YKqRecX8K7mfKnqPJGaMT', credits: 250 },
-  large:  { priceId: 'price_1U5YKuRecX8K7mfKaGgeHZZQ', credits: 500 },
+  small:  { priceId: 'price_1UAJQpRecX8K7mfKTrOsuhRE', credits: 100 },
+  medium: { priceId: 'price_1UAJQpRecX8K7mfK0Ysrg3Ci', credits: 250 },
+  large:  { priceId: 'price_1UAJQpRecX8K7mfKFOWvNkG8', credits: 500 },
 };
 // Aug 2026 price cut ($7.99 / $12.99 / $24.99 monthly). Stripe Prices are
 // immutable, so a price change means NEW price objects and the old ones
