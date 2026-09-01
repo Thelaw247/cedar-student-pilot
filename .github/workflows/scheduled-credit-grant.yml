@@ -1,0 +1,46 @@
+# Runs the monthly credit grant once a day.
+#
+# render.yaml declares a cron service for this, but no cron has ever been
+# provisioned, so grantMonthlyCredits had never executed — every subscription
+# would have stopped delivering credits in its second month. GitHub Actions is
+# free for this and drifts by minutes at most, which a once-a-day sweep does
+# not care about. The route itself is idempotent (per-user period keys and a
+# 20-hour cooldown), so a retry or a duplicate run grants nothing twice.
+#
+# Requires one repository secret: GRANT_TRIGGER_TOKEN, the same value set on
+# the API service in Render. Without it the call returns 401 and this job
+# fails loudly, which is the behaviour we want.
+name: Scheduled credit grant
+
+on:
+  schedule:
+    - cron: "15 6 * * *"   # 06:15 UTC daily; the route skips itself inside 20 h
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  grant:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Trigger the grant sweep
+        env:
+          TOKEN: ${{ secrets.GRANT_TRIGGER_TOKEN }}
+        run: |
+          if [ -z "$TOKEN" ]; then
+            echo "::error::GRANT_TRIGGER_TOKEN secret is not set on this repository"
+            exit 1
+          fi
+          # The API may be asleep on Render's free plan; allow a cold start.
+          code=$(curl -sS -o /tmp/body.json -w '%{http_code}' \
+            --retry 3 --retry-delay 20 --retry-all-errors --max-time 120 \
+            -X POST https://api.praelecta.ca/grant-monthly-credits \
+            -H "x-cedar-trigger-token: $TOKEN" \
+            -H 'Content-Type: application/json' -d '{}')
+          echo "HTTP $code"; cat /tmp/body.json; echo
+          case "$code" in
+            2*) exit 0 ;;
+            409) echo "A sweep is already running; nothing to do." ; exit 0 ;;
+            *) echo "::error::grant-monthly-credits returned HTTP $code"; exit 1 ;;
+          esac
