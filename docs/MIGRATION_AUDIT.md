@@ -337,3 +337,7 @@ Two real lectures on the first day of use failed to process, and the failures we
 | `Gemini 503 … high demand` failed a whole lecture at 16:00 UTC | No retry at all on a provider-side overload. | `invokeLLM` retries a 503/429 on the same model (2 s, 5 s) and then falls through to the next model in the chain for that call only. |
 
 Tests: `server/test/save-errors.test.js`, `llm-resilience.test.js`, `webmDuration.test.js` (gap cases). The schema snapshot (`supabase/schema_snapshot.sql`) predates `recording_parts` and `processing_error`; regenerate it before relying on it for anything but the status constraint.
+
+### Addendum, 20:05 UTC — frontend deploys were not reaching users
+
+The served bundle at praelecta.ca (`index-aaQbwADq.js`) matched none of the last forty GitHub deploys and still called `cedar-api-staging.onrender.com` directly. The Worker's newest version (`ec834828`, from commit a4de280) serves the correct build on its preview URL, so the live route is pinned to an older deployment. The likely reason: when the build moved to `api.praelecta.ca`, `public/_headers` still only allowed the onrender host in `connect-src`, so the new build failed every API call in the browser and was rolled back in the dashboard. Fixed the CSP (both hosts allowed, guard test `csp-api-host.test.js`); promoting the latest version is a dashboard action (Workers & Pages → cedar-student-pilot → Deployments). Until then, nothing shipped to the frontend since the pin — consent gate, landing fixes, "Process later" — is live.
