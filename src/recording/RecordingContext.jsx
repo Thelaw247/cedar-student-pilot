@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
+import { classifySaveError, describeSaveError } from '@/lib/saveErrors';
 import { base44 } from '@/api/base44Client';
 import { saveRecording, getRecording, clearRecording } from '@/lib/recordingStore';
 import { LECTURE_COMPLETE, LECTURE_PENDING } from '@/lib/lectureStatus';
@@ -57,7 +58,10 @@ async function waitForLectureProcessing(lectureId) {
     }
     if (lecture?.status === LECTURE_COMPLETE) return lecture;
     if (lecture?.status === LECTURE_PENDING) {
-      throw new Error("Processing didn't finish. Your recording is saved — tap Save & Process to try again.");
+      // The server writes why it gave the lecture back (see
+      // lectures.processing_error); that sentence is what gets classified,
+      // so a per-hour quota reads as "wait", not as "try again".
+      throw new Error(lecture.processing_error || "Processing didn't finish. Your recording is saved — tap Save & Process to try again.");
     }
   }
   throw new Error('Processing is taking unusually long. Your recording is saved — please try again shortly.');
@@ -85,6 +89,15 @@ export function RecordingProvider({ children }) {
   const [processing, setProcessing] = useState(false);
   const [reviewLectureId, setReviewLectureId] = useState(null);
   const [saveError, setSaveError] = useState('');
+  // The classified failure behind saveError: what kind it is, whether retrying
+  // now is sensible, and the copy the island should show. saveError stays a
+  // string because `active` and older call sites read it as one.
+  const [saveFailure, setSaveFailure] = useState(null);
+  // True while the OS has muted or ended the microphone track under us — a
+  // closed lid, a sleeping laptop, another app taking the input. The clock
+  // must not count these seconds: nothing is being captured.
+  const [micSilent, setMicSilent] = useState(false);
+  const micSilentRef = useRef(false);
   const [pendingLectureId, setPendingLectureId] = useState(null);
   const [liveNotes, setLiveNotes] = useState('');
   const [recordingLimitReached, setRecordingLimitReached] = useState(false);
@@ -104,6 +117,12 @@ export function RecordingProvider({ children }) {
   const secondsRef = useRef(0); // total elapsed seconds across every segment
   const segmentSecondsRef = useRef(0); // elapsed seconds in the current segment only
   const uploadedPartsRef = useRef([]); // r2:// refs already uploaded, in order
+  // Bytes of audio actually captured and uploaded. This, not the wall clock,
+  // is what the duration estimate is built from: a laptop that sleeps with the
+  // tab open keeps the interval ticking long after the microphone has stopped
+  // producing data, and on 1 Sep that produced a 3h14m "duration" for 44
+  // minutes of audio. Bytes cannot lie about that.
+  const capturedBytesRef = useRef(0);
   const rotatingRef = useRef(false); // guards timer + manual stop racing
   const pausedRef = useRef(false);
   const recordingRef = useRef(false);
@@ -283,6 +302,7 @@ export function RecordingProvider({ children }) {
       startSegment(); // never wait on the upload
       const ref = await uploadSegmentWithRetry(blob);
       uploadedPartsRef.current = [...uploadedPartsRef.current, ref];
+      capturedBytesRef.current += blob.size;
       setSavedSegmentCount(uploadedPartsRef.current.length);
       const currentBlob = new Blob(chunksRef.current, { type: 'audio/webm' });
       await saveRecording(clsRef.current?.id, currentBlob, {
@@ -318,6 +338,7 @@ export function RecordingProvider({ children }) {
       if (blob.size > 0) {
         const ref = await uploadSegmentWithRetry(blob);
         uploadedPartsRef.current = [...uploadedPartsRef.current, ref];
+        capturedBytesRef.current += blob.size;
         setSavedSegmentCount(uploadedPartsRef.current.length);
       }
       await saveRecording(clsRef.current?.id, new Blob([], { type: 'audio/webm' }), {
@@ -340,6 +361,7 @@ export function RecordingProvider({ children }) {
     let interval;
     if (recording && !paused) {
       interval = setInterval(() => {
+        if (micSilentRef.current) return;
         setSeconds((s) => {
           const next = s + 1;
           secondsRef.current = next;
@@ -367,7 +389,19 @@ export function RecordingProvider({ children }) {
       clsRef.current = { id: classInfo.id, name: classInfo.name, color: classInfo.color };
       streamRef.current = stream;
       uploadedPartsRef.current = [];
+      capturedBytesRef.current = 0;
       setSavedSegmentCount(0);
+      // The OS can mute or end the track without telling the recorder. Track
+      // it so the clock stops and the island can say so, instead of showing a
+      // confidently wrong timer over a microphone that stopped an hour ago.
+      const track = stream.getAudioTracks?.()[0];
+      if (track) {
+        const silent = (v) => { micSilentRef.current = v; setMicSilent(v); };
+        track.onmute = () => silent(true);
+        track.onunmute = () => silent(false);
+        track.onended = () => silent(true);
+        silent(track.muted || track.readyState === 'ended');
+      }
       setRecoveredBlob(null);
       recoveredBlobRef.current = null;
       setReadyToSave(false);
@@ -421,6 +455,7 @@ export function RecordingProvider({ children }) {
     setPendingLectureId(rec.lectureId || null);
     setSeconds(rec.seconds || 0);
     secondsRef.current = rec.seconds || 0;
+    capturedBytesRef.current = Number(rec.bytes || 0);
     setReadyToSave(true);
   }, []);
 
@@ -429,6 +464,7 @@ export function RecordingProvider({ children }) {
     if (!activeCls) return;
     setProcessing(true);
     setSaveError('');
+    setSaveFailure(null);
     try {
       // Crash recovery: the recovered blob is the one segment that had not
       // finished uploading. Upload it now, appended after the parts that
@@ -438,6 +474,7 @@ export function RecordingProvider({ children }) {
       if (pendingRecovered && pendingRecovered.size > 0) {
         const ref = await uploadSegmentWithRetry(pendingRecovered);
         uploadedPartsRef.current = [...uploadedPartsRef.current, ref];
+        capturedBytesRef.current += pendingRecovered.size;
         setSavedSegmentCount(uploadedPartsRef.current.length);
         recoveredBlobRef.current = null;
         setRecoveredBlob(null);
@@ -446,7 +483,14 @@ export function RecordingProvider({ children }) {
       const parts = uploadedPartsRef.current;
       if (!parts.length) throw new Error('The recording is empty. Please record it again.');
 
-      const durationSeconds = secondsRef.current || 0;
+      // Never send the raw clock. Take the smaller of the clock and the
+      // byte-derived estimate: if capture stopped while the tab ticked, bytes
+      // are right and the clock is not; if opus compressed below its nominal
+      // bitrate, the clock is right and bytes under-count. Under-counting is
+      // the safe direction — the preflight passes and the server re-measures
+      // the real audio and charges on that. Over-counting blocks a legitimate
+      // save with "out of credits" for time that was never recorded.
+      const durationSeconds = estimateDurationSeconds();
 
       // Estimated-cost preflight; the backend independently verifies real
       // media duration before any AI call.
@@ -504,6 +548,7 @@ export function RecordingProvider({ children }) {
         // this lecture and resumes it instead of creating another.
         await saveRecording(activeCls.id, new Blob([], { type: 'audio/webm' }), {
           seconds: durationSeconds,
+          bytes: capturedBytesRef.current,
           timestamp: Date.now(),
           parts,
           lectureId,
@@ -536,28 +581,71 @@ export function RecordingProvider({ children }) {
     } catch (e) {
       // Keep the durable copy, uploaded parts, and pending lecture id so a
       // retry never re-uploads or double-creates.
-      if (e?.response?.status === 402) {
-        openUpgrade({ source: 'out-of-credits' });
-        setSaveError(e?.response?.data?.message || 'You are out of credits. Your recording is saved on this device.');
-      } else {
-        const detail = e?.response?.data?.message || e?.response?.data?.error || e?.message;
-        setSaveError(detail || 'Check your connection and try again.');
-      }
+      const classified = classifySaveError(e);
+      const copy = describeSaveError(classified);
+      if (classified.kind === 'out_of_credits') openUpgrade({ source: 'out-of-credits' });
+      setSaveFailure({ ...classified, ...copy });
+      setSaveError(classified.message || copy.body);
     }
     setProcessing(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingLectureId, liveNotes, openUpgrade]);
+
+  const estimateDurationSeconds = () => {
+    const clock = secondsRef.current || 0;
+    const bytes = capturedBytesRef.current || 0;
+    if (bytes <= 0) return clock;
+    const fromBytes = Math.ceil((bytes * 8) / RECORDING_AUDIO_BITS_PER_SECOND);
+    return clock > 0 ? Math.min(clock, fromBytes) : fromBytes;
+  };
+
+  /**
+   * Leave a lecture that is already safely uploaded to be processed later,
+   * and free the session so another recording can start.
+   *
+   * This is the exit for a rate-limited or out-of-credits save. It is only
+   * offered when the audio is durable server-side — a lecture row exists and
+   * no recovered segment is still waiting to upload — because past that point
+   * the local copy is redundant, and before it the local copy is the only one.
+   *
+   * It deletes NOTHING on the server. The lecture stays 'pending' with its
+   * audio and can be processed from its detail page. Compare discard(), which
+   * deletes the uploaded parts.
+   */
+  const processLater = useCallback(async () => {
+    const activeCls = clsRef.current;
+    const lectureId = pendingLectureIdRef.current;
+    if (!lectureId || recoveredBlobRef.current) return false;
+    if (activeCls) await clearRecording(activeCls.id);
+    uploadedPartsRef.current = [];
+    capturedBytesRef.current = 0;
+    setSavedSegmentCount(0);
+    setReadyToSave(false);
+    setSeconds(0);
+    secondsRef.current = 0;
+    setSaveError('');
+    setSaveFailure(null);
+    setPendingLectureId(null);
+    pendingLectureIdRef.current = null;
+    setLiveNotes('');
+    setCls(null);
+    clsRef.current = null;
+    window.dispatchEvent(new Event('cedar-data-changed'));
+    return true;
+  }, []);
 
   const discard = useCallback(async () => {
     const activeCls = clsRef.current;
     const orphans = [...uploadedPartsRef.current];
     if (activeCls) await clearRecording(activeCls.id);
     uploadedPartsRef.current = [];
+    capturedBytesRef.current = 0;
     setSavedSegmentCount(0);
     setReadyToSave(false);
     setSeconds(0);
     secondsRef.current = 0;
     setSaveError('');
+    setSaveFailure(null);
     setRecoveredBlob(null);
     recoveredBlobRef.current = null;
     setPendingLectureId(null);
@@ -593,6 +681,10 @@ export function RecordingProvider({ children }) {
     processing,
     reviewLectureId,
     saveError,
+    saveFailure,
+    micSilent,
+    // "Process later" is only meaningful once the audio is durable server-side.
+    canProcessLater: !!pendingLectureId && !recoveredBlob,
     liveNotes,
     recordingLimitReached,
     recoveredBlob,
@@ -601,6 +693,7 @@ export function RecordingProvider({ children }) {
     stop,
     saveAndProcess,
     discard,
+    processLater,
     dismissReview,
     recoverSession,
     setLiveNotes,

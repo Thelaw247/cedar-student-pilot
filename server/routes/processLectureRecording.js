@@ -1,6 +1,7 @@
 import express from 'express';
 import { parseBlob } from 'music-metadata';
-import { readWebmDurationSeconds } from '../lib/webmDuration.js';
+import { readWebmDurationSeconds, closeWebmTimestampGaps } from '../lib/webmDuration.js';
+import { usableFlashcards } from '../lib/flashcards.js';
 import { pool } from '../lib/db.js';
 import { requireAuth } from '../middleware/requireAuth.js';
 import { invokeLLM, createLlmUsage, QUALITY_MODEL } from '../lib/llm.js';
@@ -79,6 +80,16 @@ async function fetchVerifiedAudio(rawUrl, userId) {
   const buffer = Buffer.from(arrayBuffer);
   if (!buffer.length) throw new RequestError('The stored recording is empty', 422);
   if (buffer.length > MAX_AUDIO_BYTES) throw new RequestError('Recordings must be 24 MB or smaller', 413);
+
+  // A recording made across a laptop sleep or a muted microphone carries the
+  // whole elapsed time in its cluster timestamps, not just the audio. Close
+  // those holes before measuring or transcribing: the duration is what the
+  // student is billed for, and the transcription provider counts decoded
+  // seconds against its hourly quota (see closeWebmTimestampGaps).
+  const gaps = closeWebmTimestampGaps(buffer);
+  if (gaps.gaps > 0) {
+    console.log(`[recording] closed ${gaps.gaps} timeline hole(s) totalling ${Math.round(gaps.removedMs / 1000)}s in ${audioUrl}`);
+  }
 
   let durationSeconds = 0;
   try {
@@ -296,10 +307,13 @@ ${definitions || '(none)'}
 
 Formulas:
 ${formulas || '(none)'}`,
-    response_json_schema: { type: 'object', properties: { flashcards: { type: 'array', items: { type: 'object', properties: { front: { type: 'string' }, back: { type: 'string' } } } } } },
+    response_json_schema: { type: 'object', properties: { flashcards: { type: 'array', items: { type: 'object', properties: { front: { type: 'string' }, back: { type: 'string' } }, required: ['front', 'back'] } } }, required: ['flashcards'] },
   });
 
-  const cards = result?.flashcards || [];
+  // The model has returned cards with no back (1 Sep, twice in a row). The
+  // column is NOT NULL, so one such card used to abort the whole batch and the
+  // student got no flashcards at all. Keep the complete ones.
+  const cards = usableFlashcards(result?.flashcards);
   if (cards.length === 0) return;
   for (const fc of cards) {
     await pool.query('insert into flashcards (user_id, lecture_id, class_id, front, back, ai_generated) values ($1,$2,$3,$4,$5,true)',
@@ -334,7 +348,7 @@ const PROCESSING_STALE_MINUTES = 15;
 
 async function claimLecture(lectureId, userId) {
   const claimed = await pool.query(
-    `update lectures set status = 'processing'
+    `update lectures set status = 'processing', processing_error = null
       where id = $1 and user_id = $2
         and (status <> 'processing'
              or updated_at = created_at
@@ -345,18 +359,38 @@ async function claimLecture(lectureId, userId) {
   return claimed.rows.length > 0;
 }
 
-async function releaseLecture(lectureId, userId) {
+async function releaseLecture(lectureId, userId, reason = '') {
   // Hand the lecture back as 'pending' so the UI stops saying it is being
   // worked on and the user can try again. Any transcript already stored is
   // kept, so a retry resumes rather than paying for transcription twice.
+  // The reason is what the island and the lecture page show; without it a
+  // per-hour quota looks like a bug to hammer.
   try {
     await pool.query(
-      "update lectures set status = 'pending' where id = $1 and user_id = $2 and status = 'processing'",
-      [lectureId, userId],
+      "update lectures set status = 'pending', processing_error = $3 where id = $1 and user_id = $2 and status = 'processing'",
+      [lectureId, userId, reason ? String(reason).slice(0, 500) : null],
     );
   } catch (cleanupError) {
     console.error('[recording] could not release the lecture:', cleanupError.message);
   }
+}
+
+/**
+ * Turn a provider error into the sentence the student sees. The wording is
+ * load-bearing: shared/saveErrors.js classifies on it ("rate limit" → wait,
+ * "24 MB" / "six hours" → will never work), so keep those phrases.
+ */
+export function describeProcessingFailure(error) {
+  const text = String(error?.message || error || '');
+  if (/per hour|ASPH|rate limit|too many requests/i.test(text)) {
+    return 'Transcription rate limit reached for this hour. The recording is safe — try again in about an hour.';
+  }
+  if (/24 MB|six hours/i.test(text)) return text.slice(0, 300);
+  if (/Gemini 5\d\d|high demand|UNAVAILABLE|overloaded/i.test(text)) {
+    return 'The AI service was overloaded. The recording is safe — try again in a few minutes.';
+  }
+  if (/insufficient credits/i.test(text)) return 'Not enough credits to process this recording.';
+  return text.slice(0, 300) || 'Processing failed.';
 }
 
 // The heavy work, run outside any HTTP request. Ownership, replay checks, and
@@ -518,7 +552,7 @@ router.post('/', requireAuth, async (req, res) => {
     runProcessingPipeline({ userId, lectureId: lecture_id, existing, cls, balance, alreadyCharged, operationId })
       .catch(async (error) => {
         console.error('[recording] processing failed:', error?.message || error);
-        await releaseLecture(lecture_id, userId);
+        await releaseLecture(lecture_id, userId, describeProcessingFailure(error));
       });
 
     return res.status(202).json({ status: 'processing', lecture_id });

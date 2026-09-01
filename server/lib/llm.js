@@ -164,21 +164,43 @@ export async function invokeLLM(opts) {
   let lastError;
   for (let i = 0; i < chain.length; i++) {
     const candidate = chain[i];
-    try {
-      const result = await callGemini(prompt, response_json_schema, candidate, key);
-      addUsage(usage, result.usage);
-      return result.value;
-    } catch (e) {
-      if (e.providerUsage) addUsage(usage, e.providerUsage);
-      lastError = e;
-      // Only a retirement is worth retrying on another model. A blocked
-      // prompt, malformed JSON, a timeout or a rate limit would fail the same
-      // way on every model in the chain, and retrying would just spend money
-      // and time to arrive at the same error.
-      const retired = isRetiredModel(e.providerStatus, e.providerDetail || '');
-      if (!retired || i === chain.length - 1) throw e;
-      console.warn(`[llm] ${candidate} is retired; falling back to ${chain[i + 1]}. Update GEMINI_CHEAP_MODELS / GEMINI_QUALITY_MODELS.`);
+    for (let attempt = 0; ; attempt++) {
+      try {
+        const result = await callGemini(prompt, response_json_schema, candidate, key);
+        addUsage(usage, result.usage);
+        return result.value;
+      } catch (e) {
+        if (e.providerUsage) addUsage(usage, e.providerUsage);
+        lastError = e;
+        // "High demand" (503) and a burst limit (429) are the provider's
+        // problem, not the prompt's: the same call succeeds seconds later.
+        // Without this, one overloaded minute failed a whole lecture and the
+        // student had to notice and press retry (1 Sep, 16:00 UTC).
+        if (isOverloaded(e.providerStatus) && attempt < OVERLOAD_RETRIES.length) {
+          console.warn(`[llm] ${candidate} overloaded (${e.providerStatus}); retrying in ${OVERLOAD_RETRIES[attempt]}ms`);
+          await sleep(OVERLOAD_RETRIES[attempt]);
+          continue;
+        }
+        break;
+      }
     }
+    // A retirement, or a model that stayed overloaded through every retry,
+    // is worth trying on the next model in the chain. A blocked prompt,
+    // malformed JSON or a timeout would fail the same way on every model, and
+    // retrying would just spend money and time to arrive at the same error.
+    const retired = isRetiredModel(lastError.providerStatus, lastError.providerDetail || '');
+    const overloaded = isOverloaded(lastError.providerStatus);
+    if ((!retired && !overloaded) || i === chain.length - 1) throw lastError;
+    if (retired) console.warn(`[llm] ${candidate} is retired; falling back to ${chain[i + 1]}. Update GEMINI_CHEAP_MODELS / GEMINI_QUALITY_MODELS.`);
+    else console.warn(`[llm] ${candidate} still overloaded; falling back to ${chain[i + 1]} for this call.`);
   }
   throw lastError;
 }
+
+// Backoff for a provider-side overload, per model. Three quick tries cover a
+// demand spike measured in seconds; anything longer moves on to the next model.
+export const OVERLOAD_RETRIES = [2000, 5000];
+export function isOverloaded(status) {
+  return status === 503 || status === 429;
+}
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));

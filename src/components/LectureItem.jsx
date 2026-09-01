@@ -52,6 +52,9 @@ export default function LectureItem({ lecture, defaultInstructor, onUpdate, deca
             <Calendar className="w-3 h-3" /> {lecture.date}
             {lecture.duration_seconds > 0 && <span>• {Math.floor(lecture.duration_seconds / 60)} min</span>}
             {lecture.status === 'processing' && <span className="text-amber-600">• Processing...</span>}
+            {lecture.status === 'pending' && lecture.recording_url && !lecture.ai_title && (
+              <span className="text-amber-600">• Not processed yet — open to process</span>
+            )}
             {lecture.is_ai_estimated && <span className="text-amber-600">• AI Estimated</span>}
           </div>
           {decayState && (

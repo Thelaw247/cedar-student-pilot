@@ -14,6 +14,7 @@ import { useUpgrade } from '@/components/monetization/UpgradeContext';
 import { useFeatureGate } from '@/components/monetization/useFeatureGate';
 import { Lock } from 'lucide-react';
 import { LECTURE_COMPLETE } from '@/lib/lectureStatus';
+import { classifySaveError, describeSaveError } from '@/lib/saveErrors';
 
 export default function LectureDetail() {
   const { lectureId } = useParams();
@@ -265,7 +266,10 @@ export default function LectureDetail() {
       setLecture(fresh);
     } catch (e) {
       console.error(e);
-      alert(e?.response?.data?.error || e?.message || 'Could not start processing. Please try again.');
+      // Same classification as the recording island, so a provider rate
+      // limit reads as "wait", not as a bug to hammer.
+      const copy = describeSaveError(classifySaveError(e));
+      alert(`${copy.title}\n\n${copy.body}`);
     }
     setRetrying(false);
   };
@@ -397,7 +401,11 @@ export default function LectureDetail() {
             <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
             <div className="flex-1">
               <p className="text-sm font-medium text-amber-700 dark:text-amber-500">This recording hasn't been processed yet</p>
-              <p className="text-xs text-muted-foreground mt-1">The audio is safely stored. Start processing to get the transcript, summary, and flashcards.</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {lecture.processing_error
+                  ? `Last attempt: ${lecture.processing_error}`
+                  : 'The audio is safely stored. Start processing to get the transcript, summary, and flashcards.'}
+              </p>
               <button onClick={retryProcessing} disabled={retrying}
                 className="mt-3 inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 disabled:opacity-50">
                 {retrying ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Starting…</> : <><Sparkles className="w-3.5 h-3.5" /> Process recording</>}

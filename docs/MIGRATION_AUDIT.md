@@ -321,3 +321,19 @@ users per event) for the owner dashboard.
 
 Phase D remaining: RevenueCat + Apple IAP — a decision + accounts, blocking
 only the iOS App Store build (web launch proceeds without it).
+
+## Recording failures — Sep 1, 2026 (first real lectures)
+
+Two real lectures on the first day of use failed to process, and the failures were more instructive than any staging test. What happened, in order, and what changed:
+
+| Symptom | Actual cause | Fix |
+|---|---|---|
+| "Couldn't save the recording — Failed to fetch" on a 90-minute lecture | R2 bucket CORS only allowed the Worker origin, so the browser's direct PUT to the presigned URL was blocked. Render request logs are not captured on this service, so "no requests in the logs" was never evidence of anything. | Bucket CORS updated by hand to include `https://praelecta.ca`. |
+| A 44-minute lecture saved as 3 h 14 min and rejected by Groq three times with "seconds of audio per hour (ASPH): Limit 7200" | The laptop slept mid-lecture. MediaRecorder stamps clusters from the wall clock, so the stored WebM *decoded* as 11,644 s with a hole in it; the server measured that honestly and billed on it, and Groq counted the decoded seconds against its hourly quota, so the file could never go through on the on-demand tier. "Try again" then spent more of that quota. | `closeWebmTimestampGaps` (server/lib/webmDuration.js) closes holes > 2 s in place before measuring or transcribing. Client clock now pauses while the mic track is muted/ended and the saved duration is bounded by bytes actually captured. |
+| The only exit was "Try again", which blocked the next lecture | The island had one failure state and no way to free the session while keeping the upload. | `shared/saveErrors.js` classifies the failure (rate limit / credits / too large / network / unknown). Rate limit and credits lead with **Process later**, which frees the session and deletes nothing; the lecture stays `pending` with its audio and is marked "Not processed yet" in lists, with the retry on its detail page. |
+| Background failures all read "Processing didn't finish" | The pipeline runs after a 202 and only `status` was polled; the reason never left the server log. | New `lectures.processing_error` column (migration `20260901200000`, applied live). `releaseLecture` writes a student-readable reason, `claimLecture` clears it, the island classifies on it and the lecture page shows "Last attempt: …". |
+| Discard deleted a 90-minute recording with no confirmation | — | Two-step confirmation naming the duration and what will be deleted. |
+| `flashcard generation failed: null value in column "back"` on both complete lectures | Gemini returned a card without a back; the schema did not mark the fields required and one bad card aborted the batch. | `required: ['front','back']` in both flashcard schemas; `usableFlashcards` drops incomplete cards instead of failing the batch. |
+| `Gemini 503 … high demand` failed a whole lecture at 16:00 UTC | No retry at all on a provider-side overload. | `invokeLLM` retries a 503/429 on the same model (2 s, 5 s) and then falls through to the next model in the chain for that call only. |
+
+Tests: `server/test/save-errors.test.js`, `llm-resilience.test.js`, `webmDuration.test.js` (gap cases). The schema snapshot (`supabase/schema_snapshot.sql`) predates `recording_parts` and `processing_error`; regenerate it before relying on it for anything but the status constraint.

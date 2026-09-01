@@ -19,6 +19,7 @@ import { formatClock } from '@/lib/time';
 export default function RecordingIsland() {
   const rec = useRecording();
   const [open, setOpen] = useState(false);
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
 
   if (!rec.active) return null;
 
@@ -68,15 +69,23 @@ export default function RecordingIsland() {
 
   // --- Stopped: ready to save (also the crash-recovery + error surface) ---
   if (rec.readyToSave) {
+    const failure = rec.saveFailure;
+    // A failure that will not clear by retrying now (provider rate limit,
+    // credits, size cap) leads with "Process later" when the audio is already
+    // durable server-side; "Try again" stays available but stops being the
+    // default so a student is not steered into burning the quota twice.
+    const retryIsSensible = !failure || failure.retryNow;
+    const primaryClass = 'flex-[2] py-2.5 rounded-xl bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-colors';
+    const secondaryClass = 'flex-1 py-2.5 rounded-xl border border-white/20 text-xs font-medium text-white/70 hover:bg-white/10 transition-colors';
     return (
       <div className={shell} style={surface}>
         <div className="px-4 py-3.5">
-          {rec.saveError ? (
+          {failure ? (
             <div className="flex items-start gap-2.5 mb-3">
               <AlertTriangle className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
               <div className="min-w-0">
-                <p className="text-sm font-semibold">Couldn't save the recording</p>
-                <p className="text-[11px] text-white/60 mt-0.5">Your audio is safe on this device — nothing was lost. {rec.saveError}</p>
+                <p className="text-sm font-semibold">{failure.title}</p>
+                <p className="text-[11px] text-white/60 mt-0.5">{failure.body}</p>
               </div>
             </div>
           ) : (
@@ -96,16 +105,39 @@ export default function RecordingIsland() {
           {rec.recordingLimitReached && (
             <p className="text-[11px] text-amber-400/90 mb-3">The 6-hour limit was reached. Save this recording, then start a new one if class is continuing.</p>
           )}
-          <div className="flex gap-2">
-            <button onClick={rec.discard}
-              className="flex-1 py-2.5 rounded-xl border border-white/20 text-xs font-medium text-white/70 hover:bg-white/10 transition-colors">
-              Discard
-            </button>
-            <button onClick={rec.saveAndProcess}
-              className="flex-[2] py-2.5 rounded-xl bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-colors">
-              {rec.saveError ? 'Try again' : 'Save & Process'}
-            </button>
-          </div>
+          {confirmDiscard ? (
+            <div>
+              <p className="text-[11px] text-white/70 mb-2">
+                Delete this {formatClock(rec.seconds)} recording? It will be removed from this device
+                {rec.savedSegmentCount > 0 ? ' and from your uploads' : ''}. This can't be undone.
+              </p>
+              <div className="flex gap-2">
+                <button type="button" onClick={() => setConfirmDiscard(false)} className={secondaryClass}>
+                  Keep it
+                </button>
+                <button type="button" onClick={() => { setConfirmDiscard(false); rec.discard(); }}
+                  className="flex-[2] py-2.5 rounded-xl bg-red-500/80 text-white text-xs font-semibold hover:bg-red-500 transition-colors">
+                  Delete recording
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setConfirmDiscard(true)} className={secondaryClass}>
+                Discard
+              </button>
+              {failure && rec.canProcessLater && (
+                <button type="button" onClick={rec.processLater}
+                  className={retryIsSensible ? secondaryClass : primaryClass}>
+                  Process later
+                </button>
+              )}
+              <button type="button" onClick={rec.saveAndProcess}
+                className={retryIsSensible || !rec.canProcessLater ? primaryClass : secondaryClass}>
+                {failure ? 'Try again' : 'Save & Process'}
+              </button>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -122,7 +154,9 @@ export default function RecordingIsland() {
       >
         {rec.paused
           ? <Pause className="w-3.5 h-3.5 text-white/60 flex-shrink-0" fill="currentColor" />
-          : <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse flex-shrink-0" />}
+          : rec.micSilent
+            ? <AlertTriangle className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" aria-label="Microphone is silent" />
+            : <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse flex-shrink-0" />}
         <span className="text-sm font-bold tabular-nums flex-shrink-0">{formatClock(rec.seconds)}</span>
         <span className="text-xs text-white/60 truncate flex-1 min-w-0">{rec.cls?.name}</span>
         <span
@@ -152,6 +186,11 @@ export default function RecordingIsland() {
           <div className="px-4 pb-4">
             {rec.savedSegmentCount > 0 && (
               <p className="text-[11px] text-white/50 mb-2">{rec.savedSegmentCount} segment{rec.savedSegmentCount === 1 ? '' : 's'} saved · crash-safe on this device</p>
+            )}
+            {rec.micSilent && (
+              <p className="text-[11px] text-amber-400/90 mb-2 flex items-center gap-1.5">
+                <AlertTriangle className="w-3 h-3 flex-shrink-0" /> The microphone stopped sending audio — the timer is paused until it comes back.
+              </p>
             )}
             <label className="text-[11px] font-medium text-white/60 flex items-center gap-1.5 mb-1.5">
               <Pencil className="w-3 h-3" /> Your notes & cues

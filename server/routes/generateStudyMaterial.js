@@ -3,6 +3,7 @@ import { pool } from '../lib/db.js';
 import { requireAuth } from '../middleware/requireAuth.js';
 import { invokeLLM, createLlmUsage } from '../lib/llm.js';
 import { gateFeature, settleFeature } from '../lib/credits.js';
+import { usableFlashcards } from '../lib/flashcards.js';
 
 // Direct port of base44/functions/generateStudyMaterial/entry.ts.
 
@@ -55,7 +56,7 @@ Return the appropriate JSON structure.`,
       response_json_schema: {
         type: 'object',
         properties: {
-          flashcards: { type: 'array', items: { type: 'object', properties: { front: { type: 'string' }, back: { type: 'string' } } } },
+          flashcards: { type: 'array', items: { type: 'object', properties: { front: { type: 'string' }, back: { type: 'string' } }, required: ['front', 'back'] } },
           questions: { type: 'array', items: { type: 'object', properties: { question: { type: 'string' }, answer: { type: 'string' }, options: { type: 'array', items: { type: 'string' } }, type: { type: 'string' } } } },
           summary: { type: 'string' },
         },
@@ -65,7 +66,9 @@ Return the appropriate JSON structure.`,
     const scopedLectureId = lectures.length === 1 ? lectures[0].id : null;
 
     if (material_type === 'flashcards' && material.flashcards) {
-      for (const fc of material.flashcards) {
+      // Same guard as the recording pipeline: a card with no back is dropped
+      // rather than aborting the batch on the NOT NULL column.
+      for (const fc of usableFlashcards(material.flashcards)) {
         await pool.query(
           'insert into flashcards (user_id, lecture_id, class_id, front, back, ai_generated) values ($1, $2, $3, $4, $5, true)',
           [userId, scopedLectureId, class_id, fc.front, fc.back]);

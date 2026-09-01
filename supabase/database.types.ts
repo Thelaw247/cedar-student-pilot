@@ -505,6 +505,7 @@ export type Database = {
           instructor_confirmed: boolean
           is_ai_estimated: boolean
           is_missed: boolean
+          processing_error: string | null
           recording_parts: Json | null
           recording_url: string | null
           status: string
@@ -532,6 +533,7 @@ export type Database = {
           instructor_confirmed?: boolean
           is_ai_estimated?: boolean
           is_missed?: boolean
+          processing_error?: string | null
           recording_parts?: Json | null
           recording_url?: string | null
           status?: string
@@ -559,6 +561,7 @@ export type Database = {
           instructor_confirmed?: boolean
           is_ai_estimated?: boolean
           is_missed?: boolean
+          processing_error?: string | null
           recording_parts?: Json | null
           recording_url?: string | null
           status?: string

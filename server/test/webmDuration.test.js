@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { readWebmDurationSeconds } from '../lib/webmDuration.js';
+import { readWebmDurationSeconds, closeWebmTimestampGaps } from '../lib/webmDuration.js';
 
 /** Encode an element size as an 8-byte VINT (or the unknown-size marker). */
 function size(value, unknown = false) {
@@ -85,4 +85,36 @@ test('ignores block groups from other tracks but counts their timing', () => {
   ]));
   const buffer = webm([withGroup]);
   assert.equal(Math.round(readWebmDurationSeconds(buffer) * 1000), 2_770);
+});
+
+test('closes a sleep-sized hole between clusters, and only that hole', () => {
+  // 3 s of audio, a 50-minute hole (laptop lid closed), then 1 s more.
+  const buffer = webm([cluster(0, [0, 1000, 2980]), cluster(3_000_000, [0, 980])]);
+  assert.equal(Math.round(readWebmDurationSeconds(buffer)), 3001);
+  const result = closeWebmTimestampGaps(buffer);
+  assert.equal(result.gaps, 1);
+  assert.equal(Math.round(result.removedMs / 1000), 2997);
+  assert.equal(Math.round(readWebmDurationSeconds(buffer) * 1000), 4000);
+});
+
+test('leaves a continuous recording exactly as it was', () => {
+  const buffer = webm([cluster(0, [0, 20, 40]), cluster(60, [0, 20]), cluster(100, [0, 500, 980])]);
+  const before = Buffer.from(buffer);
+  const result = closeWebmTimestampGaps(buffer);
+  assert.deepEqual(result, { removedMs: 0, gaps: 0 });
+  assert.ok(buffer.equals(before));
+});
+
+test('accumulates several holes and rewrites in place without moving bytes', () => {
+  const buffer = webm([cluster(0, [0, 980]), cluster(600_000, [0, 980]), cluster(1_200_000, [0, 980], true)]);
+  const length = buffer.length;
+  const result = closeWebmTimestampGaps(buffer);
+  assert.equal(result.gaps, 2);
+  assert.equal(buffer.length, length);
+  assert.equal(Math.round(readWebmDurationSeconds(buffer) * 1000), 3000);
+});
+
+test('does not touch a finished file that declares its duration', () => {
+  const buffer = webm([cluster(0, [0]), cluster(900_000, [0])], { declaredDuration: 900_000 });
+  assert.deepEqual(closeWebmTimestampGaps(buffer), { removedMs: 0, gaps: 0 });
 });
