@@ -7,7 +7,7 @@
  * adding screens are narrow and all statically detectable:
  *
  *   - a relative path that does not exist (the extensionless .js/.jsx guess)
- *   - a package imported but never installed in mobile/
+ *   - a package imported but never declared in mobile/package.json
  *   - mobile code reaching into src/, the web app, which Metro cannot bundle
  *   - shared/ reaching back into the web app the same way
  *
@@ -19,7 +19,22 @@ import { fileURLToPath } from 'node:url';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const mobileRoot = path.join(repoRoot, 'mobile');
-const mobileModules = path.join(mobileRoot, 'node_modules');
+
+/**
+ * Dependencies are checked against mobile/package.json, NOT against an
+ * installed node_modules tree. CI does not install the mobile package — it has
+ * no reason to, since it neither builds nor tests it — so an installed-tree
+ * check passes locally and fails in CI for a reason that has nothing to do with
+ * the code. Declared-but-uninstalled is a developer's `npm install` problem;
+ * imported-but-undeclared is the bug worth catching, and it is visible from the
+ * manifest alone.
+ */
+const manifest = JSON.parse(fs.readFileSync(path.join(mobileRoot, 'package.json'), 'utf8'));
+const declared = new Set([
+  ...Object.keys(manifest.dependencies ?? {}),
+  ...Object.keys(manifest.devDependencies ?? {}),
+  ...Object.keys(manifest.peerDependencies ?? {}),
+]);
 
 const EXTS = ['', '.js', '.jsx', '.json', '/index.js', '/index.jsx'];
 const walk = (dir) => fs.existsSync(dir)
@@ -71,8 +86,8 @@ for (const file of files) {
     // node_modules Metro is configured to look in.
     if (!isMobile && !rel.startsWith('shared')) continue;
     const pkg = spec.startsWith('@') ? spec.split('/').slice(0, 2).join('/') : spec.split('/')[0];
-    if (!fs.existsSync(path.join(mobileModules, pkg))) {
-      problems.push(`${rel}: imports '${pkg}', which is not installed in mobile/node_modules`);
+    if (!declared.has(pkg)) {
+      problems.push(`${rel}: imports '${pkg}', which is not a dependency in mobile/package.json`);
     }
   }
 }
