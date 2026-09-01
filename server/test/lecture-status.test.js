@@ -25,7 +25,7 @@ function schemaStatuses() {
 }
 
 test('the client status constants match the database CHECK constraint', () => {
-  const client = read('src/lib/lectureStatus.js');
+  const client = read('shared/lectureStatus.js');
   const declared = [...client.matchAll(/^export const LECTURE_[A-Z]+ = '([a-z]+)';$/gm)].map((m) => m[1]).sort();
   assert.deepEqual(declared, schemaStatuses());
 });
@@ -47,7 +47,7 @@ test('the recording client compares status against the shared constants, not str
   for (const token of compared) {
     assert.ok(
       token.startsWith('LECTURE_'),
-      `poll compares status against ${token}; use a constant from src/lib/lectureStatus.js`,
+      `poll compares status against ${token}; use a constant from shared/lectureStatus.js`,
     );
   }
 });

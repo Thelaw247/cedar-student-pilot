@@ -1,0 +1,38 @@
+{
+  "expo": {
+    "name": "Praelecta",
+    "slug": "praelecta",
+    "scheme": "praelecta",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "ios": {
+      "bundleIdentifier": "ca.praelecta.app",
+      "supportsTablet": true,
+      "config": {
+        "usesNonExemptEncryption": false
+      },
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "Praelecta records your lecture so it can produce a transcript, summary and flashcards for you. Recording only starts when you press record, and your recordings stay private to your account.",
+        "UIBackgroundModes": [
+          "audio"
+        ]
+      }
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-asset"
+    ],
+    "experiments": {
+      "typedRoutes": false
+    },
+    "extra": {
+      "apiUrl": "https://api.praelecta.ca",
+      "appOrigin": "https://praelecta.ca",
+      "supabaseUrl": "https://dyowooyijuxghwnwuxcr.supabase.co",
+      "supabaseAnonKey": "sb_publishable_2qFt5_TwLp050KYgwTa4lw_CuVQTLhD"
+    }
+  }
+}

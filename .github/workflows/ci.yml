@@ -31,6 +31,12 @@ jobs:
         run: npm run typecheck -- --pretty false
       - name: Audit frontend dependencies
         run: npm audit --audit-level=high
+      # Resolves every import in mobile/ and shared/. A full `expo export` is
+      # the real proof but needs more memory than this runner has; these are the
+      # failures that actually happen when adding screens, and they are all
+      # statically detectable.
+      - name: Check mobile imports resolve
+        run: node scripts/check-mobile-imports.mjs
       - name: Check frontend/API route contract
         run: npm run check:api-contract
       - name: Build frontend (Base44 mode)

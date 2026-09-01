@@ -20,7 +20,8 @@ const read = (p) => fs.readFileSync(new URL(`../../src/${p}`, import.meta.url), 
 const REGISTER = read('pages/Register.jsx');
 const LOGIN = read('pages/Login.jsx');
 const CLIENT = read('lib/cedarClient.js');
-const LEGAL = read('lib/legal.js');
+// legal.js lives in shared/ now — it is used by both the web app and iOS.
+const LEGAL = fs.readFileSync(new URL('../../shared/legal.js', import.meta.url), 'utf8');
 
 test('the consent box starts unticked — a pre-checked box is not consent', () => {
   assert.match(REGISTER, /useState\(false\)/, 'no false-initialised state found');

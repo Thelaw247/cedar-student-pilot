@@ -4,7 +4,7 @@ import {
   COST_PER_30MIN_CLEAN, COST_PER_30MIN_PROCESS, FEATURE_COSTS,
 } from '../lib/credits.js';
 
-// src/lib/tiers.js shows the student what an action will cost; server/lib/
+// shared/tiers.js shows the student what an action will cost; server/lib/
 // credits.js decides what they are actually charged. They are two hand-kept
 // copies of one price list. When cleanup was repriced after the Gemini rate
 // change the server moved and the client did not, which would have quoted 3
@@ -12,7 +12,7 @@ import {
 
 async function clientTable() {
   const { readFile } = await import('node:fs/promises');
-  const src = await readFile(new URL('../../src/lib/tiers.js', import.meta.url), 'utf8');
+  const src = await readFile(new URL('../../shared/tiers.js', import.meta.url), 'utf8');
   const per30 = src.match(/perThirtyMinutes:\s*\{([^}]*)\}/);
   assert.ok(per30, 'tiers.js must declare perThirtyMinutes');
   const costs = src.match(/export const CREDIT_COSTS[\s\S]*?\n\};/);

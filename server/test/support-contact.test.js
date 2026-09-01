@@ -17,7 +17,9 @@ import path from 'node:path';
 
 const SRC = new URL('../../src/', import.meta.url);
 const read = (p) => fs.readFileSync(new URL(p, SRC), 'utf8');
-const LEGAL = read('lib/legal.js');
+// legal.js lives in shared/ now, so the iOS app uses the same address.
+// src/lib/legal.js re-exports it and every web import is unchanged.
+const LEGAL = fs.readFileSync(new URL('../../shared/legal.js', import.meta.url), 'utf8');
 
 const walk = (dir) => fs.readdirSync(new URL(dir, SRC), { withFileTypes: true }).flatMap((e) =>
   e.isDirectory() ? walk(`${dir}${e.name}/`) : (e.name.endsWith('.jsx') || e.name.endsWith('.js') ? [`${dir}${e.name}`] : []));
@@ -32,7 +34,7 @@ const strip = (src) => src
   .replace(/^\s*\/\/.*$/gm, '');
 const FILES = walk('').map((p) => [p, strip(read(p))]);
 
-test('the support address is declared once, in lib/legal', () => {
+test('the support address is declared once, in shared/legal', () => {
   assert.match(LEGAL, /export const SUPPORT_EMAIL = '[^']+@[^']+'/);
   assert.match(LEGAL, /export const SUPPORT_MAILTO =/);
 });
@@ -40,7 +42,7 @@ test('the support address is declared once, in lib/legal', () => {
 test('nothing hardcodes the address instead of importing it', () => {
   const email = LEGAL.match(/export const SUPPORT_EMAIL = '([^']+)'/)[1];
   for (const [p, src] of FILES) {
-    if (p === 'lib/legal.js') continue;
+    if (p === 'lib/legal.js') continue; // the re-export stub, not a hardcode
     assert.ok(!src.includes(email), `${p} hardcodes the support address; it will drift when the address changes`);
   }
 });
