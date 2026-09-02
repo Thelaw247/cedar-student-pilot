@@ -60,18 +60,26 @@ Return JSON: { "results": [ { "correct": boolean, "feedback": string }, ... ] } 
       if (scope === 'today') {
         targetLectures = (await pool.query('select * from lectures where date = $1 and user_id = $2 order by date', [today, userId])).rows;
       } else if (scope === 'week') {
-        // Seven days back from the student's local today, kept in the same local
-        // frame so the window lines up with how the dates were stored.
-        const weekAgo = new Date(`${today}T00:00:00Z`); weekAgo.setUTCDate(weekAgo.getUTCDate() - 7);
-        const weekAgoStr = weekAgo.toISOString().split('T')[0];
-        const allLecs = (await pool.query('select * from lectures where user_id = $1 order by date desc limit 50', [userId])).rows;
-        targetLectures = allLecs.filter((l) => l.date >= weekAgoStr && l.date <= today);
+        // Seven days back from the student's local today, and the range check
+        // is done by Postgres on the DATE column itself rather than by comparing
+        // rows in JS, so there is no representation mismatch to get wrong.
+        targetLectures = (await pool.query(
+          "select * from lectures where user_id = $1 and date between ($2::date - interval '7 days') and $2::date order by date desc limit 50",
+          [userId, today],
+        )).rows;
       }
     }
 
     const lecturesWithContent = targetLectures.filter((l) => l.transcript || l.ai_summary || (l.ai_concepts || []).length > 0);
     if (lecturesWithContent.length === 0) {
-      return res.json({ review_questions: [], lecture_flow: [], message: 'No lecture content available for review yet.' });
+      // Say which of the two things happened: nothing in the window, or
+      // lectures in the window that have not finished processing yet.
+      const unprocessed = targetLectures.length;
+      const windowLabel = scope === 'today' ? 'today' : scope === 'week' ? 'in the past week' : 'for this selection';
+      const message = unprocessed > 0
+        ? `${unprocessed} lecture${unprocessed === 1 ? '' : 's'} ${windowLabel} ${unprocessed === 1 ? 'is' : 'are'} still processing. Check back in a few minutes.`
+        : `No lectures recorded ${windowLabel} yet.`;
+      return res.json({ review_questions: [], lecture_flow: [], message });
     }
 
     const sorted = lecturesWithContent.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
