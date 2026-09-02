@@ -2,12 +2,13 @@ import express from 'express';
 import { parseBlob } from 'music-metadata';
 import { readWebmDurationSeconds, closeWebmTimestampGaps } from '../lib/webmDuration.js';
 import { usableFlashcards } from '../lib/flashcards.js';
+import { transcribeAudioParts, GROQ_MODEL, DEEPGRAM_MODEL } from '../lib/transcription.js';
 import { pool } from '../lib/db.js';
 import { requireAuth } from '../middleware/requireAuth.js';
 import { invokeLLM, createLlmUsage, QUALITY_MODEL } from '../lib/llm.js';
 import {
   getBalance, availableCredits, insufficientResponse, spendCredits,
-  logUsage, durationCost, COST_PER_30MIN_PROCESS, groqCostCad, base44CostCad,
+  logUsage, durationCost, COST_PER_30MIN_PROCESS, transcriptionCostCad, base44CostCad,
 } from '../lib/credits.js';
 import { MAX_RECORDING_BYTES, resolveRecordingStorageRef } from '../lib/r2.js';
 
@@ -22,13 +23,11 @@ import { MAX_RECORDING_BYTES, resolveRecordingStorageRef } from '../lib/r2.js';
 // TWO REAL CHANGES FROM THE ORIGINAL, both consistent with decisions already
 // made elsewhere in this port:
 //
-// 1. GROQ_API_KEY is now a HARD REQUIREMENT. The original silently fell back
-//    to Base44's Core.TranscribeAudio when the key was missing — that
-//    integration does not exist on this stack. Unlike the Gemini fallback
-//    removal (which mainly affects AI-feature cost), this one matters more:
-//    without this key, lecture recording itself does not work. This is the
-//    single most important operational prerequisite before this backend can
-//    ever go live.
+// 1. Transcription needs a provider key. The original silently fell back to
+//    Base44's Core.TranscribeAudio when GROQ_API_KEY was missing — that
+//    integration does not exist on this stack. Groq is primary; since 2 Sep
+//    Deepgram (DEEPGRAM_API_KEY) takes over when Groq refuses, because Groq
+//    caps the whole account at 8 hours of audio a day. See lib/transcription.js.
 //
 // 2. Recordings must be user-owned R2 storage references. Arbitrary HTTPS URLs
 //    are never fetched, even from a configured host; this prevents SSRF and
@@ -36,9 +35,6 @@ import { MAX_RECORDING_BYTES, resolveRecordingStorageRef } from '../lib/r2.js';
 
 const router = express.Router();
 
-const GROQ_ENDPOINT = 'https://api.groq.com/openai/v1/audio/transcriptions';
-const GROQ_MODEL = 'whisper-large-v3-turbo';
-const GROQ_MAX_BYTES = MAX_RECORDING_BYTES;
 const MAX_AUDIO_BYTES = MAX_RECORDING_BYTES;
 const MAX_AUDIO_SECONDS = 6 * 60 * 60;
 const EXTRACT_CHUNK_SIZE = 15000;
@@ -48,7 +44,6 @@ const NO_SPEECH = '[No speech detected in recording]';
 // indefinitely: the instance keeps the audio buffered, no error is ever
 // raised, and the lecture stays stuck mid-processing.
 const AUDIO_FETCH_TIMEOUT_MS = 60_000;
-const GROQ_TIMEOUT_MS = 240_000; // generous for a full-length segment
 
 class RequestError extends Error {
   constructor(message, status = 400) {
@@ -168,53 +163,6 @@ function splitInto(text, size) {
   const out = [];
   for (let i = 0; i < text.length; i += size) out.push(text.substring(i, i + size));
   return out;
-}
-
-async function transcribeViaGroq(buffer, apiKey) {
-  if (buffer.length > GROQ_MAX_BYTES) {
-    throw new Error(`file is ${(buffer.length / 1048576).toFixed(1)}MB, over the Groq limit`);
-  }
-  const form = new FormData();
-  form.append('file', new Blob([buffer]), 'lecture.webm');
-  form.append('model', GROQ_MODEL);
-  form.append('response_format', 'json');
-
-  const res = await fetch(GROQ_ENDPOINT, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${apiKey}` },
-    body: form,
-    signal: AbortSignal.timeout(GROQ_TIMEOUT_MS),
-  });
-  if (!res.ok) {
-    const detail = await res.text().catch(() => '');
-    throw new Error(`Groq ${res.status}: ${detail.slice(0, 200)}`);
-  }
-  const data = await res.json();
-  const text = (data?.text || '').trim();
-  if (!text) throw new Error('Groq returned an empty transcript');
-  return text;
-}
-
-// Each segment of a multi-part recording is already individually under
-// Groq's per-file limit (see fetchVerifiedAudioParts), so no further audio
-// splitting is needed here — just transcribe every segment independently and
-// stitch the transcripts back together in order. A clear segment marker is
-// inserted between parts so extractFromTranscript's own paragraph-level
-// chunking (and the model itself) can see where a recording was paused and
-// resumed, rather than reading a hard content jump as one continuous thought.
-async function transcribeAudioParts(buffers) {
-  const groqKey = process.env.GROQ_API_KEY;
-  if (!groqKey) throw new Error('GROQ_API_KEY is not configured — there is no fallback transcription provider on this stack.');
-  const texts = [];
-  console.log('[transcribe] sending', buffers.length, 'segment(s) to groq,', buffers.reduce((n, b) => n + b.length, 0), 'bytes');
-  for (const buffer of buffers) {
-    texts.push(await transcribeViaGroq(buffer, groqKey));
-  }
-  const combined = buffers.length > 1
-    ? texts.map((t, i) => `[Recording segment ${i + 1} of ${buffers.length}]\n${t}`).join('\n\n')
-    : (texts[0] || '');
-  console.log('[transcribe] groq ok,', buffers.length, 'segment(s),', combined.length, 'chars');
-  return { text: combined, provider: 'groq' };
 }
 
 const EXTRACTION_SCHEMA = {
@@ -469,7 +417,8 @@ async function runProcessingPipeline({ userId, lectureId, existing, cls, balance
   const providerNames = [...providers];
   const provider = providerNames.length > 1 ? 'mixed' : (providerNames[0] || 'stored');
   const models = Object.keys(llmUsage.models);
-  if (transcriptionProvider === 'groq') models.unshift(GROQ_MODEL);
+  if (transcriptionProvider === 'groq' || transcriptionProvider === 'mixed') models.unshift(GROQ_MODEL);
+  if (transcriptionProvider === 'deepgram' || transcriptionProvider === 'mixed') models.unshift(DEEPGRAM_MODEL);
 
   await logUsage({
     user_id: userId, feature: 'process_lecture', lecture_id: lectureId, provider,
@@ -477,7 +426,7 @@ async function runProcessingPipeline({ userId, lectureId, existing, cls, balance
     call_count: geminiCalls + base44Calls, base44_credits: base44Calls * 3,
     input_tokens: llmUsage.inputTokens, output_tokens: llmUsage.outputTokens, audio_seconds: audioSeconds,
     cedar_credits_charged: chargedNow, credit_operation_id: operationId,
-    cost_cad: base44CostCad(base44Calls * 3) + llmUsage.costCad + (transcriptionProvider === 'groq' ? groqCostCad(audioSeconds) : 0),
+    cost_cad: base44CostCad(base44Calls * 3) + llmUsage.costCad + transcriptionCostCad(transcriptionProvider, audioSeconds),
     tier_at_time: balance.tier, success: true, latency_ms: Date.now() - started,
   });
 

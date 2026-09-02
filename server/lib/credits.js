@@ -310,6 +310,7 @@ export async function settleFeature(gate, opts) {
 export const RATES = {
   cadPerBase44Credit: 120 / 20000,
   groqUsdPerAudioHour: 0.04,
+  deepgramUsdPerAudioHour: 0.258, // Nova-3 pay-as-you-go, $0.0043/min; the fallback when Groq refuses
   usdToCad: 1.37,
   // USD per million tokens, per Google's published API pricing. Keep this
   // exhaustive for every model in the chains in lib/llm.js — an unpriced
@@ -324,6 +325,13 @@ export const RATES = {
 };
 
 export const groqCostCad = (audioSeconds) => (audioSeconds / 3600) * RATES.groqUsdPerAudioHour * RATES.usdToCad;
+export const deepgramCostCad = (audioSeconds) => (audioSeconds / 3600) * RATES.deepgramUsdPerAudioHour * RATES.usdToCad;
+/** Cost of a transcription by the provider that produced it. 'mixed' (a multi-part recording split across both) is charged at the dearer rate rather than flattered. */
+export const transcriptionCostCad = (provider, audioSeconds) => {
+  if (provider === 'groq') return groqCostCad(audioSeconds);
+  if (provider === 'deepgram' || provider === 'mixed') return deepgramCostCad(audioSeconds);
+  return 0;
+};
 export const base44CostCad = (credits) => credits * RATES.cadPerBase44Credit;
 /**
  * What one Gemini call actually cost us, in CAD.

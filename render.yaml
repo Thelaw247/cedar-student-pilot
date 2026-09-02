@@ -60,6 +60,8 @@ services:
         sync: false
       - key: GROQ_API_KEY
         sync: false
+      - key: DEEPGRAM_API_KEY # fallback transcription when Groq refuses (quota, size, outage)
+        sync: false
       - key: STRIPE_SECRET_KEY
         sync: false
       - key: STRIPE_WEBHOOK_SECRET

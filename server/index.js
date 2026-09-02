@@ -7,6 +7,7 @@ import { logStripeBootStatus } from './lib/stripeBootCheck.js';
 import { canDeleteAuthUsers } from './lib/accountDeletion.js';
 import { logSchedulerStatus } from './lib/schedulerCheck.js';
 import { logEmailStatus } from './lib/email.js';
+import { logTranscriptionStatus } from './lib/transcription.js';
 import { checkR2Connection } from './lib/r2.js';
 import stripeWebhookRouter from './routes/stripeWebhook.js';
 import meRouter from './routes/me.js';
@@ -147,6 +148,9 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
     // at send time, so an unset or wrong-domain sender is silent until a user
     // is already waiting for an email that will never arrive.
     logEmailStatus();
+    // Groq is capped at 8 hours of audio a day; without the Deepgram key a
+    // quota refusal fails the lecture instead of falling back.
+    logTranscriptionStatus();
     canDeleteAuthUsers(pool)
       .then((s) => (s.ok ? console.log(`[boot] ${s.message}`) : console.error(`[boot] ${s.message}`)))
       .catch((e) => console.error(`[boot] account deletion: privilege check failed — ${e.message}`));
