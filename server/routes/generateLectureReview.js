@@ -14,7 +14,7 @@ const router = express.Router();
 router.post('/', requireAuth, async (req, res) => {
   try {
     const userId = req.user.id;
-    const { lecture_ids, scope, quick_quiz, question_count, grade_answers } = req.body || {};
+    const { lecture_ids, scope, quick_quiz, question_count, grade_answers, local_date } = req.body || {};
 
     if (grade_answers && Array.isArray(grade_answers) && grade_answers.length > 0) {
       const gradingUsage = createLlmUsage();
@@ -47,11 +47,22 @@ Return JSON: { "results": [ { "correct": boolean, "feedback": string }, ... ] } 
       const { rows } = await pool.query('select * from lectures where id = any($1::uuid[]) and user_id = $2', [lecture_ids, userId]);
       targetLectures = rows;
     } else {
-      const today = new Date().toISOString().split('T')[0];
+      // "Today" and "this week" mean the student's local calendar day, not the
+      // server's UTC day. Lectures are stored with the local date they were
+      // recorded on (RecordingContext), so a UTC "today" here would miss an
+      // evening lecture the moment UTC rolls past midnight — which is exactly
+      // what "no lectures to review today" was, right after a real recording.
+      // The client sends its local date; fall back to UTC only if it is absent
+      // or malformed.
+      const today = (typeof local_date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(local_date))
+        ? local_date
+        : new Date().toISOString().split('T')[0];
       if (scope === 'today') {
         targetLectures = (await pool.query('select * from lectures where date = $1 and user_id = $2 order by date', [today, userId])).rows;
       } else if (scope === 'week') {
-        const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate() - 7);
+        // Seven days back from the student's local today, kept in the same local
+        // frame so the window lines up with how the dates were stored.
+        const weekAgo = new Date(`${today}T00:00:00Z`); weekAgo.setUTCDate(weekAgo.getUTCDate() - 7);
         const weekAgoStr = weekAgo.toISOString().split('T')[0];
         const allLecs = (await pool.query('select * from lectures where user_id = $1 order by date desc limit 50', [userId])).rows;
         targetLectures = allLecs.filter((l) => l.date >= weekAgoStr && l.date <= today);

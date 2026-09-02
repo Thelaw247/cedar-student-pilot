@@ -62,7 +62,12 @@ export default function LectureReview() {
         } else if (lectureId) {
           payload = { lecture_ids: [lectureId] };
         } else {
-          payload = { scope };
+          // Send the student's LOCAL calendar day so "today"/"this week" match
+          // the dates lectures were recorded on, rather than the server's UTC
+          // day (which rolls over an evening lecture into "yesterday").
+          const now = new Date();
+          const localDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+          payload = { scope, local_date: localDate };
         }
         const res = await base44.functions.invoke('generateLectureReview', payload);
         setData(res.data);

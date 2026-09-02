@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { getSetting } from '@/lib/settings';
 import { getDecayPreset } from '@/lib/conceptDecay';
@@ -19,6 +19,7 @@ import { CalendarCheck, Loader2, Brain } from 'lucide-react';
 export default function PostRecordingReviewPrompt({ classId, lectureId, onDone }) {
   const [saving, setSaving] = useState(false);
   const [scheduled, setScheduled] = useState(null); // array of {date} once done
+  const startedRef = useRef(false); // guards the auto-schedule against a double mount
 
   // Build spaced review dates from the user's decay preset.
   // decayStart = when a lecture begins to fade; we place reviews leading up to
@@ -31,6 +32,7 @@ export default function PostRecordingReviewPrompt({ classId, lectureId, onDone }
     // then near full decay. Kept proportional to the chosen preset so "Fast"
     // learners get tighter spacing automatically.
     const offsets = [
+      0,                                     // tonight — the first pass, while it is freshest
       Math.max(1, Math.round(start * 0.2)),  // early consolidation
       Math.round(start * 0.6),               // before it fades
       Math.round((start + end) / 2),         // deep-decay refresh
@@ -81,6 +83,17 @@ export default function PostRecordingReviewPrompt({ classId, lectureId, onDone }
     setSaving(false);
   };
 
+  // Auto-book as soon as the lecture is saved — no "do you want to?" step. The
+  // first review is tonight (offset 0 above) and the spaced passes follow, so
+  // the material is locked in while intent is highest. The student sees what was
+  // booked and can leave it or open the schedule to adjust.
+  useEffect(() => {
+    if (startedRef.current) return;
+    startedRef.current = true;
+    scheduleReviews();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const fmt = (dateStr) => {
     const d = new Date(dateStr + 'T00:00:00');
     return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
@@ -115,7 +128,9 @@ export default function PostRecordingReviewPrompt({ classId, lectureId, onDone }
     );
   }
 
-  // Offer view — ask whether to schedule
+  // Booking view — the reviews schedule themselves the moment the lecture is
+  // saved (see the effect above), so this is a brief "locking it in" state, not
+  // a question. The confirmation view replaces it as soon as the sessions land.
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 glass p-4">
       <div className="bg-card rounded-2xl border border-border p-8 max-w-sm w-full text-center animate-fade-in">
@@ -124,17 +139,10 @@ export default function PostRecordingReviewPrompt({ classId, lectureId, onDone }
         </div>
         <h3 className="font-heading text-lg font-semibold mb-1">Lecture Saved</h3>
         <p className="text-sm text-muted-foreground mb-6">
-          Want to lock in a few review sessions so this doesn't slip away? I'll space them out and remind you.
+          Locking in your review sessions — the first one is tonight, then spaced out so it doesn't slip away.
         </p>
-        <div className="space-y-2">
-          <button onClick={scheduleReviews} disabled={saving}
-            className="w-full py-3 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-2">
-            {saving ? <><Loader2 className="w-4 h-4 animate-spin" /> Scheduling...</> : <><CalendarCheck className="w-4 h-4" /> Schedule review sessions</>}
-          </button>
-          <button onClick={onDone} disabled={saving}
-            className="w-full py-2.5 text-sm text-muted-foreground hover:text-foreground disabled:opacity-50">
-            No thanks
-          </button>
+        <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+          <Loader2 className="w-4 h-4 animate-spin" /> Scheduling…
         </div>
       </div>
     </div>
