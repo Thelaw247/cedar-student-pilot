@@ -1,6 +1,7 @@
 import express from 'express';
 import { pool } from '../lib/db.js';
 import { emailIsConfigured, escapeEmailHtml, sendEmail } from '../lib/email.js';
+import { renderEmail } from '../lib/emailLayout.js';
 
 // Direct port of base44/functions/sendStudyReminders/entry.ts. See that
 // file's preserved header comment for the security history (this was the
@@ -96,7 +97,13 @@ router.post('/', async (req, res) => {
         await sendEmail({
           to: recipient,
           subject: `Praelecta reminder: ${String(session.title || 'Study session').replace(/[\r\n]/g, ' ')}`,
-          html: `<p>Your <strong>${title}</strong> session starts at ${time}${diff ? ` (in about ${diff} minutes)` : ''}.</p><p>Open Praelecta when you are ready to begin.</p>`,
+          html: renderEmail({
+            heading: `${title} starts ${diff ? `in about ${diff} minutes` : 'soon'}`,
+            preheader: `${session.title || 'Study session'} at ${session.scheduled_time || 'soon'}`,
+            paragraphs: [`Your <strong>${title}</strong> session is scheduled for <strong>${time}</strong>. Open Praelecta when you are ready to begin.`],
+            cta: { label: 'Open Praelecta', url: 'https://praelecta.ca/planner' },
+            footnote: 'You are getting this because you scheduled a study session with reminders on. Turn reminders off in Settings.',
+          }),
           text: `Your ${session.title || 'study'} session starts at ${session.scheduled_time || 'soon'}${diff ? ` (in about ${diff} minutes)` : ''}.`,
           idempotencyKey: `study-reminder/${session.id}/${todayStr}`,
         });

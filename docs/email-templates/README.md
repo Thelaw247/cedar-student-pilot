@@ -1,35 +1,42 @@
-# Praelecta auth email templates
+# Praelecta email templates
 
-Supabase Auth sends these (its dashboard holds the live copy; this folder is
-the versioned source of truth — edit here, paste there).
+Every email Praelecta sends comes from one layout, `server/lib/emailLayout.js`:
+the API's own messages (study reminders, transcript exports) render it
+directly, and the four Supabase Auth templates in this folder are generated
+from it by `node scripts/build-email-templates.mjs`. Change the layout, run
+the script, paste — never edit the generated `.html` files by hand.
 
-## Install: reset-password email (one-time, ~2 minutes)
+## Install the auth templates (one-time, ~5 minutes)
 
-1. Supabase dashboard → project dyowooyijuxghwnwuxcr → Authentication →
-   Emails → "Reset password".
-   - Subject: `Reset your Praelecta password`
-   - Body: paste `recovery.html` (Source/HTML mode).
-2. Authentication → URL Configuration — REQUIRED for the link to land:
-   - Site URL: `https://cedar-student-pilot.dewetluus.workers.dev`
-   - Redirect URLs: add
-     `https://cedar-student-pilot.dewetluus.workers.dev/reset-password`
-     (and the custom domain's twin at cutover).
-   If the redirect isn't allowlisted, Supabase falls back to the Site URL
-   and the email link "does nothing" — the most common cause of a
-   "reset isn't working" report.
+Supabase dashboard → project `dyowooyijuxghwnwuxcr` → **Authentication** →
+**Emails** (Templates tab). For each template: click it, set the **Subject**,
+switch the body editor to source/HTML, select-all, paste the file, **Save**.
 
-## Delivery notes
+| Template in Supabase | File | Subject |
+|---|---|---|
+| Confirm sign up | `confirmation.html` | Confirm your Praelecta account |
+| Reset password | `recovery.html` | Reset your Praelecta password |
+| Magic link | `magic_link.html` | Your Praelecta sign-in link |
+| Change email address | `email_change.html` | Confirm your new email address |
 
-- Current sender is Supabase's built-in mailer
-  (noreply@mail.app.supabase.io): capped around 2 emails/hour and prone to
-  the spam folder. Fine for the pilot, not for launch.
-- At cutover (runbook Phase 0): verify the domain in Resend, then set
-  Authentication → Emails → SMTP Settings to Resend's SMTP
-  (smtp.resend.com, username `resend`, password = API key, from =
-  no-reply@<domain>). Every auth email then sends from the Praelecta domain
-  with real deliverability — templates above unchanged.
-- Requests for addresses with no account return 200 and send nothing
-  (anti-enumeration) — expected, not a bug.
+"Invite user" and "Reauthentication" are not used by the app; leave them.
 
-The other templates (confirm signup / magic link / email change) can clone
-this design — swap the heading, body sentence, and button label.
+Check: **Authentication → URL Configuration** must have Site URL
+`https://praelecta.ca` and the redirect allowlist entries for it, or the
+links land on the login page instead of the reset page.
+
+## Delivery
+
+Auth mail goes out through Resend's SMTP (Authentication → Emails → SMTP
+Settings, sender `noreply@praelecta.ca`), so it is signed for praelecta.ca and
+lands in inboxes. Raise **Authentication → Rate Limits → emails** from the
+default to 100/hour before launch; the default is a development ceiling.
+
+The logo in the header is `https://praelecta.ca/logo-mark.png`. Clients that
+block remote images show the alt text "Praelecta" instead.
+
+## Testing a template
+
+Send yourself a password reset from `https://praelecta.ca/login` → Forgot
+password. In Gmail, open the message → ⋮ → Show original: SPF, DKIM and DMARC
+should all read PASS.
