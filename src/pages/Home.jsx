@@ -41,7 +41,6 @@ export default function Home() {
   const [studySessions, setStudySessions] = useState([]);
   const [attendance, setAttendance] = useState([]);
   const [lectures, setLectures] = useState([]);
-  const [examWeek, setExamWeek] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [showAddExamOrStudy, setShowAddExamOrStudy] = useState(false);
   const [weekOffset, setWeekOffset] = useState(0);
@@ -250,9 +249,7 @@ export default function Home() {
             events={todayEvents}
             assignments={assignments}
             studySessions={studySessions}
-            onExamWeekChange={setExamWeek}
             onRecalculateComplete={loadData}
-            onAddStudyBlock={() => setShowAddExamOrStudy(true)}
           />
           <RiskIndicatorCard />
 
