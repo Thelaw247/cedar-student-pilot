@@ -4,6 +4,7 @@ import { getBalance } from '../lib/credits.js';
 import {
   stripePost, ensureCustomer, appOrigin, appId, checkoutIntegrationIdentifier,
 } from '../lib/stripe.js';
+import { isNoSuchCustomer } from '../lib/stripeErrors.js';
 import { subscriptionPrices, packPrices, VALID_TIERS, VALID_PACKS, VALID_PERIODS } from '../lib/stripePrices.js';
 
 // Direct port of base44/functions/createCheckoutSession/entry.ts. Price is
@@ -65,10 +66,25 @@ router.post('/', requireAuth, async (req, res) => {
     }
 
     const balance = await getBalance(user.id);
-    const customerId = await ensureCustomer(user, balance);
-    params.customer = customerId;
+    params.customer = await ensureCustomer(user, balance);
 
-    const session = await stripePost('checkout/sessions', params, crypto.randomUUID());
+    let session;
+    try {
+      session = await stripePost('checkout/sessions', params, crypto.randomUUID());
+    } catch (error) {
+      // The stored customer id can belong to another Stripe mode or account —
+      // a test-mode id left over from pre-launch testing is the common one, and
+      // it fails every live checkout with "No such customer" until cleared. Mint
+      // a fresh customer for this account+mode and retry once, so a stale id
+      // self-heals on the next attempt instead of blocking the student.
+      if (!isNoSuchCustomer(error)) throw error;
+      console.warn('[createCheckoutSession] stored customer rejected, recreating:', error.message);
+      // Pass a balance with the stored id cleared: ensureCustomer then creates a
+      // fresh customer for the current account+mode and overwrites the dead
+      // pointer in credit_balances, so the next attempt already has a good id.
+      params.customer = await ensureCustomer(user, { ...balance, stripe_customer_id: null });
+      session = await stripePost('checkout/sessions', params, crypto.randomUUID());
+    }
     res.json({ url: session.url });
   } catch (error) {
     console.error('[createCheckoutSession]', error.message);
