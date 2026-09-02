@@ -294,39 +294,46 @@
   color-scheme: dark;
 }
 
-/* The waveform sits behind the whole page rather than inside one section, so
-   scrolling moves the content across a fixed image instead of dragging the
-   artwork along with it. background-attachment: fixed is ignored on iOS, hence
-   a fixed-position layer rather than a background on the page element.
+/* The waveform sits behind the whole page rather than inside one section.
 
-   It is the same asset the auth pages use — the owner's artwork, not a
-   generated stand-in. Held well below the content: at full strength the
-   waveform competes with the type, and the page is meant to be read. */
+   It was originally a position:fixed layer, to get a parallax where scrolling
+   moved the content across a held image (background-attachment: fixed is ignored
+   on iOS, so a fixed element stood in for it). But .landing-surface sets
+   overflow-x: hidden, which makes it a scroll container, and iOS Safari clips a
+   fixed, negative-z child to that container instead of the viewport: on a phone
+   the waveform looked like it never loaded and the navy floor stopped partway
+   down the page, showing the light body colour at the bottom.
+
+   So this is now position: absolute, sized to .landing-surface itself (a
+   relative ancestor), which spans the full scroll height. The floor therefore
+   reaches the very bottom on every device, and there is no fixed-in-scroll-
+   container bug to hit. Parallax is traded for correctness — the same trade the
+   auth pages already make, and they use this exact asset.
+
+   The opaque floor lives on this layer, not on .landing-surface: a negative-z
+   child paints beneath the surface's in-flow content but above the surface's own
+   background, so putting the colour here keeps the light body colour from ever
+   bleeding through while the content still sits on top. */
 .landing-backdrop {
-  position: fixed;
+  position: absolute;
   inset: 0;
   z-index: -1;
-  /* The opaque floor lives HERE, not on .landing-surface, and that is the whole
-     reason the waveform was invisible. .landing-surface is positioned, so its
-     own background paints in the positioned-element pass — which is ABOVE a
-     z-index:-1 child, not below it. A parent with `relative` and an opaque
-     background will always cover its own negative-z backdrop. Painting the base
-     colour on this layer instead means the artwork sits on top of it, and the
-     light-theme body background underneath is never visible through it.
-     Matches AuthLayout, where the flat navy is painted under the same waveform
-     and has always worked. */
+  overflow: hidden;
   background-color: hsl(222 33% 8%);
 }
-/* The artwork, dimmed. Its own layer rather than opacity on the parent, so the
-   floor above stays fully opaque — fading the element would fade the floor with
-   it and let the light body colour bleed through. */
+/* The artwork, dimmed. Pinned to the top screenful rather than stretched over
+   the whole (tall) page: with inset:0 + cover on a long page the waveform would
+   be zoomed enormously and read as a blur. Held at the top, at viewport height,
+   the navy floor carries it down to the bottom — the auth-page look. Its own
+   layer, so the floor stays fully opaque. */
 .landing-backdrop::before {
   content: "";
   position: absolute;
-  inset: 0;
+  inset: 0 0 auto 0;
+  height: 100vh;
   background-image: url("/auth-bg.webp");
   background-size: cover;
-  background-position: center;
+  background-position: center top;
   opacity: 0.5;
 }
 
