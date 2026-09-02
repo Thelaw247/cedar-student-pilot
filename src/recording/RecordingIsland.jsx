@@ -34,7 +34,7 @@ export default function RecordingIsland() {
     );
   }
 
-  const shell = 'fixed z-40 left-4 right-4 bottom-[84px] lg:left-auto lg:right-6 lg:bottom-6 lg:w-[380px] rounded-3xl shadow-2 text-white overflow-hidden';
+  const shell = 'fixed z-40 left-4 right-4 bottom-[calc(84px+env(safe-area-inset-bottom))] lg:left-auto lg:right-6 lg:bottom-6 lg:w-[380px] rounded-3xl shadow-2 text-white overflow-hidden';
   const surface = { backgroundColor: '#14192A' };
 
   // --- Finishing the last upload ---

@@ -590,7 +590,7 @@ export default function FocusMode() {
           usage logging. Restore only once the chat is metered server-side.
       {phase !== 'idle' && phase !== 'review_prompt' && (
         <button onClick={() => setShowChat(!showChat)}
-          className={`fixed bottom-4 right-4 z-30 w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-colors ${
+          className={`fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom))] right-4 lg:bottom-4 z-30 w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-colors ${
             showChat ? 'bg-primary text-primary-foreground' : 'bg-card border border-border text-muted-foreground hover:text-foreground'
           }`}>
           <MessageCircle className="w-5 h-5" />
