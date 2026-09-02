@@ -48,7 +48,7 @@ export default function Landing() {
       description.setAttribute('name', 'description');
       document.head.appendChild(description);
     }
-    description.setAttribute('content', 'Keep the lecture, choose the exact test coverage, schedule research-backed study sessions, and use connected study tools and project plans in Praelecta.');
+    description.setAttribute('content', 'Record the lecture, tick what is on the test, and let the study sessions book themselves. Praelecta turns class into a transcript, flashcards, practice questions and a study plan. Two lectures free.');
 
     return () => {
       document.title = previousTitle;

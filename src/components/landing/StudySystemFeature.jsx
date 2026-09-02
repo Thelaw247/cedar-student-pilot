@@ -18,52 +18,52 @@ import {
 } from 'lucide-react';
 
 const studyTools = [
-  { icon: Layers3, title: 'Flashcards', body: 'Generate cards from the exact lectures you choose.' },
-  { icon: FileQuestion, title: 'Quizzes', body: 'Test recall instead of only rereading the material.' },
-  { icon: ClipboardList, title: 'Practice tests', body: 'Use mixed questions across the course material you selected.' },
-  { icon: FileText, title: 'Summary sheets', body: 'Turn lecture material into a comprehensive topic-by-topic study sheet.' },
-  { icon: RefreshCcw, title: 'Lecture reviews', body: 'Review today, this week, or any specific group of lectures in teaching order.' },
-  { icon: BookOpen, title: 'Class handbook', body: 'Study from the living handbook built from the lectures already in the class.' },
-  { icon: Clock3, title: 'Focus sessions', body: 'Use Pomodoro-style intervals or a simple timer with tracked study time.' },
-  { icon: Brain, title: 'In-app or on paper', body: 'Study interactively in Praelecta or generate a structured guide to work through offline.' },
-  { icon: Target, title: 'Session review', body: 'Finish with questions and self-assessment to find what still needs work.' },
-  { icon: BarChart3, title: 'Knowledge coverage', body: 'Track proficiency, course coverage, concepts seen, and concepts mastered over time.' },
-  { icon: CalendarCheck2, title: 'Spaced lecture reviews', body: 'After a recorded lecture, schedule future review touchpoints instead of trusting memory.' },
-  { icon: RefreshCcw, title: 'Rebook when life changes', body: 'Move a scheduled study session when the original time no longer works.' },
-  { icon: BookOpen, title: 'Missed-lecture recovery', body: 'Create a clearly labelled estimate from previous lectures and any course guidance you provide when you miss class.' },
-  { icon: Music2, title: 'Focus environment', body: 'Keep the timer, study material, and optional study music together during the session.' },
+  { icon: Layers3, title: 'Flashcards', body: 'Made from the exact lectures you pick, not the whole textbook.' },
+  { icon: FileQuestion, title: 'Quizzes', body: 'Test yourself instead of rereading and hoping it stuck.' },
+  { icon: ClipboardList, title: 'Practice tests', body: 'Mixed questions across everything you selected, like the real thing.' },
+  { icon: FileText, title: 'Summary sheets', body: 'A whole topic on one sheet, in the order it was taught.' },
+  { icon: RefreshCcw, title: 'Lecture reviews', body: 'Review today, this week, or any set of lectures, in teaching order.' },
+  { icon: BookOpen, title: 'Class handbook', body: 'A textbook for your class, written from your own lectures.' },
+  { icon: Clock3, title: 'Focus sessions', body: 'A timer that tracks the study time you actually put in.' },
+  { icon: Brain, title: 'In-app or on paper', body: 'Study on screen, or print a guide and work through it offline.' },
+  { icon: Target, title: 'Session review', body: 'End with a few questions so you know what still needs work.' },
+  { icon: BarChart3, title: 'Knowledge coverage', body: 'See which concepts you have seen, which you own, and what is still shaky.' },
+  { icon: CalendarCheck2, title: 'Spaced lecture reviews', body: 'Reviews get booked after each lecture, so you are not trusting your memory to hold on its own.' },
+  { icon: RefreshCcw, title: 'Rebook when life changes', body: 'A session stops working? Move it and we find the next open gap.' },
+  { icon: BookOpen, title: 'Missed-lecture recovery', body: 'Missed class? Get a clearly labelled estimate of what was covered, built from the lectures around it.' },
+  { icon: Music2, title: 'Focus environment', body: 'Timer, material and study music in one place, so you stop tab-hopping.' },
 ];
 
 const wizardSteps = [
   {
     number: '1',
-    title: 'Choose the job.',
-    body: 'Review recent lectures, prep for a specific exam or quiz, or work through the class in depth.',
+    title: 'Pick the job.',
+    body: 'Review this week, prep for a specific exam or quiz, or go deep on the whole class.',
   },
   {
     number: '2',
-    title: 'Choose the material.',
-    body: 'For a review, pick the lectures. For exam prep, pick the test. We carry that scope into the session.',
+    title: 'Pick the material.',
+    body: 'For a review, tick the lectures. For a test, pick the exam. We keep everything inside that scope.',
   },
   {
     number: '3',
-    title: 'Choose how you want to work.',
-    body: 'Study inside Praelecta with interactive material or use a generated guide on paper.',
+    title: 'Pick how you work.',
+    body: 'In the app with live flashcards and quizzes, or a printed guide to work through on paper.',
   },
   {
     number: '4',
     title: 'We set the rhythm.',
-    body: 'The session type determines the study goal, interval length, break length, material, and what gets reviewed afterward.',
+    body: 'Work intervals, breaks, the material and what gets reviewed at the end are all set by the session type. You just start.',
   },
 ];
 
 const projectSteps = [
-  'Describe the project and due date.',
-  'We ask only for the missing details we need.',
-  'The project becomes a 3–6 step roadmap of concrete work sessions.',
-  'Each step gets a realistic time estimate and a clear action to complete.',
-  'Those work sessions are spread from now to the due date on your planner.',
-  'Need more time later? We search open calendar gaps before the deadline and book the extra work there.',
+  'Tell us the project and when it is due.',
+  'We ask only for the details we are actually missing.',
+  'It becomes a 3 to 6 step roadmap, each step small enough for one sitting.',
+  'Every step gets a realistic time estimate and one clear thing to do.',
+  'Those sittings get spread between now and the due date on your planner.',
+  'Running behind? We look for open gaps before the deadline and book the extra time there.',
 ];
 
 export default function StudySystemFeature() {
@@ -76,21 +76,21 @@ export default function StudySystemFeature() {
               <span className="text-5xl font-black tracking-[-0.07em] text-primary/25">04</span>
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.14em] text-primary">The complete study system</p>
-                <p className="mt-0.5 text-sm font-semibold text-muted-foreground">The calendar tells you when. We also tell you what to do when you get there.</p>
+                <p className="mt-0.5 text-sm font-semibold text-muted-foreground">The calendar says when. This tells you what to actually do.</p>
               </div>
             </div>
 
             <h2 className="mt-5 text-4xl font-bold leading-[1.04] tracking-[-0.05em] text-foreground sm:text-5xl">
-              Studying stops being one giant task.
+              Never sit down to study and wonder where to start.
             </h2>
             <p className="mt-5 max-w-xl text-base leading-7 text-muted-foreground">
-              “Study for the midterm” is vague enough to procrastinate on. We turn it into a sequence: choose the goal, narrow the material, choose the method, work in a defined session, retrieve what you know, then review what you missed.
+              &ldquo;Study for the midterm&rdquo; is vague enough to put off for a week. So we break it into a session with a job: you pick the goal, we narrow the material, you pick how you want to work, and the flashcards, quiz, timer and end-of-session review are already waiting when you open it.
             </p>
 
             <div className="mt-7 rounded-2xl border border-primary/25 bg-primary/10 p-5">
-              <p className="text-xs font-bold uppercase tracking-[0.12em] text-primary">Built from well-supported learning principles</p>
+              <p className="text-xs font-bold uppercase tracking-[0.12em] text-primary">Built on what actually works</p>
               <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                We combine spaced practice with repeated retrieval through quizzes, practice questions, and post-session review. Research consistently finds that distributing learning over time and actively retrieving information can improve later retention compared with massed study or additional rereading alone.
+                Spacing your study out and testing yourself both beat rereading for remembering things later. It is one of the most repeated findings in learning research, and every session here is built around both.
               </p>
               <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs font-semibold">
                 <a href="https://pubmed.ncbi.nlm.nih.gov/16719566/" target="_blank" rel="noreferrer" className="text-primary hover:text-primary">Spacing research</a>
@@ -106,7 +106,7 @@ export default function StudySystemFeature() {
                   <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary"><Route className="h-5 w-5" /></div>
                   <div>
                     <p className="text-[10px] font-bold uppercase tracking-[0.13em] text-primary">Guided session setup</p>
-                    <h3 className="mt-1 text-xl font-bold tracking-[-0.03em] text-foreground">We turn a study goal into a specific session.</h3>
+                    <h3 className="mt-1 text-xl font-bold tracking-[-0.03em] text-foreground">Four taps from &ldquo;I should study&rdquo; to actually studying.</h3>
                   </div>
                 </div>
               </div>
@@ -137,7 +137,7 @@ export default function StudySystemFeature() {
           <div className="h-full rounded-[28px] border border-border bg-card p-5 sm:p-7">
             <div className="max-w-2xl">
                 <p className="text-xs font-bold uppercase tracking-[0.13em] text-primary">Every study tool in the same class</p>
-                <h3 className="mt-2 text-2xl font-bold tracking-[-0.035em] text-foreground">Use the tool the material needs — without rebuilding the course.</h3>
+                <h3 className="mt-2 text-2xl font-bold tracking-[-0.035em] text-foreground">Every tool works from the same class. Nothing to rebuild, ever.</h3>
               </div>
             <div className="mt-6 grid gap-3 sm:grid-cols-2">
                 {studyTools.map((tool) => (
@@ -155,9 +155,9 @@ export default function StudySystemFeature() {
                 <div>
                   <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-card/10 text-primary"><Sparkles className="h-5 w-5" /></div>
                   <p className="mt-5 text-xs font-bold uppercase tracking-[0.13em] text-primary">Projects work the same way</p>
-                  <h3 className="mt-2 text-3xl font-bold leading-tight tracking-[-0.04em]">Turn “finish the project” into work you can actually start.</h3>
+                  <h3 className="mt-2 text-3xl font-bold leading-tight tracking-[-0.04em]">Turn &ldquo;finish the project&rdquo; into work you can actually start tonight.</h3>
                   <p className="mt-4 text-sm leading-6 text-muted-foreground">
-                    We first figure out what information is missing, then build a roadmap of concrete tasks that each fit into a single work session. The sessions are distributed from now to the due date so the project has a path to completion instead of one giant deadline.
+                    We ask only for the details we are missing, split the project into steps that each fit one sitting, and spread those sittings between now and the due date. A path, instead of one giant deadline you keep not starting.
                   </p>
                 </div>
 
@@ -246,7 +246,7 @@ export default function StudySystemFeature() {
             <div className="border-t border-border bg-card/[0.04] px-6 py-4 sm:px-8">
                 <div className="flex items-start gap-3 text-xs leading-5 text-muted-foreground">
                   <CheckCircle2 className="mt-0.5 h-4 w-4 flex-none text-emerald-400" />
-                  <p><span className="font-semibold text-foreground">If a project takes longer than expected, we can recover.</span> After a project work session, you can ask for more time; we check open gaps before the due date and schedule additional project sessions there. If there is not enough free time, we show lower-priority calendar items that could be moved or removed.</p>
+                  <p><span className="font-semibold text-foreground">Running late on a project? That is fine.</span> Ask for more time after any session and we look for open gaps before the due date and book the extra work there. If the calendar is genuinely full, we show you the lower-priority things that could move.</p>
                 </div>
               </div>
           </div>

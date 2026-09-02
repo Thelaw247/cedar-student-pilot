@@ -24,19 +24,19 @@ export default function RecordingFeature() {
               <span className="text-5xl font-black tracking-[-0.07em] text-primary/25">01</span>
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.14em] text-primary">Lecture recording</p>
-                <p className="mt-0.5 text-sm font-semibold text-muted-foreground">The class only happens once.</p>
+                <p className="mt-0.5 text-sm font-semibold text-muted-foreground">Your prof is not going to say it twice.</p>
               </div>
             </div>
             <h2 className="mt-5 text-4xl font-bold leading-[1.04] tracking-[-0.05em] text-foreground sm:text-5xl">
-              Record the lecture. Keep what your professor actually taught.
+              Put the pen down. You are allowed to just listen.
             </h2>
             <p className="mt-5 max-w-xl text-base leading-7 text-muted-foreground">
-              With permission, start a recording from the class. When it ends, we keep the lecture with the course instead of leaving you with an audio file you have to sort out later.
+              Hit record when class starts. When it ends, the lecture is filed under the course with a transcript, a plain-English summary, the formulas, and every moment your prof said &ldquo;this is on the midterm.&rdquo; No audio file to dig through later. No typing up notes at 11pm.
             </p>
             <div className="mt-7 space-y-3 text-sm text-foreground/80">
-              <div className="flex gap-3"><ShieldCheck className="mt-0.5 h-5 w-5 flex-none text-primary" /><span>We ask you to confirm recording permission for the class first.</span></div>
-              <div className="flex gap-3"><FileText className="mt-0.5 h-5 w-5 flex-none text-primary" /><span>The recording becomes a lecture record with transcript, summary, concepts, formulas, notes, and exam mentions.</span></div>
-              <div className="flex gap-3"><BookOpen className="mt-0.5 h-5 w-5 flex-none text-primary" /><span>That same lecture can later feed the class handbook, test coverage, flashcards, practice, and reviews.</span></div>
+              <div className="flex gap-3"><ShieldCheck className="mt-0.5 h-5 w-5 flex-none text-primary" /><span>You confirm you have permission to record first. One tap, then you are recording.</span></div>
+              <div className="flex gap-3"><FileText className="mt-0.5 h-5 w-5 flex-none text-primary" /><span>Recordings run up to six hours without stopping, so a double lecture or a full lab is fine.</span></div>
+              <div className="flex gap-3"><BookOpen className="mt-0.5 h-5 w-5 flex-none text-primary" /><span>That one recording feeds everything after it: the class handbook, the flashcards, the practice questions, the reviews.</span></div>
             </div>
           </div>
 

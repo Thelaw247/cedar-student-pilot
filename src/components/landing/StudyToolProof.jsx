@@ -48,22 +48,22 @@ export default function StudyToolProof() {
               <span className="text-5xl font-black tracking-[-0.07em] text-primary/25">02</span>
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.14em] text-primary">Exact test coverage</p>
-                <p className="mt-0.5 text-sm font-semibold text-muted-foreground">The test is not always the whole course.</p>
+                <p className="mt-0.5 text-sm font-semibold text-muted-foreground">The midterm is rarely the whole course.</p>
               </div>
             </div>
             <h2 className="mt-5 text-4xl font-bold leading-[1.04] tracking-[-0.05em] text-foreground sm:text-5xl">
-              Tell us exactly what the test covers.
+              Only study what is actually going to be on it.
             </h2>
             <p className="mt-5 max-w-xl text-base leading-7 text-muted-foreground">
-              Pick the lectures once. We use that exact slice of the course for the study material you create next instead of making you paste notes into a new tool and explain the class again.
+              Tick the lectures your prof said are covered. That is the whole setup. Every flashcard, practice question and review we build from then on stays inside that slice, so you never lose a Tuesday night to a chapter that is not being tested. No pasting notes into another app and explaining the class all over again.
             </p>
 
             <div className="mt-7 rounded-2xl border border-primary/25 bg-primary/10 p-5">
-              <p className="text-xs font-bold uppercase tracking-[0.12em] text-primary">What happens next</p>
+              <p className="text-xs font-bold uppercase tracking-[0.12em] text-primary">What you get from one tick</p>
               <div className="mt-4 space-y-3 text-sm text-foreground/80">
-                <div className="flex gap-3"><CheckCircle2 className="mt-0.5 h-4 w-4 flex-none text-primary" /><span>Flashcards use the lectures you selected.</span></div>
-                <div className="flex gap-3"><CheckCircle2 className="mt-0.5 h-4 w-4 flex-none text-primary" /><span>Practice questions and reviews stay inside the same scope.</span></div>
-                <div className="flex gap-3"><CheckCircle2 className="mt-0.5 h-4 w-4 flex-none text-primary" /><span>The class handbook can open to the same portion of the course.</span></div>
+                <div className="flex gap-3"><CheckCircle2 className="mt-0.5 h-4 w-4 flex-none text-primary" /><span>Flashcards come only from the lectures you ticked.</span></div>
+                <div className="flex gap-3"><CheckCircle2 className="mt-0.5 h-4 w-4 flex-none text-primary" /><span>Practice questions and reviews stay inside that same scope.</span></div>
+                <div className="flex gap-3"><CheckCircle2 className="mt-0.5 h-4 w-4 flex-none text-primary" /><span>The class handbook opens straight to that part of the course.</span></div>
               </div>
             </div>
           </div>
@@ -99,8 +99,8 @@ export default function StudyToolProof() {
             <div className="bg-background p-4 sm:p-7">
               {tab === 'scope' && (
                 <div className="mx-auto max-w-xl">
-                  <h3 className="font-heading text-xl font-bold text-foreground">What is on this midterm?</h3>
-                  <p className="mb-5 mt-1 text-sm text-muted-foreground">Select the lectures your professor says are included.</p>
+                  <h3 className="font-heading text-xl font-bold text-foreground">What&rsquo;s on this midterm?</h3>
+                  <p className="mb-5 mt-1 text-sm text-muted-foreground">Tick the lectures your prof said count.</p>
                   <LectureScopePicker lectures={lectures} selectedIds={selectedIds} onChange={setSelectedIds} />
                   <button type="button" onClick={() => setTab('flashcards')} className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-medium text-primary-foreground hover:bg-primary/90">
                     Use these lectures <ArrowRight className="h-4 w-4" />

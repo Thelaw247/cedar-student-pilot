@@ -60,20 +60,20 @@ export default function RealProductPreview() {
               <span className="text-5xl font-black tracking-[-0.07em] text-primary/25">03</span>
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.14em] text-primary">Study-session booking</p>
-                <p className="mt-0.5 text-sm font-semibold text-muted-foreground">Knowing what to study is only half the job.</p>
+                <p className="mt-0.5 text-sm font-semibold text-muted-foreground">Knowing what to study is half of it. Finding the time is the other half.</p>
               </div>
             </div>
             <h2 className="mt-5 text-4xl font-bold leading-[1.04] tracking-[-0.05em] text-foreground sm:text-5xl">
-              Give us the exam date. Get the study sessions on your calendar.
+              Give us the exam date. We will find the time to study for it.
             </h2>
             <p className="mt-5 max-w-xl text-base leading-7 text-muted-foreground">
-              We spread study across the days before the test, checks the classes, events, and study blocks already on your calendar, and places the new sessions into open time instead of stacking everything into one cram night.
+              We spread the studying across the days before the test, work around the classes, shifts and deadlines already on your calendar, and drop each session into a real gap. The night-before cram stops being the plan, and you did not have to open a calendar to make it happen.
             </p>
 
             <div className="mt-7 rounded-2xl border border-primary/25 bg-card p-5">
-              <p className="text-xs font-bold uppercase tracking-[0.12em] text-primary">Built around research-backed spacing</p>
+              <p className="text-xs font-bold uppercase tracking-[0.12em] text-primary">Why spread out, not crammed</p>
               <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                Distributed practice — studying across separate sessions instead of massing the same work together — has strong evidence for better long-term retention. We use that principle when we spread sessions across the time before your exam.
+                Studying in a few separate sittings beats one long one for actually remembering it, and that finding has held up across decades of research. It is the rule we follow when we place your sessions.
               </p>
               <a href="https://pubmed.ncbi.nlm.nih.gov/16719566/" target="_blank" rel="noreferrer" className="mt-3 inline-flex text-xs font-semibold text-primary hover:text-primary">
                 Research basis: Cepeda et al., Psychological Bulletin (2006)
@@ -81,9 +81,9 @@ export default function RealProductPreview() {
             </div>
 
             <div className="mt-5 grid gap-3 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
-              <div className="rounded-xl border border-border bg-card p-4"><CalendarClock className="h-4 w-4 text-primary" /><p className="mt-3 text-sm font-semibold text-foreground">Spread out</p><p className="mt-1 text-xs leading-5 text-muted-foreground">Multiple sessions across the days before the deadline.</p></div>
-              <div className="rounded-xl border border-border bg-card p-4"><GraduationCap className="h-4 w-4 text-primary" /><p className="mt-3 text-sm font-semibold text-foreground">Fit around class</p><p className="mt-1 text-xs leading-5 text-muted-foreground">Existing classes, events, and study blocks are treated as busy time.</p></div>
-              <div className="rounded-xl border border-border bg-card p-4"><Clock3 className="h-4 w-4 text-primary" /><p className="mt-3 text-sm font-semibold text-foreground">Review before test</p><p className="mt-1 text-xs leading-5 text-muted-foreground">Exams and quizzes get a lighter final review before the due date.</p></div>
+              <div className="rounded-xl border border-border bg-card p-4"><CalendarClock className="h-4 w-4 text-primary" /><p className="mt-3 text-sm font-semibold text-foreground">Split across days</p><p className="mt-1 text-xs leading-5 text-muted-foreground">A few short sessions in the days before, not one long night.</p></div>
+              <div className="rounded-xl border border-border bg-card p-4"><GraduationCap className="h-4 w-4 text-primary" /><p className="mt-3 text-sm font-semibold text-foreground">Works around your life</p><p className="mt-1 text-xs leading-5 text-muted-foreground">Your classes, work shifts and existing plans count as busy. We book around them.</p></div>
+              <div className="rounded-xl border border-border bg-card p-4"><Clock3 className="h-4 w-4 text-primary" /><p className="mt-3 text-sm font-semibold text-foreground">A light review the night before</p><p className="mt-1 text-xs leading-5 text-muted-foreground">Exams and quizzes get a shorter final pass right before the date, so it is fresh.</p></div>
             </div>
           </div>
 
@@ -110,10 +110,10 @@ export default function RealProductPreview() {
             </div>
 
             <div className="border-t border-border bg-muted p-4 sm:px-5">
-              <p className="text-xs font-semibold text-foreground/80">What we’re doing here</p>
+              <p className="text-xs font-semibold text-foreground/80">What happened here</p>
               <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                <p className="rounded-lg bg-secondary px-3 py-2 text-[11px] leading-5 text-muted-foreground">Monday–Wednesday: study is distributed instead of saved for Thursday night.</p>
-                <p className="rounded-lg bg-secondary px-3 py-2 text-[11px] leading-5 text-muted-foreground">Thursday: a shorter final review is kept open before Friday&rsquo;s exam.</p>
+                <p className="rounded-lg bg-secondary px-3 py-2 text-[11px] leading-5 text-muted-foreground">Monday to Wednesday: three sessions, placed around the work shift and the lab report, instead of everything landing on Thursday night.</p>
+                <p className="rounded-lg bg-secondary px-3 py-2 text-[11px] leading-5 text-muted-foreground">Thursday: a shorter final review, kept close to Friday&rsquo;s exam so it is still fresh.</p>
               </div>
             </div>
           </div>

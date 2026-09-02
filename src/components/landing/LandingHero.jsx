@@ -7,32 +7,32 @@ const coreFeatures = [
   number: '01',
   icon: Mic,
   label: 'Lecture recording',
-  title: 'Record the lecture.',
-  body: 'Keep the class you actually sat through — not just the notes you managed to type.',
+  title: 'Record it. Stop panicking about what you missed.',
+  body: 'The whole lecture, saved with the class. Transcript, summary, formulas and every "this will be on the test" moment, ready before you get home.',
   href: '#recording'
 },
 {
   number: '02',
   icon: Target,
   label: 'Exact test coverage',
-  title: 'Set what the test covers.',
-  body: 'Choose the exact lectures you are responsible for before we build anything to study.',
+  title: 'Only study what is actually on the test.',
+  body: 'Tick the lectures your prof said count. Every flashcard and practice question stays inside that slice, so an off-syllabus chapter never eats your evening.',
   href: '#test-coverage'
 },
 {
   number: '03',
   icon: CalendarClock,
   label: 'Study scheduling',
-  title: 'Put the studying on your calendar.',
-  body: 'Spread the work across the days before the test and fit it around the schedule you already have.',
+  title: 'The study plan books itself.',
+  body: 'Give us the exam date. We spread the sessions across the days before it, around your shifts and classes, so it is never one 2am cram.',
   href: '#study-schedule'
 },
 {
   number: '04',
   icon: Brain,
   label: 'Study system',
-  title: 'Know what to do when study time starts.',
-  body: 'Use guided sessions, flashcards, quizzes, reviews, practice tests, study guides, focus tools, and progress tracking from the same class material.',
+  title: 'Sit down and just start.',
+  body: 'Open the session and the flashcards, quiz, timer and end-of-session review are already there. No deciding what to do first, no setup.',
   href: '#study-system'
 }];
 
@@ -43,13 +43,11 @@ export default function LandingHero() {
       <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[620px] bg-[radial-gradient(circle_at_50%_5%,rgba(46,102,255,0.13),transparent_42%)]" />
       <div className="mx-auto max-w-6xl">
         <div className="mx-auto max-w-4xl text-center">
-          <p className="text-sm font-semibold text-primary">The thought that hits mid-lecture</p>
-          <h1 className="mx-auto mt-3 max-w-4xl text-balance text-4xl font-bold leading-[1.02] tracking-[-0.05em] text-foreground sm:text-5xl lg:text-6xl">Afraid you missed something important?</h1>
-          <p className="mx-auto mt-5 max-w-3xl text-balance text-base leading-7 text-muted-foreground sm:text-lg">We record the lecture, so you never have to wonder what you missed, then turn it into exactly what you need to study.
-
-          </p>
+          <p className="text-sm font-semibold text-primary">For students who would rather not redo the whole course at exam time</p>
+          <h1 className="mx-auto mt-3 max-w-4xl text-balance text-4xl font-bold leading-[1.02] tracking-[-0.05em] text-foreground sm:text-5xl lg:text-6xl">You showed up to the lecture. That should be the hard part.</h1>
+          <p className="mx-auto mt-5 max-w-3xl text-balance text-base leading-7 text-muted-foreground sm:text-lg">Press record. By the time you are out of the room, the class is a transcript, a summary, flashcards and practice questions. When the exam gets announced, the study sessions book themselves around your calendar.</p>
           <p className="mx-auto mt-5 max-w-2xl text-lg font-bold tracking-[-0.02em] text-foreground sm:text-xl">
-            Nothing gets past us.
+            Two free lectures to see it work on your own class. No card needed.
           </p>
         </div>
 
@@ -82,11 +80,11 @@ export default function LandingHero() {
             <ChevronRight className="h-4 w-4 text-muted-foreground" />
             <span className="rounded-lg bg-primary/10 px-3 py-2 text-primary">Record it</span>
             <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            <span className="rounded-lg bg-primary/10 px-3 py-2 text-primary">Choose what&rsquo;s tested</span>
+            <span className="rounded-lg bg-primary/10 px-3 py-2 text-primary">Tick what&rsquo;s on the test</span>
             <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            <span className="rounded-lg bg-primary/10 px-3 py-2 text-primary">Book the study</span>
+            <span className="rounded-lg bg-primary/10 px-3 py-2 text-primary">Sessions book themselves</span>
             <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            <span className="rounded-lg bg-primary/10 px-3 py-2 text-primary">Run the study session</span>
+            <span className="rounded-lg bg-primary/10 px-3 py-2 text-primary">Show up and study</span>
             <ChevronRight className="h-4 w-4 text-muted-foreground" />
             <span className="rounded-lg bg-secondary px-3 py-2 text-foreground shadow-sm">Exam</span>
           </div>
@@ -97,7 +95,7 @@ export default function LandingHero() {
             Start free <ArrowRight className="h-4 w-4" />
           </Link>
           <a href="#recording" className="inline-flex w-full items-center justify-center rounded-xl border border-border bg-card px-5 py-3 text-sm font-semibold text-foreground/85 transition-colors hover:bg-muted sm:w-auto">
-            See the four features
+            See how it works
           </a>
         </div>
 
