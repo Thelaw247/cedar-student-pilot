@@ -69,6 +69,18 @@ test('the desktop shell is locked down and keeps sign-in and Stripe in-window', 
   assert.match(read('../../desktop/build/entitlements.mac.plist'), /com\.apple\.security\.device\.audio-input/);
 });
 
+test('an unsigned macOS build is still ad-hoc signed so Apple silicon will launch it', () => {
+  // electron-builder skips macOS signing when no Developer ID exists, and an
+  // app with no signature at all opens as "damaged" on Apple silicon -- a
+  // broken download, not a Gatekeeper warning. The afterPack hook signs it
+  // ad-hoc in exactly that case.
+  assert.equal(pkg.build.afterPack, './after-pack.cjs');
+  const hook = read('../../desktop/after-pack.cjs');
+  assert.match(hook, /electronPlatformName !== 'darwin'/);
+  assert.match(hook, /process\.env\.CSC_LINK/, 'a real certificate must take precedence over ad-hoc signing');
+  assert.match(hook, /'--sign', '-'/);
+});
+
 test('the landing page shows the download section and links it from the footer', () => {
   assert.match(landing, /<LandingDownloads \/>/);
   assert.match(landing, /href="#download"/);
