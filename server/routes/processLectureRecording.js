@@ -4,6 +4,7 @@ import { readWebmDurationSeconds, closeWebmTimestampGaps } from '../lib/webmDura
 import { usableFlashcards } from '../lib/flashcards.js';
 import { transcribeAudioParts, GROQ_MODEL, DEEPGRAM_MODEL } from '../lib/transcription.js';
 import { pool } from '../lib/db.js';
+import { cleanAnalysis } from '../lib/analysisSanity.js';
 import { requireAuth } from '../middleware/requireAuth.js';
 import { invokeLLM, createLlmUsage, QUALITY_MODEL } from '../lib/llm.js';
 import {
@@ -493,7 +494,14 @@ async function runProcessingPipeline({ userId, lectureId, existing, cls, balance
   const lecture = (await pool.query('select * from lectures where id = $1', [lectureId])).rows[0];
 
   if (!lecture.ai_title) {
-    const analysis = await extractFromTranscript(transcript, cls, lecture.date, llmUsage);
+    // Everything the model wrote is bounded before it reaches a column. A
+    // response_json_schema constrains the shape and not the size, and on
+    // 3 Sep a stitched title looped into 252,075 characters and was stored
+    // whole. See lib/analysisSanity.js.
+    const analysis = cleanAnalysis(
+      await extractFromTranscript(transcript, cls, lecture.date, llmUsage),
+      { fallbackTitle: `Lecture — ${lecture.date}` },
+    );
     await pool.query(
       `update lectures set ai_title=$1, ai_summary=$2, ai_concepts=$3, ai_vocabulary=$4, ai_definitions=$5, ai_formulas=$6, ai_action_items=$7, ai_exam_mentions=$8, status='complete' where id=$9`,
       [analysis.title, analysis.summary, analysis.concepts || [], analysis.vocabulary || [], JSON.stringify(analysis.definitions || []), analysis.formulas || [], analysis.action_items || [], analysis.exam_mentions || [], lectureId]);
