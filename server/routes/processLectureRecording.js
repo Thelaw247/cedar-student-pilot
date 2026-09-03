@@ -13,7 +13,7 @@ import {
 import { MAX_RECORDING_BYTES, resolveRecordingStorageRef } from '../lib/r2.js';
 import { runEnrichment, syncLectureTodos } from '../lib/lectureEnrichment.js';
 import { loadLectureMaterials } from '../lib/lectureMaterials.js';
-import { scheduleAsap, addDaysStr } from '../lib/studyScheduler.js';
+import { scheduleAsap, addDaysStr, bookAssignmentSessions } from '../lib/studyScheduler.js';
 
 // One review session per lecture, booked the moment processing finishes (3
 // Sep 2026 rework, refactored 3 Sep 2026 onto the shared studyScheduler).
@@ -46,6 +46,44 @@ async function scheduleLectureReview({ userId, lectureId, classId, lectureDate, 
     [userId, classId, lectureId, placement.date, placement.time, placement.duration_minutes, `Review: ${lectureTitle || 'this lecture'}`,
       placement.date === lectureDate ? 'Auto-scheduled for the day of the lecture.' : "Auto-scheduled the next day — the lecture day's schedule was full."],
   );
+}
+
+// Explicit due-dated deliverables → real Assignment rows (Phase 4, 3 Sep
+// 2026). extractFromTranscript's due_dated_items is deliberately strict (a
+// vague "there's a project coming up" goes in exam_mentions, not here) —
+// this is the second, cheaper gate: skip anything already past, and never
+// create a duplicate of something that already exists (typed in by hand, or
+// mentioned again in a later lecture). Booking goes through
+// bookAssignmentSessions, the exact function generateStudySchedule.js's
+// route uses, so an auto-detected assignment is scheduled no differently
+// than one the student created themselves. Sets notified=false so
+// AssignmentDetectedNotice.jsx surfaces it once, on the Home page.
+async function detectAndCreateAssignments({ userId, classId, lectureId, dueDatedItems }) {
+  if (!classId) return; // assignments require a class_id — nothing to attach this to
+  const validated = mergeDueDatedItems([dueDatedItems]);
+  if (validated.length === 0) return;
+
+  const now = new Date();
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+  for (const item of validated) {
+    if (item.due_date < today) continue;
+
+    const existing = (await pool.query(
+      'select id from assignments where user_id = $1 and class_id = $2 and due_date = $3 and lower(title) = lower($4) limit 1',
+      [userId, classId, item.due_date, item.title],
+    )).rows[0];
+    if (existing) continue;
+
+    const created = (await pool.query(
+      `insert into assignments (user_id, class_id, title, due_date, type, status, source_lecture_id, auto_created, notified)
+       values ($1, $2, $3, $4, $5, 'active', $6, true, false)
+       returning *`,
+      [userId, classId, item.title, item.due_date, item.type, lectureId],
+    )).rows[0];
+
+    await bookAssignmentSessions({ userId, assignment: created });
+  }
 }
 
 // Direct port of base44/functions/processLectureRecording/entry.ts — the
@@ -195,6 +233,27 @@ function mergeDefinitions(lists) {
   return [...seen.values()];
 }
 
+const DUE_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const DUE_DATED_TYPES = new Set(['exam', 'quiz', 'project', 'assignment']);
+function mergeDueDatedItems(lists) {
+  const seen = new Map();
+  for (const list of lists) {
+    for (const item of (list || [])) {
+      const title = typeof item?.title === 'string' ? item.title.trim() : '';
+      const type = DUE_DATED_TYPES.has(item?.type) ? item.type : null;
+      const due_date = typeof item?.due_date === 'string' && DUE_DATE_RE.test(item.due_date) ? item.due_date : null;
+      // Silently drop anything the model returned without a real title,
+      // type, or parseable date — a vague or malformed mention is not worth
+      // spinning up an assignment over, and the un-gated case (a due date in
+      // the past) is filtered later, right before an assignment is created.
+      if (!title || !type || !due_date) continue;
+      const key = title.toLowerCase();
+      if (!seen.has(key)) seen.set(key, { title, type, due_date });
+    }
+  }
+  return [...seen.values()];
+}
+
 function splitInto(text, size) {
   const out = [];
   for (let i = 0; i < text.length; i += size) out.push(text.substring(i, i + size));
@@ -209,6 +268,17 @@ const EXTRACTION_SCHEMA = {
     definitions: { type: 'array', items: { type: 'object', properties: { term: { type: 'string' }, definition: { type: 'string' } } } },
     formulas: { type: 'array', items: { type: 'string' } }, action_items: { type: 'array', items: { type: 'string' } },
     exam_mentions: { type: 'array', items: { type: 'string' } },
+    due_dated_items: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          title: { type: 'string' },
+          type: { type: 'string', enum: ['exam', 'quiz', 'project', 'assignment'] },
+          due_date: { type: 'string' },
+        },
+      },
+    },
   },
 };
 
@@ -233,6 +303,7 @@ Analyze this lecture transcript and generate:
 6. Formulas mentioned (array of strings, empty if none)
 7. Action items for the student (array of tasks like "Review X", "Read chapter Y")
 8. Exam or test announcements mentioned (array, empty if none). Capture anything about tests, quizzes, midterms, finals, what will or won't be assessed, or what to focus on for an exam — these often come near the end of a lecture.
+9. Due-dated deliverables EXPLICITLY announced with an actual date (array of {title, type, due_date}, empty if none). type is one of exam/quiz/project/assignment. due_date must be YYYY-MM-DD, computed relative to this lecture's own date (${lectureDate}) — e.g. "due in two weeks" or "the 15th" resolves against that date, rolling into next year if the stated day/month has already passed this year. ONLY include an item here if a real date, deadline, or timeframe was stated out loud — never include something merely mentioned as "coming up" or "later this semester" with no date attached. This is deliberately stricter than exam_mentions above: a vague mention belongs only in exam_mentions, not here.
 
 Transcript:
 ${text}`,
@@ -251,6 +322,7 @@ ${text}`,
     concepts: mergeStrings(parts.map((p) => p.concepts)), vocabulary: mergeStrings(parts.map((p) => p.vocabulary)),
     definitions: mergeDefinitions(parts.map((p) => p.definitions)), formulas: mergeStrings(parts.map((p) => p.formulas)),
     action_items: mergeStrings(parts.map((p) => p.action_items)), exam_mentions: mergeStrings(parts.map((p) => p.exam_mentions)),
+    due_dated_items: mergeDueDatedItems(parts.map((p) => p.due_dated_items)),
   };
 
   const partSummaries = parts.map((p, i) => `Part ${i + 1}: ${p.summary || ''}`).join('\n\n');
@@ -425,6 +497,14 @@ async function runProcessingPipeline({ userId, lectureId, existing, cls, balance
     await pool.query(
       `update lectures set ai_title=$1, ai_summary=$2, ai_concepts=$3, ai_vocabulary=$4, ai_definitions=$5, ai_formulas=$6, ai_action_items=$7, ai_exam_mentions=$8, status='complete' where id=$9`,
       [analysis.title, analysis.summary, analysis.concepts || [], analysis.vocabulary || [], JSON.stringify(analysis.definitions || []), analysis.formulas || [], analysis.action_items || [], analysis.exam_mentions || [], lectureId]);
+
+    try {
+      await detectAndCreateAssignments({ userId, classId: cls?.id, lectureId, dueDatedItems: analysis.due_dated_items });
+    } catch (e) {
+      // Non-fatal — the lecture and its analysis are already saved; nothing
+      // was detected that the student can't still add manually.
+      console.error('[recording] due-dated item detection failed:', e?.message || e);
+    }
   } else {
     await pool.query("update lectures set status = 'complete' where id = $1", [lectureId]);
   }

@@ -1,12 +1,20 @@
 import express from 'express';
 import { pool } from '../lib/db.js';
 import { requireAuth } from '../middleware/requireAuth.js';
-import { invokeLLM, createLlmUsage } from '../lib/llm.js';
+import { createLlmUsage } from '../lib/llm.js';
 import { gateFeature, settleFeature } from '../lib/credits.js';
+import { scheduleAsap, addDaysStr } from '../lib/studyScheduler.js';
 
-// Direct port of base44/functions/rebookStudySession/entry.ts.
+// Rebooking a missed/skipped session (3 Sep 2026: refactored onto the shared
+// studyScheduler). This used to ask an LLM to freely pick a date/time within
+// 7 days, with only format/not-in-the-past validation — no idea about the
+// buffer or preferred windows, because neither existed yet. Now it finds the
+// true next open slot deterministically, same rules as every other booking
+// route, and keeps the session's original length rather than resizing it.
 
 const router = express.Router();
+const dateStr = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const REBOOK_HORIZON_DAYS = 14;
 
 router.post('/', requireAuth, async (req, res) => {
   try {
@@ -19,58 +27,27 @@ router.post('/', requireAuth, async (req, res) => {
 
     const gate = await gateFeature(userId, 'smart_rebook', res);
     if (!gate.ok) return;
+    // No LLM call any more (see note above) — kept only so settleFeature's
+    // usage-accounting shape stays the same across every feature it charges.
     const llmUsage = createLlmUsage();
 
-    const cls = session.class_id ? (await pool.query('select * from classes where id = $1 and user_id = $2', [session.class_id, userId])).rows[0] : null;
-    const assignment = session.assignment_id ? (await pool.query('select * from assignments where id = $1 and user_id = $2', [session.assignment_id, userId])).rows[0] : null;
-
-    const today = new Date();
-    const existing = (await pool.query('select * from study_sessions where class_id = $1 and user_id = $2', [session.class_id, userId])).rows;
-
-    const prompt = `You are a study scheduler. A student needs to rebook a study session.
-Current session: scheduled for ${session.scheduled_date} at ${session.scheduled_time || 'unspecified time'}, ${session.duration_minutes || 30} minutes, priority ${session.priority}.
-Class: ${cls?.name || 'Unknown'}
-Assignment: ${assignment?.title || 'General study'}, due ${assignment?.due_date || 'N/A'}
-Today is ${today.toISOString().split('T')[0]}.
-Other sessions this week: ${existing.filter((s) => s.id !== session_id).map((s) => `${s.scheduled_date} at ${s.scheduled_time}`).join(', ') || 'none'}
-
-Suggest a new date and time within the next 7 days that:
-1. Doesn't conflict with existing sessions
-2. Gives enough time before the assignment due date
-3. Is at a reasonable study hour (9 AM - 9 PM)
-
-Respond with ONLY a JSON object: {"new_date": "YYYY-MM-DD", "new_time": "HH:MM", "reason": "brief reason"}`;
-
-    const result = await invokeLLM({
-      usage: llmUsage, prompt,
-      response_json_schema: { type: 'object', properties: { new_date: { type: 'string' }, new_time: { type: 'string' }, reason: { type: 'string' } } },
+    const today = dateStr(new Date());
+    const duration = Math.max(20, Number(session.duration_minutes) || 30);
+    const [placement] = await scheduleAsap({
+      userId, classId: session.class_id, count: 1, fromDate: today, horizonDate: addDaysStr(today, REBOOK_HORIZON_DAYS),
+      minMinutes: duration, maxMinutes: duration,
     });
 
-    const todayStr = today.toISOString().split('T')[0];
-    let newDate = result.new_date;
-    let newTime = result.new_time;
-
-    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-    let isValid = dateRegex.test(newDate);
-    if (isValid) {
-      const parsed = new Date(newDate + 'T00:00:00');
-      if (isNaN(parsed.getTime())) isValid = false;
-      if (newDate < todayStr) isValid = false;
+    if (!placement) {
+      return res.status(409).json({ error: "Couldn't find an open slot in the next two weeks. Try widening your preferred study times in Settings." });
     }
-    const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
-    let timeValid = timeRegex.test(newTime);
 
-    if (!isValid) {
-      const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
-      newDate = tomorrow.toISOString().split('T')[0];
-    }
-    if (!timeValid) newTime = '19:00';
-
-    await pool.query('update study_sessions set scheduled_date = $1, scheduled_time = $2, status = $3 where id = $4 and user_id = $5', [newDate, newTime, 'scheduled', session_id, userId]);
+    await pool.query('update study_sessions set scheduled_date = $1, scheduled_time = $2, status = $3 where id = $4 and user_id = $5',
+      [placement.date, placement.time, 'scheduled', session_id, userId]);
 
     await settleFeature(gate, { feature: 'smart_rebook', llmUsage });
 
-    res.json({ success: true, new_date: newDate, new_time: newTime, reason: result.reason });
+    res.json({ success: true, new_date: placement.date, new_time: placement.time, reason: 'Moved to the next open slot inside your preferred study window.' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

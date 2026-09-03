@@ -159,3 +159,94 @@ export async function scheduleAsap({
   }
   return placements;
 }
+
+/**
+ * Place sessions one per day until `totalMinutes` of study time has been
+ * placed (or the horizon runs out) — for "I need N more minutes before this
+ * is due" rather than "book me N sessions". Same rules as scheduleAsap
+ * (buffer, preferred windows, 30-90 min per session); the last session is
+ * trimmed so the total doesn't overshoot what was asked for.
+ */
+export async function scheduleMinutesAsap({
+  userId, classId = null, totalMinutes, fromDate = null, horizonDate = null,
+  minMinutes = MIN_SESSION_MINUTES, maxMinutes = MAX_SESSION_MINUTES,
+}) {
+  const start = fromDate || dateStr(new Date());
+  const endDate = horizonDate || addDaysStr(start, SEARCH_HORIZON_DAYS);
+  const windows = await getPreferredWindows(userId);
+  const busyByDay = await getBusyBlocksForRange(userId, start, endDate, classId);
+
+  const placements = [];
+  let remaining = totalMinutes;
+  let cursor = start;
+  while (remaining > 0 && cursor <= endDate) {
+    const spans = freeSpansForDay(busyByDay[cursor], windows);
+    if (spans.length > 0) {
+      const span = spans[0];
+      const duration = Math.min(maxMinutes, Math.max(minMinutes, Math.min(span.end - span.start, remaining)));
+      placements.push({ date: cursor, time: toTime(span.start), duration_minutes: duration });
+      if (!busyByDay[cursor]) busyByDay[cursor] = [];
+      busyByDay[cursor].push({ start: Math.max(0, span.start - BUFFER_MINUTES), end: Math.min(24 * 60, span.start + duration + BUFFER_MINUTES) });
+      remaining -= duration;
+    }
+    cursor = addDaysStr(cursor, 1);
+  }
+  return placements;
+}
+
+/**
+ * Book the standard set of prep sessions for an assignment/exam/quiz/project
+ * — the one place this happens now. Used by the generateStudySchedule route
+ * (student explicitly asks for it) AND by processLectureRecording.js's
+ * auto-detection pipeline (Phase 4, 3 Sep 2026): a lecture that explicitly
+ * names a due-dated deliverable books its own sessions immediately, through
+ * this exact function, so an auto-created assignment is scheduled no
+ * differently than one the student typed in by hand. Inserts rows directly;
+ * returns how many were created. A due date already in the past books
+ * nothing — there's nothing sensible to prep for.
+ */
+export async function bookAssignmentSessions({ userId, assignment }) {
+  const today = dateStr(new Date());
+  const dueDateStr = assignment.due_date instanceof Date ? dateStr(assignment.due_date) : assignment.due_date;
+  if (!dueDateStr || dueDateStr < today) return 0;
+
+  const daysUntil = Math.max(1, Math.ceil((new Date(`${dueDateStr}T00:00:00`) - new Date(`${today}T00:00:00`)) / 86400000));
+  const sessionCount = Math.min(Math.max(daysUntil, 3), 10);
+
+  const placements = await scheduleAsap({
+    userId, classId: assignment.class_id, count: sessionCount, fromDate: today, horizonDate: dueDateStr,
+    minMinutes: MIN_SESSION_MINUTES, maxMinutes: MAX_SESSION_MINUTES,
+  });
+
+  const rows = placements.map((p, i) => ({
+    assignment_id: assignment.id, user_id: userId, class_id: assignment.class_id,
+    title: `${assignment.title} — Session ${i + 1}`,
+    scheduled_date: p.date, scheduled_time: p.time, duration_minutes: p.duration_minutes,
+    priority: i === placements.length - 1 ? 'high' : 'medium', status: 'scheduled', notes: null,
+  }));
+
+  // Exams and quizzes also get one dedicated final-review pass the day
+  // before the due date (or the due date itself if the day-before is full).
+  if (assignment.type === 'exam' || assignment.type === 'quiz') {
+    const reviewFrom = addDaysStr(dueDateStr, -1);
+    const [reviewPlacement] = await scheduleAsap({
+      userId, classId: assignment.class_id, count: 1, fromDate: reviewFrom, horizonDate: dueDateStr, minMinutes: 30, maxMinutes: 45,
+    });
+    if (reviewPlacement) {
+      rows.push({
+        assignment_id: assignment.id, user_id: userId, class_id: assignment.class_id,
+        title: `${assignment.title} — Final review`, scheduled_date: reviewPlacement.date, scheduled_time: reviewPlacement.time,
+        duration_minutes: reviewPlacement.duration_minutes, priority: 'high', status: 'scheduled',
+        notes: "Light review session — skim key concepts, don't go in depth.",
+      });
+    }
+  }
+
+  for (const row of rows) {
+    await pool.query(
+      `insert into study_sessions (assignment_id, user_id, class_id, title, scheduled_date, scheduled_time, duration_minutes, priority, status, notes)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+      [row.assignment_id, row.user_id, row.class_id, row.title, row.scheduled_date, row.scheduled_time, row.duration_minutes, row.priority, row.status, row.notes]);
+  }
+  return rows.length;
+}
