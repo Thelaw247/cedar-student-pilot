@@ -55,11 +55,16 @@ jobs:
         run: |
           EXPECTED=$(grep -oE 'index-[A-Za-z0-9_-]+\.js' dist/index.html | head -1)
           echo "expected bundle: $EXPECTED"
-          for i in 1 2 3 4 5 6 7 8 9 10 11 12; do
+          # Cloudflare's edge does not pick up a new version everywhere at once.
+          # Two minutes was not always enough (3 Sep: this step went red on a
+          # deploy that was live minutes later and correct thereafter), and a
+          # red check on a good deploy is how a real failure gets ignored. Five
+          # minutes covers the slow propagation without hiding a stuck rollout.
+          for i in $(seq 1 20); do
             SERVED=$(curl -s --max-time 20 https://praelecta.ca/ | grep -oE 'index-[A-Za-z0-9_-]+\.js' | head -1 || true)
-            echo "served bundle:   ${SERVED:-none} (attempt $i)"
+            echo "served bundle:   ${SERVED:-none} (attempt $i/20)"
             if [ "$SERVED" = "$EXPECTED" ]; then echo "praelecta.ca is serving this build"; exit 0; fi
-            sleep 10
+            sleep 15
           done
-          echo "::error::praelecta.ca is still serving $SERVED, not $EXPECTED - the deployment did not take traffic"
+          echo "::error::after 5 minutes praelecta.ca still serves $SERVED, not $EXPECTED - check the active deployment in the Cloudflare dashboard; a version may be pinned at 100%"
           exit 1
