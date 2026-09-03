@@ -3,7 +3,8 @@
 # download buttons point:
 #
 #   https://github.com/Thelaw247/cedar-student-pilot/releases/latest/download/Praelecta-Setup.exe
-#   .../releases/latest/download/Praelecta-mac.dmg
+#   .../releases/latest/download/Praelecta-mac-arm64.dmg
+#   .../releases/latest/download/Praelecta-mac-x64.dmg
 #   .../releases/latest/download/Praelecta-linux.AppImage
 #   .../releases/latest/download/Praelecta-linux.deb
 #
@@ -43,7 +44,9 @@ jobs:
             pattern: desktop/release/Praelecta-Setup.exe
           - os: macos-latest
             name: macOS
-            pattern: desktop/release/Praelecta-mac.dmg
+            pattern: |
+              desktop/release/Praelecta-mac-arm64.dmg
+              desktop/release/Praelecta-mac-x64.dmg
           - os: ubuntu-latest
             name: Linux
             pattern: |

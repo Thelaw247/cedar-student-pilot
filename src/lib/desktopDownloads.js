@@ -6,7 +6,8 @@ const RELEASE_BASE = 'https://github.com/Thelaw247/cedar-student-pilot/releases/
 
 export const DESKTOP_DOWNLOADS = [
   { id: 'windows', label: 'Windows', note: 'Windows 10 or later · .exe installer', file: 'Praelecta-Setup.exe' },
-  { id: 'mac', label: 'Mac', note: 'Apple silicon and Intel · .dmg', file: 'Praelecta-mac.dmg' },
+  { id: 'mac', label: 'Mac (Apple silicon)', note: 'M1 and newer · .dmg', file: 'Praelecta-mac-arm64.dmg' },
+  { id: 'mac-intel', label: 'Mac (Intel)', note: 'Pre-2020 Macs · .dmg', file: 'Praelecta-mac-x64.dmg' },
   { id: 'linux', label: 'Linux', note: 'AppImage, any distro', file: 'Praelecta-linux.AppImage' },
   { id: 'linux-deb', label: 'Linux (.deb)', note: 'Ubuntu, Debian, Mint', file: 'Praelecta-linux.deb' },
 ].map((d) => ({ ...d, url: `${RELEASE_BASE}/${d.file}` }));

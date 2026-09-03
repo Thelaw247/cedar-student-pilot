@@ -16,14 +16,19 @@ const downloads = read('../../src/lib/desktopDownloads.js');
 const landing = read('../../src/pages/Landing.jsx');
 const main = read('../../desktop/main.cjs');
 
-const EXPECTED = ['Praelecta-Setup.exe', 'Praelecta-mac.dmg', 'Praelecta-linux.AppImage', 'Praelecta-linux.deb'];
+const EXPECTED = ['Praelecta-Setup.exe', 'Praelecta-mac-arm64.dmg', 'Praelecta-mac-x64.dmg', 'Praelecta-linux.AppImage', 'Praelecta-linux.deb'];
 
 test('electron-builder produces exactly the fixed installer names the site links to', () => {
   assert.equal(pkg.build.win.artifactName, 'Praelecta-Setup.${ext}');
-  assert.equal(pkg.build.mac.artifactName, 'Praelecta-mac.${ext}');
+  assert.equal(pkg.build.mac.artifactName, 'Praelecta-mac-${arch}.${ext}');
   assert.equal(pkg.build.linux.artifactName, 'Praelecta-linux.${ext}');
   assert.deepEqual(pkg.build.win.target.map((t) => t.target), ['nsis']);
   assert.deepEqual(pkg.build.mac.target.map((t) => t.target), ['dmg']);
+  // Two separate Mac builds, not a universal one: @electron/universal refuses to
+  // merge per-arch apps whose signatures differ, which is exactly what ad-hoc
+  // signing each of them produces (the 1.0.1 build). Separate also halves the
+  // download.
+  assert.deepEqual(pkg.build.mac.target[0].arch.slice().sort(), ['arm64', 'x64']);
   assert.deepEqual(pkg.build.linux.target.map((t) => t.target).sort(), ['AppImage', 'deb']);
   // Every name in the download list must be one electron-builder emits.
   for (const file of EXPECTED) assert.match(downloads, new RegExp(file.replace('.', '\\.')), `${file} missing from desktopDownloads.js`);

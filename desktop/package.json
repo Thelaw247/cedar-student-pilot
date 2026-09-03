@@ -63,12 +63,13 @@
         {
           "target": "dmg",
           "arch": [
-            "universal"
+            "arm64",
+            "x64"
           ]
         }
       ],
       "category": "public.app-category.education",
-      "artifactName": "Praelecta-mac.${ext}",
+      "artifactName": "Praelecta-mac-${arch}.${ext}",
       "darkModeSupport": true,
       "hardenedRuntime": true,
       "gatekeeperAssess": false,
@@ -79,7 +80,7 @@
       }
     },
     "dmg": {
-      "artifactName": "Praelecta-mac.${ext}"
+      "artifactName": "Praelecta-mac-${arch}.${ext}"
     },
     "linux": {
       "target": [
