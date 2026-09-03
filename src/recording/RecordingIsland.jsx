@@ -1,8 +1,44 @@
-import React, { useState } from 'react';
-import { Pause, Play, Square, Loader2, FileText, AlertTriangle, ChevronDown, Pencil } from 'lucide-react';
+import React, { useRef, useState } from 'react';
+import { Pause, Play, Square, Loader2, FileText, AlertTriangle, ChevronDown, Pencil, Paperclip, X } from 'lucide-react';
 import { useRecording } from '@/recording/RecordingContext';
 import PostRecordingReviewPrompt from '@/components/PostRecordingReviewPrompt';
+import { MATERIAL_ACCEPT } from '@/components/lecture/LectureMaterials';
 import { formatClock } from '@/lib/time';
+
+/**
+ * "Attach the prof's slides" inside the island. Files wait in memory and
+ * upload the moment the lecture is saved, before the analysis runs, so the
+ * study page is verified against them from its first version.
+ */
+function StagedMaterials({ rec, compact = false }) {
+  const inputRef = useRef(null);
+  if (!rec.canAttachMaterials) return null;
+  return (
+    <div className={compact ? 'mb-3' : 'mt-3'}>
+      <input ref={inputRef} type="file" accept={MATERIAL_ACCEPT} multiple className="hidden"
+        onChange={(e) => { rec.addStagedMaterials(e.target.files); e.target.value = ''; }} />
+      {rec.stagedMaterials.length > 0 && (
+        <ul className="space-y-1 mb-2">
+          {rec.stagedMaterials.map((f, i) => (
+            <li key={`${f.name}-${i}`} className="flex items-center gap-2 text-[11px] text-white/80 bg-white/10 rounded-lg px-2.5 py-1.5">
+              <FileText className="w-3 h-3 flex-shrink-0 text-white/60" />
+              <span className="truncate flex-1">{f.name}</span>
+              <button type="button" onClick={() => rec.removeStagedMaterial(i)} aria-label={`Remove ${f.name}`} className="text-white/50 hover:text-white"><X className="w-3 h-3" /></button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <button type="button" onClick={() => inputRef.current?.click()}
+        className="inline-flex items-center gap-1.5 text-[11px] font-medium text-white/70 hover:text-white transition-colors">
+        <Paperclip className="w-3 h-3" />
+        {rec.stagedMaterials.length ? 'Attach another file' : 'Attach the prof’s slides or handout (PDF)'}
+      </button>
+      {rec.stagedMaterials.length === 0 && (
+        <p className="text-[10px] text-white/40 mt-1">Formulas and definitions get checked against them.</p>
+      )}
+    </div>
+  );
+}
 
 /**
  * The floating handle on a live recording session (Design Blueprint §3).
@@ -105,6 +141,7 @@ export default function RecordingIsland() {
           {rec.recordingLimitReached && (
             <p className="text-[11px] text-amber-400/90 mb-3">The 6-hour limit was reached. Save this recording, then start a new one if class is continuing.</p>
           )}
+          {!failure && <StagedMaterials rec={rec} compact />}
           {confirmDiscard ? (
             <div>
               <p className="text-[11px] text-white/70 mb-2">
@@ -202,6 +239,7 @@ export default function RecordingIsland() {
               rows={3}
               className="w-full px-3 py-2.5 rounded-xl bg-white/10 border border-white/10 text-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
             />
+            <StagedMaterials rec={rec} />
           </div>
         </div>
       </div>

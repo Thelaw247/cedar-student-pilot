@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Loader2, X, BookOpen, ChevronLeft, ChevronRight, List, Zap, Check, Brain, Expand, Filter } from 'lucide-react';
 import QuizDepthSelector, { QUIZ_PRESETS } from '@/components/QuizDepthSelector';
+import QuizReview, { ChoiceOptions } from '@/components/quiz/QuizReview';
 
 export default function HandbookReader({ classId, lectureIds = null, assignmentId = null, studyMode = null, onClose, onQuizComplete = null }) {
   const [handbook, setHandbook] = useState(null);
@@ -457,26 +458,8 @@ function QuizView({ questions, loading, answers, setAnswers, idx, setIdx, result
             <p className="text-sm text-muted-foreground mt-1">{result.score}/{result.total} correct • {result.lecturesCovered} lecture{result.lecturesCovered !== 1 ? 's' : ''} covered</p>
           </div>
 
-          {/* Per-concept breakdown */}
-          <div className="rounded-xl border border-border bg-muted/30 p-4 mb-6">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Question Breakdown</p>
-            <div className="space-y-2">
-              {questions.map((q, i) => {
-                const correct = answers[i]?.trim().toLowerCase() === (q.correct_answer || '').trim().toLowerCase();
-                return (
-                  <div key={i} className="flex items-start gap-2 text-sm">
-                    <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${correct ? 'bg-emerald-500/10' : 'bg-rose-500/10'}`}>
-                      {correct ? <Check className="w-3 h-3 text-emerald-600" strokeWidth={3} /> : <X className="w-3 h-3 text-rose-600" strokeWidth={3} />}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs text-foreground">{q.question}</p>
-                      {!correct && <p className="text-xs text-emerald-600 mt-0.5">Correct: {q.correct_answer}</p>}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+          {/* Misses first, with explanations; correct answers fold away. */}
+          <QuizReview questions={questions} answers={answers} className="mb-6" />
 
           <button onClick={onClose} className="w-full py-3 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90">
             Back to Handbook
@@ -522,28 +505,9 @@ function QuizView({ questions, loading, answers, setAnswers, idx, setIdx, result
 
         <h3 className="font-heading text-lg font-semibold mb-6">{q.question}</h3>
 
-        {q.type === 'multiple_choice' && q.options?.length > 0 ? (
-          <div className="space-y-2 mb-6">
-            {q.options.map((opt, i) => (
-              <button
-                key={i}
-                onClick={() => setAnswers({ ...answers, [idx]: opt })}
-                className={`w-full text-left px-4 py-3 rounded-xl border text-sm transition-all ${answers[idx] === opt ? 'border-primary bg-primary/5 text-primary font-medium' : 'border-border hover:border-primary/30'}`}
-              >
-                {opt}
-              </button>
-            ))}
-          </div>
-        ) : (
-          <input
-            type="text"
-            value={answers[idx] || ''}
-            onChange={e => setAnswers({ ...answers, [idx]: e.target.value })}
-            placeholder="Type your answer..."
-            className="w-full px-4 py-3 rounded-xl border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 mb-6"
-            autoFocus
-          />
-        )}
+        <div className="mb-6">
+          <ChoiceOptions question={q} value={answers[idx]} onChange={(opt) => setAnswers({ ...answers, [idx]: opt })} />
+        </div>
 
         <div className="flex gap-2">
           {idx > 0 && (

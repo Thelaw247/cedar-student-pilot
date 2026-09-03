@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { ChevronLeft, Loader2, Check, X, ListChecks, ArrowRight, RotateCcw, Lock } from 'lucide-react';
+import { ChevronLeft, Loader2, Check, ListChecks, ArrowRight, RotateCcw, Lock } from 'lucide-react';
 import { useUpgrade } from '@/components/monetization/UpgradeContext';
 import { featureMinTierName } from '@/lib/tiers';
+import QuizReview, { ChoiceOptions, scoreQuiz } from '@/components/quiz/QuizReview';
 
 export default function LectureReview() {
   const { openUpgrade } = useUpgrade();
@@ -20,37 +21,10 @@ export default function LectureReview() {
   const [currentIdx, setCurrentIdx] = useState(0);
   const [answers, setAnswers] = useState({});
   const [showResult, setShowResult] = useState(false);
-  const [grades, setGrades] = useState({});
-  const [grading, setGrading] = useState(false);
 
-  const isFreeText = (q) => q.type === 'short_answer' || q.type === 'one_word';
-  const choiceCorrect = (q, ans) => !!ans && ans.trim().toLowerCase() === (q.correct_answer || '').trim().toLowerCase();
-  const isCorrect = (q, i) => isFreeText(q) ? grades[i]?.correct === true : choiceCorrect(q, answers[i]);
-
-  const finishReview = async (qs) => {
-    const freeTextItems = [];
-    qs.forEach((q, i) => {
-      if (isFreeText(q)) freeTextItems.push({ index: i, question: q.question, correct_answer: q.correct_answer, student_answer: answers[i] || '' });
-    });
-    if (freeTextItems.length > 0) {
-      setGrading(true);
-      try {
-        const res = await base44.functions.invoke('generateLectureReview', {
-          grade_answers: freeTextItems.map(({ question, correct_answer, student_answer }) => ({ question, correct_answer, student_answer })),
-        });
-        const out = res.data?.results || [];
-        const mapped = {};
-        freeTextItems.forEach((item, k) => { if (out[k]) mapped[item.index] = out[k]; });
-        setGrades(mapped);
-      } catch (e) {
-        const mapped = {};
-        freeTextItems.forEach((item) => { mapped[item.index] = { correct: false, feedback: 'Could not auto-grade — compare your answer with the model answer below.' }; });
-        setGrades(mapped);
-      }
-      setGrading(false);
-    }
-    setShowResult(true);
-  };
+  // Every question is multiple choice and graded locally (see
+  // server/lib/quizQuestions.js) — there is no written-answer grading step.
+  const finishReview = () => setShowResult(true);
 
   useEffect(() => {
     const run = async () => {
@@ -140,7 +114,7 @@ export default function LectureReview() {
   const current = questions[currentIdx];
   const isLast = currentIdx === questions.length - 1;
 
-  const score = questions.filter((q, i) => isCorrect(q, i)).length;
+  const { correct: score, pct } = scoreQuiz(questions, answers);
 
   // Results screen
   if (showResult) {
@@ -152,8 +126,11 @@ export default function LectureReview() {
           </div>
           <h1 className="font-heading text-2xl font-bold mb-1">Review Complete</h1>
           <p className="text-muted-foreground text-sm">You answered {score} out of {questions.length} correctly</p>
-          <p className="text-2xl font-bold text-primary mt-2">{Math.round((score / questions.length) * 100)}%</p>
+          <p className="text-2xl font-bold text-primary mt-2">{pct}%</p>
         </div>
+
+        {/* What was missed comes first; correct answers fold away. */}
+        <QuizReview questions={questions} answers={answers} className="mb-6" />
 
         {/* Teaching flow recap */}
         {teachingFlow.length > 0 && (
@@ -171,32 +148,6 @@ export default function LectureReview() {
             </div>
           </div>
         )}
-
-        {/* Question review */}
-        <div className="space-y-3 mb-6">
-          {questions.map((q, i) => {
-            const ans = answers[i];
-            const correct = isCorrect(q, i);
-            const freeText = isFreeText(q);
-            return (
-              <div key={i} className={`rounded-xl border p-4 ${correct ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-rose-500/30 bg-rose-500/5'}`}>
-                <div className="flex items-start gap-2">
-                  {correct ? <Check className="w-4 h-4 text-emerald-600 mt-0.5 flex-shrink-0" /> : <X className="w-4 h-4 text-rose-600 mt-0.5 flex-shrink-0" />}
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-foreground mb-1">{q.question}</p>
-                    <p className="text-xs text-muted-foreground">Your answer: <span className={correct ? 'text-emerald-600 font-medium' : 'text-rose-600 font-medium'}>{ans || '—'}</span></p>
-                    {(!correct || freeText) && q.correct_answer && (
-                      <p className="text-xs text-emerald-600 mt-0.5">{freeText ? 'Model answer' : 'Correct'}: {q.correct_answer}</p>
-                    )}
-                    {freeText && grades[i]?.feedback && (
-                      <p className="text-xs text-foreground/70 mt-1 italic">{grades[i].feedback}</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
 
         <div className="flex gap-3">
           <button onClick={() => { setAnswers({}); setShowResult(false); setCurrentIdx(0); }}
@@ -224,13 +175,15 @@ export default function LectureReview() {
           <p className="text-xs font-medium text-muted-foreground">
             Question {currentIdx + 1} of {questions.length}
           </p>
-          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-md uppercase ${
-            current.flow_position === 'start' ? 'bg-blue-500/10 text-blue-600' :
-            current.flow_position === 'end' ? 'bg-purple-500/10 text-purple-600' :
-            'bg-amber-500/10 text-amber-600'
-          }`}>
-            {current.flow_position} of lecture {current.lecture_index}
-          </span>
+          {current.flow_position && (
+            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-md uppercase ${
+              current.flow_position === 'start' ? 'bg-blue-500/10 text-blue-600' :
+              current.flow_position === 'end' ? 'bg-purple-500/10 text-purple-600' :
+              'bg-amber-500/10 text-amber-600'
+            }`}>
+              {current.flow_position} of lecture{current.lecture_index ? ` ${current.lecture_index}` : ''}
+            </span>
+          )}
         </div>
         <div className="h-1.5 rounded-full bg-muted overflow-hidden">
           <div className="h-full bg-primary transition-all duration-standard" style={{ width: `${((currentIdx) / questions.length) * 100}%` }} />
@@ -241,32 +194,7 @@ export default function LectureReview() {
       <div className="rounded-xl border border-border bg-card p-5 mb-4">
         <p className="text-sm font-medium text-foreground mb-4">{current.question}</p>
 
-        {((current.type === 'multiple_choice' || current.type === 'true_false') && current.options?.length > 0) ? (
-          <div className="space-y-2">
-            {current.options.map((opt, i) => {
-              const selected = answers[currentIdx] === opt;
-              return (
-                <button
-                  key={i}
-                  onClick={() => setAnswers({ ...answers, [currentIdx]: opt })}
-                  className={`w-full text-left px-4 py-2.5 rounded-lg border text-sm transition-all ${
-                    selected ? 'border-primary bg-primary/5 text-primary font-medium' : 'border-border hover:border-primary/30'
-                  }`}>
-                  {opt}
-                </button>
-              );
-            })}
-          </div>
-        ) : (
-          <input
-            type="text"
-            value={answers[currentIdx] || ''}
-            onChange={e => setAnswers({ ...answers, [currentIdx]: e.target.value })}
-            placeholder="Type your answer..."
-            className="w-full px-3 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
-            autoFocus
-          />
-        )}
+        <ChoiceOptions question={current} value={answers[currentIdx]} onChange={(opt) => setAnswers({ ...answers, [currentIdx]: opt })} compact />
       </div>
 
       {/* Navigation */}
@@ -278,10 +206,10 @@ export default function LectureReview() {
         )}
         {isLast ? (
           <button
-            onClick={() => finishReview(questions)}
-            disabled={!answers[currentIdx] || grading}
+            onClick={finishReview}
+            disabled={!answers[currentIdx]}
             className="flex-1 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-2">
-            {grading ? <><Loader2 className="w-4 h-4 animate-spin" /> Grading…</> : <><Check className="w-4 h-4" /> Finish Review</>}
+            <Check className="w-4 h-4" /> Finish Review
           </button>
         ) : (
           <button

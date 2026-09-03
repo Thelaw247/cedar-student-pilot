@@ -4,8 +4,17 @@ import { base44 } from '@/api/base44Client';
 import { fetchWithCache } from '@/hooks/useEntityData';
 import { cacheGet, cacheSet, invalidateEntity } from '@/lib/cache';
 import { enqueueOperation } from '@/lib/syncQueue';
-import { ChevronLeft, FileText, Clock, AlertCircle, Loader2, Tag, BookOpen, ListChecks, Lightbulb, Sparkles, Headphones, CloudOff, Zap, Trash2, AlertTriangle } from 'lucide-react';
+import { ChevronLeft, FileText, Clock, AlertCircle, Loader2, BookOpen, ListChecks, Sparkles, Headphones, CloudOff, Zap, Trash2, AlertTriangle, Sigma, Lightbulb } from 'lucide-react';
 import TranscriptActions from '@/components/TranscriptActions';
+import LectureJumpNav from '@/components/lecture/LectureJumpNav';
+import TranscriptViewer, { TranscriptCleanup } from '@/components/lecture/TranscriptViewer';
+import LectureTodos from '@/components/lecture/LectureTodos';
+import LectureMaterials from '@/components/lecture/LectureMaterials';
+import {
+  OverviewSection, OutlineSection, ConceptsSection, FormulasSection, DefinitionsSection,
+  ExamplesSection, ExamRadarSection, InsightsSection,
+} from '@/components/lecture/StudySections';
+import { enrichmentOf, enrichmentCounts } from '@/components/lecture/lectureStudy';
 import InLectureQuiz from '@/components/InLectureQuiz';
 import AutosaveIndicator from '@/components/AutosaveIndicator';
 import { useBalance } from '@/hooks/useBalance';
@@ -58,6 +67,11 @@ export default function LectureDetail() {
   const [deleting, setDeleting] = useState(false);
   // Re-submitting a recording whose processing failed or never started.
   const [retrying, setRetrying] = useState(false);
+  // "Show in transcript" from any study item: { quote, offset, nonce }. The
+  // nonce makes tapping the same anchor twice scroll again.
+  const [jump, setJump] = useState(null);
+  const jumpTo = useCallback((anchor) => setJump({ ...anchor, nonce: Date.now() }), []);
+  const [materialsCount, setMaterialsCount] = useState(0);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -122,21 +136,32 @@ export default function LectureDetail() {
   // the background. While this page shows "AI Processing...", poll quietly
   // (without the loading spinner) so the analysis appears the moment it
   // lands instead of waiting for a manual refresh.
+  //
+  // The study page (ai_enrichment) lands a little after the base analysis —
+  // the server marks the lecture complete first so the summary shows at
+  // once, then runs the second pass. Keep polling briefly after 'complete'
+  // until enriched_at appears, so the concept cards and formulas fill in
+  // without a refresh. Give up after a few minutes: an older lecture, or one
+  // whose pass failed, just shows the base page (and the materials widget
+  // offers a re-run).
+  const awaitingEnrichment = lecture?.status === LECTURE_COMPLETE && !!lecture?.ai_title && !lecture?.enriched_at
+    && (Date.now() - new Date(lecture?.updated_at || 0).getTime()) < 5 * 60 * 1000;
   useEffect(() => {
-    if (lecture?.status !== 'processing') return undefined;
+    if (lecture?.status !== 'processing' && !awaitingEnrichment) return undefined;
     let cancelled = false;
     const timer = setInterval(async () => {
       try {
         const fresh = await base44.entities.Lecture.get(lectureId);
         if (cancelled || !fresh) return;
-        if (fresh.status !== 'processing') {
+        const changed = fresh.status !== lecture?.status || fresh.enriched_at !== lecture?.enriched_at;
+        if (changed) {
           cacheSet('Lecture', 'get', [lectureId], fresh);
           setLecture(fresh);
         }
       } catch { /* transient — keep polling */ }
     }, 5000);
     return () => { cancelled = true; clearInterval(timer); };
-  }, [lecture?.status, lectureId]);
+  }, [lecture?.status, lecture?.enriched_at, awaitingEnrichment, lectureId]);
 
   const saveNote = useCallback(async () => {
     setNoteStatus('saving');
@@ -287,6 +312,22 @@ export default function LectureDetail() {
     );
   }
   if (!lecture) return <div className="p-6 text-center text-muted-foreground">Lecture not found.</div>;
+
+  const enrichment = enrichmentOf(lecture);
+  const counts = enrichmentCounts(enrichment);
+  const jumpItems = [
+    { id: 'sec-overview', label: 'Overview', count: lecture.ai_summary || enrichment ? null : 0 },
+    { id: 'sec-outline', label: 'Outline', count: enrichment?.outline?.length || 0 },
+    { id: 'sec-concepts', label: 'Concepts', count: enrichment?.concepts?.length || lecture.ai_concepts?.length || 0 },
+    { id: 'sec-formulas', label: 'Formulas', count: enrichment?.formulas?.length || lecture.ai_formulas?.length || 0 },
+    { id: 'sec-definitions', label: 'Definitions', count: enrichment?.definitions?.length || lecture.ai_definitions?.length || 0 },
+    { id: 'sec-examples', label: 'Examples', count: enrichment?.examples?.length || 0 },
+    { id: 'sec-exam', label: 'Exam', count: enrichment?.exam_radar?.length || lecture.ai_exam_mentions?.length || 0 },
+    { id: 'sec-todos', label: 'To-do', count: null },
+    { id: 'sec-materials', label: 'Materials', count: lecture.is_ai_estimated ? 0 : null },
+    { id: 'sec-transcript', label: 'Transcript', count: lecture.transcript ? null : 0 },
+    { id: 'sec-notes', label: 'Notes', count: null },
+  ];
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 lg:py-10 animate-fade-in">
@@ -446,147 +487,69 @@ export default function LectureDetail() {
         </div>
       )}
 
-      {/* AI Summary */}
-      {lecture.ai_summary && (
-        <Section icon={Sparkles} title="AI Summary" storageKey="lec-summary">
-          <p className="text-sm text-foreground leading-relaxed">{lecture.ai_summary}</p>
-        </Section>
+      {/* Header stat strip — what this lecture contains, at a glance */}
+      {counts && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
+          <Stat icon={Lightbulb} value={counts.concepts} label="concepts" />
+          <Stat icon={Sigma} value={counts.formulas} label={counts.verifiedFormulas ? `formulas · ${counts.verifiedFormulas} verified` : 'formulas'} />
+          <Stat icon={BookOpen} value={counts.definitions} label="definitions" />
+          <Stat icon={AlertCircle} value={counts.exam} label="exam notes" tone={counts.exam ? 'warn' : undefined} />
+        </div>
       )}
 
-      {/* Key Concepts */}
-      {lecture.ai_concepts && lecture.ai_concepts.length > 0 && (
-        <Section icon={Lightbulb} title="Key Concepts" storageKey="lec-concepts">
-          <div className="flex flex-wrap gap-2">
-            {lecture.ai_concepts.map((c, i) => (
-              <span key={i} className="px-2.5 py-1 rounded-md bg-primary/10 text-primary text-xs font-medium">{c}</span>
-            ))}
-          </div>
-        </Section>
+      {/* Second pass still running — say so instead of showing a thin page */}
+      {awaitingEnrichment && (
+        <div className="rounded-xl border border-primary/25 bg-primary/[0.04] px-4 py-3 mb-4 flex items-center gap-2.5">
+          <Loader2 className="w-4 h-4 animate-spin text-primary flex-shrink-0" />
+          <p className="text-[13px] text-foreground">Building the full study page — outline, concept cards, formulas, examples and to-dos are on their way.</p>
+        </div>
       )}
 
-      {/* Vocabulary & Definitions */}
-      {lecture.ai_definitions && lecture.ai_definitions.length > 0 && (
-        <Section icon={BookOpen} title="Definitions" storageKey="lec-defs">
-          <div className="space-y-2">
-            {lecture.ai_definitions.map((d, i) => (
-              <div key={i} className="text-sm">
-                <span className="font-medium text-foreground">{d.term}</span>
-                <span className="text-muted-foreground"> — {d.definition}</span>
-              </div>
-            ))}
-          </div>
-        </Section>
+      <LectureJumpNav items={jumpItems} />
+
+      {(lecture.ai_summary || enrichment) && <OverviewSection lecture={lecture} enrichment={enrichment} />}
+      <OutlineSection outline={enrichment?.outline} onJump={jumpTo} />
+      <ConceptsSection concepts={enrichment?.concepts} legacyConcepts={lecture.ai_concepts} onJump={jumpTo} />
+      <FormulasSection formulas={enrichment?.formulas} legacyFormulas={lecture.ai_formulas} hasMaterials={materialsCount > 0} onJump={jumpTo} />
+      <DefinitionsSection definitions={enrichment?.definitions} legacyDefinitions={lecture.ai_definitions} onJump={jumpTo} />
+      <ExamplesSection examples={enrichment?.examples} onJump={jumpTo} />
+      <ExamRadarSection radar={enrichment?.exam_radar} legacyMentions={lecture.ai_exam_mentions} onJump={jumpTo} />
+      <InsightsSection misconceptions={enrichment?.misconceptions} questions={enrichment?.questions} />
+
+      {(lecture.status === LECTURE_COMPLETE || lecture.transcript) && (
+        <LectureTodos lecture={lecture} legacyActionItems={lecture.ai_action_items} />
       )}
 
-      {/* Formulas */}
-      {lecture.ai_formulas && lecture.ai_formulas.length > 0 && (
-        <Section icon={Tag} title="Formulas" storageKey="lec-formulas">
-          <div className="space-y-1.5">
-            {lecture.ai_formulas.map((f, i) => (
-              <div key={i} className="px-3 py-2 rounded-lg bg-muted font-mono text-sm">{f}</div>
-            ))}
-          </div>
-        </Section>
-      )}
-
-      {/* Action Items */}
-      {lecture.ai_action_items && lecture.ai_action_items.length > 0 && (
-        <Section icon={ListChecks} title="Action Items" storageKey="lec-actions">
-          <ul className="space-y-1.5">
-            {lecture.ai_action_items.map((a, i) => (
-              <li key={i} className="flex items-start gap-2 text-sm text-foreground">
-                <span className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 flex-shrink-0" />{a}
-              </li>
-            ))}
-          </ul>
-        </Section>
-      )}
-
-      {/* Exam Mentions */}
-      {lecture.ai_exam_mentions && lecture.ai_exam_mentions.length > 0 && (
-        <Section icon={AlertCircle} title="Exam Announcements" storageKey="lec-exams">
-          <ul className="space-y-1.5">
-            {lecture.ai_exam_mentions.map((m, i) => (
-              <li key={i} className="flex items-start gap-2 text-sm text-amber-700 dark:text-amber-500">
-                <AlertCircle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />{m}
-              </li>
-            ))}
-          </ul>
-        </Section>
+      {!lecture.is_ai_estimated && (
+        <LectureMaterials
+          lecture={lecture}
+          onEnriched={() => { invalidateEntity('Lecture'); loadData(); }}
+          onCountChange={setMaterialsCount}
+        />
       )}
 
       {/* Transcript */}
       {lecture.transcript && (
-        <Section icon={FileText} title="Transcript" storageKey="lec-transcript" defaultOpen={false}
-          meta={`${lecture.transcript.trim().split(/\s+/).length.toLocaleString()} words`}
-          actions={<TranscriptActions lecture={lecture} />}>
-          {/* Recordings are stored as raw speech-to-text. Cleanup is a paid,
-              on-demand pass rather than something every lecture pays for — most
-              recordings are perfectly readable without it. */}
-          <div className="flex items-center justify-between gap-3 mb-3">
-            {lecture.transcript_cleaned ? (
-              <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-emerald-600">
-                <Sparkles className="w-3 h-3" /> Cleaned up
-              </span>
-            ) : (
-              <p className="text-[11px] text-muted-foreground">
-                Raw transcript. Clean it up if this recording came out noisy.
-              </p>
-            )}
-
-            {!lecture.transcript_cleaned && !cleanGate.allowed && (
-              <button
-                onClick={cleanGate.lock}
-                title={`Transcript cleanup ships with ${cleanGate.requiredTierName}`}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-muted text-[11px] font-medium text-muted-foreground hover:text-foreground flex-shrink-0 transition-colors"
-              >
-                <Lock className="w-3 h-3" /> Clean up transcript
-              </button>
-            )}
-            {!lecture.transcript_cleaned && cleanGate.allowed && (
-              <button
-                onClick={cleanTranscript}
-                disabled={cleaning}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-border text-[11px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-50 flex-shrink-0 transition-colors"
-              >
-                {cleaning
-                  ? <><Loader2 className="w-3 h-3 animate-spin" /> Cleaning…</>
-                  : <><Sparkles className="w-3 h-3" /> Clean up transcript</>}
-              </button>
-            )}
-          </div>
-
-          {cleanError && (
-            <p className="text-[11px] text-destructive mb-2">{cleanError}</p>
+        <TranscriptViewer
+          lecture={lecture}
+          jump={jump}
+          actions={<TranscriptActions lecture={lecture} />}
+          cleanup={(
+            <TranscriptCleanup
+              lecture={lecture}
+              cleanGate={cleanGate}
+              cleaning={cleaning}
+              cleanError={cleanError}
+              cleanResult={cleanResult}
+              onClean={cleanTranscript}
+              onRestore={restoreRawTranscript}
+            />
           )}
-          {cleanResult && !cleanError && (
-            <p className="text-[11px] text-muted-foreground mb-2">
-              Cleaned in {cleanResult.calls} pass{cleanResult.calls === 1 ? '' : 'es'}
-              {cleanResult.delta > 0
-                ? ` · ${cleanResult.delta.toLocaleString()} characters changed`
-                : ' · the transcript was already clean'}
-              . The original is kept — you can restore it below.
-            </p>
-          )}
-
-          <div className="max-h-96 overflow-y-auto pr-2">
-            <p className="text-[15px] text-foreground/85 leading-7 whitespace-pre-wrap max-w-[68ch]">{lecture.transcript}</p>
-          </div>
-
-          {lecture.transcript_cleaned && lecture.transcript_raw && (
-            <button
-              onClick={restoreRawTranscript}
-              disabled={cleaning}
-              className="mt-2 text-[11px] text-muted-foreground hover:text-foreground underline disabled:opacity-50"
-            >
-              Restore the original
-            </button>
-          )}
-        </Section>
+        />
       )}
 
       {/* Notes */}
-      <Section icon={FileText} title="My Notes">
+      <Section icon={FileText} title="My Notes" id="sec-notes">
         <textarea
           value={note}
           onChange={e => setNote(e.target.value)}
@@ -617,9 +580,10 @@ export default function LectureDetail() {
  * (it's reference material) with its size in the meta line, and every choice
  * is remembered per user across lectures via storageKey.
  */
-function Section({ icon, title, children, actions = null, storageKey = undefined, defaultOpen = true, meta = undefined }) {
+function Section({ icon, title, children, actions = null, storageKey = undefined, defaultOpen = true, meta = undefined, id = undefined }) {
   return (
     <Widget
+      id={id}
       icon={icon}
       title={title}
       meta={meta}
@@ -627,10 +591,23 @@ function Section({ icon, title, children, actions = null, storageKey = undefined
       collapsible={!!storageKey}
       defaultOpen={defaultOpen}
       storageKey={storageKey}
-      className="mb-4"
+      className="mb-4 scroll-mt-24"
       padded
     >
       <div className="pt-1">{children}</div>
     </Widget>
+  );
+}
+
+function Stat({ icon: Icon, value, label, tone = undefined }) {
+  const warn = tone === 'warn';
+  return (
+    <div className={`rounded-xl border px-3 py-2.5 flex items-center gap-2.5 ${warn ? 'border-amber-500/30 bg-amber-500/5' : 'border-border bg-card'}`}>
+      <Icon className={`w-4 h-4 flex-shrink-0 ${warn ? 'text-amber-600' : 'text-primary'}`} strokeWidth={1.75} />
+      <div className="min-w-0">
+        <p className="text-base font-bold text-foreground tabular-nums leading-none">{value}</p>
+        <p className="text-[11px] text-muted-foreground truncate mt-0.5">{label}</p>
+      </div>
+    </div>
   );
 }

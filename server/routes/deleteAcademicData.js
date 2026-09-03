@@ -26,6 +26,18 @@ async function deleteRecordingRefs(userId, refs) {
   }
 }
 
+// Attached materials (slides, handouts) are R2 objects too; the row cascades
+// with the lecture but the object would not, so collect their refs alongside
+// the recording's.
+async function materialRefsFor(db, userId, lectureIds) {
+  if (!lectureIds.length) return [];
+  const rows = (await db.query(
+    'select storage_ref from lecture_materials where lecture_id = any($1::uuid[]) and user_id = $2',
+    [lectureIds, userId],
+  )).rows;
+  return rows.map((r) => r.storage_ref).filter(Boolean);
+}
+
 router.delete('/lectures/:id', requireAuth, async (req, res) => {
   const db = await pool.connect();
   try {
@@ -38,7 +50,10 @@ router.delete('/lectures/:id', requireAuth, async (req, res) => {
       await db.query('rollback');
       return res.status(404).json({ error: 'Lecture not found' });
     }
-    await deleteRecordingRefs(req.user.id, recordingRefsFor(lecture));
+    await deleteRecordingRefs(req.user.id, [
+      ...recordingRefsFor(lecture),
+      ...(await materialRefsFor(db, req.user.id, [lecture.id])),
+    ]);
     await db.query('delete from lectures where id = $1 and user_id = $2', [lecture.id, req.user.id]);
     await db.query('commit');
     return res.sendStatus(204);
@@ -64,10 +79,13 @@ router.delete('/classes/:id', requireAuth, async (req, res) => {
       return res.status(404).json({ error: 'Class not found' });
     }
     const lectureRows = (await db.query(
-      'select recording_url, recording_parts from lectures where class_id = $1 and user_id = $2',
+      'select id, recording_url, recording_parts from lectures where class_id = $1 and user_id = $2',
       [cls.id, req.user.id],
     )).rows;
-    const refs = lectureRows.flatMap((row) => recordingRefsFor(row));
+    const refs = [
+      ...lectureRows.flatMap((row) => recordingRefsFor(row)),
+      ...(await materialRefsFor(db, req.user.id, lectureRows.map((r) => r.id))),
+    ];
     await deleteRecordingRefs(req.user.id, refs);
     // Foreign keys are ON DELETE CASCADE, so all derived academic rows are
     // removed consistently with the class in this same transaction.

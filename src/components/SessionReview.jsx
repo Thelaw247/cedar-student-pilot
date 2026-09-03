@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Loader2, X, Brain, Check, ChevronRight, Award, TrendingUp, BookOpen, Target } from 'lucide-react';
+import { Loader2, X, Brain, ChevronRight, Award, TrendingUp, BookOpen, Target } from 'lucide-react';
+import QuizReview, { ChoiceOptions, isChoiceCorrect } from '@/components/quiz/QuizReview';
 
 export default function SessionReview({
   classId,
@@ -54,42 +55,13 @@ export default function SessionReview({
   const submitReview = async () => {
     setGenerating(true);
     try {
-      // Grade objective questions locally, then send all written answers in a
-      // single authenticated backend request. LLM credentials and grading
-      // prompts never belong in the browser.
-      const written = [];
+      // Every question is multiple choice and graded here; the server
+      // validated the shape (server/lib/quizQuestions.js). No written-answer
+      // grading round trip any more.
       const evaluatedQuestions = questions.map((q, idx) => {
         const userAnswer = answers[idx] || '';
-        if (!userAnswer) return { ...q, user_answer: '', is_correct: false };
-
-        if (q.type === 'multiple_choice' || q.type === 'true_false') {
-          return { ...q, user_answer: userAnswer, is_correct: userAnswer === q.correct_answer };
-        }
-        written.push({
-          index: idx,
-          question: q.question,
-          correct_answer: q.correct_answer,
-          student_answer: userAnswer,
-        });
-        return { ...q, user_answer: userAnswer, is_correct: false };
+        return { ...q, user_answer: userAnswer, is_correct: isChoiceCorrect(q, userAnswer) };
       });
-
-      if (written.length) {
-        const gradeRes = await base44.functions.invoke('generateLectureReview', {
-          grade_answers: written.map(({ question, correct_answer, student_answer }) => ({
-            question, correct_answer, student_answer,
-          })),
-        });
-        const grades = gradeRes.data?.results || [];
-        if (grades.length !== written.length) throw new Error('The grading service returned an incomplete result');
-        written.forEach(({ index }, gradeIndex) => {
-          evaluatedQuestions[index] = {
-            ...evaluatedQuestions[index],
-            is_correct: grades[gradeIndex].correct === true,
-            feedback: grades[gradeIndex].feedback || '',
-          };
-        });
-      }
 
       const selfAssessment = selfAssessmentTopics.map((topic, idx) => ({
         topic: topic.topic,
@@ -233,32 +205,12 @@ export default function SessionReview({
             </div>
           )}
 
-          {/* Question breakdown */}
+          {/* What was missed first, with explanations; correct answers fold away. */}
           <div className="rounded-xl border border-border bg-card p-5 mb-6">
-            <h3 className="text-sm font-semibold mb-3">Question Breakdown</h3>
-            <div className="space-y-3">
-              {results.evaluatedQuestions.map((q, idx) => (
-                <div key={idx} className="rounded-lg border border-border p-3">
-                  <div className="flex items-start gap-2">
-                    <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${q.is_correct ? 'bg-emerald-500/10' : 'bg-rose-500/10'}`}>
-                      {q.is_correct
-                        ? <Check className="w-3 h-3 text-emerald-600" strokeWidth={3} />
-                        : <X className="w-3 h-3 text-rose-600" strokeWidth={3} />
-                      }
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium text-foreground">{q.question}</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Your answer: <span className={q.is_correct ? 'text-emerald-600 font-medium' : 'text-rose-600 font-medium'}>{q.user_answer || '(no answer)'}</span>
-                      </p>
-                      {!q.is_correct && (
-                        <p className="text-xs text-emerald-600 mt-0.5">Correct: {q.correct_answer}</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <QuizReview
+              questions={results.evaluatedQuestions}
+              answers={Object.fromEntries(results.evaluatedQuestions.map((q, i) => [i, q.user_answer]))}
+            />
           </div>
 
           {/* Self assessment summary */}
@@ -319,68 +271,15 @@ export default function SessionReview({
               style={{ width: `${((currentQuestion + 1) / questions.length) * 100}%` }} />
           </div>
 
-          {/* Question type badge */}
-          <span className={`text-[10px] font-semibold px-2 py-1 rounded-md uppercase mb-3 inline-block ${
-            q.type === 'multiple_choice' ? 'bg-blue-500/10 text-blue-600' :
-            q.type === 'problem' ? 'bg-rose-500/10 text-rose-600' :
-            q.type === 'short_answer' ? 'bg-purple-500/10 text-purple-600' :
-            'bg-amber-500/10 text-amber-600'
-          }`}>
-            {q.type === 'multiple_choice' ? 'Multiple Choice' :
-             q.type === 'problem' ? 'Problem' :
-             q.type === 'short_answer' ? 'Short Answer' : 'One Word'}
-          </span>
+          {q.concept && (
+            <span className="text-[10px] font-semibold px-2 py-1 rounded-md uppercase mb-3 inline-block bg-blue-500/10 text-blue-600">
+              {q.concept}
+            </span>
+          )}
 
           <h3 className="font-heading text-lg sm:text-xl font-semibold mb-6">{q.question}</h3>
 
-          {/* Answer input */}
-          {q.type === 'multiple_choice' && (
-            <div className="space-y-2">
-              {q.options.map((opt, i) => (
-                <button key={i} onClick={() => handleAnswer(currentQuestion, opt)}
-                  className={`w-full text-left px-4 py-3 rounded-xl border transition-all ${
-                    answers[currentQuestion] === opt
-                      ? 'border-primary bg-primary/5 text-primary font-medium'
-                      : 'border-border bg-card text-foreground hover:border-primary/30'
-                  }`}>
-                  <span className="text-sm">{opt}</span>
-                </button>
-              ))}
-            </div>
-          )}
-
-          {q.type === 'problem' && (
-            <textarea
-              value={answers[currentQuestion] || ''}
-              onChange={e => handleAnswer(currentQuestion, e.target.value)}
-              placeholder="Show your work and enter your final answer..."
-              className="w-full px-4 py-3 rounded-xl border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 resize-none font-mono"
-              rows={6}
-              autoFocus
-            />
-          )}
-
-          {q.type === 'short_answer' && (
-            <textarea
-              value={answers[currentQuestion] || ''}
-              onChange={e => handleAnswer(currentQuestion, e.target.value)}
-              placeholder="Type your answer (1-2 sentences)..."
-              className="w-full px-4 py-3 rounded-xl border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 resize-none"
-              rows={3}
-              autoFocus
-            />
-          )}
-
-          {q.type === 'one_word' && (
-            <input
-              type="text"
-              value={answers[currentQuestion] || ''}
-              onChange={e => handleAnswer(currentQuestion, e.target.value)}
-              placeholder="One word..."
-              className="w-full px-4 py-3 rounded-xl border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
-              autoFocus
-            />
-          )}
+          <ChoiceOptions question={q} value={answers[currentQuestion]} onChange={(opt) => handleAnswer(currentQuestion, opt)} />
 
           {/* Navigation */}
           <div className="flex items-center gap-2 mt-8">

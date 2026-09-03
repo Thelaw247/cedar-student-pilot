@@ -4,10 +4,16 @@ import { pool } from '../lib/db.js';
 import { requireAuth } from '../middleware/requireAuth.js';
 import { invokeLLM, createLlmUsage, QUALITY_MODEL } from '../lib/llm.js';
 import { gateFeature, settleFeature, getBalance } from '../lib/credits.js';
+import { normalizeQuizQuestions, QUIZ_QUESTION_SCHEMA, QUIZ_FORMAT_RULES } from '../lib/quizQuestions.js';
 
 // Direct port of base44/functions/generateLectureReview/entry.ts. Two modes:
 // grading (free — the student already paid for the questions, charging again
 // to mark answers would bill the same purchase twice) and generation (billed).
+//
+// Since 2 Sep 2026 generation is multiple choice only and every question is
+// validated by lib/quizQuestions.js before it leaves the server (see the
+// note there for the blank-question incident). The grading mode is kept for
+// any older client still holding written answers; no current screen calls it.
 
 const router = express.Router();
 
@@ -101,13 +107,6 @@ Return JSON: { "results": [ { "correct": boolean, "feedback": string }, ... ] } 
     const difficultyInstruction = quickQuizMode
       ? `FOCUS: Generate ONLY the hardest, most exam-likely questions. Prioritize formulas, complex definitions, multi-step concepts, and topics explicitly flagged as exam material. Avoid easy recall questions — these should challenge a student who has already studied.`
       : `Difficulty: a normal review mix — not trivial, but not all hardest-level.`;
-    const typeMixInstruction = `Question-type mix (important):
-- Make MOST questions "multiple_choice" (4 options each).
-- Include a few "true_false" questions (these should be a real claim to judge; options are exactly ["True", "False"] and correct_answer is "True" or "False").
-- Include AT MOST 1-2 "short_answer" questions total, and only where a written explanation genuinely tests understanding better than a choice would. If nothing warrants it, use none.
-- Avoid "one_word" unless a term truly has a single unambiguous answer.
-For every question, set correct_answer to the ideal/model answer. For short_answer, correct_answer should be a concise model answer capturing the key idea a correct response must convey.`;
-
     const result = await invokeLLM({
       usage: llmUsage,
       prompt: `You are an academic tutor creating a review quiz that follows the EXACT teaching flow the professor used across ${sorted.length} lecture(s) for "${className}".
@@ -123,7 +122,7 @@ For each question, include a "lecture_index" (1-based) and "flow_position" ("sta
 
 ${difficultyInstruction}
 
-${typeMixInstruction}
+${QUIZ_FORMAT_RULES}
 
 Also generate a "teaching_flow" array that lists the major topics in the order they were taught across all lectures.
 
@@ -131,12 +130,12 @@ LECTURE CONTENT (in chronological teaching order):
 ${lectureContext}
 
 Return a JSON object with:
-- review_questions: array of {type, question, options (array, empty for non-MC), correct_answer, concept, lecture_index, flow_position}
+- review_questions: array of {type: "multiple_choice", question, options (exactly 4), correct_answer, explanation, concept, lecture_index, flow_position}
 - teaching_flow: array of {topic, lecture_index} — the major topics in the order they were taught`,
       response_json_schema: {
         type: 'object',
         properties: {
-          review_questions: { type: 'array', items: { type: 'object', properties: { type: { type: 'string', enum: ['multiple_choice', 'true_false', 'short_answer', 'one_word'] }, question: { type: 'string' }, options: { type: 'array', items: { type: 'string' } }, correct_answer: { type: 'string' }, concept: { type: 'string' }, lecture_index: { type: 'number' }, flow_position: { type: 'string', enum: ['start', 'middle', 'end'] } } } },
+          review_questions: { type: 'array', items: QUIZ_QUESTION_SCHEMA },
           teaching_flow: { type: 'array', items: { type: 'object', properties: { topic: { type: 'string' }, lecture_index: { type: 'number' } } } },
         },
       },
@@ -144,8 +143,11 @@ Return a JSON object with:
 
     await settleFeature(gate, { feature: 'lecture_review', llmUsage });
 
+    const { questions, dropped } = normalizeQuizQuestions(result?.review_questions);
+    if (dropped > 0) console.warn(`[lecture-review] dropped ${dropped} malformed question(s) from the model for user ${userId}`);
+
     res.json({
-      review_questions: result.review_questions || [], teaching_flow: result.teaching_flow || [],
+      review_questions: questions, teaching_flow: result.teaching_flow || [],
       lecture_count: sorted.length, lecture_dates: sorted.map((l) => l.date),
       lecture_titles: sorted.map((l) => l.ai_title || `Lecture — ${l.date}`),
     });

@@ -30,6 +30,7 @@ const CheckoutSuccess = lazy(() => import('./pages/CheckoutSuccess'));
 const OwnerAnalytics = lazy(() => import('./pages/OwnerAnalytics'));
 const Subscription = lazy(() => import('./pages/Subscription'));
 const Landing = lazy(() => import('./pages/Landing'));
+const Todos = lazy(() => import('./pages/Todos'));
 
 const RouteFallback = () => (
   <div className="min-h-screen flex items-center justify-center bg-background" role="status" aria-live="polite">
@@ -94,6 +95,9 @@ const AuthenticatedApp = () => {
             and its dead source purged in the conversion redesign; git history
             holds it if a real use case ever earns it back. */}
         <Route path="/planner" element={<StudyPlanner />} />
+        {/* The To-do tab: tasks professors assign in lectures land here by
+            themselves (enrichment pass), alongside the student's own. */}
+        <Route path="/todos" element={<Todos />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/focus" element={<FocusMode />} />
         <Route path="/focus/:sessionId" element={<FocusMode />} />

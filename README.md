@@ -70,6 +70,8 @@ base44 dashboard open
 
 ## Docs & Support
 
+In-repo design docs: `docs/DESIGN_SYSTEM.md`, `docs/MONETIZATION_KIT.md`, `docs/MIGRATION_AUDIT.md`, `docs/CUTOVER_RUNBOOK.md`, and `docs/LECTURE_INTELLIGENCE.md` (how a recording becomes the study page: the enrichment pass, attached materials and verification, to-dos, review quizzes).
+
 Documentation: [https://docs.base44.com/Integrations/Using-GitHub](https://docs.base44.com/Integrations/Using-GitHub)
 
 Base44 CLI command reference: [https://docs.base44.com/developers/references/cli/commands/introduction](https://docs.base44.com/developers/references/cli/commands/introduction)

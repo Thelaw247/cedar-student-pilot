@@ -43,6 +43,8 @@ import sendStudyRemindersRouter from './routes/sendStudyReminders.js';
 import filesRouter from './routes/files.js';
 import deleteAcademicDataRouter from './routes/deleteAcademicData.js';
 import createSemesterImportRouter from './routes/createSemesterImport.js';
+import enrichLectureRouter from './routes/enrichLecture.js';
+import lectureMaterialsRouter from './routes/lectureMaterials.js';
 
 export const app = express();
 const PORT = process.env.PORT || 3000;
@@ -96,6 +98,8 @@ app.use('/send-study-reminders', sendStudyRemindersRouter);
 app.use('/files', filesRouter);
 app.use('/data', deleteAcademicDataRouter);
 app.use('/create-semester-import', createSemesterImportRouter);
+app.use('/enrich-lecture', enrichLectureRouter);
+app.use('/lecture-materials', lectureMaterialsRouter);
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', service: SERVICE_NAME, timestamp: new Date().toISOString() });

@@ -11,6 +11,8 @@ import {
   logUsage, durationCost, COST_PER_30MIN_PROCESS, transcriptionCostCad, base44CostCad,
 } from '../lib/credits.js';
 import { MAX_RECORDING_BYTES, resolveRecordingStorageRef } from '../lib/r2.js';
+import { runEnrichment, syncLectureTodos } from '../lib/lectureEnrichment.js';
+import { loadLectureMaterials } from '../lib/lectureMaterials.js';
 
 // Direct port of base44/functions/processLectureRecording/entry.ts — the
 // core pipeline: fetch the stored recording, transcribe it, extract
@@ -391,6 +393,28 @@ async function runProcessingPipeline({ userId, lectureId, existing, cls, balance
       [analysis.title, analysis.summary, analysis.concepts || [], analysis.vocabulary || [], JSON.stringify(analysis.definitions || []), analysis.formulas || [], analysis.action_items || [], analysis.exam_mentions || [], lectureId]);
   } else {
     await pool.query("update lectures set status = 'complete' where id = $1", [lectureId]);
+  }
+
+  // Second pass: the structured study page (outline, concept cards with
+  // transcript anchors, formulas verified against attached materials, worked
+  // examples, exam radar, to-dos). See lib/lectureEnrichment.js. Runs after
+  // status='complete' so the base analysis is visible while this finishes;
+  // the page polls enriched_at and fills in when it lands. Non-fatal: the
+  // student can re-run it from the lecture page (enrich-lecture route).
+  try {
+    const current = (await pool.query('select * from lectures where id = $1', [lectureId])).rows[0];
+    if (!current.enriched_at) {
+      const materialRows = await loadLectureMaterials(pool, userId, lectureId);
+      const enrichment = await runEnrichment({
+        transcript, cls, lectureDate: current.date,
+        base: { title: current.ai_title, summary: current.ai_summary },
+        materialRows, llmUsage,
+      });
+      await pool.query('update lectures set ai_enrichment = $1, enriched_at = now() where id = $2', [JSON.stringify(enrichment), lectureId]);
+      await syncLectureTodos(pool, { userId, lecture: current, todos: enrichment.todos });
+    }
+  } catch (e) {
+    console.error('[recording] enrichment failed (base analysis is stored; re-run from the lecture page):', e?.message || e);
   }
 
   try {

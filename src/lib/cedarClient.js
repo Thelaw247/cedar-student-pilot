@@ -19,6 +19,7 @@ import { functionPath } from './functionPath.js';
 
 const RENDER_API_URL = import.meta.env.VITE_RENDER_API_URL;
 const MAX_RECORDING_BYTES = 24 * 1024 * 1024;
+const MAX_MATERIAL_BYTES = 20 * 1024 * 1024;
 if (!RENDER_API_URL) {
   console.error('[cedarClient] VITE_RENDER_API_URL not set — function calls will fail.');
 }
@@ -42,6 +43,8 @@ const TABLE_MAP = {
   StudySessionReview: 'study_session_reviews',
   CustomTrack: 'custom_tracks',
   Handbook: 'handbooks',
+  LectureMaterial: 'lecture_materials', // read-only from the client; the API writes rows (see files.materials)
+  Todo: 'todos',
   CreditBalance: 'credit_balances',
   UsageEvent: 'usage_events',
   ProcessedStripeEvent: 'processed_stripe_events',
@@ -254,6 +257,37 @@ const files = {
   },
 };
 
+/**
+ * Professor-supplied materials for a lecture (PDF, text, Markdown). Upload
+ * is presign → PUT → confirm like recordings; confirm also extracts the text
+ * the enrichment pass verifies formulas against. Rows are read through
+ * entities.LectureMaterial (RLS, select only); every write goes through here.
+ */
+const materials = {
+  async upload(lectureId, file) {
+    if (!(file instanceof Blob) || !file.size) throw new TypeError('A non-empty file is required');
+    if (file.size > MAX_MATERIAL_BYTES) throw new RangeError('Materials must be 20 MB or smaller');
+    const fileName = String(/** @type {any} */ (file).name || 'material');
+    const contentType = file.type || (fileName.toLowerCase().endsWith('.md') ? 'text/markdown' : 'application/octet-stream');
+    const prepared = await apiRequest('/lecture-materials/upload-url', {
+      method: 'POST',
+      body: { lecture_id: lectureId, content_type: contentType, size_bytes: file.size, file_name: fileName },
+    });
+    const uploaded = await fetch(prepared.data.upload_url, { method: 'PUT', headers: prepared.data.headers, body: file });
+    if (!uploaded.ok) throw new Error(`Material upload failed (${uploaded.status})`);
+    return (await apiRequest('/lecture-materials/confirm', {
+      method: 'POST',
+      body: { lecture_id: lectureId, key: prepared.data.key, file_name: fileName, content_type: contentType },
+    })).data;
+  },
+  async getDownloadUrl(materialId) {
+    return (await apiRequest(`/lecture-materials/download-url?id=${encodeURIComponent(materialId)}`)).data;
+  },
+  async delete(materialId) {
+    await apiRequest('/lecture-materials', { method: 'DELETE', body: { id: materialId } });
+  },
+};
+
 const integrations = {
   Core: {
     async UploadFile({ file, purpose }) {
@@ -449,4 +483,4 @@ const auth = {
 // instead. If any of the 60 files hit this, that's a real thing to fix, not
 // paper over.
 
-export const cedar = { entities, functions, auth, files, integrations };
+export const cedar = { entities, functions, auth, files, materials, integrations };

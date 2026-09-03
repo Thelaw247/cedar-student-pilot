@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Clock, GraduationCap, BookOpen, FileText, Mic, Calendar } from 'lucide-react';
+import { Search, Clock, GraduationCap, BookOpen, FileText, Mic, Calendar, ListChecks } from 'lucide-react';
 import { fetchWithCache } from '@/hooks/useEntityData';
 import { useTodaySchedule } from '@/hooks/useTodaySchedule';
 import { searchPalette, classNameFor } from '@/lib/paletteSearch';
@@ -104,6 +104,7 @@ export default function CommandPalette({ classes: classesProp = null, lectures: 
     { label: 'Start Recording', icon: Mic, run: () => { onStartRecording?.(); setOpen(false); } },
     { label: 'Go to Calendar', icon: Calendar, run: () => { navigate('/today'); setOpen(false); } },
     { label: 'Study', icon: BookOpen, run: () => { navigate('/planner'); setOpen(false); } },
+    { label: 'To-do', icon: ListChecks, run: () => { navigate('/todos'); setOpen(false); } },
     { label: 'Analytics', icon: Clock, run: () => { navigate('/analytics'); setOpen(false); } },
   ];
 

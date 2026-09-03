@@ -100,6 +100,12 @@ export function RecordingProvider({ children }) {
   const micSilentRef = useRef(false);
   const [pendingLectureId, setPendingLectureId] = useState(null);
   const [liveNotes, setLiveNotes] = useState('');
+  // Files the professor handed out, attached while recording (slides, the
+  // problem set). Held in memory until the lecture row exists, then uploaded
+  // BEFORE processing starts so the very first analysis is verified against
+  // them. A ref mirrors the state so saveAndProcess reads the latest list.
+  const [stagedMaterials, setStagedMaterials] = useState([]);
+  const stagedMaterialsRef = useRef([]);
   const [recordingLimitReached, setRecordingLimitReached] = useState(false);
   // Seeded by recoverSession() when RecordModal finds a crashed session.
   // The blob lives in a ref so saveAndProcess can run in the same tick as
@@ -555,6 +561,24 @@ export function RecordingProvider({ children }) {
         });
       }
 
+      // Attach the professor's materials before the analysis runs, so the
+      // formulas on the study page are checked against them from the start.
+      // A failed upload is not fatal to the recording: the file can be
+      // attached again from the lecture page.
+      if (stagedMaterialsRef.current.length && typeof base44.materials?.upload === 'function') {
+        const remaining = [];
+        for (const file of stagedMaterialsRef.current) {
+          try {
+            await base44.materials.upload(lectureId, file);
+          } catch (e) {
+            console.error('[recording] material upload failed; attach it from the lecture page:', e?.message || e);
+            remaining.push(file);
+          }
+        }
+        stagedMaterialsRef.current = remaining;
+        setStagedMaterials(remaining);
+      }
+
       await base44.functions.invoke('processLectureRecording', { lecture_id: lectureId });
       await waitForLectureProcessing(lectureId);
 
@@ -572,6 +596,8 @@ export function RecordingProvider({ children }) {
       setSavedSegmentCount(0);
       setPendingLectureId(null);
       pendingLectureIdRef.current = null;
+      stagedMaterialsRef.current = [];
+      setStagedMaterials([]);
       setProcessing(false);
       setReadyToSave(false);
       setReviewLectureId(lectureId);
@@ -628,6 +654,8 @@ export function RecordingProvider({ children }) {
     setPendingLectureId(null);
     pendingLectureIdRef.current = null;
     setLiveNotes('');
+    stagedMaterialsRef.current = [];
+    setStagedMaterials([]);
     setCls(null);
     clsRef.current = null;
     window.dispatchEvent(new Event('cedar-data-changed'));
@@ -651,6 +679,8 @@ export function RecordingProvider({ children }) {
     setPendingLectureId(null);
     pendingLectureIdRef.current = null;
     setLiveNotes('');
+    stagedMaterialsRef.current = [];
+    setStagedMaterials([]);
     setCls(null);
     clsRef.current = null;
     await deleteOrphanedParts(orphans);
@@ -667,6 +697,19 @@ export function RecordingProvider({ children }) {
     setLiveNotes('');
     setSaveError('');
     setReadyToSave(false);
+  }, []);
+
+  const addStagedMaterials = useCallback((files) => {
+    const list = [...(files || [])].filter((f) => f && f.size > 0).slice(0, 6);
+    if (!list.length) return;
+    const next = [...stagedMaterialsRef.current, ...list].slice(0, 12);
+    stagedMaterialsRef.current = next;
+    setStagedMaterials(next);
+  }, []);
+  const removeStagedMaterial = useCallback((index) => {
+    const next = stagedMaterialsRef.current.filter((_, i) => i !== index);
+    stagedMaterialsRef.current = next;
+    setStagedMaterials(next);
   }, []);
 
   const value = {
@@ -686,6 +729,10 @@ export function RecordingProvider({ children }) {
     // "Process later" is only meaningful once the audio is durable server-side.
     canProcessLater: !!pendingLectureId && !recoveredBlob,
     liveNotes,
+    stagedMaterials,
+    addStagedMaterials,
+    removeStagedMaterial,
+    canAttachMaterials: typeof base44.materials?.upload === 'function',
     recordingLimitReached,
     recoveredBlob,
     start,

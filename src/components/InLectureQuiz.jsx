@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { X, Loader2, Check, Clock, Brain, ArrowRight } from 'lucide-react';
+import QuizReview, { ChoiceOptions, isChoiceCorrect } from '@/components/quiz/QuizReview';
 
 const QUIZ_DURATION = 300; // 5 minutes in seconds
 
@@ -15,60 +16,11 @@ export default function InLectureQuiz({ lecture, cls, onClose }) {
   const [showResult, setShowResult] = useState(false);
   const [coverageWritten, setCoverageWritten] = useState(false);
   const [error, setError] = useState(null);
-  const [grades, setGrades] = useState({});   // index -> { correct, feedback } for short answers
-  const [grading, setGrading] = useState(false);
 
-  // A question needs AI concept-grading only when it's free-text (short answer
-  // or one-word); multiple choice and true/false are exact-match locally.
-  const isFreeText = (q) => q.type === 'short_answer' || q.type === 'one_word';
-
-  // Objective correctness for choice-type questions (exact match).
-  const choiceCorrect = (q, ans) =>
-    !!ans && ans.trim().toLowerCase() === (q.correct_answer || '').trim().toLowerCase();
-
-  // Unified correctness: AI grade for free-text, exact match otherwise.
-  const isCorrect = (q, i) => {
-    if (isFreeText(q)) return grades[i]?.correct === true;
-    return choiceCorrect(q, answers[i]);
-  };
-
-  // Run concept-based grading for the free-text answers, then show results.
-  const finishQuiz = async () => {
-    const freeTextItems = [];
-    questions.forEach((q, i) => {
-      if (isFreeText(q)) {
-        freeTextItems.push({
-          index: i,
-          question: q.question,
-          correct_answer: q.correct_answer,
-          student_answer: answers[i] || '',
-        });
-      }
-    });
-
-    if (freeTextItems.length > 0) {
-      setGrading(true);
-      try {
-        const res = await base44.functions.invoke('generateLectureReview', {
-          grade_answers: freeTextItems.map(({ question, correct_answer, student_answer }) => ({ question, correct_answer, student_answer })),
-        });
-        const out = res.data?.results || [];
-        const mapped = {};
-        freeTextItems.forEach((item, k) => {
-          if (out[k]) mapped[item.index] = out[k];
-        });
-        setGrades(mapped);
-      } catch (e) {
-        // If grading fails, fall back to marking free-text as needs-review
-        // rather than silently wrong.
-        const mapped = {};
-        freeTextItems.forEach((item) => { mapped[item.index] = { correct: false, feedback: 'Could not auto-grade — compare your answer with the model answer below.' }; });
-        setGrades(mapped);
-      }
-      setGrading(false);
-    }
-    setShowResult(true);
-  };
+  // Every question is multiple choice and graded locally; the server has
+  // already validated the shape (server/lib/quizQuestions.js).
+  const isCorrect = (q, i) => isChoiceCorrect(q, answers[i]);
+  const finishQuiz = () => setShowResult(true);
 
   // Generate quiz on mount
   useEffect(() => {
@@ -245,38 +197,8 @@ export default function InLectureQuiz({ lecture, cls, onClose }) {
             </div>
           </div>
 
-          {/* Answer-by-answer review — your answer next to the model answer */}
-          <div className="space-y-3 mb-6">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Your Answers</p>
-            {questions.map((q, i) => {
-              const correct = isCorrect(q, i);
-              const yourAns = answers[i];
-              const freeText = isFreeText(q);
-              return (
-                <div key={i} className={`rounded-xl border p-3 text-left ${correct ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-rose-500/30 bg-rose-500/5'}`}>
-                  <div className="flex items-start gap-2">
-                    {correct
-                      ? <Check className="w-4 h-4 text-emerald-600 mt-0.5 flex-shrink-0" />
-                      : <X className="w-4 h-4 text-rose-600 mt-0.5 flex-shrink-0" />}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-foreground mb-1.5">{q.question}</p>
-                      <p className="text-xs text-muted-foreground">
-                        Your answer: <span className={correct ? 'text-emerald-600 font-medium' : 'text-rose-600 font-medium'}>{yourAns || '— (blank)'}</span>
-                      </p>
-                      {(!correct || freeText) && q.correct_answer && (
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          {freeText ? 'Model answer' : 'Correct answer'}: <span className="text-emerald-600 font-medium">{q.correct_answer}</span>
-                        </p>
-                      )}
-                      {freeText && grades[i]?.feedback && (
-                        <p className="text-xs text-foreground/70 mt-1 italic">{grades[i].feedback}</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          {/* What was missed first, with the explanation; correct ones fold away. */}
+          <QuizReview questions={questions} answers={answers} className="mb-6" />
 
           <div className="flex gap-2">
             <button onClick={onClose} className="flex-1 py-3 rounded-xl border border-border text-sm font-medium text-muted-foreground hover:bg-muted">
@@ -331,35 +253,9 @@ export default function InLectureQuiz({ lecture, cls, onClose }) {
         <h3 className="font-heading text-lg font-semibold mb-6">{current.question}</h3>
 
         {/* Answer input */}
-        {((current.type === 'multiple_choice' || current.type === 'true_false') && current.options?.length > 0) ? (
-          <div className="space-y-2 mb-6">
-            {current.options.map((opt, i) => {
-              const selected = answers[currentIdx] === opt;
-              return (
-                <button
-                  key={i}
-                  onClick={() => setAnswers({ ...answers, [currentIdx]: opt })}
-                  className={`w-full text-left px-4 py-3 rounded-xl border text-sm transition-all ${
-                    selected
-                      ? 'border-primary bg-primary/5 text-primary font-medium'
-                      : 'border-border hover:border-primary/30'
-                  }`}
-                >
-                  {opt}
-                </button>
-              );
-            })}
-          </div>
-        ) : (
-          <input
-            type="text"
-            value={answers[currentIdx] || ''}
-            onChange={e => setAnswers({ ...answers, [currentIdx]: e.target.value })}
-            placeholder="Type your answer..."
-            className="w-full px-4 py-3 rounded-xl border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 mb-6"
-            autoFocus
-          />
-        )}
+        <div className="mb-6">
+          <ChoiceOptions question={current} value={answers[currentIdx]} onChange={(opt) => setAnswers({ ...answers, [currentIdx]: opt })} />
+        </div>
 
         {/* Navigation */}
         <div className="flex gap-2">
@@ -371,10 +267,10 @@ export default function InLectureQuiz({ lecture, cls, onClose }) {
           {isLast ? (
             <button
               onClick={finishQuiz}
-              disabled={!answers[currentIdx] || grading}
+              disabled={!answers[currentIdx]}
               className="flex-1 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-1.5"
             >
-              {grading ? <><Loader2 className="w-4 h-4 animate-spin" /> Grading…</> : <><Check className="w-4 h-4" /> Finish Quiz</>}
+              <Check className="w-4 h-4" /> Finish Quiz
             </button>
           ) : (
             <button

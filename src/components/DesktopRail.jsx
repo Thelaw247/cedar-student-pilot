@@ -29,6 +29,7 @@ const QUICK_ACTIONS = [
   { to: '/focus', icon: Headphones, label: 'Focus session' },
   { to: '/lecture-review/today', icon: ListChecks, label: 'Review today', feature: 'lecture_review' },
   { to: '/planner', icon: BookOpen, label: 'Study planner' },
+  { to: '/todos', icon: ListChecks, label: 'To-do list' },
   { to: '/classes?add=1', icon: CalendarPlus, label: 'Add a class' },
 ];
 

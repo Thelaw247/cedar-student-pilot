@@ -27,9 +27,15 @@ export default function Widget({
   storageKey = undefined,
   className = '',
   padded = false,
+  // Controlled mode: pass `open` (and `onOpenChange`) to drive the collapse
+  // from outside — the lecture page uses it to pop the transcript open when
+  // a concept's "show in transcript" is tapped. Uncontrolled otherwise.
+  open: openProp = undefined,
+  onOpenChange = undefined,
+  id = undefined,
   children,
 }) {
-  const [open, setOpen] = useState(() => {
+  const [openState, setOpenState] = useState(() => {
     if (!collapsible) return true;
     if (storageKey) {
       try {
@@ -40,15 +46,17 @@ export default function Widget({
     return defaultOpen;
   });
 
+  const controlled = openProp !== undefined;
+  const open = controlled ? openProp : openState;
+
   const toggle = () => {
     if (!collapsible) return;
-    setOpen((v) => {
-      const next = !v;
-      if (storageKey) {
-        try { localStorage.setItem(`cedar-w-${storageKey}`, next ? '1' : '0'); } catch { /* best-effort */ }
-      }
-      return next;
-    });
+    const next = !open;
+    if (storageKey) {
+      try { localStorage.setItem(`cedar-w-${storageKey}`, next ? '1' : '0'); } catch { /* best-effort */ }
+    }
+    if (controlled) onOpenChange?.(next);
+    else setOpenState(next);
   };
 
   const onKeyDown = (e) => {
@@ -60,7 +68,7 @@ export default function Widget({
   };
 
   return (
-    <section className={`rounded-xl border border-border bg-card shadow-1 overflow-hidden ${className}`}>
+    <section id={id} className={`rounded-xl border border-border bg-card shadow-1 overflow-hidden ${className}`}>
       <div
         role={collapsible ? 'button' : undefined}
         tabIndex={collapsible ? 0 : undefined}

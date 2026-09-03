@@ -17,6 +17,7 @@ const USER_TABLES = [
   'flashcards',
   'handbooks',
   'knowledge_coverage',
+  'lecture_materials',
   'lectures',
   'notes',
   'practice_questions',
@@ -25,6 +26,7 @@ const USER_TABLES = [
   'study_records',
   'study_session_reviews',
   'study_sessions',
+  'todos',
   'usage_events',
 ];
 

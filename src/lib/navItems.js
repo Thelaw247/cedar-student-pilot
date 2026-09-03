@@ -1,4 +1,4 @@
-import { CalendarDays, BookOpen, Brain, BarChart3, Settings } from 'lucide-react';
+import { CalendarDays, BookOpen, Brain, ListChecks, BarChart3, Settings } from 'lucide-react';
 
 /**
  * Single source of truth for app navigation.
@@ -20,6 +20,10 @@ export const NAV_ITEMS = [
   { to: '/today',     label: 'Today',     icon: CalendarDays, primary: true },
   { to: '/classes',   label: 'Classes',   icon: BookOpen,     primary: true },
   { to: '/planner',   label: 'Study',     icon: Brain,        primary: true },
+  // To-do (3 Sep 2026): the checklist the enrichment pass fills from each
+  // lecture, plus the student's own items. Six primary tabs still fit a
+  // 360px bar at 11px labels; the mobile bar renders them evenly.
+  { to: '/todos',     label: 'To-do',     icon: ListChecks,   primary: true },
   { to: '/analytics', label: 'Analytics', icon: BarChart3,    primary: true },
   { to: '/settings',  label: 'Settings',  icon: Settings,     primary: true },
 ];

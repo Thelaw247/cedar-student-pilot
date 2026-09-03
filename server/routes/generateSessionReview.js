@@ -3,8 +3,11 @@ import { pool } from '../lib/db.js';
 import { requireAuth } from '../middleware/requireAuth.js';
 import { invokeLLM, createLlmUsage } from '../lib/llm.js';
 import { gateFeature, settleFeature } from '../lib/credits.js';
+import { normalizeQuizQuestions, QUIZ_QUESTION_SCHEMA, QUIZ_FORMAT_RULES } from '../lib/quizQuestions.js';
 
-// Direct port of base44/functions/generateSessionReview/entry.ts.
+// Direct port of base44/functions/generateSessionReview/entry.ts. Since 2 Sep
+// 2026 the questions are multiple choice only and validated server-side
+// (lib/quizQuestions.js); the old problem/short-answer mix is gone.
 
 const router = express.Router();
 const COMPLEX_KEYWORDS = ['calculus', 'math', 'physics', 'chemistry', 'engineering', 'statistics', 'algebra', 'geometry', 'trigonometry', 'differential', 'linear algebra', 'discrete', 'economics', 'finance', 'accounting', 'probability'];
@@ -46,15 +49,14 @@ router.post('/', requireAuth, async (req, res) => {
 
     const uniqueConcepts = [...new Set(lecturesWithContent.flatMap((l) => l.ai_concepts || []))];
 
+    // Quantitative classes still get real problems — they are just posed as
+    // multiple choice with numeric distractors that come from the classic
+    // mistakes (wrong sign, wrong unit, a skipped step).
     const questionTypeInstruction = isComplex
-      ? `Generate a review with EXACTLY 8 questions:
-- 3 actual problem-solving questions (type: "problem") — real problems the student must solve step by step, like exam problems. The "question" field contains the full problem statement. The "correct_answer" is the final answer. The student will solve it and submit their answer. Make problems that use the concepts and formulas from the lectures.
-- 3 multiple choice questions (4 options each)
-- 2 short answer questions (1-2 sentence answers)`
-      : `Generate a review with EXACTLY 8 questions mixing these types:
-- 3 multiple choice questions (4 options each)
-- 3 short answer questions (1-2 sentence answers)
-- 2 one-word answer questions`;
+      ? `Generate a review with EXACTLY 8 multiple-choice questions:
+- 3 problem-solving questions: a complete, solvable problem statement using the concepts and formulas from the lectures; the options are four candidate final answers (with units where relevant) and the distractors are the results of common mistakes.
+- 5 conceptual questions testing understanding of the material.`
+      : `Generate a review with EXACTLY 8 multiple-choice questions that test real understanding, not just memorization. Vary difficulty. Use concepts from the lectures.`;
 
     const result = await invokeLLM({
       usage: llmUsage,
@@ -62,20 +64,20 @@ router.post('/', requireAuth, async (req, res) => {
 
 ${questionTypeInstruction}
 
+${QUIZ_FORMAT_RULES}
+
 Also generate 5 self-assessment topics that the student should rate their proficiency on.
 
 LECTURE CONTENT:
 ${lectureContext}
 
 Return a JSON object with:
-- review_questions: array of {type, question, options (array, empty for non-MC), correct_answer, concept (the concept being tested)}
-- self_assessment_topics: array of {topic, concept} - things like "Understanding of X", "Ability to apply Y formula", etc.
-
-${isComplex ? 'For problem questions, make them actual solvable problems based on the concepts and formulas from the lectures. The student should be able to solve them using the knowledge covered. Put the complete problem statement in the "question" field and just the final answer in "correct_answer".' : 'Make questions that test real understanding, not just memorization. Vary difficulty. Use concepts from the lectures.'}`,
+- review_questions: array of {type: "multiple_choice", question, options (exactly 4), correct_answer, explanation, concept (the concept being tested)}
+- self_assessment_topics: array of {topic, concept} - things like "Understanding of X", "Ability to apply Y formula", etc.`,
       response_json_schema: {
         type: 'object',
         properties: {
-          review_questions: { type: 'array', items: { type: 'object', properties: { type: { type: 'string', enum: ['multiple_choice', 'short_answer', 'one_word', 'problem'] }, question: { type: 'string' }, options: { type: 'array', items: { type: 'string' } }, correct_answer: { type: 'string' }, concept: { type: 'string' } } } },
+          review_questions: { type: 'array', items: QUIZ_QUESTION_SCHEMA },
           self_assessment_topics: { type: 'array', items: { type: 'object', properties: { topic: { type: 'string' }, concept: { type: 'string' } } } },
         },
       },
@@ -83,8 +85,11 @@ ${isComplex ? 'For problem questions, make them actual solvable problems based o
 
     await settleFeature(gate, { feature: 'session_review', llmUsage, extra: { class_id } });
 
+    const { questions, dropped } = normalizeQuizQuestions(result?.review_questions);
+    if (dropped > 0) console.warn(`[session-review] dropped ${dropped} malformed question(s) from the model for user ${userId}`);
+
     res.json({
-      review_questions: result.review_questions || [], self_assessment_topics: result.self_assessment_topics || [],
+      review_questions: questions, self_assessment_topics: result.self_assessment_topics || [],
       total_concepts: uniqueConcepts.length, lecture_ids: lecturesWithContent.map((l) => l.id),
       all_concepts: uniqueConcepts, is_complex: isComplex,
     });

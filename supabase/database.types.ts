@@ -486,12 +486,76 @@ export type Database = {
           },
         ]
       }
+      lecture_materials: {
+        Row: {
+          class_id: string
+          content_type: string
+          created_at: string
+          extracted_text: string | null
+          extraction_status: string
+          file_name: string
+          id: string
+          lecture_id: string
+          page_count: number | null
+          size_bytes: number
+          storage_ref: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          class_id: string
+          content_type: string
+          created_at?: string
+          extracted_text?: string | null
+          extraction_status?: string
+          file_name: string
+          id?: string
+          lecture_id: string
+          page_count?: number | null
+          size_bytes: number
+          storage_ref: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          class_id?: string
+          content_type?: string
+          created_at?: string
+          extracted_text?: string | null
+          extraction_status?: string
+          file_name?: string
+          id?: string
+          lecture_id?: string
+          page_count?: number | null
+          size_bytes?: number
+          storage_ref?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lecture_materials_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lecture_materials_lecture_id_fkey"
+            columns: ["lecture_id"]
+            isOneToOne: false
+            referencedRelation: "lectures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lectures: {
         Row: {
           actual_instructor: string | null
           ai_action_items: string[]
           ai_concepts: string[]
           ai_definitions: Json
+          ai_enrichment: Json
           ai_exam_mentions: string[]
           ai_formulas: string[]
           ai_summary: string | null
@@ -501,6 +565,7 @@ export type Database = {
           created_at: string
           date: string
           duration_seconds: number | null
+          enriched_at: string | null
           id: string
           instructor_confirmed: boolean
           is_ai_estimated: boolean
@@ -520,6 +585,7 @@ export type Database = {
           ai_action_items?: string[]
           ai_concepts?: string[]
           ai_definitions?: Json
+          ai_enrichment?: Json
           ai_exam_mentions?: string[]
           ai_formulas?: string[]
           ai_summary?: string | null
@@ -529,6 +595,7 @@ export type Database = {
           created_at?: string
           date: string
           duration_seconds?: number | null
+          enriched_at?: string | null
           id?: string
           instructor_confirmed?: boolean
           is_ai_estimated?: boolean
@@ -548,6 +615,7 @@ export type Database = {
           ai_action_items?: string[]
           ai_concepts?: string[]
           ai_definitions?: Json
+          ai_enrichment?: Json
           ai_exam_mentions?: string[]
           ai_formulas?: string[]
           ai_summary?: string | null
@@ -557,6 +625,7 @@ export type Database = {
           created_at?: string
           date?: string
           duration_seconds?: number | null
+          enriched_at?: string | null
           id?: string
           instructor_confirmed?: boolean
           is_ai_estimated?: boolean
@@ -1021,6 +1090,72 @@ export type Database = {
           value?: string | null
         }
         Relationships: []
+      }
+      todos: {
+        Row: {
+          class_id: string | null
+          created_at: string
+          detail: string | null
+          done: boolean
+          done_at: string | null
+          due_date: string | null
+          id: string
+          kind: string
+          lecture_id: string | null
+          position: number
+          source: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          class_id?: string | null
+          created_at?: string
+          detail?: string | null
+          done?: boolean
+          done_at?: string | null
+          due_date?: string | null
+          id?: string
+          kind?: string
+          lecture_id?: string | null
+          position?: number
+          source?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          class_id?: string | null
+          created_at?: string
+          detail?: string | null
+          done?: boolean
+          done_at?: string | null
+          due_date?: string | null
+          id?: string
+          kind?: string
+          lecture_id?: string | null
+          position?: number
+          source?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "todos_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "todos_lecture_id_fkey"
+            columns: ["lecture_id"]
+            isOneToOne: false
+            referencedRelation: "lectures"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       usage_events: {
         Row: {
