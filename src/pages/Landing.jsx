@@ -41,7 +41,7 @@ function LandingFooter() {
 export default function Landing() {
   useEffect(() => {
     const previousTitle = document.title;
-    document.title = 'Praelecta — Stop Rebuilding Your Class Before Every Exam';
+    document.title = "Praelecta — You show up, we'll do the rest";
 
     let description = document.querySelector('meta[name="description"]');
     const previousDescription = description?.getAttribute('content') || null;
@@ -64,10 +64,14 @@ export default function Landing() {
   // pass - above the z-index:-1 backdrop rather than below it - and hid the
   // waveform completely. The base colour is painted by .landing-backdrop.
   return (
-    <div className="landing-surface relative min-h-screen overflow-x-hidden text-foreground selection:bg-primary/25 selection:text-foreground">
-      {/* The owner's waveform, held behind everything and dimmed so the page
-          stays readable. Fixed, so scrolling moves content across it. */}
+    <>
+      {/* The owner's waveform, held still behind everything while the page
+          scrolls over it. It is a SIBLING of the surface below, deliberately:
+          the surface is overflow-x:hidden, and iOS Safari clips a fixed child
+          to that scroll container instead of the viewport. Inside it, the
+          waveform vanished on phones and the navy floor stopped mid-page. */}
       <div className="landing-backdrop" aria-hidden="true" />
+      <div className="landing-surface relative min-h-screen overflow-x-hidden text-foreground selection:bg-primary/25 selection:text-foreground">
       <LandingNav />
       <main>
         <LandingHero />
@@ -80,6 +84,7 @@ export default function Landing() {
         <LandingEnd />
       </main>
       <LandingFooter />
-    </div>
+      </div>
+    </>
   );
 }

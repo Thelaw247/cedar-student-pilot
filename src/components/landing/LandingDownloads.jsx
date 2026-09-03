@@ -1,5 +1,5 @@
 import React from 'react';
-import { Download, Laptop, Mic, RefreshCw } from 'lucide-react';
+import { Download, Laptop, Mic, RefreshCw, ShieldQuestion } from 'lucide-react';
 import { DESKTOP_DOWNLOADS, DESKTOP_RELEASES_URL, detectDesktopOs, isRunningInDesktopApp } from '@/lib/desktopDownloads';
 
 const perks = [
@@ -21,7 +21,7 @@ export default function LandingDownloads() {
             <p className="text-sm font-semibold text-primary">Desktop app</p>
             <h2 className="mt-2 text-3xl font-bold tracking-[-0.04em] text-foreground sm:text-4xl">Runs on your laptop too. Same account, no tab to lose.</h2>
             <p className="mt-4 max-w-xl text-base leading-7 text-muted-foreground">
-              Windows, Mac and Linux. Sign in once and everything you recorded is already there, and every improvement to Praelecta shows up the next time you open it, with nothing to update.
+              Windows and Linux today, Mac shortly. Sign in once and everything you recorded is already there, and every improvement to Praelecta shows up the next time you open it, with nothing to update.
             </p>
             <div className="mt-6 space-y-4">
               {perks.map((perk) => (
@@ -66,9 +66,21 @@ export default function LandingDownloads() {
                     );
                   })}
                 </div>
-                <p className="mt-5 text-xs leading-5 text-muted-foreground">
-                  Free to install; it uses the same plan as your account. On a Mac, the first time you open it, right-click the app and choose Open.{' '}
-                  <a href={DESKTOP_RELEASES_URL} target="_blank" rel="noreferrer" className="font-semibold text-primary hover:text-foreground">All versions</a>
+                {current === 'mac' && (
+                  <p className="mt-4 rounded-xl border border-border bg-muted/60 px-4 py-3 text-xs leading-5 text-muted-foreground">
+                    <span className="font-semibold text-foreground">The Mac app is not out yet.</span> It is built and waiting on a
+                    round of testing on a real Mac before we hand it to anyone. Praelecta runs fully in your browser in the meantime.
+                  </p>
+                )}
+                <p className="mt-5 flex items-start gap-2 text-xs leading-5 text-muted-foreground">
+                  <ShieldQuestion className="mt-0.5 h-4 w-4 flex-none text-primary" />
+                  <span>
+                    <span className="font-semibold text-foreground">If Windows or your antivirus warns you:</span> the app is not signed
+                    with a paid certificate yet, and unsigned installers from a small publisher get flagged on sight. Choose
+                    &ldquo;More info&rdquo; then &ldquo;Run anyway&rdquo;, or download the <span className="font-semibold text-foreground">zip</span> instead — same app,
+                    no installer, far less likely to be blocked.{' '}
+                    <a href={DESKTOP_RELEASES_URL} target="_blank" rel="noreferrer" className="font-semibold text-primary hover:text-foreground">Checksums</a>
+                  </span>
                 </p>
               </>
             )}

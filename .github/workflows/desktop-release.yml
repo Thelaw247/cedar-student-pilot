@@ -3,10 +3,13 @@
 # download buttons point:
 #
 #   https://github.com/Thelaw247/cedar-student-pilot/releases/latest/download/Praelecta-Setup.exe
-#   .../releases/latest/download/Praelecta-mac-arm64.dmg
-#   .../releases/latest/download/Praelecta-mac-x64.dmg
+#   .../releases/latest/download/Praelecta-win.zip
 #   .../releases/latest/download/Praelecta-linux.AppImage
 #   .../releases/latest/download/Praelecta-linux.deb
+#
+# macOS is configured in desktop/package.json but deliberately NOT built here:
+# nobody can test a .dmg yet, and shipping an installer no one has opened is
+# worse than shipping none. Re-add the macos-latest matrix entry to turn it on.
 #
 # To ship a version: tag the commit `desktop-vX.Y.Z` and push the tag. The
 # X.Y.Z becomes the app version. A manual run (workflow_dispatch) builds the
@@ -16,10 +19,11 @@
 #   macOS   CSC_LINK (base64 .p12), CSC_KEY_PASSWORD, and for notarization
 #           APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD, APPLE_TEAM_ID
 #   Windows WIN_CSC_LINK (base64 .pfx), WIN_CSC_KEY_PASSWORD
-# Without them the installers still build and work; macOS shows the
-# "unidentified developer" warning (right-click > Open the first time) and
-# Windows shows SmartScreen's "more info > run anyway". Add the secrets once
-# the Apple Developer / code-signing certificates exist and re-run the tag.
+# Without them the installers still build and run, but Windows SmartScreen and
+# most antivirus engines flag an unsigned .exe from an unknown publisher --
+# it is the missing signature they object to, not the contents. Praelecta-win.zip
+# is the escape hatch until a certificate exists: same app, no installer stub,
+# far less likely to be quarantined. Add WIN_CSC_LINK and re-run the tag to sign.
 name: Desktop release
 
 on:
@@ -41,12 +45,9 @@ jobs:
         include:
           - os: windows-latest
             name: Windows
-            pattern: desktop/release/Praelecta-Setup.exe
-          - os: macos-latest
-            name: macOS
             pattern: |
-              desktop/release/Praelecta-mac-arm64.dmg
-              desktop/release/Praelecta-mac-x64.dmg
+              desktop/release/Praelecta-Setup.exe
+              desktop/release/Praelecta-win.zip
           - os: ubuntu-latest
             name: Linux
             pattern: |
@@ -129,6 +130,11 @@ jobs:
           path: installers
           merge-multiple: true
       - run: ls -la installers
+      - name: Checksums
+        run: |
+          cd installers
+          sha256sum * > SHA256SUMS.txt
+          cat SHA256SUMS.txt
       - uses: softprops/action-gh-release@v2
         with:
           name: Praelecta desktop ${{ github.ref_name }}

@@ -52,19 +52,23 @@ test('the backdrop points at artwork that actually exists', () => {
   assert.ok(fs.existsSync(file), `public${url[1]} does not exist — the backdrop would render as the flat floor colour`);
 });
 
-test('the backdrop is absolute, so its floor reaches the bottom on mobile', () => {
-  // It was position:fixed, which iOS Safari clips to .landing-surface's
-  // overflow-x:hidden scroll container instead of the viewport — the waveform
-  // looked unloaded and the navy floor stopped partway down. Absolute, sized to
-  // the full-height wrapper, is what fixes it; fixed must not creep back.
-  assert.match(block('.landing-backdrop'), /position:\s*absolute/);
-  assert.doesNotMatch(block('.landing-backdrop'), /position:\s*fixed/);
-  assert.match(LANDING, /className="landing-backdrop"/, 'the backdrop element is not rendered');
+test('the backdrop is fixed, so the page scrolls over a held image', () => {
+  assert.match(block('.landing-backdrop'), /position:\s*fixed/,
+    'the waveform scrolls away with the content instead of staying put');
+  assert.match(block('.landing-backdrop'), /inset:\s*0/);
 });
 
-test('the waveform is pinned to the top band, not stretched over the whole page', () => {
-  // On a long page, inset:0 + cover would zoom the artwork into a blur; a fixed
-  // viewport height keeps it a top band that the navy floor carries downward.
-  assert.match(block('.landing-backdrop::before'), /height:\s*100vh/,
-    'the artwork layer has no bounded height, so a tall page would zoom it enormously');
+test('the backdrop sits OUTSIDE the overflow-hidden surface', () => {
+  // This is the whole reason it can be fixed. .landing-surface is
+  // overflow-x:hidden, which makes it a scroll container, and iOS Safari clips
+  // a fixed child to that container rather than the viewport: the waveform
+  // looked unloaded and the navy floor stopped partway down the page. Rendered
+  // as a SIBLING, nothing clips it. Moving it back inside restores both bugs,
+  // which is why this is asserted on the markup and not left to memory.
+  const backdropAt = LANDING.indexOf('className="landing-backdrop"');
+  const surfaceAt = LANDING.indexOf('className="landing-surface');
+  assert.ok(backdropAt > -1, 'the backdrop element is not rendered');
+  assert.ok(surfaceAt > -1, 'the landing-surface wrapper is gone');
+  assert.ok(backdropAt < surfaceAt,
+    'the backdrop is inside .landing-surface again — iOS will clip it to that scroll container');
 });

@@ -16,19 +16,16 @@ const downloads = read('../../src/lib/desktopDownloads.js');
 const landing = read('../../src/pages/Landing.jsx');
 const main = read('../../desktop/main.cjs');
 
-const EXPECTED = ['Praelecta-Setup.exe', 'Praelecta-mac-arm64.dmg', 'Praelecta-mac-x64.dmg', 'Praelecta-linux.AppImage', 'Praelecta-linux.deb'];
+const EXPECTED = ['Praelecta-Setup.exe', 'Praelecta-win.zip', 'Praelecta-linux.AppImage', 'Praelecta-linux.deb'];
 
 test('electron-builder produces exactly the fixed installer names the site links to', () => {
-  assert.equal(pkg.build.win.artifactName, 'Praelecta-Setup.${ext}');
-  assert.equal(pkg.build.mac.artifactName, 'Praelecta-mac-${arch}.${ext}');
+  assert.equal(pkg.build.nsis.artifactName, 'Praelecta-Setup.${ext}');
+  assert.equal(pkg.build.win.artifactName, 'Praelecta-win.${ext}');
   assert.equal(pkg.build.linux.artifactName, 'Praelecta-linux.${ext}');
-  assert.deepEqual(pkg.build.win.target.map((t) => t.target), ['nsis']);
-  assert.deepEqual(pkg.build.mac.target.map((t) => t.target), ['dmg']);
-  // Two separate Mac builds, not a universal one: @electron/universal refuses to
-  // merge per-arch apps whose signatures differ, which is exactly what ad-hoc
-  // signing each of them produces (the 1.0.1 build). Separate also halves the
-  // download.
-  assert.deepEqual(pkg.build.mac.target[0].arch.slice().sort(), ['arm64', 'x64']);
+  // The zip is the antivirus escape hatch: an unsigned NSIS stub is what gets
+  // quarantined, and a plain archive of the same app usually is not. Losing it
+  // leaves a blocked student with nothing to fall back to.
+  assert.deepEqual(pkg.build.win.target.map((t) => t.target), ['nsis', 'zip']);
   assert.deepEqual(pkg.build.linux.target.map((t) => t.target).sort(), ['AppImage', 'deb']);
   // Every name in the download list must be one electron-builder emits.
   for (const file of EXPECTED) assert.match(downloads, new RegExp(file.replace('.', '\\.')), `${file} missing from desktopDownloads.js`);
@@ -41,8 +38,18 @@ test('the release workflow uploads those same files and publishes them as the la
   assert.match(workflow, /softprops\/action-gh-release@v2/);
   assert.match(workflow, /make_latest: true/);
   assert.match(workflow, /contents: write/);
-  // All three OS runners, or one platform silently disappears from the release.
-  for (const runner of ['windows-latest', 'macos-latest', 'ubuntu-latest']) assert.match(workflow, new RegExp(runner));
+  for (const runner of ['windows-latest', 'ubuntu-latest']) assert.match(workflow, new RegExp(runner));
+  assert.match(workflow, /sha256sum \* > SHA256SUMS\.txt/, 'publish checksums so a flagged download can be verified');
+});
+
+test('macOS is configured but not shipped until someone can test a Mac build', () => {
+  // The dmg built cleanly at desktop-v1.0.2 and was pulled because nobody has a
+  // Mac to open it on. Shipping an installer no one has launched is worse than
+  // shipping none. The build config stays so re-enabling is one matrix entry.
+  const matrix = workflow.slice(workflow.indexOf('include:'), workflow.indexOf('defaults:'));
+  assert.doesNotMatch(matrix, /macos-latest/, 'the macOS job is back in the matrix — was the dmg actually tested?');
+  assert.doesNotMatch(downloads, /Praelecta-mac/, 'the landing page offers a Mac build that no release contains');
+  assert.ok(pkg.build.mac, 'keep the mac build config so turning it back on is one line');
 });
 
 test('signing variables are only exported when the certificate secrets exist', () => {
@@ -69,9 +76,18 @@ test('the desktop shell is locked down and keeps sign-in and Stripe in-window', 
   for (const host of ['accounts\\.google\\.com', 'appleid\\.apple\\.com', 'checkout\\.stripe\\.com', 'supabase\\.co']) {
     assert.ok(main.includes(host), `${host} would open in the system browser and never redirect back`);
   }
-  // The mac build declares why it wants the microphone, or macOS kills the app on getUserMedia.
+  // Kept ready for when the mac build is re-enabled: without the usage string
+  // macOS kills the app on getUserMedia, and without the entitlement the
+  // hardened runtime denies the microphone silently.
   assert.ok(pkg.build.mac.extendInfo.NSMicrophoneUsageDescription.length > 20);
   assert.match(read('../../desktop/build/entitlements.mac.plist'), /com\.apple\.security\.device\.audio-input/);
+});
+
+test('the Windows installer shows a wizard rather than installing on one click', () => {
+  // A silent one-click installer that writes to disk and launches itself is a
+  // shape antivirus heuristics score against, and it is the worse first run.
+  assert.equal(pkg.build.nsis.oneClick, false);
+  assert.equal(pkg.build.nsis.allowToChangeInstallationDirectory, true);
 });
 
 test('an unsigned macOS build is still ad-hoc signed so Apple silicon will launch it', () => {

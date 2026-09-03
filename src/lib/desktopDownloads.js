@@ -6,8 +6,7 @@ const RELEASE_BASE = 'https://github.com/Thelaw247/cedar-student-pilot/releases/
 
 export const DESKTOP_DOWNLOADS = [
   { id: 'windows', label: 'Windows', note: 'Windows 10 or later · .exe installer', file: 'Praelecta-Setup.exe' },
-  { id: 'mac', label: 'Mac (Apple silicon)', note: 'M1 and newer · .dmg', file: 'Praelecta-mac-arm64.dmg' },
-  { id: 'mac-intel', label: 'Mac (Intel)', note: 'Pre-2020 Macs · .dmg', file: 'Praelecta-mac-x64.dmg' },
+  { id: 'windows-zip', label: 'Windows (zip)', note: 'No installer — unzip and run', file: 'Praelecta-win.zip' },
   { id: 'linux', label: 'Linux', note: 'AppImage, any distro', file: 'Praelecta-linux.AppImage' },
   { id: 'linux-deb', label: 'Linux (.deb)', note: 'Ubuntu, Debian, Mint', file: 'Praelecta-linux.deb' },
 ].map((d) => ({ ...d, url: `${RELEASE_BASE}/${d.file}` }));
@@ -22,6 +21,8 @@ export function detectDesktopOs() {
   const platform = nav.userAgentData?.platform || nav.platform || '';
   if (/iphone|ipad|android/i.test(ua)) return null;
   if (/win/i.test(platform) || /windows/i.test(ua)) return 'windows';
+  // Mac is not built yet (see .github/workflows/desktop-release.yml). Detect it
+  // so the section can say so, rather than offering a Windows download.
   if (/mac/i.test(platform) || /macintosh/i.test(ua)) return 'mac';
   if (/linux/i.test(platform) || /linux/i.test(ua)) return 'linux';
   return null;
