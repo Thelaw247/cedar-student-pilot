@@ -9,6 +9,7 @@ const links = [
   { label: 'Study schedule', href: '#study-schedule' },
   { label: 'Study tools', href: '#study-system' },
   { label: 'Pricing', href: '#pricing' },
+  { label: 'Desktop', href: '#download' },
 ];
 
 export default function LandingNav() {

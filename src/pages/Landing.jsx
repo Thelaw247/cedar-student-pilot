@@ -8,6 +8,7 @@ import StudyToolProof from '@/components/landing/StudyToolProof';
 import StudyScheduleProof from '@/components/landing/RealProductPreview';
 import StudySystemFeature from '@/components/landing/StudySystemFeature';
 import LandingWhyStudents from '@/components/landing/LandingWhyStudents';
+import LandingDownloads from '@/components/landing/LandingDownloads';
 import LandingEnd from '@/components/landing/LandingEnd';
 
 function LandingFooter() {
@@ -27,6 +28,7 @@ function LandingFooter() {
           <a href="#study-schedule" className="hover:text-foreground">Study schedule</a>
           <a href="#study-system" className="hover:text-foreground">Study tools</a>
           <a href="#pricing" className="hover:text-foreground">Pricing</a>
+          <a href="#download" className="hover:text-foreground">Desktop app</a>
           <Link to="/privacy" className="hover:text-foreground">Privacy</Link>
           <Link to="/terms" className="hover:text-foreground">Terms</Link>
           <Link to="/login" className="hover:text-foreground">Sign in</Link>
@@ -74,6 +76,7 @@ export default function Landing() {
         <StudyScheduleProof />
         <StudySystemFeature />
         <LandingWhyStudents />
+        <LandingDownloads />
         <LandingEnd />
       </main>
       <LandingFooter />

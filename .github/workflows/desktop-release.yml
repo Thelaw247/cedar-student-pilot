@@ -1,0 +1,107 @@
+# Builds the desktop app (desktop/) for Windows, macOS and Linux and attaches
+# the installers to a GitHub Release, which is where the landing page's
+# download buttons point:
+#
+#   https://github.com/Thelaw247/cedar-student-pilot/releases/latest/download/Praelecta-Setup.exe
+#   .../releases/latest/download/Praelecta-mac.dmg
+#   .../releases/latest/download/Praelecta-linux.AppImage
+#   .../releases/latest/download/Praelecta-linux.deb
+#
+# To ship a version: tag the commit `desktop-vX.Y.Z` and push the tag. The
+# X.Y.Z becomes the app version. A manual run (workflow_dispatch) builds the
+# same installers and keeps them as workflow artifacts without releasing.
+#
+# Code signing is optional and controlled entirely by repository secrets:
+#   macOS   CSC_LINK (base64 .p12), CSC_KEY_PASSWORD, and for notarization
+#           APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD, APPLE_TEAM_ID
+#   Windows WIN_CSC_LINK (base64 .pfx), WIN_CSC_KEY_PASSWORD
+# Without them the installers still build and work; macOS shows the
+# "unidentified developer" warning (right-click > Open the first time) and
+# Windows shows SmartScreen's "more info > run anyway". Add the secrets once
+# the Apple Developer / code-signing certificates exist and re-run the tag.
+name: Desktop release
+
+on:
+  push:
+    tags: ['desktop-v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            name: Windows
+            pattern: desktop/release/Praelecta-Setup.exe
+          - os: macos-latest
+            name: macOS
+            pattern: desktop/release/Praelecta-mac.dmg
+          - os: ubuntu-latest
+            name: Linux
+            pattern: |
+              desktop/release/Praelecta-linux.AppImage
+              desktop/release/Praelecta-linux.deb
+    defaults:
+      run:
+        shell: bash
+        working-directory: desktop
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+
+      - name: Set version from tag
+        if: startsWith(github.ref, 'refs/tags/desktop-v')
+        run: npm version "${GITHUB_REF_NAME#desktop-v}" --no-git-tag-version --allow-same-version
+
+      - name: Install
+        run: npm ci --no-audit --no-fund
+
+      - name: Build installers
+        run: npm run dist
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+          WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+
+      - name: List output
+        run: ls -la release
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: praelecta-${{ matrix.name }}
+          path: ${{ matrix.pattern }}
+          if-no-files-found: error
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/desktop-v')
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: installers
+          merge-multiple: true
+      - run: ls -la installers
+      - uses: softprops/action-gh-release@v2
+        with:
+          name: Praelecta desktop ${{ github.ref_name }}
+          files: installers/*
+          fail_on_unmatched_files: true
+          generate_release_notes: true
+          make_latest: true

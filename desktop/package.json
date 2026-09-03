@@ -1,0 +1,104 @@
+{
+  "name": "praelecta-desktop",
+  "productName": "Praelecta",
+  "version": "1.0.0",
+  "description": "Praelecta for Windows, macOS and Linux. Record the lecture, tick what is on the test, let the study sessions book themselves.",
+  "private": true,
+  "main": "main.cjs",
+  "homepage": "https://praelecta.ca",
+  "repository": "github:Thelaw247/cedar-student-pilot",
+  "author": {
+    "name": "Praelecta",
+    "email": "help@praelecta.ca"
+  },
+  "license": "UNLICENSED",
+  "scripts": {
+    "start": "electron .",
+    "icon": "node prepare-icon.cjs",
+    "dist": "node prepare-icon.cjs && electron-builder --publish never",
+    "dist:win": "node prepare-icon.cjs && electron-builder --win --publish never",
+    "dist:mac": "node prepare-icon.cjs && electron-builder --mac --publish never",
+    "dist:linux": "node prepare-icon.cjs && electron-builder --linux --publish never"
+  },
+  "devDependencies": {
+    "electron": "44.1.1",
+    "electron-builder": "26.15.3"
+  },
+  "build": {
+    "appId": "ca.praelecta.desktop",
+    "productName": "Praelecta",
+    "copyright": "Copyright © Praelecta",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.cjs",
+      "preload.cjs",
+      "offline.html",
+      "package.json"
+    ],
+    "icon": "build/icon.png",
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "Praelecta-Setup.${ext}"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": false,
+      "deleteAppDataOnUninstall": false,
+      "shortcutName": "Praelecta"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "universal"
+          ]
+        }
+      ],
+      "category": "public.app-category.education",
+      "artifactName": "Praelecta-mac.${ext}",
+      "darkModeSupport": true,
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
+      "extendInfo": {
+        "NSMicrophoneUsageDescription": "Praelecta records your lectures so it can transcribe them and build your study material. Recording only starts when you press record."
+      }
+    },
+    "dmg": {
+      "artifactName": "Praelecta-mac.${ext}"
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "deb",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "category": "Education",
+      "maintainer": "Praelecta <help@praelecta.ca>",
+      "synopsis": "Record lectures, study only what is on the test",
+      "artifactName": "Praelecta-linux.${ext}"
+    }
+  }
+}
