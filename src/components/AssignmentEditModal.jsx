@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
-import { X, Loader2, CalendarClock, Check } from 'lucide-react';
+import { X, Loader2, CalendarClock, Check, Trash2, AlertTriangle } from 'lucide-react';
 import { useAutosave } from '@/hooks/useAutosave';
-import AutosaveIndicator from '@/components/AutosaveIndicator';
 import DeleteXButton from '@/components/DeleteXButton';
+import AutosaveIndicator from '@/components/AutosaveIndicator';
 import { defaultSessionTitle } from '@/lib/sessionTitle';
 
 /**
@@ -34,6 +34,8 @@ export default function AssignmentEditModal({ assignment, onClose, onUpdate }) {
   // Per-session local edit buffers, keyed by session id.
   const [edits, setEdits] = useState({});
   const [deletingAssignment, setDeletingAssignment] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
 
   // Did anything actually change? Drives whether we bother reloading on close.
   const dirtyRef = useRef(false);
@@ -158,7 +160,7 @@ export default function AssignmentEditModal({ assignment, onClose, onUpdate }) {
       onClose();
     } catch (e) {
       setDeletingAssignment(false);
-      throw e; // DeleteXButton surfaces the failure inline
+      setDeleteError('Could not delete this. Check your connection and try again.');
     }
   };
 
@@ -174,21 +176,15 @@ export default function AssignmentEditModal({ assignment, onClose, onUpdate }) {
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/30 glass" onClick={handleClose}>
       <div className="bg-card w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl border border-border p-6 animate-fade-in max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        {/* One ✕ in this header, and it closes the modal. Delete used to sit
+            here too — a destructive ✕ eight pixels from the close ✕, same
+            size, told apart only by colour. It lives at the bottom now, as a
+            labelled button, which is what EditClassModal already does. */}
         <div className="flex items-start justify-between mb-1 gap-3">
           <h3 className="font-heading text-lg font-semibold">Edit {isProject ? 'Project' : 'Assignment'}</h3>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            {/* Delete the whole thing — takes every linked session with it. */}
-            <DeleteXButton
-              className="relative"
-              ariaLabel={`Delete this ${typeLabel}`}
-              confirmLabel={deletingAssignment ? 'Deleting…' : 'Delete'}
-              confirmText={`Permanently delete this ${typeLabel}${sessions.length > 0 ? ` and its ${sessions.length} scheduled session${sessions.length !== 1 ? 's' : ''}` : ''}. This can’t be undone.`}
-              onDelete={deleteAssignment}
-            />
-            <button onClick={handleClose} aria-label="Close" className="text-muted-foreground hover:text-foreground">
-              <X className="w-4 h-4" />
-            </button>
-          </div>
+          <button onClick={handleClose} aria-label="Close" className="flex-shrink-0 text-muted-foreground hover:text-foreground">
+            <X className="w-4 h-4" />
+          </button>
         </div>
         <AutosaveIndicator status={status} className="mb-4 block" />
 
@@ -297,6 +293,38 @@ export default function AssignmentEditModal({ assignment, onClose, onUpdate }) {
                 );
               })}
             </div>
+          )}
+        </div>
+
+        {/* Delete, at the far end of the modal and clearly labelled. Two
+            deliberate actions, and the confirm names everything that goes. */}
+        <div className="mt-6 pt-4 border-t border-border">
+          {confirmingDelete ? (
+            <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4">
+              <div className="flex items-start gap-2 mb-3">
+                <AlertTriangle className="w-4 h-4 text-destructive mt-0.5 flex-shrink-0" />
+                <p className="text-sm text-muted-foreground">
+                  This permanently deletes <span className="font-medium text-foreground">{title || `this ${typeLabel}`}</span>
+                  {sessions.length > 0 && ` and its ${sessions.length} scheduled session${sessions.length !== 1 ? 's' : ''}`}. This can’t be undone.
+                </p>
+              </div>
+              {deleteError && <p className="text-xs text-destructive mb-3">{deleteError}</p>}
+              <div className="flex gap-2">
+                <button type="button" onClick={() => { setConfirmingDelete(false); setDeleteError(''); }} disabled={deletingAssignment}
+                  className="flex-1 py-2.5 rounded-lg border border-border text-sm font-medium text-muted-foreground hover:bg-muted disabled:opacity-50">
+                  Cancel
+                </button>
+                <button type="button" onClick={deleteAssignment} disabled={deletingAssignment}
+                  className="flex-1 py-2.5 rounded-lg bg-destructive text-destructive-foreground text-sm font-medium hover:bg-destructive/90 disabled:opacity-50 flex items-center justify-center gap-2">
+                  {deletingAssignment ? <><Loader2 className="w-4 h-4 animate-spin" /> Deleting…</> : <><Trash2 className="w-4 h-4" /> Delete permanently</>}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button type="button" onClick={() => setConfirmingDelete(true)}
+              className="inline-flex items-center gap-2 px-3 py-2.5 rounded-lg border border-destructive/30 text-destructive text-sm font-medium hover:bg-destructive/10">
+              <Trash2 className="w-4 h-4" /> Delete this {typeLabel}
+            </button>
           )}
         </div>
       </div>

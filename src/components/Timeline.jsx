@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { MapPin, Clock, AlertCircle } from 'lucide-react';
+import { MapPin, Clock, AlertCircle, Trash2 } from 'lucide-react';
 import EmptyTimeSuggestion from '@/components/EmptyTimeSuggestion';
 import { eventMeta } from '@/lib/eventMeta';
 import { classColor } from '@/lib/color';
@@ -38,7 +38,7 @@ function findConflicts(items) {
 
 const HOUR_HEIGHT = 56;
 
-export default function Timeline({ items, onAddEvent }) {
+export default function Timeline({ items, onAddEvent, onDeleteItem }) {
   const hasEvents = items && items.length > 0;
 
   // Parse event times
@@ -207,16 +207,32 @@ export default function Timeline({ items, onAddEvent }) {
           </div>
         );
 
+        // Only items the caller says are deletable get the control, and only
+        // when the block is tall enough for it not to sit on the title.
+        const canDelete = !!onDeleteItem && !!item.deletable && height > 34;
+        const deleteControl = canDelete ? (
+          <button
+            type="button"
+            aria-label={`Delete ${item.title}`}
+            title={`Delete ${item.title}`}
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDeleteItem(item); }}
+            className="absolute top-1 right-1 z-20 rounded-md p-1 text-muted-foreground/70 opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive focus-visible:opacity-100 group-hover:opacity-100"
+          >
+            <Trash2 className="w-3 h-3" />
+          </button>
+        ) : null;
+
         if (item.classId) {
           return (
-            <Link key={item.id} to={`/classes/${item.classId}`} className={blockClass} style={blockStyle}>
+            <Link key={item.id} to={`/classes/${item.classId}`} className={`group ${blockClass}`} style={blockStyle}>
               {blockContent}
             </Link>
           );
         }
         return (
-          <div key={item.id} className={blockClass} style={blockStyle}>
+          <div key={item.id} className={`group ${blockClass}`} style={blockStyle}>
             {blockContent}
+            {deleteControl}
           </div>
         );
       })}

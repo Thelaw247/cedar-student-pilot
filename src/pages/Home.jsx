@@ -149,6 +149,11 @@ export default function Home() {
       notes: e.notes,
       color: e.color,
       recurring: e._recurring,
+      // Events are the only timeline item the student owns outright: a class
+      // is edited from the class page and a study session from the planner.
+      // `source` is the row itself, so deleting can offer a real undo.
+      deletable: true,
+      source: e,
     })),
     ...studySessions.filter(s => s.scheduled_date === today).map(s => ({
       id: s.id,
@@ -262,7 +267,7 @@ export default function Home() {
               <Plus className="w-4 h-4" /> Add event
             </button>
           </div>
-          <Timeline items={allItems} onAddEvent={() => setShowAddEvent(true)} />
+          <Timeline items={allItems} onAddEvent={() => setShowAddEvent(true)} onDeleteItem={(item) => handleDeleteEvent(item.id, item.source)} />
         </div>
       )}
 
