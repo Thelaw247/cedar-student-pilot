@@ -4,7 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { fetchWithCache } from '@/hooks/useEntityData';
 import { cacheGet, cacheSet, invalidateEntity } from '@/lib/cache';
 import { enqueueOperation } from '@/lib/syncQueue';
-import { ChevronLeft, FileText, Clock, AlertCircle, Loader2, BookOpen, ListChecks, Sparkles, Headphones, CloudOff, Zap, Trash2, AlertTriangle, Sigma, Lightbulb } from 'lucide-react';
+import { ChevronLeft, FileText, Clock, AlertCircle, Loader2, BookOpen, ListChecks, Sparkles, Headphones, CloudOff, Zap, Trash2, AlertTriangle } from 'lucide-react';
 import TranscriptActions from '@/components/TranscriptActions';
 import LectureJumpNav from '@/components/lecture/LectureJumpNav';
 import TranscriptViewer, { TranscriptCleanup } from '@/components/lecture/TranscriptViewer';
@@ -14,7 +14,7 @@ import {
   OverviewSection, OutlineSection, ConceptsSection, FormulasSection, DefinitionsSection,
   ExamplesSection, ExamRadarSection, InsightsSection,
 } from '@/components/lecture/StudySections';
-import { enrichmentOf, enrichmentCounts } from '@/components/lecture/lectureStudy';
+import { enrichmentOf } from '@/components/lecture/lectureStudy';
 import InLectureQuiz from '@/components/InLectureQuiz';
 import AutosaveIndicator from '@/components/AutosaveIndicator';
 import { useBalance } from '@/hooks/useBalance';
@@ -314,7 +314,6 @@ export default function LectureDetail() {
   if (!lecture) return <div className="p-6 text-center text-muted-foreground">Lecture not found.</div>;
 
   const enrichment = enrichmentOf(lecture);
-  const counts = enrichmentCounts(enrichment);
   const jumpItems = [
     { id: 'sec-overview', label: 'Overview', count: lecture.ai_summary || enrichment ? null : 0 },
     { id: 'sec-outline', label: 'Outline', count: enrichment?.outline?.length || 0 },
@@ -487,16 +486,6 @@ export default function LectureDetail() {
         </div>
       )}
 
-      {/* Header stat strip — what this lecture contains, at a glance */}
-      {counts && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
-          <Stat icon={Lightbulb} value={counts.concepts} label="concepts" />
-          <Stat icon={Sigma} value={counts.formulas} label={counts.verifiedFormulas ? `formulas · ${counts.verifiedFormulas} verified` : 'formulas'} />
-          <Stat icon={BookOpen} value={counts.definitions} label="definitions" />
-          <Stat icon={AlertCircle} value={counts.exam} label="exam notes" tone={counts.exam ? 'warn' : undefined} />
-        </div>
-      )}
-
       {/* Second pass still running — say so instead of showing a thin page */}
       {awaitingEnrichment && (
         <div className="rounded-xl border border-primary/25 bg-primary/[0.04] px-4 py-3 mb-4 flex items-center gap-2.5">
@@ -505,6 +494,10 @@ export default function LectureDetail() {
         </div>
       )}
 
+      {/* The jump nav below is also the at-a-glance summary now — it used
+          to sit under a separate static stat strip showing the same
+          concepts/formulas/definitions/exam counts a second time. Removed
+          3 Sep 2026: same numbers, and this one is actually clickable. */}
       <LectureJumpNav items={jumpItems} />
 
       {(lecture.ai_summary || enrichment) && <OverviewSection lecture={lecture} enrichment={enrichment} />}
@@ -596,18 +589,5 @@ function Section({ icon, title, children, actions = null, storageKey = undefined
     >
       <div className="pt-1">{children}</div>
     </Widget>
-  );
-}
-
-function Stat({ icon: Icon, value, label, tone = undefined }) {
-  const warn = tone === 'warn';
-  return (
-    <div className={`rounded-xl border px-3 py-2.5 flex items-center gap-2.5 ${warn ? 'border-amber-500/30 bg-amber-500/5' : 'border-border bg-card'}`}>
-      <Icon className={`w-4 h-4 flex-shrink-0 ${warn ? 'text-amber-600' : 'text-primary'}`} strokeWidth={1.75} />
-      <div className="min-w-0">
-        <p className="text-base font-bold text-foreground tabular-nums leading-none">{value}</p>
-        <p className="text-[11px] text-muted-foreground truncate mt-0.5">{label}</p>
-      </div>
-    </div>
   );
 }
