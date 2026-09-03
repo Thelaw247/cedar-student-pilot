@@ -66,17 +66,45 @@ jobs:
       - name: Install
         run: npm ci --no-audit --no-fund
 
+      # A repository secret that does not exist expands to the empty string, and
+      # electron-builder reads an existing-but-empty CSC_LINK as "a certificate
+      # is configured": it then tries to import one from an empty path and dies
+      # with "<projectDir> not a file" (the macOS job, 3 Sep). So the signing
+      # variables are exported only when the secrets actually hold something.
+      - name: Configure code signing
+        env:
+          MAC_LINK: ${{ secrets.CSC_LINK }}
+          MAC_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          WIN_LINK: ${{ secrets.WIN_CSC_LINK }}
+          WIN_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+          NOTARY_APPLE_ID: ${{ secrets.APPLE_ID }}
+          NOTARY_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          NOTARY_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          if [ -n "$MAC_LINK" ]; then
+            printf 'CSC_LINK=%s\n' "$MAC_LINK" >> "$GITHUB_ENV"
+            printf 'CSC_KEY_PASSWORD=%s\n' "$MAC_PASSWORD" >> "$GITHUB_ENV"
+            echo 'Signing: macOS certificate configured'
+          fi
+          if [ -n "$WIN_LINK" ]; then
+            printf 'WIN_CSC_LINK=%s\n' "$WIN_LINK" >> "$GITHUB_ENV"
+            printf 'WIN_CSC_KEY_PASSWORD=%s\n' "$WIN_PASSWORD" >> "$GITHUB_ENV"
+            echo 'Signing: Windows certificate configured'
+          fi
+          if [ -n "$NOTARY_APPLE_ID" ]; then
+            printf 'APPLE_ID=%s\n' "$NOTARY_APPLE_ID" >> "$GITHUB_ENV"
+            printf 'APPLE_APP_SPECIFIC_PASSWORD=%s\n' "$NOTARY_PASSWORD" >> "$GITHUB_ENV"
+            printf 'APPLE_TEAM_ID=%s\n' "$NOTARY_TEAM_ID" >> "$GITHUB_ENV"
+            echo 'Notarization: Apple credentials configured'
+          fi
+          if [ -z "$MAC_LINK" ] && [ -z "$WIN_LINK" ]; then
+            echo 'No certificates configured; building unsigned installers.'
+          fi
+
       - name: Build installers
         run: npm run dist
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CSC_LINK: ${{ secrets.CSC_LINK }}
-          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
-          WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
-          WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
 
       - name: List output
         run: ls -la release

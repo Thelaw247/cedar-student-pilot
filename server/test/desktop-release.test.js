@@ -40,6 +40,20 @@ test('the release workflow uploads those same files and publishes them as the la
   for (const runner of ['windows-latest', 'macos-latest', 'ubuntu-latest']) assert.match(workflow, new RegExp(runner));
 });
 
+test('signing variables are only exported when the certificate secrets exist', () => {
+  // A missing repository secret expands to the empty string, and an empty
+  // CSC_LINK tells electron-builder a certificate IS configured -- it then
+  // imports from an empty path and the macOS build dies with "not a file".
+  // The build step must therefore never receive the raw secret expressions.
+  const buildStep = workflow.slice(workflow.indexOf('- name: Build installers'), workflow.indexOf('- name: List output'));
+  for (const name of ['CSC_LINK', 'CSC_KEY_PASSWORD', 'WIN_CSC_LINK', 'WIN_CSC_KEY_PASSWORD']) {
+    assert.doesNotMatch(buildStep, new RegExp(`^\\s+${name}:`, 'm'), `${name} must not be set unconditionally on the build step`);
+  }
+  assert.match(workflow, /- name: Configure code signing/);
+  assert.match(workflow, /if \[ -n "\$MAC_LINK" \]/);
+  assert.match(workflow, /if \[ -n "\$WIN_LINK" \]/);
+});
+
 test('the desktop shell is locked down and keeps sign-in and Stripe in-window', () => {
   assert.match(main, /contextIsolation: true/);
   assert.match(main, /nodeIntegration: false/);
