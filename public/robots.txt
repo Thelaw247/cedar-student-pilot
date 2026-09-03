@@ -1,0 +1,23 @@
+User-agent: *
+Allow: /
+Disallow: /today
+Disallow: /welcome
+Disallow: /setup
+Disallow: /classes
+Disallow: /lectures/
+Disallow: /planner
+Disallow: /todos
+Disallow: /settings
+Disallow: /focus
+Disallow: /analytics
+Disallow: /lecture-review
+Disallow: /subscription
+Disallow: /checkout
+Disallow: /owner
+Disallow: /login
+Disallow: /register
+Disallow: /forgot-password
+Disallow: /reset-password
+Disallow: /oauth-consent
+
+Sitemap: https://praelecta.ca/sitemap.xml
