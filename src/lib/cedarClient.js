@@ -330,6 +330,7 @@ const auth = {
     const allowed = {};
     if (Object.hasOwn(fields, 'full_name')) allowed.full_name = fields.full_name;
     if (Object.hasOwn(fields, 'avatar_url')) allowed.avatar_url = fields.avatar_url;
+    if (Object.hasOwn(fields, 'preferred_study_times')) allowed.preferred_study_times = fields.preferred_study_times;
     const unexpected = Object.keys(fields).filter((field) => !Object.hasOwn(allowed, field));
     if (unexpected.length) throw new Error(`Profile fields cannot be updated: ${unexpected.join(', ')}`);
     let previousAvatar = null;

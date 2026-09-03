@@ -11,7 +11,6 @@ const DEFAULTS = {
   autoFlashcards: true,
   highQualityAudio: true,
   autoTranscribe: true,
-  reviewTimes: [],
   learningMode: 'cumulative',
   conceptDecayRate: 'default',
 };

@@ -102,7 +102,7 @@ export default function Settings() {
         <Toggle label="AI flashcards & quizzes" description="Create study material from lectures" settingKey="autoFlashcards" />
       </SettingsSection>
 
-      <SettingsSection icon={GraduationCap} title="Review Schedule">
+      <SettingsSection icon={GraduationCap} title="Study & Review Times">
         <ReviewScheduleSection />
       </SettingsSection>
 
