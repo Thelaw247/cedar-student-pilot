@@ -12,8 +12,9 @@ import { useRecording } from '@/recording/RecordingContext';
  * class page's RecordModal, which owns the consent gate and error copy —
  * the legal flow is never skipped, only the redundant tap after it.
  *
- * Shared by QuickRecordCard (desktop rail) and ClassStatusBar (mobile
- * header + sidebar) so every mic in the chrome behaves identically.
+ * Used by ClassStatusBar (mobile header + desktop sidebar) — the one record
+ * entry point in the chrome since the 3 Sep 2026 audit removed the second
+ * copy that used to also live in the desktop rail (QuickRecordCard).
  */
 export function useQuickRecord() {
   const rec = useRecording();

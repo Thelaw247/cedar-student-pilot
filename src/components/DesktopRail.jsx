@@ -2,23 +2,25 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useTodaySchedule } from '@/hooks/useTodaySchedule';
 import { fetchWithCache } from '@/hooks/useEntityData';
-import { Clock, MapPin, GraduationCap, Headphones, ListChecks, BookOpen, CalendarPlus, FileText, AlertCircle } from 'lucide-react';
+import { Clock, MapPin, GraduationCap, Headphones, CalendarPlus, FileText, AlertCircle } from 'lucide-react';
 import { classTint, classColor } from '@/lib/color';
 import { formatTime, todayString } from '@/lib/time';
-import QuickRecordCard from '@/components/QuickRecordCard';
-import { useFeatureGate } from '@/components/monetization/useFeatureGate';
-import { Lock } from 'lucide-react';
 
 /**
  * Extra-wide-desktop only (xl: ~1280px+). Below that, this column doesn't
  * render at all — mobile and regular desktop are completely unaffected.
  *
- * The rail is the desktop's quick-access surface (Aug 2026): the things a
- * student would otherwise dig through pages for — record, today's remaining
- * classes, the next deadlines, the last lectures, and one-tap jumps to the
- * most-used tools — all one glance to the right of the content. Everything
- * here is a shortcut to a real page; nothing exists only in the rail, so
- * mobile loses nothing.
+ * The rail is the desktop's quick-access surface (Aug 2026): today's
+ * remaining classes, the next deadlines, and the last lectures, plus one-tap
+ * jumps to tools that have NO other entry point on screen. Everything here
+ * used to also carry its own record button and Review/To-do tiles that
+ * exactly duplicated the Sidebar and the Study tab a few hundred pixels to
+ * the left — on a wide desktop both were visible at once, which read as
+ * clutter rather than convenience (3 Sep 2026 audit). Recording lives ONLY
+ * in ClassStatusBar now (mobile top bar + desktop Sidebar); Review and To-do
+ * live ONLY in the Sidebar nav and the Study tab's own review picker. What's
+ * left below — Focus session, Add a class — has no other one-click entry
+ * point, so it earns its place here.
  *
  * Credits deliberately do NOT appear here — the CreditMeter pill in the
  * Sidebar (under the profile) is the one credit surface on desktop, and it
@@ -27,16 +29,11 @@ import { Lock } from 'lucide-react';
 
 const QUICK_ACTIONS = [
   { to: '/focus', icon: Headphones, label: 'Focus session' },
-  { to: '/lecture-review/today', icon: ListChecks, label: 'Review today', feature: 'lecture_review' },
-  { to: '/planner', icon: BookOpen, label: 'Study planner' },
-  { to: '/todos', icon: ListChecks, label: 'To-do list' },
   { to: '/classes?add=1', icon: CalendarPlus, label: 'Add a class' },
 ];
 
 export default function DesktopRail() {
   const { loaded, remaining, current } = useTodaySchedule();
-  // The one gated shortcut shows its lock up front instead of dead-ending.
-  const reviewGate = useFeatureGate('lecture_review');
   const [assignments, setAssignments] = useState([]);
   const [lectures, setLectures] = useState([]);
   const [classes, setClasses] = useState([]);
@@ -88,9 +85,6 @@ export default function DesktopRail() {
 
   return (
     <aside className="hidden xl:flex w-72 flex-shrink-0 flex-col gap-4 border-l border-border px-4 py-5 h-screen sticky top-0 overflow-y-auto">
-      {/* One-tap recording for the class you're in / the next one */}
-      <QuickRecordCard />
-
       {/* Rest of today */}
       <div>
         <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">
@@ -201,36 +195,16 @@ export default function DesktopRail() {
           Quick actions
         </p>
         <div className="grid grid-cols-2 gap-1.5">
-          {QUICK_ACTIONS.map((q) => {
-            const locked = q.feature === 'lecture_review' && !reviewGate.allowed;
-            if (locked) {
-              return (
-                <button
-                  key={q.to}
-                  type="button"
-                  onClick={reviewGate.lock}
-                  title={`Unlocks with ${reviewGate.requiredTierName}`}
-                  className="flex flex-col items-start gap-1.5 rounded-xl border border-border bg-muted/40 p-2.5 text-left hover:bg-muted transition-colors duration-micro"
-                >
-                  <span className="flex items-center gap-1">
-                    <q.icon className="w-4 h-4 text-muted-foreground" strokeWidth={1.75} />
-                    <Lock className="w-3 h-3 text-muted-foreground" />
-                  </span>
-                  <span className="text-[11px] font-medium text-muted-foreground leading-tight">{q.label}</span>
-                </button>
-              );
-            }
-            return (
-              <Link
-                key={q.to}
-                to={q.to}
-                className="flex flex-col items-start gap-1.5 rounded-xl border border-border bg-card p-2.5 hover:border-primary/40 hover:bg-primary/[0.03] transition-colors duration-micro"
-              >
-                <q.icon className="w-4 h-4 text-primary" strokeWidth={1.75} />
-                <span className="text-[11px] font-medium text-foreground leading-tight">{q.label}</span>
-              </Link>
-            );
-          })}
+          {QUICK_ACTIONS.map((q) => (
+            <Link
+              key={q.to}
+              to={q.to}
+              className="flex flex-col items-start gap-1.5 rounded-xl border border-border bg-card p-2.5 hover:border-primary/40 hover:bg-primary/[0.03] transition-colors duration-micro"
+            >
+              <q.icon className="w-4 h-4 text-primary" strokeWidth={1.75} />
+              <span className="text-[11px] font-medium text-foreground leading-tight">{q.label}</span>
+            </Link>
+          ))}
         </div>
       </div>
     </aside>

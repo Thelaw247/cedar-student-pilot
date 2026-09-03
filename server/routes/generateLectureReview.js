@@ -107,10 +107,8 @@ Return JSON: { "results": [ { "correct": boolean, "feedback": string }, ... ] } 
     const difficultyInstruction = quickQuizMode
       ? `FOCUS: Generate ONLY the hardest, most exam-likely questions. Prioritize formulas, complex definitions, multi-step concepts, and topics explicitly flagged as exam material. Avoid easy recall questions — these should challenge a student who has already studied.`
       : `Difficulty: a normal review mix — not trivial, but not all hardest-level.`;
-    const result = await invokeLLM({
-      usage: llmUsage,
-      prompt: `You are an academic tutor creating a review quiz that follows the EXACT teaching flow the professor used across ${sorted.length} lecture(s) for "${className}".
-
+    const buildPrompt = (retry) => `You are an academic tutor creating a review quiz that follows the EXACT teaching flow the professor used across ${sorted.length} lecture(s) for "${className}".
+${retry ? '\nIMPORTANT: your previous attempt returned questions that failed validation. "correct_answer" must be the option text ITSELF, copied exactly — never a label like "A", "B)", or "1.".\n' : ''}
 CRITICAL: The questions MUST follow the chronological order of how topics were taught. Start with what the professor discussed FIRST in the earliest lecture, and progress through to what was discussed LAST in the most recent lecture. This creates a natural review flow that mirrors the actual learning sequence.
 
 Generate ${questionCount} review questions that trace the teaching flow:
@@ -131,20 +129,45 @@ ${lectureContext}
 
 Return a JSON object with:
 - review_questions: array of {type: "multiple_choice", question, options (exactly 4), correct_answer, explanation, concept, lecture_index, flow_position}
-- teaching_flow: array of {topic, lecture_index} — the major topics in the order they were taught`,
-      response_json_schema: {
-        type: 'object',
-        properties: {
-          review_questions: { type: 'array', items: QUIZ_QUESTION_SCHEMA },
-          teaching_flow: { type: 'array', items: { type: 'object', properties: { topic: { type: 'string' }, lecture_index: { type: 'number' } } } },
-        },
+- teaching_flow: array of {topic, lecture_index} — the major topics in the order they were taught`;
+
+    const reviewSchema = {
+      type: 'object',
+      properties: {
+        review_questions: { type: 'array', items: QUIZ_QUESTION_SCHEMA },
+        teaching_flow: { type: 'array', items: { type: 'object', properties: { topic: { type: 'string' }, lecture_index: { type: 'number' } } } },
       },
-    });
+    };
+
+    // One retry if every question the model returned failed validation
+    // (added 3 Sep 2026 — see the note in quizQuestions.js for what this
+    // caught). Never retries on a genuinely empty scope; only on "the model
+    // tried and got the shape wrong". Both attempts settle together, once,
+    // after the final result — gateFeature already charged nothing yet.
+    let result = await invokeLLM({ usage: llmUsage, prompt: buildPrompt(false), response_json_schema: reviewSchema });
+    let { questions, dropped } = normalizeQuizQuestions(result?.review_questions);
+    if (questions.length === 0 && dropped > 0) {
+      console.warn(`[lecture-review] all ${dropped} question(s) failed validation for user ${userId}; retrying once with a stricter prompt`);
+      result = await invokeLLM({ usage: llmUsage, prompt: buildPrompt(true), response_json_schema: reviewSchema });
+      ({ questions, dropped } = normalizeQuizQuestions(result?.review_questions));
+    }
+    if (dropped > 0) console.warn(`[lecture-review] dropped ${dropped} malformed question(s) from the model for user ${userId}`);
 
     await settleFeature(gate, { feature: 'lecture_review', llmUsage });
 
-    const { questions, dropped } = normalizeQuizQuestions(result?.review_questions);
-    if (dropped > 0) console.warn(`[lecture-review] dropped ${dropped} malformed question(s) from the model for user ${userId}`);
+    if (questions.length === 0) {
+      // The model engaged with the content (teaching_flow below proves it
+      // read the lectures) but never produced a usable question, even after
+      // a retry. Say so plainly — the old fallback message here claimed "no
+      // lecture content available", which was actively misleading when the
+      // student had lectures right there.
+      return res.json({
+        review_questions: [], teaching_flow: result.teaching_flow || [],
+        lecture_count: sorted.length, lecture_dates: sorted.map((l) => l.date),
+        lecture_titles: sorted.map((l) => l.ai_title || `Lecture — ${l.date}`),
+        message: "Couldn't generate review questions from this content — please try again.",
+      });
+    }
 
     res.json({
       review_questions: questions, teaching_flow: result.teaching_flow || [],

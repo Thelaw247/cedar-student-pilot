@@ -19,6 +19,23 @@ function clean(value, max) {
   return String(value ?? '').replace(/\s+/g, ' ').trim().slice(0, max);
 }
 
+// Matching key for an option/answer string: strips a leading "A) ", "A.",
+// "(A)", "1)" style label and a trailing sentence period before comparing.
+// Added 3 Sep 2026 — a scope='week' review over more lecture context came
+// back with a real teaching_flow but review_questions: [] every time: the
+// model was labelling its own correct_answer ("A) Structuralism") while
+// options held the bare text ("Structuralism"), so the old exact
+// (case/whitespace-insensitive) match dropped every single question. This
+// keeps the "verbatim" rule honest about content while forgiving the label.
+function matchKey(value) {
+  return String(value ?? '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/^\(?[A-Da-d1-4]\)?[.):]\s*/, '')
+    .replace(/[.\s]+$/, '')
+    .toLowerCase();
+}
+
 function shuffled(list, seed) {
   // Deterministic Fisher–Yates so the same question set shuffles the same
   // way across a retry; the seed is the question text so the answer key is
@@ -63,7 +80,7 @@ export function normalizeQuizQuestions(raw, { keep = Infinity } = {}) {
     const optionKeys = new Set();
     for (const rawOption of (Array.isArray(item?.options) ? item.options : [])) {
       const option = clean(rawOption, MAX_OPTION_CHARS);
-      const optionKey = option.toLowerCase();
+      const optionKey = matchKey(option);
       if (!option || optionKeys.has(optionKey)) continue;
       optionKeys.add(optionKey);
       options.push(option);
@@ -71,8 +88,8 @@ export function normalizeQuizQuestions(raw, { keep = Infinity } = {}) {
     }
     if (options.length < 2) { dropped += 1; continue; }
 
-    const wanted = clean(item?.correct_answer, MAX_OPTION_CHARS).toLowerCase();
-    const correct = options.find((o) => o.toLowerCase() === wanted);
+    const wanted = matchKey(item?.correct_answer);
+    const correct = options.find((o) => matchKey(o) === wanted);
     if (!correct) { dropped += 1; continue; }
 
     seen.add(key);

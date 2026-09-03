@@ -13,6 +13,79 @@ import {
 import { MAX_RECORDING_BYTES, resolveRecordingStorageRef } from '../lib/r2.js';
 import { runEnrichment, syncLectureTodos } from '../lib/lectureEnrichment.js';
 import { loadLectureMaterials } from '../lib/lectureMaterials.js';
+import { getClassMeetingsForDate } from '../../src/lib/classSchedule.js';
+
+// One review session per lecture, booked the moment processing finishes (3
+// Sep 2026 rework). Replaces the old client-side PostRecordingReviewPrompt,
+// which force-booked FOUR spaced-repetition sessions per lecture (day 0,
+// ~day 3, ~day 8, ~day 21) behind a blocking, un-skippable modal — a real
+// student's calendar ended up with reviews scattered three weeks out for a
+// lecture they recorded five minutes ago. The rule now: book on the lecture's
+// own day if there's a free slot, the very next day if there isn't, and stop
+// there. No modal, no popup — it just appears on the calendar/planner.
+const REVIEW_DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const REVIEW_CANDIDATE_STARTS = [19 * 60, 20 * 60, 18 * 60, 17 * 60, 21 * 60, 16 * 60, 15 * 60, 14 * 60, 13 * 60, 10 * 60, 11 * 60, 9 * 60];
+const reviewToMin = (t) => { if (!t || typeof t !== 'string' || !t.includes(':')) return null; const [h, m] = t.split(':').map(Number); return h * 60 + (m || 0); };
+const reviewAddDays = (dateStr, n) => {
+  const d = new Date(`${dateStr}T00:00:00`);
+  d.setDate(d.getDate() + n);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+
+async function scheduleLectureReview({ userId, lectureId, classId, lectureDate, lectureTitle }) {
+  // Never double-book — a re-run of processing (retry, re-enrich) must not
+  // stack a second review session onto the same lecture.
+  const already = await pool.query('select 1 from study_sessions where lecture_id = $1 limit 1', [lectureId]);
+  if (already.rows.length > 0) return;
+  if (!lectureDate) return;
+
+  const cls = (await pool.query('select * from classes where id = $1 and user_id = $2', [classId, userId])).rows[0] || null;
+
+  for (const [offset, candidateDate] of [[0, lectureDate], [1, reviewAddDays(lectureDate, 1)]]) {
+    const busy = [];
+    if (cls) {
+      for (const meeting of getClassMeetingsForDate(cls, candidateDate)) {
+        const start = reviewToMin(meeting.start_time || cls.start_time);
+        const end = reviewToMin(meeting.end_time || cls.end_time);
+        if (start != null) busy.push({ start, dur: (end || start + 60) - start });
+      }
+    }
+    const existingSessions = (await pool.query(
+      "select scheduled_time, duration_minutes from study_sessions where user_id = $1 and scheduled_date = $2 and status != 'skipped'",
+      [userId, candidateDate],
+    )).rows;
+    for (const s of existingSessions) {
+      const start = reviewToMin(s.scheduled_time);
+      if (start != null) busy.push({ start, dur: Number(s.duration_minutes) || 60 });
+    }
+    const dayLabel = REVIEW_DAY_LABELS[new Date(`${candidateDate}T00:00:00`).getDay()];
+    const events = (await pool.query(
+      "select start_time, end_time from calendar_events where user_id = $1 and (date = $2 or (recurrence = 'weekly' and $3 = any(recurrence_days)))",
+      [userId, candidateDate, dayLabel],
+    )).rows;
+    for (const e of events) {
+      const start = reviewToMin(e.start_time);
+      const end = reviewToMin(e.end_time);
+      if (start != null) busy.push({ start, dur: (end || start + 60) - start });
+    }
+
+    const isFree = (start, dur) => !busy.some((b) => b.start != null && start < b.start + b.dur && b.start < start + dur);
+    const slot = REVIEW_CANDIDATE_STARTS.find((cand) => isFree(cand, 20));
+    if (slot != null) {
+      const time = `${String(Math.floor(slot / 60)).padStart(2, '0')}:${String(slot % 60).padStart(2, '0')}`;
+      await pool.query(
+        `insert into study_sessions (user_id, class_id, lecture_id, scheduled_date, scheduled_time, duration_minutes, priority, status, session_type, title, notes)
+         values ($1, $2, $3, $4, $5, 20, 'medium', 'scheduled', 'review', $6, $7)`,
+        [userId, classId, lectureId, candidateDate, time, `Review: ${lectureTitle || 'this lecture'}`,
+          offset === 0 ? 'Auto-scheduled for the day of the lecture.' : "Auto-scheduled the next day — the lecture day's schedule was full."],
+      );
+      return;
+    }
+  }
+  // Both the lecture day and the next day were fully booked. Leave it
+  // unscheduled rather than force a spot somewhere far out — the student can
+  // still book a review any time from the Study tab.
+}
 
 // Direct port of base44/functions/processLectureRecording/entry.ts — the
 // core pipeline: fetch the stored recording, transcribe it, extract
@@ -427,6 +500,17 @@ async function runProcessingPipeline({ userId, lectureId, existing, cls, balance
     // Non-fatal — cards can be generated on demand from the Practice tab —
     // but never silent: an invisible failure here cost a debugging session.
     console.error('[recording] flashcard generation failed:', e?.message || e);
+  }
+
+  try {
+    const fresh = (await pool.query('select date, ai_title from lectures where id = $1', [lectureId])).rows[0];
+    await scheduleLectureReview({
+      userId, lectureId, classId: cls?.id, lectureDate: fresh?.date, lectureTitle: fresh?.ai_title,
+    });
+  } catch (e) {
+    // Non-fatal — the lecture and its analysis are already saved; a review
+    // session can still be booked manually from the Study tab.
+    console.error('[recording] auto-scheduling the review session failed:', e?.message || e);
   }
 
   const settled = cost > 0 ? await spendCredits(balance, cost, operationId) : { ...balance, _operationAppliedNow: false };

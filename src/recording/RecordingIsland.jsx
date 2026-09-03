@@ -1,7 +1,6 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { Pause, Play, Square, Loader2, FileText, AlertTriangle, ChevronDown, Pencil, Paperclip, X } from 'lucide-react';
 import { useRecording } from '@/recording/RecordingContext';
-import PostRecordingReviewPrompt from '@/components/PostRecordingReviewPrompt';
 import { MATERIAL_ACCEPT } from '@/components/lecture/LectureMaterials';
 import { formatClock } from '@/lib/time';
 
@@ -57,18 +56,17 @@ export default function RecordingIsland() {
   const [open, setOpen] = useState(false);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
 
-  if (!rec.active) return null;
+  // Post-processing (3 Sep 2026 rework): a review session is now booked
+  // automatically on the server the moment processing finishes (same day as
+  // the lecture, next day if that's full) — see scheduleLectureReview in
+  // server/routes/processLectureRecording.js. There is no client-side prompt
+  // to show for it any more, so the island just closes the session the
+  // instant that state arrives instead of opening a blocking modal.
+  useEffect(() => {
+    if (rec.reviewLectureId) rec.dismissReview();
+  }, [rec.reviewLectureId, rec.dismissReview]);
 
-  // Post-processing: the review prompt is the session's exit experience.
-  if (rec.reviewLectureId && rec.cls) {
-    return (
-      <PostRecordingReviewPrompt
-        classId={rec.cls.id}
-        lectureId={rec.reviewLectureId}
-        onDone={rec.dismissReview}
-      />
-    );
-  }
+  if (!rec.active || rec.reviewLectureId) return null;
 
   const shell = 'fixed z-40 left-4 right-4 bottom-[calc(84px+env(safe-area-inset-bottom))] lg:left-auto lg:right-6 lg:bottom-6 lg:w-[380px] rounded-3xl shadow-2 text-white overflow-hidden';
   const surface = { backgroundColor: '#14192A' };
