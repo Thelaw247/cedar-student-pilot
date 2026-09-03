@@ -16,6 +16,7 @@ import DailyProgressRing from '@/components/DailyProgressRing';
 import FloatingActionButton from '@/components/FloatingActionButton';
 import AutoPrintPrompt from '@/components/AutoPrintPrompt';
 import AttendancePrompt from '@/components/AttendancePrompt';
+import AssignmentDetectedNotice from '@/components/AssignmentDetectedNotice';
 import WeeklyCalendar from '@/components/WeeklyCalendar';
 import AddEventModal from '@/components/AddEventModal';
 import { classesOnDate } from '@/lib/classSchedule';
@@ -234,6 +235,7 @@ export default function Home() {
 
           <AutoPrintPrompt />
           <AttendancePrompt />
+          <AssignmentDetectedNotice />
 
           <DailyProgressRing
             classes={todayClasses}

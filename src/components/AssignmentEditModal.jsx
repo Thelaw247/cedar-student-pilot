@@ -26,6 +26,8 @@ import { defaultSessionTitle } from '@/lib/sessionTitle';
 export default function AssignmentEditModal({ assignment, onClose, onUpdate }) {
   const [title, setTitle] = useState(assignment.title || '');
   const [dueDate, setDueDate] = useState(assignment.due_date || '');
+  const [rubric, setRubric] = useState(assignment.rubric || []);
+  const [newRubricItem, setNewRubricItem] = useState('');
 
   const [sessions, setSessions] = useState([]);
   const [loadingSessions, setLoadingSessions] = useState(true);
@@ -94,6 +96,27 @@ export default function AssignmentEditModal({ assignment, onClose, onUpdate }) {
     if (!value) return;
     dirtyRef.current = true;
     assignmentSaver.save(assignment.id, { due_date: value });
+  };
+
+  // ---- Rubric / grading criteria (autosaved) -------------------------------
+  // Kept on the assignment itself (not a session) so it travels with it and
+  // shows the same regardless of which study session the student opens.
+
+  const addRubricItem = () => {
+    const text = newRubricItem.trim();
+    if (!text) return;
+    const updated = [...rubric, { text, done: false }];
+    setRubric(updated);
+    setNewRubricItem('');
+    dirtyRef.current = true;
+    assignmentSaver.save(assignment.id, { rubric: updated });
+  };
+
+  const removeRubricItem = (index) => {
+    const updated = rubric.filter((_, i) => i !== index);
+    setRubric(updated);
+    dirtyRef.current = true;
+    assignmentSaver.save(assignment.id, { rubric: updated });
   };
 
   // ---- Sessions (autosaved) -----------------------------------------------
@@ -180,6 +203,39 @@ export default function AssignmentEditModal({ assignment, onClose, onUpdate }) {
             <p className="text-xs font-medium text-muted-foreground mb-1.5">Due date</p>
             <input type="date" value={dueDate} onChange={e => onDueDateChange(e.target.value)}
               className="w-full px-3 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40" />
+          </div>
+        </div>
+
+        {/* Rubric / guidelines — travels with the assignment, shown as a
+            checklist inside any study session booked for it (Focus Mode). */}
+        <div className="mt-5 pt-4 border-t border-border">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+            Rubric / guidelines
+          </p>
+          <p className="text-xs text-muted-foreground mb-3">
+            Add the grading criteria or requirements for this {typeLabel}. They'll show as a checklist whenever you study for it.
+          </p>
+          {rubric.length > 0 && (
+            <div className="space-y-1.5 mb-3">
+              {rubric.map((item, i) => (
+                <div key={i} className="flex items-center gap-2 rounded-lg border border-border px-3 py-2">
+                  <span className="flex-1 text-sm text-foreground">{item.text}</span>
+                  <button onClick={() => removeRubricItem(i)} aria-label="Remove" className="text-muted-foreground hover:text-destructive flex-shrink-0">
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="flex gap-2">
+            <input type="text" value={newRubricItem} onChange={e => setNewRubricItem(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addRubricItem(); } }}
+              placeholder="e.g. Cite at least 3 sources"
+              className="flex-1 px-3 py-2 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40" />
+            <button onClick={addRubricItem} disabled={!newRubricItem.trim()}
+              className="px-3 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50">
+              Add
+            </button>
           </div>
         </div>
 

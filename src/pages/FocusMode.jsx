@@ -86,11 +86,13 @@ export default function FocusMode() {
       base44.entities.StudySession.get(sessionId).then(s => {
         setSession(s);
         if (s.class_id) base44.entities.Class.get(s.class_id).then(setCls);
-        if (s.session_type === 'project') {
-          setIsProjectSession(true);
-          if (s.assignment_id) {
-            base44.entities.Assignment.get(s.assignment_id).then(setProjectAssignment).catch(() => {});
-          }
+        if (s.session_type === 'project') setIsProjectSession(true);
+        // Not just projects: any session tied to an assignment (exam/quiz/
+        // assignment prep too) needs its rubric available for the checklist
+        // below, and a project session additionally needs the roadmap step
+        // this session covers.
+        if (s.assignment_id) {
+          base44.entities.Assignment.get(s.assignment_id).then(setProjectAssignment).catch(() => {});
         }
       }).catch(() => {});
     } else if (classIdParam) {
@@ -414,6 +416,38 @@ export default function FocusMode() {
           </div>
         );
       })()}
+
+      {/* Rubric / guidelines checklist — any session tied to an assignment,
+          exam, quiz, or project (not just project steps above). Set from
+          AssignmentEditModal, carried on the assignment itself so it's the
+          same list no matter which of its sessions you open. Checking items
+          off here persists straight to that assignment. */}
+      {projectAssignment?.rubric?.length > 0 && (
+        <div className="text-left mb-6 w-full max-w-sm rounded-xl border border-border bg-card p-4">
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">
+            {projectAssignment.title} — rubric
+          </p>
+          <div className="space-y-1.5">
+            {projectAssignment.rubric.map((item, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => {
+                  const updated = projectAssignment.rubric.map((it, idx) => idx === i ? { ...it, done: !it.done } : it);
+                  setProjectAssignment({ ...projectAssignment, rubric: updated });
+                  base44.entities.Assignment.update(projectAssignment.id, { rubric: updated }).catch(() => {});
+                }}
+                className="w-full flex items-start gap-2.5 text-left py-1 group"
+              >
+                <span className={`mt-0.5 w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 transition-colors ${item.done ? 'bg-primary border-primary' : 'border-input group-hover:border-primary/50'}`}>
+                  {item.done && <Check className="w-3 h-3 text-primary-foreground" strokeWidth={3} />}
+                </span>
+                <span className={`text-sm ${item.done ? 'text-muted-foreground line-through' : 'text-foreground'}`}>{item.text}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Mode toggle */}
       {showModeToggle && (
