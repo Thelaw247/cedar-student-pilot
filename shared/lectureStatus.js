@@ -21,6 +21,18 @@ export const LECTURE_COMPLETE = 'complete';
 /** Every status the database will accept, in schema order. */
 export const LECTURE_STATUSES = [LECTURE_PENDING, LECTURE_PROCESSING, LECTURE_COMPLETE];
 
+/**
+ * How long a lecture may sit in 'processing' before the work is presumed dead.
+ *
+ * The route releases a lecture back to 'pending' in a catch block, which only
+ * runs in-process: if the API restarts or is redeployed mid-run, that release
+ * never happens and the row says "Processing…" forever. Three things key off
+ * this one number — claimLecture's stale re-claim, the sweeper that reclaims
+ * abandoned rows on a schedule, and the lecture page's decision to stop
+ * waiting and offer a retry — so it lives here rather than in any of them.
+ */
+export const PROCESSING_STALE_MINUTES = 15;
+
 /** True once the server is finished with a lecture, successfully. */
 export function isLectureComplete(lecture) {
   return lecture?.status === LECTURE_COMPLETE;

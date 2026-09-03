@@ -22,7 +22,7 @@ import Widget from '@/components/ui/Widget';
 import { useUpgrade } from '@/components/monetization/UpgradeContext';
 import { useFeatureGate } from '@/components/monetization/useFeatureGate';
 import { Lock } from 'lucide-react';
-import { LECTURE_COMPLETE } from '@/lib/lectureStatus';
+import { LECTURE_COMPLETE, LECTURE_PENDING, LECTURE_PROCESSING, PROCESSING_STALE_MINUTES } from '@/lib/lectureStatus';
 import { classifySaveError, describeSaveError } from '@/lib/saveErrors';
 
 export default function LectureDetail() {
@@ -146,8 +146,21 @@ export default function LectureDetail() {
   // offers a re-run).
   const awaitingEnrichment = lecture?.status === LECTURE_COMPLETE && !!lecture?.ai_title && !lecture?.enriched_at
     && (Date.now() - new Date(lecture?.updated_at || 0).getTime()) < 5 * 60 * 1000;
+
+  // A lecture claimed by a process that then died stays 'processing' forever:
+  // the release runs in a catch block, which a killed process never reaches.
+  // The scheduled sweep (routes/reclaimStuckLectures.js) hands it back, but
+  // that runs daily, and until then this page would poll a row that will never
+  // change and never offer the retry, which is gated on 'pending'. Past the
+  // same stale window the server uses, stop waiting and let the student act.
+  const processingMinutes = lecture?.status === LECTURE_PROCESSING
+    ? (Date.now() - new Date(lecture?.updated_at || lecture?.created_at || Date.now()).getTime()) / 60000
+    : 0;
+  const processingStalled = processingMinutes > PROCESSING_STALE_MINUTES;
+
   useEffect(() => {
-    if (lecture?.status !== 'processing' && !awaitingEnrichment) return undefined;
+    if (processingStalled) return undefined;
+    if (lecture?.status !== LECTURE_PROCESSING && !awaitingEnrichment) return undefined;
     let cancelled = false;
     const timer = setInterval(async () => {
       try {
@@ -161,7 +174,7 @@ export default function LectureDetail() {
       } catch { /* transient — keep polling */ }
     }, 5000);
     return () => { cancelled = true; clearInterval(timer); };
-  }, [lecture?.status, lecture?.enriched_at, awaitingEnrichment, lectureId]);
+  }, [lecture?.status, lecture?.enriched_at, awaitingEnrichment, processingStalled, lectureId]);
 
   const saveNote = useCallback(async () => {
     setNoteStatus('saving');
@@ -434,17 +447,24 @@ export default function LectureDetail() {
         </div>
       )}
 
-      {/* Recording saved but never analyzed — offer to (re)start processing */}
-      {lecture.status === 'pending' && lecture.recording_url && !lecture.ai_title && (
+      {/* Recording saved but never analyzed — offer to (re)start processing.
+          Also covers a lecture stuck in 'processing' past the stale window:
+          the work is gone with whatever process was running it, and the same
+          retry is what recovers it. */}
+      {(lecture.status === LECTURE_PENDING || processingStalled) && lecture.recording_url && !lecture.ai_title && (
         <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 mb-6">
           <div className="flex items-start gap-2">
             <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
             <div className="flex-1">
-              <p className="text-sm font-medium text-amber-700 dark:text-amber-500">This recording hasn't been processed yet</p>
+              <p className="text-sm font-medium text-amber-700 dark:text-amber-500">
+                {processingStalled ? 'Processing stopped before it finished' : "This recording hasn't been processed yet"}
+              </p>
               <p className="text-xs text-muted-foreground mt-1">
                 {lecture.processing_error
                   ? `Last attempt: ${lecture.processing_error}`
-                  : 'The audio is safely stored. Start processing to get the transcript, summary, and flashcards.'}
+                  : processingStalled
+                    ? 'The server did not finish this one. Your audio is safely stored — pick it up again from here.'
+                    : 'The audio is safely stored. Start processing to get the transcript, summary, and flashcards.'}
               </p>
               <button onClick={retryProcessing} disabled={retrying}
                 className="mt-3 inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 disabled:opacity-50">

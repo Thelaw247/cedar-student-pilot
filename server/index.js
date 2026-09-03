@@ -20,6 +20,7 @@ import createCheckoutSessionRouter from './routes/createCheckoutSession.js';
 import createPortalSessionRouter from './routes/createPortalSession.js';
 import confirmCheckoutSessionRouter from './routes/confirmCheckoutSession.js';
 import grantMonthlyCreditsRouter from './routes/grantMonthlyCredits.js';
+import reclaimStuckLecturesRouter from './routes/reclaimStuckLectures.js';
 import cleanLectureTranscriptRouter from './routes/cleanLectureTranscript.js';
 import generateStudyMaterialRouter from './routes/generateStudyMaterial.js';
 import predictExamTopicsRouter from './routes/predictExamTopics.js';
@@ -75,6 +76,8 @@ app.use('/create-checkout-session', createCheckoutSessionRouter);
 app.use('/create-portal-session', createPortalSessionRouter);
 app.use('/confirm-checkout-session', confirmCheckoutSessionRouter);
 app.use('/grant-monthly-credits', grantMonthlyCreditsRouter);
+// Scheduled sweep: lectures whose processing died with the process.
+app.use('/reclaim-stuck-lectures', reclaimStuckLecturesRouter);
 app.use('/clean-lecture-transcript', cleanLectureTranscriptRouter);
 app.use('/generate-study-material', generateStudyMaterialRouter);
 app.use('/predict-exam-topics', predictExamTopicsRouter);

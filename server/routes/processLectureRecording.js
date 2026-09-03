@@ -5,6 +5,7 @@ import { usableFlashcards } from '../lib/flashcards.js';
 import { transcribeAudioParts, GROQ_MODEL, DEEPGRAM_MODEL } from '../lib/transcription.js';
 import { pool } from '../lib/db.js';
 import { cleanAnalysis } from '../lib/analysisSanity.js';
+import { PROCESSING_STALE_MINUTES } from '../../shared/lectureStatus.js';
 import { requireAuth } from '../middleware/requireAuth.js';
 import { invokeLLM, createLlmUsage, QUALITY_MODEL } from '../lib/llm.js';
 import {
@@ -401,7 +402,6 @@ ${formulas || '(none)'}`,
 // run already in flight and blocked it from ever starting. A row whose
 // updated_at still equals created_at has never been touched by any pipeline
 // (a real claim bumps updated_at immediately), so it is always claimable.
-const PROCESSING_STALE_MINUTES = 15;
 
 async function claimLecture(lectureId, userId) {
   const claimed = await pool.query(
