@@ -128,13 +128,21 @@ export default function RecordingIsland() {
                 <FileText className="w-4 h-4 text-white/80" />
               </span>
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold truncate">Recording complete</p>
+                <p className="text-sm font-semibold truncate">
+                  {rec.recoveredOnBoot ? 'Unsaved recording found' : 'Recording complete'}
+                </p>
                 <p className="text-[11px] text-white/60 tabular-nums">
                   {formatClock(rec.seconds)} · {rec.cls?.name}
                   {rec.savedSegmentCount > 1 ? ` · ${rec.savedSegmentCount} segments` : ''}
                 </p>
               </div>
             </div>
+          )}
+          {rec.recoveredOnBoot && !failure && (
+            <p className="text-[11px] text-white/70 mb-3">
+              This recording was interrupted — a refresh, a closed tab, or the browser reclaiming the page.
+              The audio is safe on this device. Save it to finish.
+            </p>
           )}
           {rec.recordingLimitReached && (
             <p className="text-[11px] text-amber-400/90 mb-3">The 6-hour limit was reached. Save this recording, then start a new one if class is continuing.</p>

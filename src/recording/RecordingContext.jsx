@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { classifySaveError, describeSaveError } from '@/lib/saveErrors';
 import { base44 } from '@/api/base44Client';
-import { saveRecording, getRecording, clearRecording } from '@/lib/recordingStore';
+import { saveRecording, getRecording, clearRecording, listRecoverableRecordings } from '@/lib/recordingStore';
+import { getCachedUserId } from '@/lib/currentUser';
 import { LECTURE_COMPLETE, LECTURE_PENDING } from '@/lib/lectureStatus';
 import { useUpgrade } from '@/components/monetization/UpgradeContext';
 
@@ -111,6 +112,9 @@ export function RecordingProvider({ children }) {
   // The blob lives in a ref so saveAndProcess can run in the same tick as
   // recoverSession (before React state flushes); state mirrors it for the UI.
   const [recoveredBlob, setRecoveredBlob] = useState(null);
+  // True when the session on screen was found on disk at startup rather than
+  // recorded in this page's lifetime. Only changes what the island says.
+  const [recoveredOnBoot, setRecoveredOnBoot] = useState(false);
   const recoveredBlobRef = useRef(null);
   // Mirrors pendingLectureId so saveAndProcess can read it in the same tick
   // as recoverSession, and so a recovered session inherits the lecture the
@@ -410,6 +414,7 @@ export function RecordingProvider({ children }) {
       }
       setRecoveredBlob(null);
       recoveredBlobRef.current = null;
+      setRecoveredOnBoot(false);
       setReadyToSave(false);
       setRecordingLimitReached(false);
       setSaveError('');
@@ -464,6 +469,63 @@ export function RecordingProvider({ children }) {
     capturedBytesRef.current = Number(rec.bytes || 0);
     setReadyToSave(true);
   }, []);
+
+  // WHY A RECORDING COULD SURVIVE AND STILL LOOK LOST.
+  //
+  // The audio is flushed to IndexedDB every ~15 seconds, so a refresh, a crash
+  // or a closed tab loses almost nothing. But everything that made the session
+  // VISIBLE — `cls`, `recording`, `readyToSave` — is in-memory state, and
+  // `active` is derived from it, so the island disappeared on reload. The only
+  // code that looked for the saved audio ran inside ClassDetail's Record
+  // modal, for one specific class, which a student reaches by opening that
+  // class and pressing Record. Refresh anywhere else and the recording was
+  // still on disk with nothing in the app willing to say so.
+  //
+  // So the provider looks for itself, once, on boot. It seeds the session with
+  // whatever it finds and stops there: the island offers "Save & process" and
+  // the student decides. Recovering must never spend credits on its own.
+  //
+  // Guarded three ways — never while a session is live, never twice, and never
+  // over a session started while the lookup was in flight.
+  useEffect(() => {
+    let cancelled = false;
+    let attempts = 0;
+
+    const sessionInProgress = () => recordingRef.current || !!clsRef.current;
+
+    const scan = async () => {
+      if (cancelled || sessionInProgress()) return;
+      // The store is keyed by user, and the id is cached by AuthContext as auth
+      // resolves. Layout mounts this provider behind ProtectedRoute so it is
+      // normally already set; retry briefly rather than assume the ordering.
+      if (!getCachedUserId()) {
+        attempts += 1;
+        if (attempts < 6) setTimeout(scan, 500);
+        return;
+      }
+
+      const found = (await listRecoverableRecordings())[0];
+      if (!found || cancelled || sessionInProgress()) return;
+
+      // The class name is what the island shows. If it cannot be read (offline,
+      // class deleted) recovery still proceeds — the audio matters more than
+      // the label.
+      let classInfo = { id: found.classId, name: 'an earlier recording', color: undefined };
+      try {
+        const cls = await base44.entities.Class.get(found.classId);
+        if (cls) classInfo = { id: cls.id, name: cls.name, color: cls.color };
+      } catch (e) {
+        /* keep the neutral label */
+      }
+      if (cancelled || sessionInProgress()) return;
+
+      recoverSession(classInfo, found);
+      setRecoveredOnBoot(true);
+    };
+
+    scan();
+    return () => { cancelled = true; };
+  }, [recoverSession]);
 
   const saveAndProcess = useCallback(async () => {
     const activeCls = clsRef.current;
@@ -735,6 +797,7 @@ export function RecordingProvider({ children }) {
     canAttachMaterials: typeof base44.materials?.upload === 'function',
     recordingLimitReached,
     recoveredBlob,
+    recoveredOnBoot,
     start,
     togglePause,
     stop,

@@ -16,7 +16,7 @@
  * time, while a shared device can never expose one user's audio to another.
  */
 
-import { getCachedUserId } from './currentUser';
+import { getCachedUserId } from './currentUser.js';
 
 const DB_NAME = 'cedar-recordings';
 const STORE = 'recordings';
@@ -117,6 +117,48 @@ export async function getRecording(classId) {
     return null;
   } catch (e) {
     return null;
+  }
+}
+
+/**
+ * Every recoverable recording this user owns, newest first.
+ *
+ * getRecording needs a classId, which you can only have if you are already
+ * looking at that class — so recovery used to be reachable only by opening the
+ * Record modal on exactly the right class page. A student who refreshed
+ * mid-lecture saw the recording pill vanish and had no way to learn the audio
+ * was still here. Walking the by-user index removes that requirement: the
+ * provider can find an interrupted session on boot, from anywhere in the app.
+ */
+export async function listRecoverableRecordings() {
+  try {
+    const userId = getCachedUserId();
+    if (!userId) return [];
+    const db = await openDB();
+    const rows = await new Promise((resolve, reject) => {
+      const out = [];
+      const request = tx(db, 'readonly').index(USER_INDEX).openCursor(IDBKeyRange.only(userId));
+      request.onsuccess = () => {
+        const cursor = request.result;
+        if (!cursor) {
+          resolve(out);
+          return;
+        }
+        out.push(cursor.value);
+        cursor.continue();
+      };
+      request.onerror = () => reject(request.error);
+    });
+    db.close();
+    return rows
+      .map((rec) => ({ ...rec, parts: Array.isArray(rec.parts) ? rec.parts : [] }))
+      // Same definition of "recoverable" as getRecording: local bytes that
+      // never reached R2, or segments that did but were never attached to a
+      // lecture. Anything else is a finished save waiting to be cleared.
+      .filter((rec) => (rec.blob && rec.blob.size > 0) || rec.parts.length > 0)
+      .sort((a, b) => Number(b.timestamp || 0) - Number(a.timestamp || 0));
+  } catch (e) {
+    return [];
   }
 }
 
