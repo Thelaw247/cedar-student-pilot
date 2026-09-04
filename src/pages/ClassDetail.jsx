@@ -14,6 +14,8 @@ import Segmented from '@/components/ui/Segmented';
 import { classTint, classColor } from '@/lib/color';
 import { useBalance } from '@/hooks/useBalance';
 import LockedFeature from '@/components/monetization/LockedFeature';
+import ScheduleSkippedNotice from '@/components/monetization/ScheduleSkippedNotice';
+import { useFeatureGate } from '@/components/monetization/useFeatureGate';
 import { hasFeature } from '@/lib/tiers';
 
 export default function ClassDetail() {
@@ -848,23 +850,37 @@ function HandbookTab({ cls, lectures }) {
 function AddAssignmentModal({ classId, onClose }) {
   const [form, setForm] = useState({ title: '', due_date: '', type: 'assignment', coverage_scope: 'cumulative' });
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
+  // The deadline is free for everyone; planning the work around it ships with
+  // Scholar (the server re-enforces). Below that plan the modal used to skip
+  // the booking and close, so nothing was said and no sessions appeared.
+  const [scheduleSkipped, setScheduleSkipped] = useState(false);
+  const scheduleGate = useFeatureGate('study_schedule');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
+    setError(null);
     try {
       const assignment = await base44.entities.Assignment.create({ ...form, class_id: classId });
-      if (getSetting('autoGenerateSchedules')) {
-        await base44.functions.invoke('generateStudySchedule', { assignment_id: assignment.id });
-      }
+      if (!getSetting('autoGenerateSchedules')) { onClose(); return; }
+      if (!scheduleGate.allowed) { setScheduleSkipped(true); setSaving(false); return; }
+      await base44.functions.invoke('generateStudySchedule', { assignment_id: assignment.id });
       onClose();
-    } catch (e) { console.error(e); }
+    } catch (err) {
+      // The assignment may already be saved — say what happened rather than
+      // closing on a failure the student never sees.
+      console.error(err);
+      setError(err?.response?.data?.message || err?.response?.data?.error
+        || 'Saved, but the study sessions could not be booked. Try again from the assignment.');
+    }
     setSaving(false);
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/30 glass" onClick={onClose}>
       <div className="bg-card w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl border border-border p-6 animate-fade-in max-h-[90dvh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        {scheduleSkipped ? <ScheduleSkippedNotice typeLabel="assignment" onClose={onClose} /> : <>
         <h3 className="font-heading text-lg font-semibold mb-4">Add Assignment</h3>
         <form onSubmit={handleSubmit} className="space-y-3">
           <input type="text" placeholder="Title (e.g. Midterm Exam)" value={form.title}
@@ -886,13 +902,18 @@ function AddAssignmentModal({ classId, onClose }) {
             <option value="since_last">Since last exam</option>
             <option value="custom">Custom lecture range</option>
           </select>
+          {error && <p className="text-xs text-destructive">{error}</p>}
           <div className="flex gap-2 pt-2">
             <button type="button" onClick={onClose} className="flex-1 px-4 py-2.5 rounded-lg border border-border text-sm font-medium text-muted-foreground hover:bg-muted">Cancel</button>
+            {/* The label says what this button will actually do. "Add & Plan
+                Study" on a plan that cannot plan is a promise the next screen
+                breaks. */}
             <button type="submit" disabled={saving || !form.title || !form.due_date} className="flex-1 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium disabled:opacity-50 flex items-center justify-center gap-2">
-              {saving ? <><Loader2 className="w-4 h-4 animate-spin" /> Planning...</> : 'Add & Plan Study'}
+              {saving ? <><Loader2 className="w-4 h-4 animate-spin" /> Planning...</> : scheduleGate.allowed ? 'Add & Plan Study' : 'Add assignment'}
             </button>
           </div>
         </form>
+        </>}
       </div>
     </div>
   );
