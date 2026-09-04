@@ -335,3 +335,28 @@
   opacity: 0.5;
 }
 
+
+/* ---- Mobile browser fixes (audit, 4 Sep 2026) -----------------------------
+   Found by rendering the app at iPhone-13 width rather than by guessing. */
+
+/* iOS Safari zooms the whole page in when a focused field is smaller than
+   16px, and does not zoom back out — so tapping any input in the app (fifty
+   of them are text-sm, i.e. 14px) left the page magnified and shifted, which
+   is most of what "glitchy on my phone" looks like. Raising the font only
+   where the zoom happens keeps the desktop density unchanged. */
+@media (max-width: 640px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
+/* A control that only appears on hover does not exist on a touch screen.
+   Anything using this class stays visible where the device cannot hover, and
+   keeps the quiet fade-in on machines that can. */
+@media (hover: none) {
+  .reveal-on-hover {
+    opacity: 1 !important;
+  }
+}

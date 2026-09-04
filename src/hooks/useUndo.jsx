@@ -39,7 +39,7 @@ export function useUndo() {
 export function UndoToast({ toast, onUndo, onDismiss }) {
   if (!toast) return null;
   return (
-    <div className="fixed bottom-24 lg:bottom-6 left-1/2 -translate-x-1/2 z-[55] animate-fade-in">
+    <div className="fixed bottom-24 lg:bottom-6 left-1/2 -translate-x-1/2 z-[55] animate-fade-in w-[calc(100vw-2rem)] max-w-sm pb-[env(safe-area-inset-bottom)]">
       <div className="flex items-center gap-3 bg-foreground text-background px-4 py-2.5 rounded-notification shadow-3">
         <span className="text-sm font-medium">{toast.message}</span>
         <button

@@ -13,7 +13,12 @@
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=3" />
     <link rel="manifest" href="/site.webmanifest" />
     <meta name="theme-color" content="#2E66FF" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+    <!-- No maximum-scale: iOS ignores it for the auto-zoom it does on small
+         form fields anyway, and where it IS honoured it blocks a student
+         from pinch-zooming a formula or a slide. viewport-fit=cover lets
+         the safe-area insets the bottom nav and recording island already
+         use actually resolve on a notched phone. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Praelecta — You show up, we'll do the rest</title>
     <!-- Static fallback for crawlers/scrapers that don't execute JS. Landing.jsx
          overrides this via useEffect for browsers that do (keeps per-page control),

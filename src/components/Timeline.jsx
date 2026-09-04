@@ -216,7 +216,7 @@ export default function Timeline({ items, onAddEvent, onDeleteItem }) {
             aria-label={`Delete ${item.title}`}
             title={`Delete ${item.title}`}
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDeleteItem(item); }}
-            className="absolute top-1 right-1 z-20 rounded-md p-1 text-muted-foreground/70 opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive focus-visible:opacity-100 group-hover:opacity-100"
+            className="reveal-on-hover absolute top-1 right-1 z-20 rounded-md p-1 text-muted-foreground/70 opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive focus-visible:opacity-100 group-hover:opacity-100"
           >
             <Trash2 className="w-3 h-3" />
           </button>

@@ -10,7 +10,7 @@ export default function AddExamOrStudyModal({ classes, onClose }) {
   if (!mode) {
     return (
       <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/30 glass" onClick={onClose}>
-        <div className="bg-card w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl border border-border p-6 animate-fade-in" onClick={e => e.stopPropagation()}>
+        <div className="bg-card w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl border border-border p-6 animate-fade-in max-h-[90dvh] overflow-y-auto" onClick={e => e.stopPropagation()}>
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-heading text-lg font-semibold">Add to Plan</h3>
             <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
@@ -69,7 +69,7 @@ function ExamForm({ classes, onBack, onClose }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/30 glass" onClick={onClose}>
-      <div className="bg-card w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl border border-border p-6 animate-fade-in" onClick={e => e.stopPropagation()}>
+      <div className="bg-card w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl border border-border p-6 animate-fade-in max-h-[90dvh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="flex items-center gap-3 mb-4">
           <button onClick={onBack} className="text-muted-foreground hover:text-foreground"><ChevronLeft className="w-5 h-5" /></button>
           <h3 className="font-heading text-lg font-semibold">Add Exam</h3>
@@ -137,7 +137,7 @@ function StudyForm({ classes, onBack, onClose }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/30 glass" onClick={onClose}>
-      <div className="bg-card w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl border border-border p-6 animate-fade-in" onClick={e => e.stopPropagation()}>
+      <div className="bg-card w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl border border-border p-6 animate-fade-in max-h-[90dvh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="flex items-center gap-3 mb-4">
           <button onClick={onBack} className="text-muted-foreground hover:text-foreground"><ChevronLeft className="w-5 h-5" /></button>
           <h3 className="font-heading text-lg font-semibold">Add Study Block</h3>

@@ -187,7 +187,7 @@ function TodoRow({ todo, cls, lecture, tone = '', today, onToggle, onRemove, onU
         </div>
       </div>
       <button type="button" onClick={onRemove} aria-label="Delete to-do"
-        className="opacity-0 group-hover:opacity-100 focus:opacity-100 text-muted-foreground hover:text-destructive transition-opacity mt-0.5">
+        className="reveal-on-hover opacity-0 group-hover:opacity-100 focus:opacity-100 text-muted-foreground hover:text-destructive transition-opacity mt-0.5">
         <Trash2 className="w-3.5 h-3.5" />
       </button>
     </li>

@@ -46,12 +46,12 @@ export default function LectureScopePicker({ lectures = [], selectedIds = [], on
         </p>
         <div className="flex items-center gap-2">
           <button type="button" onClick={selectAll}
-            className={`text-xs font-medium ${allSelected && !noneSelected ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}>
+            className={`text-xs font-medium py-2 -my-2 px-1 -mx-1 ${allSelected && !noneSelected ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}>
             Select all
           </button>
           <span className="text-muted-foreground/40">·</span>
           <button type="button" onClick={clearAll}
-            className="text-xs font-medium text-muted-foreground hover:text-foreground">
+            className="text-xs font-medium py-2 -my-2 px-1 -mx-1 text-muted-foreground hover:text-foreground">
             Clear
           </button>
         </div>

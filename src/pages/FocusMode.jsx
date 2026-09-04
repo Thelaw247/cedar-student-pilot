@@ -581,7 +581,7 @@ export default function FocusMode() {
       {/* Awaiting confirm modal */}
       {awaitingConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 glass">
-          <div className="bg-card rounded-2xl border border-border p-8 max-w-sm text-center animate-fade-in mx-4">
+          <div className="bg-card rounded-2xl border border-border p-8 max-w-sm text-center animate-fade-in mx-4 max-h-[90dvh] overflow-y-auto">
             <div className="w-14 h-14 rounded-full bg-amber-500/10 flex items-center justify-center mx-auto mb-4">
               <Check className="w-7 h-7 text-amber-600" />
             </div>
@@ -653,7 +653,7 @@ export default function FocusMode() {
       {/* Review prompt after stopping */}
       {phase === 'review_prompt' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 glass">
-          <div className="bg-card rounded-2xl border border-border p-8 max-w-sm text-center animate-fade-in mx-4">
+          <div className="bg-card rounded-2xl border border-border p-8 max-w-sm text-center animate-fade-in mx-4 max-h-[90dvh] overflow-y-auto">
             <div className="w-14 h-14 rounded-full bg-emerald-500/10 flex items-center justify-center mx-auto mb-4">
               <Check className="w-7 h-7 text-emerald-600" />
             </div>

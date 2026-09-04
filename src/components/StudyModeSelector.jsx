@@ -5,7 +5,7 @@ export default function StudyModeSelector({ onSelect, onClose }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 glass px-4" onClick={onClose}>
       <div
-        className="bg-card w-full max-w-md rounded-2xl border border-border p-6 animate-fade-in"
+        className="bg-card w-full max-w-md rounded-2xl border border-border p-6 animate-fade-in max-h-[90dvh] overflow-y-auto"
         onClick={e => e.stopPropagation()}
       >
         <h3 className="font-heading text-lg font-semibold mb-1">How will you study?</h3>

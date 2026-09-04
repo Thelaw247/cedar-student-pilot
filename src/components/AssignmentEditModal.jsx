@@ -175,7 +175,7 @@ export default function AssignmentEditModal({ assignment, onClose, onUpdate }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/30 glass" onClick={handleClose}>
-      <div className="bg-card w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl border border-border p-6 animate-fade-in max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+      <div className="bg-card w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl border border-border p-6 animate-fade-in max-h-[90dvh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         {/* One ✕ in this header, and it closes the modal. Delete used to sit
             here too — a destructive ✕ eight pixels from the close ✕, same
             size, told apart only by colour. It lives at the bottom now, as a

@@ -150,7 +150,7 @@ export default function AttendancePrompt() {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 glass p-4">
-      <div className="bg-card w-full max-w-sm rounded-2xl border border-border p-6 animate-fade-in text-center">
+      <div className="bg-card w-full max-w-sm rounded-2xl border border-border p-6 animate-fade-in text-center max-h-[90dvh] overflow-y-auto">
         <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4"
           style={{ backgroundColor: classTint(current.classObj.color) || 'hsl(var(--primary) / 0.1)', color: classColor(current.classObj.color) }}>
           <GraduationCap className="w-7 h-7" strokeWidth={1.5} />
