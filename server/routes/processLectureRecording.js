@@ -32,7 +32,16 @@ const REVIEW_MINUTES = 20;
 async function scheduleLectureReview({ userId, lectureId, classId, lectureDate, lectureTitle }) {
   // Never double-book — a re-run of processing (retry, re-enrich) must not
   // stack a second review session onto the same lecture.
-  const already = await pool.query('select 1 from study_sessions where lecture_id = $1 limit 1', [lectureId]);
+  //
+  // Reads lecture_ids, which every session now carries (a session can cover
+  // several lectures; lecture_id only ever held one). And scoped to the
+  // owner: without the user_id predicate this asked "has ANYONE been booked
+  // a review for this lecture", which is only harmless while lecture ids are
+  // unique per student — a coincidence, not a rule.
+  const already = await pool.query(
+    'select 1 from study_sessions where user_id = $1 and $2 = any(lecture_ids) limit 1',
+    [userId, lectureId],
+  );
   if (already.rows.length > 0) return;
   if (!lectureDate) return;
 
@@ -47,9 +56,12 @@ async function scheduleLectureReview({ userId, lectureId, classId, lectureDate, 
   });
   if (!placement) return; // the lecture day and the three after it were all taken — leave it unscheduled
 
+  // lecture_ids is what everything reads from here on; lecture_id is written
+  // alongside for one release so anything still reading the old column keeps
+  // working. The scheduler's own guard above already reads the new one.
   await pool.query(
-    `insert into study_sessions (user_id, class_id, lecture_id, scheduled_date, scheduled_time, duration_minutes, priority, status, session_type, title, notes)
-     values ($1, $2, $3, $4, $5, $6, 'medium', 'scheduled', 'review', $7, $8)`,
+    `insert into study_sessions (user_id, class_id, lecture_id, lecture_ids, scheduled_date, scheduled_time, duration_minutes, priority, status, session_type, title, notes)
+     values ($1, $2, $3, array[$3::uuid], $4, $5, $6, 'medium', 'scheduled', 'review', $7, $8)`,
     [userId, classId, lectureId, placement.date, placement.time, placement.duration_minutes, `Review: ${lectureTitle || 'this lecture'}`,
       placement.date === lectureDate
         ? 'Auto-scheduled for the day of the lecture.'

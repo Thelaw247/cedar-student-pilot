@@ -155,7 +155,7 @@ test('a lecture review has room to fall to a later day', () => {
   // take one review. The other two need somewhere to go or they vanish.
   const ROUTE = fs.readFileSync(new URL('../routes/processLectureRecording.js', import.meta.url), 'utf8');
   assert.match(ROUTE, /horizonDate: addDaysStr\(lectureDate, 3\)/);
-  assert.match(ROUTE, /select 1 from study_sessions where lecture_id = \$1/, 'a reprocessed lecture must not book a second review');
+  assert.match(ROUTE, /\$2 = any\(lecture_ids\)/, 'a reprocessed lecture must not book a second review');
 });
 
 /**
