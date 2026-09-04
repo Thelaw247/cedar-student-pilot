@@ -69,7 +69,7 @@ router.post('/', requireAuth, async (req, res) => {
     // Tier gate (this route predates gateFeature's, so it carries its own):
     // cleanup is part of the Student everyday kit.
     if (!tierAllows(balance.tier || 'free', 'clean_transcript')) {
-      await logUsage({ user_id: userId, feature: 'clean_transcript', lecture_id, tier_at_time: balance.tier, success: false, audio_seconds: audioSeconds });
+      await logUsage({ user_id: userId, feature: 'clean_transcript', lecture_id, tier_at_time: balance.tier, success: false, refusal: 'tier', audio_seconds: audioSeconds });
       return res.status(402).json({
         error: 'upgrade_required',
         feature: 'clean_transcript',
@@ -81,7 +81,7 @@ router.post('/', requireAuth, async (req, res) => {
     }
 
     if (availableCredits(balance) < cost) {
-      await logUsage({ user_id: userId, feature: 'clean_transcript', lecture_id, tier_at_time: balance.tier, success: false, audio_seconds: audioSeconds });
+      await logUsage({ user_id: userId, feature: 'clean_transcript', lecture_id, tier_at_time: balance.tier, success: false, refusal: 'credits', audio_seconds: audioSeconds });
       return insufficientResponse(res, 'clean_transcript', cost, balance);
     }
 

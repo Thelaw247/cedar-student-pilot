@@ -467,7 +467,7 @@ async function runProcessingPipeline({ userId, lectureId, existing, cls, balance
   // duration. If the true cost exceeds the balance after all, stop before any
   // provider call — the catch in the caller releases the lecture.
   if (cost > 0 && availableCredits(balance) < cost) {
-    await logUsage({ user_id: userId, feature: 'process_lecture', lecture_id: lectureId, tier_at_time: balance.tier, success: false, audio_seconds: audioSeconds });
+    await logUsage({ user_id: userId, feature: 'process_lecture', lecture_id: lectureId, tier_at_time: balance.tier, success: false, refusal: 'credits', audio_seconds: audioSeconds });
     throw new Error(`insufficient credits for the measured duration (${audioSeconds}s needs ${cost})`);
   }
 
@@ -603,7 +603,7 @@ router.post('/', requireAuth, async (req, res) => {
       const estimatedCost = durationCost(estimatedSeconds, COST_PER_30MIN_PROCESS);
       const balance = await getBalance(userId);
       if (availableCredits(balance) < estimatedCost) {
-        await logUsage({ user_id: userId, feature: 'process_lecture', tier_at_time: balance.tier, success: false, audio_seconds: estimatedSeconds });
+        await logUsage({ user_id: userId, feature: 'process_lecture', tier_at_time: balance.tier, success: false, refusal: 'credits', audio_seconds: estimatedSeconds });
         return insufficientResponse(res, 'process_lecture', estimatedCost, balance);
       }
       return res.json({ status: 'ready', estimated_credits: estimatedCost, balance: availableCredits(balance) });
@@ -644,7 +644,7 @@ router.post('/', requireAuth, async (req, res) => {
 
     const minimumCost = durationCost(1, COST_PER_30MIN_PROCESS);
     if (!alreadyCharged && availableCredits(balance) < minimumCost) {
-      await logUsage({ user_id: userId, feature: 'process_lecture', lecture_id, tier_at_time: balance.tier, success: false });
+      await logUsage({ user_id: userId, feature: 'process_lecture', lecture_id, tier_at_time: balance.tier, success: false, refusal: 'credits' });
       return insufficientResponse(res, 'process_lecture', minimumCost, balance);
     }
 

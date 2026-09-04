@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import fs from 'node:fs';
 import { isNoSuchCustomer } from '../lib/stripeErrors.js';
 
 // The self-heal in createCheckoutSession hinges entirely on recognising the one
@@ -24,4 +25,19 @@ test('isNoSuchCustomer does not swallow unrelated Stripe errors', () => {
   assert.equal(isNoSuchCustomer(new Error('')), false);
   assert.equal(isNoSuchCustomer(undefined), false);
   assert.equal(isNoSuchCustomer(null), false);
+});
+
+// ---- Promotion codes -------------------------------------------------------
+
+test('hosted Checkout shows the promotion-code field', () => {
+  // Stripe hides "Add promotion code" unless the session asks for it, so a
+  // coupon created in the dashboard had no way in and a student handed a code
+  // could not use it. It belongs on the base params, before the tier/pack
+  // branch, so both subscriptions and credit packs accept a code.
+  const route = fs.readFileSync(new URL('../routes/createCheckoutSession.js', import.meta.url), 'utf8');
+  assert.match(route, /allow_promotion_codes: 'true'/);
+  const base = route.slice(route.indexOf('const params = {'), route.indexOf('if (tier) {'));
+  assert.match(base, /allow_promotion_codes/, 'promotion codes must be enabled for packs as well as subscriptions');
+  // Stripe rejects a session that sets both; discounts are never set here.
+  assert.doesNotMatch(route, /'discounts\[0\]/, 'allow_promotion_codes and discounts cannot both be set');
 });

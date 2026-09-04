@@ -165,18 +165,29 @@ export async function spendCredits(balance, amount, operationId = crypto.randomU
  * Record what an action actually consumed. Never throws — a failure to log
  * must not fail the user's request.
  */
+/**
+ * Append one row to the usage ledger.
+ *
+ * `success: false` covers two different things, and conflating them made the
+ * owner dashboard read a working paywall as a broken product (4 Sep: a new
+ * user's "5 of 12 failed" was five gate refusals, all of which she completed
+ * minutes later after upgrading). So a declined request also passes
+ * `refusal: 'tier' | 'credits'`; a row with success:false and no refusal is a
+ * genuine failure — work we attempted and could not finish.
+ */
 export async function logUsage(event) {
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
       await pool.query(
         `insert into usage_events (occurred_at, success, user_id, feature, provider, model, call_count,
            base44_credits, input_tokens, output_tokens, cedar_credits_charged, credit_operation_id,
-           cost_cad, tier_at_time, latency_ms, lecture_id, audio_seconds)
-         values (now(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`,
+           cost_cad, tier_at_time, latency_ms, lecture_id, audio_seconds, refusal)
+         values (now(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)`,
         [event.success ?? true, event.user_id, event.feature, event.provider || null, event.model || null,
          event.call_count || 0, event.base44_credits || 0, event.input_tokens || 0, event.output_tokens || 0,
          event.cedar_credits_charged || 0, event.credit_operation_id || null, event.cost_cad || 0,
-         event.tier_at_time || 'free', event.latency_ms || 0, event.lecture_id || null, event.audio_seconds || 0],
+         event.tier_at_time || 'free', event.latency_ms || 0, event.lecture_id || null, event.audio_seconds || 0,
+         event.refusal || null],
       );
       return true;
     } catch (e) {
@@ -235,7 +246,7 @@ export async function gateFeature(userId, feature, res, extra = {}) {
   const userTier = balance.tier || 'free';
   if (!tierAllows(userTier, feature)) {
     const requiredTier = FEATURE_MIN_TIER[feature];
-    await logUsage({ user_id: userId, feature, tier_at_time: userTier, success: false, ...extra });
+    await logUsage({ user_id: userId, feature, tier_at_time: userTier, success: false, refusal: 'tier', ...extra });
     res.status(402).json({
       error: 'upgrade_required',
       feature,
@@ -248,7 +259,7 @@ export async function gateFeature(userId, feature, res, extra = {}) {
   }
 
   if (cost > 0 && availableCredits(balance) < cost) {
-    await logUsage({ user_id: userId, feature, tier_at_time: balance.tier, success: false, ...extra });
+    await logUsage({ user_id: userId, feature, tier_at_time: balance.tier, success: false, refusal: 'credits', ...extra });
     insufficientResponse(res, feature, cost, balance);
     return { ok: false };
   }

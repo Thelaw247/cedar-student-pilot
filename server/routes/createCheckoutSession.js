@@ -29,6 +29,13 @@ router.post('/', requireAuth, async (req, res) => {
       // same honest reassurance the app shows beside every price. Stays
       // accurate for both modes — the pack line is set below.
       'custom_text[submit][message]': 'Cancel anytime — you keep your plan until the period ends. Prices in CAD.',
+      // Show the "Add promotion code" field on hosted Checkout. Without this
+      // Stripe hides it entirely, so a coupon created in the dashboard has no
+      // way in and a student who was given a code cannot use it. Codes are
+      // still defined and constrained entirely in Stripe (amount, expiry,
+      // first-time-only, redemption cap) -- this only decides whether the
+      // field is rendered. Applies to both modes: subscriptions and packs.
+      allow_promotion_codes: 'true',
     };
 
     if (tier) {

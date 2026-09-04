@@ -205,7 +205,15 @@ export default function OwnerAnalytics() {
                   <td className="px-3 py-2">{c.available_credits}</td>
                   <td className="px-3 py-2">
                     {c.actions}
+                    {/* A refusal is the paywall stopping someone, not the app
+                        breaking, so it reads as upgrade demand rather than as a
+                        fault. Only a real failure is amber. */}
                     {c.failures > 0 && <span className="ml-1 text-xs text-amber-600">({c.failures} failed)</span>}
+                    {c.refusals > 0 && (
+                      <span className="ml-1 text-xs text-muted-foreground" title="Blocked by the paywall — tier or credits. Not an error.">
+                        ({c.refusals} paywall {c.refusals === 1 ? 'stop' : 'stops'})
+                      </span>
+                    )}
                   </td>
                   <td className="px-3 py-2">{money(c.revenue_cad)}</td>
                   <td className="px-3 py-2">{money(c.cost_cad)}</td>

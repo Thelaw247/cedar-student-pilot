@@ -56,9 +56,16 @@ router.post('/', requireAuth, requireAdmin, async (req, res) => {
       const charged = Number(e.cedar_credits_charged) || 0;
       costAll += cost;
 
-      const u = usageByUser.get(e.user_id) || { actions: 0, cost_cad: 0, credits_charged: 0, failures: 0, last_active: null };
+      const u = usageByUser.get(e.user_id) || { actions: 0, cost_cad: 0, credits_charged: 0, failures: 0, refusals: 0, last_active: null };
       u.actions += 1; u.cost_cad += cost; u.credits_charged += charged;
-      if (e.success === false) u.failures += 1;
+      // A refusal is the paywall working, not the product breaking. Counting
+      // them together showed a new user "5 of 12 failed" on 4 Sep when all
+      // five were gate stops she cleared minutes later by upgrading -- and it
+      // buried the number that would matter if it were ever non-zero.
+      if (e.success === false) {
+        if (e.refusal) u.refusals += 1;
+        else u.failures += 1;
+      }
       const occurredAt = e.occurred_at instanceof Date ? e.occurred_at.toISOString() : e.occurred_at;
       if (!u.last_active || (occurredAt && occurredAt > u.last_active)) u.last_active = occurredAt || u.last_active;
       usageByUser.set(e.user_id, u);
@@ -90,7 +97,7 @@ router.post('/', requireAuth, requireAdmin, async (req, res) => {
 
     const customers = balances.map((b) => {
       const u = userById.get(b.user_id);
-      const usage = usageByUser.get(b.user_id) || { actions: 0, cost_cad: 0, credits_charged: 0, failures: 0, last_active: null };
+      const usage = usageByUser.get(b.user_id) || { actions: 0, cost_cad: 0, credits_charged: 0, failures: 0, refusals: 0, last_active: null };
       const rev = (b.stripe_customer_id && revenueByCustomer.get(b.stripe_customer_id)) || { net: 0, gross: 0, refunded: 0, payments: 0, first: null, last: null };
       const profit = rev.net - usage.cost_cad;
       return {
@@ -100,7 +107,7 @@ router.post('/', requireAuth, requireAdmin, async (req, res) => {
         subscription_credits: b.subscription_credits || 0, purchased_credits: b.purchased_credits || 0,
         available_credits: Number(b.subscription_credits || 0) + Number(b.purchased_credits || 0),
         lifetime_granted: b.lifetime_granted || 0, actions: usage.actions, credits_charged: usage.credits_charged,
-        failures: usage.failures, last_active: usage.last_active, revenue_cad: round2(rev.net), gross_cad: round2(rev.gross),
+        failures: usage.failures, refusals: usage.refusals, last_active: usage.last_active, revenue_cad: round2(rev.net), gross_cad: round2(rev.gross),
         refunded_cad: round2(rev.refunded), payments: rev.payments, first_payment: rev.first,
         cost_cad: round4(usage.cost_cad), profit_cad: round2(profit),
         margin_pct: rev.net > 0 ? Math.round((profit / rev.net) * 100) : null,
