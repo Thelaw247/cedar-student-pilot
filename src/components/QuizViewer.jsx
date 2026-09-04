@@ -1,6 +1,12 @@
 import React, { useState } from 'react';
 import { Check, X, ChevronLeft, ChevronRight, RotateCcw } from 'lucide-react';
 
+// Answers are stored as a verbatim copy of one of the options, so this is a
+// comparison and not a search — but the same trim-and-lowercase QuizReview
+// uses, because a stray space in stored data should not mark a right answer
+// wrong for the rest of that question's life.
+const sameAnswer = (a, b) => String(a ?? '').trim().toLowerCase() === String(b ?? '').trim().toLowerCase();
+
 export default function QuizViewer({ questions }) {
   const [index, setIndex] = useState(0);
   const [selected, setSelected] = useState(null);
@@ -18,7 +24,7 @@ export default function QuizViewer({ questions }) {
     setSelected(optionIdx);
     setRevealed(true);
     setAnswered(a => a + 1);
-    if (isMultipleChoice && optionIdx !== null && q.options[optionIdx] === q.answer) {
+    if (isMultipleChoice && optionIdx !== null && sameAnswer(q.options[optionIdx], q.answer)) {
       setScore(s => s + 1);
     }
   };
@@ -41,7 +47,7 @@ export default function QuizViewer({ questions }) {
       {isMultipleChoice ? (
         <div className="space-y-2 mb-4">
           {q.options.map((opt, i) => {
-            const isCorrect = opt === q.answer;
+            const isCorrect = sameAnswer(opt, q.answer);
             const isSelected = selected === i;
             let style = 'border-border bg-background hover:border-primary/40';
             if (revealed) {

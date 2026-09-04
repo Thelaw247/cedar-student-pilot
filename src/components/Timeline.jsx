@@ -37,6 +37,23 @@ function findConflicts(items) {
 }
 
 const HOUR_HEIGHT = 56;
+const MIN_BLOCK_HEIGHT = 28; // a block shorter than this cannot show its title
+
+/**
+ * Where the next block on this day starts, in pixels — or null if this is the
+ * last one. Used to stop a short block's minimum height from running into it.
+ */
+function nextBlockTop(items, idx, startMin, hourHeight) {
+  const mine = parseTime(items[idx]?.time);
+  let soonest = null;
+  for (let i = 0; i < items.length; i++) {
+    if (i === idx) continue;
+    const t = parseTime(items[i]?.time);
+    if (t == null || mine == null || t <= mine) continue;
+    if (soonest == null || t < soonest) soonest = t;
+  }
+  return soonest == null ? null : ((soonest - startMin) / 60) * hourHeight;
+}
 
 export default function Timeline({ items, onAddEvent, onDeleteItem }) {
   const hasEvents = items && items.length > 0;
@@ -160,7 +177,7 @@ export default function Timeline({ items, onAddEvent, onDeleteItem }) {
       ))}
 
       {/* Event blocks */}
-      {(items || []).map((item) => {
+      {(items || []).map((item, itemIdx) => {
         const start = parseTime(item.time);
         const end = parseTime(item.endTime) || (start != null ? start + 60 : null);
         if (start == null) return null;
@@ -168,7 +185,15 @@ export default function Timeline({ items, onAddEvent, onDeleteItem }) {
         const clampedStart = Math.max(start, startMin);
         const clampedEnd = Math.min(end || start + 60, endMin);
         const top = ((clampedStart - startMin) / 60) * HOUR_HEIGHT;
-        const height = Math.max(28, ((clampedEnd - clampedStart) / 60) * HOUR_HEIGHT - 2);
+        // MIN_BLOCK_HEIGHT keeps a short block readable, but at 56px an hour
+        // it is worth 30 minutes — so a 20-minute review drawn at its floor
+        // reaches across anything starting less than half an hour later, and
+        // two things that do not overlap in the calendar look like they do.
+        // Give back whatever the next block needs.
+        const nextTop = nextBlockTop(items, itemIdx, startMin, HOUR_HEIGHT);
+        const trueHeight = ((clampedEnd - clampedStart) / 60) * HOUR_HEIGHT - 2;
+        const room = nextTop == null ? Infinity : Math.max(0, nextTop - top - 2);
+        const height = Math.max(Math.min(MIN_BLOCK_HEIGHT, room), Math.min(trueHeight, room));
         const Icon = eventMeta(item.type).icon;
         const color = railColor(item);
         const isConflicting = conflictingIds.has(item.id);

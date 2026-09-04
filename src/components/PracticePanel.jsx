@@ -94,7 +94,16 @@ export default function PracticePanel({ initialClassId = '', initialLectureIds =
       const pq = await base44.entities.PracticeQuestion.filter({ class_id: selectedClass });
       setExistingQuestions(pq);
     } catch (e) {
-      setResult({ error: 'Failed to generate study material. Please try again.' });
+      // Show what the server said when it said something. The generic line
+      // below hid a NOT NULL violation for two weeks: the student read
+      // "try again", tried again, and got the same thing.
+      const status = e?.response?.status;
+      const said = e?.response?.data?.message || e?.response?.data?.error;
+      setResult({
+        error: status === 402
+          ? (said || 'This needs an upgrade or more credits.')
+          : (said || 'Failed to generate study material. Please try again.'),
+      });
     }
     setGenerating(false);
   };

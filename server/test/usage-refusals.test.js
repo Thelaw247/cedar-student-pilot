@@ -47,10 +47,16 @@ test('every gate in the codebase marks itself, and only genuine failures do not'
       unmarked.push(`${file}: ${line.trim().slice(0, 80)}`);
     }
   }
-  // cleanLectureTranscript's 502 is the one real failure site: it only fires
-  // after the model has run and produced nothing, and it records a provider.
-  assert.equal(unmarked.length, 1, `unexpected unmarked success:false sites:\n${unmarked.join('\n')}`);
-  assert.match(unmarked[0], /cleanLectureTranscript/);
+  // Two real failure sites, and only two. Both fire only after the model has
+  // run and come back with nothing usable, which is a fault and not a
+  // paywall stop:
+  //   cleanLectureTranscript — the 502 when the cleaned transcript is empty.
+  //   generateStudyMaterial  — every question the model returned failed
+  //                            validation (added 4 Sep 2026, when the
+  //                            Practice tab's quiz path was rebuilt).
+  const named = unmarked.map((u) => u.split(':')[0]).sort();
+  assert.deepEqual(named, ['cleanLectureTranscript.js', 'generateStudyMaterial.js'],
+    `unexpected unmarked success:false sites:\n${unmarked.join('\n')}`);
 });
 
 test('the dashboard separates paywall stops from faults', () => {

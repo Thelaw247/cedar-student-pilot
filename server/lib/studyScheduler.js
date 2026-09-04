@@ -13,7 +13,10 @@ import { getClassMeetingsForDate } from '../../src/lib/classSchedule.js';
 // The rules, in one place so they can't drift apart again:
 //   1. ASAP — start looking from today (or an explicit fromDate), not next week.
 //   2. At most one session per calendar day, so sessions land "every day"
-//      rather than stacked.
+//      rather than stacked. Counted across EVERYTHING already on the day,
+//      not just the sessions this run places: three lectures recorded on a
+//      Thursday used to book three reviews into that one evening, because
+//      each booking call only knew about its own placements.
 //   3. Every session is 30-90 minutes, sized to the gap it lands in.
 //   4. A BUFFER_MINUTES cushion surrounds every busy block — a class, a
 //      calendar event, or an already-placed session — so nothing is booked
@@ -21,7 +24,15 @@ import { getClassMeetingsForDate } from '../../src/lib/classSchedule.js';
 //   5. Sessions only land inside the student's preferred windows (Settings >
 //      Review Schedule, profiles.preferred_study_times). No preference set →
 //      a sane default window, so nothing breaks for a student who hasn't
-//      configured one yet.
+//      configured one yet. Overlapping windows are merged first, so two
+//      preferred times an hour apart describe one continuous window rather
+//      than two that each think they own the same minutes.
+//   6. A caller placing several sessions in one go must pass every placement
+//      it has not yet written back as `reserved`. Placements live in memory
+//      until the caller inserts them, so a second search would otherwise
+//      re-read the database, see nothing, and hand back a slot it already
+//      gave away — which is exactly how every exam booked its final review
+//      on top of one of its own study sessions.
 
 export const MIN_SESSION_MINUTES = 30;
 export const MAX_SESSION_MINUTES = 90;
@@ -46,18 +57,43 @@ export async function getPreferredWindows(userId) {
   const raw = rows[0]?.preferred_study_times;
   const times = (Array.isArray(raw) ? raw : []).filter((t) => TIME_RE.test(t));
   if (times.length === 0) return DEFAULT_WINDOWS;
-  return times
-    .map((t) => { const m = toMin(t); return { start: Math.max(0, m - WINDOW_RADIUS_MINUTES), end: Math.min(24 * 60, m + WINDOW_RADIUS_MINUTES) }; })
-    .sort((a, b) => a.start - b.start);
+  return mergeWindows(times
+    .map((t) => { const m = toMin(t); return { start: Math.max(0, m - WINDOW_RADIUS_MINUTES), end: Math.min(24 * 60, m + WINDOW_RADIUS_MINUTES) }; }));
 }
 
 /**
- * Busy blocks per day across [startDate, endDate], each already expanded by
- * BUFFER_MINUTES. classId narrows to one class's meetings; omit it to pull
- * every class (used when booking isn't tied to a single course).
+ * Collapse overlapping or touching windows into one.
+ *
+ * Two preferred times 60 minutes apart open two 180-minute windows that
+ * share most of their minutes. Left separate, freeSpansForDay walks each one
+ * and returns a free span from both, so the same minutes are offered twice
+ * and the day's "earliest span" is whichever duplicate sorts first. Merging
+ * makes the windows describe the day once.
  */
-async function getBusyBlocksForRange(userId, startDate, endDate, classId = null) {
+export function mergeWindows(windows) {
+  const sorted = [...windows].sort((a, b) => a.start - b.start);
+  const merged = [];
+  for (const w of sorted) {
+    const last = merged[merged.length - 1];
+    if (last && w.start <= last.end) last.end = Math.max(last.end, w.end);
+    else merged.push({ ...w });
+  }
+  return merged;
+}
+
+/**
+ * The day-by-day picture a placement search works against: `busy` holds the
+ * buffered blocks, `sessions` counts how many study sessions each day already
+ * holds. The count is what enforces rule 2 across separate booking runs —
+ * busy blocks alone only push a new session later in the same evening, which
+ * is how a student ended up with four of them between 4pm and 8pm.
+ *
+ * classId narrows to one class's meetings; omit it to pull every class (used
+ * when booking isn't tied to a single course).
+ */
+async function getDayPicture(userId, startDate, endDate, classId = null) {
   const busy = {};
+  const sessionCounts = {};
   const add = (ds, start, end) => {
     if (start == null) return;
     const safeEnd = end == null ? start + 60 : end;
@@ -98,13 +134,37 @@ async function getBusyBlocksForRange(userId, startDate, endDate, classId = null)
     }
     for (const s of sessions) {
       const sDate = s.scheduled_date instanceof Date ? dateStr(s.scheduled_date) : s.scheduled_date;
-      if (sDate === ds && s.scheduled_time) {
-        const start = toMin(s.scheduled_time);
-        add(ds, start, start + (Number(s.duration_minutes) || 60));
+      if (sDate === ds) {
+        sessionCounts[ds] = (sessionCounts[ds] || 0) + 1;
+        if (s.scheduled_time) {
+          const start = toMin(s.scheduled_time);
+          add(ds, start, start + (Number(s.duration_minutes) || 60));
+        }
       }
     }
   }
-  return busy;
+  return { busy, sessionCounts };
+}
+
+/**
+ * Fold placements the caller is holding but has not written yet into a day
+ * picture, so the next search sees them. Same shape a search returns, so a
+ * caller can hand its own output straight back in as `reserved`.
+ */
+function reserve(picture, placements) {
+  for (const p of placements || []) {
+    if (!p?.date) continue;
+    picture.sessionCounts[p.date] = (picture.sessionCounts[p.date] || 0) + 1;
+    if (!p.time) continue;
+    const start = toMin(p.time);
+    if (start == null) continue;
+    if (!picture.busy[p.date]) picture.busy[p.date] = [];
+    picture.busy[p.date].push({
+      start: Math.max(0, start - BUFFER_MINUTES),
+      end: Math.min(24 * 60, start + (Number(p.duration_minutes) || 60) + BUFFER_MINUTES),
+    });
+  }
+  return picture;
 }
 
 /** Free spans for one day, already clipped to the preferred windows and buffered busy blocks. */
@@ -125,73 +185,87 @@ function freeSpansForDay(busyBlocks, windows) {
 }
 
 /**
- * Place up to `count` sessions, one per calendar day, starting from
- * `fromDate` (default today) through `horizonDate` (default +60 days). Each
- * placement is sized between minMinutes and maxMinutes to fit the gap it
- * lands in. Returns the placements — this does NOT insert rows; callers
- * decide what row shape to write (a lecture review, a project step, a study
- * session), since the fields differ per caller.
+ * The placement loop itself, with no database in it: walk the days from
+ * `fromDate` to `endDate` and take the earliest span that fits, at most
+ * `maxPerDay` sessions per day. Stops when `count` sessions are placed or
+ * `totalMinutes` of study time has been, whichever the caller asked for.
+ *
+ * Pure on purpose — every rule that decides where a session lands is
+ * testable here without a database, which is what the overlap bug needed and
+ * did not have.
  */
-export async function scheduleAsap({
-  userId, classId = null, count = 1, fromDate = null, horizonDate = null,
-  minMinutes = MIN_SESSION_MINUTES, maxMinutes = MAX_SESSION_MINUTES,
+export function placeSessions({
+  picture, windows, fromDate, endDate,
+  count = Infinity, totalMinutes = Infinity,
+  minMinutes = MIN_SESSION_MINUTES, maxMinutes = MAX_SESSION_MINUTES, maxPerDay = 1,
 }) {
-  const start = fromDate || dateStr(new Date());
-  const endDate = horizonDate || addDaysStr(start, SEARCH_HORIZON_DAYS);
-  const windows = await getPreferredWindows(userId);
-  const busyByDay = await getBusyBlocksForRange(userId, start, endDate, classId);
-
   const placements = [];
-  let cursor = start;
-  while (placements.length < count && cursor <= endDate) {
-    const spans = freeSpansForDay(busyByDay[cursor], windows);
-    if (spans.length > 0) {
+  let remaining = totalMinutes;
+  let cursor = fromDate;
+
+  while (placements.length < count && remaining > 0 && cursor <= endDate) {
+    if ((picture.sessionCounts[cursor] || 0) < maxPerDay) {
       // Prefer the earliest window of the day that fits — keeps sessions
       // anchored near the student's stated preference rather than drifting
       // to whichever window happens to be least full.
-      const span = spans[0];
-      const duration = Math.min(maxMinutes, Math.max(minMinutes, span.end - span.start));
-      placements.push({ date: cursor, time: toTime(span.start), duration_minutes: duration });
-      if (!busyByDay[cursor]) busyByDay[cursor] = [];
-      busyByDay[cursor].push({ start: Math.max(0, span.start - BUFFER_MINUTES), end: Math.min(24 * 60, span.start + duration + BUFFER_MINUTES) });
+      const [span] = freeSpansForDay(picture.busy[cursor], windows);
+      if (span) {
+        const room = span.end - span.start;
+        const duration = Math.min(maxMinutes, Math.max(minMinutes, Math.min(room, remaining)));
+        const placement = { date: cursor, time: toTime(span.start), duration_minutes: duration };
+        placements.push(placement);
+        reserve(picture, [placement]);
+        remaining -= duration;
+      }
     }
     cursor = addDaysStr(cursor, 1);
   }
   return placements;
 }
 
+async function search(opts, limits) {
+  const start = opts.fromDate || dateStr(new Date());
+  const endDate = opts.horizonDate || addDaysStr(start, SEARCH_HORIZON_DAYS);
+  const windows = await getPreferredWindows(opts.userId);
+  const picture = reserve(await getDayPicture(opts.userId, start, endDate, opts.classId ?? null), opts.reserved);
+  return placeSessions({
+    picture, windows, fromDate: start, endDate,
+    minMinutes: opts.minMinutes ?? MIN_SESSION_MINUTES,
+    maxMinutes: opts.maxMinutes ?? MAX_SESSION_MINUTES,
+    maxPerDay: opts.maxPerDay ?? 1,
+    ...limits,
+  });
+}
+
+/**
+ * Place up to `count` sessions, one per calendar day, starting from
+ * `fromDate` (default today) through `horizonDate` (default +60 days). Each
+ * placement is sized between minMinutes and maxMinutes to fit the gap it
+ * lands in. Returns the placements — this does NOT insert rows; callers
+ * decide what row shape to write (a lecture review, a project step, a study
+ * session), since the fields differ per caller.
+ *
+ * Pass `reserved` if you are still holding placements from an earlier call
+ * that have not been inserted yet (rule 6).
+ */
+export async function scheduleAsap(opts) {
+  return search(opts, { count: opts.count ?? 1 });
+}
+
 /**
  * Place sessions one per day until `totalMinutes` of study time has been
  * placed (or the horizon runs out) — for "I need N more minutes before this
  * is due" rather than "book me N sessions". Same rules as scheduleAsap
- * (buffer, preferred windows, 30-90 min per session); the last session is
- * trimmed so the total doesn't overshoot what was asked for.
+ * (buffer, preferred windows, one a day, 30-90 min per session).
+ *
+ * The total lands on or just above the ask, never below it: a session is
+ * never shorter than MIN_SESSION_MINUTES, so a 200-minute request becomes
+ * 90 + 90 + 30. fitProjectTime treats anything short of the ask as "your
+ * calendar is too full" and offers things to bump, so rounding the last
+ * session up is what keeps that answer truthful.
  */
-export async function scheduleMinutesAsap({
-  userId, classId = null, totalMinutes, fromDate = null, horizonDate = null,
-  minMinutes = MIN_SESSION_MINUTES, maxMinutes = MAX_SESSION_MINUTES,
-}) {
-  const start = fromDate || dateStr(new Date());
-  const endDate = horizonDate || addDaysStr(start, SEARCH_HORIZON_DAYS);
-  const windows = await getPreferredWindows(userId);
-  const busyByDay = await getBusyBlocksForRange(userId, start, endDate, classId);
-
-  const placements = [];
-  let remaining = totalMinutes;
-  let cursor = start;
-  while (remaining > 0 && cursor <= endDate) {
-    const spans = freeSpansForDay(busyByDay[cursor], windows);
-    if (spans.length > 0) {
-      const span = spans[0];
-      const duration = Math.min(maxMinutes, Math.max(minMinutes, Math.min(span.end - span.start, remaining)));
-      placements.push({ date: cursor, time: toTime(span.start), duration_minutes: duration });
-      if (!busyByDay[cursor]) busyByDay[cursor] = [];
-      busyByDay[cursor].push({ start: Math.max(0, span.start - BUFFER_MINUTES), end: Math.min(24 * 60, span.start + duration + BUFFER_MINUTES) });
-      remaining -= duration;
-    }
-    cursor = addDaysStr(cursor, 1);
-  }
-  return placements;
+export async function scheduleMinutesAsap(opts) {
+  return search(opts, { totalMinutes: opts.totalMinutes });
 }
 
 /**
@@ -210,6 +284,17 @@ export async function bookAssignmentSessions({ userId, assignment }) {
   const dueDateStr = assignment.due_date instanceof Date ? dateStr(assignment.due_date) : assignment.due_date;
   if (!dueDateStr || dueDateStr < today) return 0;
 
+  // Book once. Both callers create the assignment and immediately book for
+  // it, so a second run means a retry or a duplicate detection, not a
+  // request for a second set — and a second set is a whole extra column of
+  // sessions the student never asked for. Same guard scheduleLectureReview
+  // uses for a re-processed lecture.
+  const already = await pool.query(
+    "select 1 from study_sessions where assignment_id = $1 and user_id = $2 and status != 'skipped' limit 1",
+    [assignment.id, userId],
+  );
+  if (already.rows.length > 0) return 0;
+
   const daysUntil = Math.max(1, Math.ceil((new Date(`${dueDateStr}T00:00:00`) - new Date(`${today}T00:00:00`)) / 86400000));
   const sessionCount = Math.min(Math.max(daysUntil, 3), 10);
 
@@ -227,10 +312,17 @@ export async function bookAssignmentSessions({ userId, assignment }) {
 
   // Exams and quizzes also get one dedicated final-review pass the day
   // before the due date (or the due date itself if the day-before is full).
+  // `placements` are still in memory — nothing above has been inserted yet —
+  // so this second search has to be told about them. Without `reserved` it
+  // re-read the database, saw the day before the exam as empty, and handed
+  // back the slot it had just given Session N. For anything due inside ten
+  // days that day always holds a session, so every exam and quiz booked its
+  // own final review directly on top of one.
   if (assignment.type === 'exam' || assignment.type === 'quiz') {
     const reviewFrom = addDaysStr(dueDateStr, -1);
     const [reviewPlacement] = await scheduleAsap({
-      userId, classId: assignment.class_id, count: 1, fromDate: reviewFrom, horizonDate: dueDateStr, minMinutes: 30, maxMinutes: 45,
+      userId, classId: assignment.class_id, count: 1, fromDate: reviewFrom, horizonDate: dueDateStr,
+      minMinutes: 30, maxMinutes: 45, reserved: placements,
     });
     if (reviewPlacement) {
       rows.push({

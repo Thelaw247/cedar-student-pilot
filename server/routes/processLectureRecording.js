@@ -36,17 +36,24 @@ async function scheduleLectureReview({ userId, lectureId, classId, lectureDate, 
   if (already.rows.length > 0) return;
   if (!lectureDate) return;
 
+  // Three days, not one. The scheduler allows a single session per calendar
+  // day across everything already booked, so on a day with three lectures
+  // the second and third reviews have to fall to the following days — with
+  // the old two-day horizon they were silently dropped instead. Spacing them
+  // out is also what a review pass is for.
   const [placement] = await scheduleAsap({
-    userId, classId, count: 1, fromDate: lectureDate, horizonDate: addDaysStr(lectureDate, 1),
+    userId, classId, count: 1, fromDate: lectureDate, horizonDate: addDaysStr(lectureDate, 3),
     minMinutes: REVIEW_MINUTES, maxMinutes: REVIEW_MINUTES,
   });
-  if (!placement) return; // both the lecture day and the next day were fully booked — leave it unscheduled
+  if (!placement) return; // the lecture day and the three after it were all taken — leave it unscheduled
 
   await pool.query(
     `insert into study_sessions (user_id, class_id, lecture_id, scheduled_date, scheduled_time, duration_minutes, priority, status, session_type, title, notes)
      values ($1, $2, $3, $4, $5, $6, 'medium', 'scheduled', 'review', $7, $8)`,
     [userId, classId, lectureId, placement.date, placement.time, placement.duration_minutes, `Review: ${lectureTitle || 'this lecture'}`,
-      placement.date === lectureDate ? 'Auto-scheduled for the day of the lecture.' : "Auto-scheduled the next day — the lecture day's schedule was full."],
+      placement.date === lectureDate
+        ? 'Auto-scheduled for the day of the lecture.'
+        : `Auto-scheduled for ${placement.date} — the lecture day was already booked.`],
   );
 }
 
