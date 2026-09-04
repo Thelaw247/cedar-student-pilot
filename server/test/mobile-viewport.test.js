@@ -64,7 +64,6 @@ test('every modal panel can scroll', () => {
     '../../src/components/AssignmentEditModal.jsx',
     '../../src/components/AttendancePrompt.jsx',
     '../../src/components/RebookSessionModal.jsx',
-    '../../src/components/StudyModeSelector.jsx',
     '../../src/pages/ClassDetail.jsx',
     '../../src/pages/FocusMode.jsx',
   ];

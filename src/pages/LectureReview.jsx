@@ -1,20 +1,39 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useSearchParams, Link } from 'react-router-dom';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useParams, useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { ChevronLeft, Loader2, Check, ListChecks, ArrowRight, RotateCcw, Lock } from 'lucide-react';
+import { ChevronLeft, Loader2, Check, ListChecks, ArrowRight, RotateCcw, Lock, BookOpen } from 'lucide-react';
 import { useUpgrade } from '@/components/monetization/UpgradeContext';
 import { featureMinTierName } from '@/lib/tiers';
 import QuizReview, { ChoiceOptions, scoreQuiz } from '@/components/quiz/QuizReview';
+import ReviewModeChooser from '@/components/ReviewModeChooser';
+import HandbookReader from '@/components/HandbookReader';
+
+// The student's local calendar day. Lectures carry the local date they were
+// recorded on, so a UTC day would drop an evening lecture the moment UTC
+// rolls past midnight. Shared by the quiz payload and the handbook scope so
+// the two can never disagree about what "this week" means.
+function localDay(d = new Date()) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
 
 export default function LectureReview() {
   const { openUpgrade } = useUpgrade();
   const params = useParams();
-  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const scope = params.scope || 'today';
   const lectureId = params.lectureId;
   // An arbitrary set of lectures can be passed as ?ids=a,b,c (from the scope
   // picker). Takes precedence over scope/single-lecture.
   const idsParam = (searchParams.get('ids') || '').split(',').map(s => s.trim()).filter(Boolean);
+  // Quiz or handbook. Absent means the student has not been asked yet; the
+  // answer lives in the URL so it survives a reload and can be deep-linked.
+  const mode = searchParams.get('mode');
+  const chooseMode = (next) => {
+    const sp = new URLSearchParams(searchParams);
+    if (next) sp.set('mode', next); else sp.delete('mode');
+    setSearchParams(sp, { replace: true });
+  };
 
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
@@ -27,6 +46,9 @@ export default function LectureReview() {
   const finishReview = () => setShowResult(true);
 
   useEffect(() => {
+    // Nothing is generated — and nothing is charged — until the student has
+    // said which kind of review they want.
+    if (mode !== 'quiz') { setLoading(false); return; }
     const run = async () => {
       setLoading(true);
       try {
@@ -39,9 +61,7 @@ export default function LectureReview() {
           // Send the student's LOCAL calendar day so "today"/"this week" match
           // the dates lectures were recorded on, rather than the server's UTC
           // day (which rolls over an evening lecture into "yesterday").
-          const now = new Date();
-          const localDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-          payload = { scope, local_date: localDate };
+          payload = { scope, local_date: localDay() };
         }
         const res = await base44.functions.invoke('generateLectureReview', payload);
         setData(res.data);
@@ -57,7 +77,119 @@ export default function LectureReview() {
       setLoading(false);
     };
     run();
-  }, [scope, lectureId, searchParams.get('ids')]);
+  }, [mode, scope, lectureId, searchParams.get('ids')]);
+
+  // --- Handbook branch -----------------------------------------------------
+  // A handbook is built per class (generateClassHandbook takes a class_id), so
+  // a scope spanning several classes cannot open one handbook. Resolve which
+  // classes the scope actually covers, then open straight into it when there
+  // is only one and ask which otherwise.
+  const [hbClasses, setHbClasses] = useState(null);
+  const [hbPick, setHbPick] = useState(null);
+  const [hbError, setHbError] = useState(null);
+
+  const resolveHandbookScope = useCallback(async () => {
+    try {
+      let lecs;
+      if (idsParam.length > 0) lecs = await Promise.all(idsParam.map((id) => base44.entities.Lecture.get(id)));
+      else if (lectureId) lecs = [await base44.entities.Lecture.get(lectureId)];
+      else {
+        const today = localDay();
+        const from = scope === 'week' ? localDay(new Date(Date.now() - 7 * 86400000)) : today;
+        const recent = await base44.entities.Lecture.list('-date', 200);
+        lecs = recent.filter((l) => l.date && l.date >= from && l.date <= today);
+      }
+      const byClass = new Map();
+      for (const l of lecs.filter(Boolean)) {
+        if (!l.class_id) continue;
+        if (!byClass.has(l.class_id)) byClass.set(l.class_id, []);
+        byClass.get(l.class_id).push(l.id);
+      }
+      const resolved = await Promise.all([...byClass.entries()].map(async ([classId, lectureIds]) => {
+        let name = 'This class';
+        try { name = (await base44.entities.Class.get(classId))?.name || name; } catch { /* a deleted class keeps the fallback */ }
+        return { classId, name, lectureIds };
+      }));
+      setHbClasses(resolved);
+      if (resolved.length === 1) setHbPick(resolved[0]);
+    } catch (e) {
+      console.error(e);
+      setHbError('Could not work out which lectures to build the handbook from.');
+    }
+  }, [idsParam.join(','), lectureId, scope]);
+
+  useEffect(() => {
+    if (mode === 'handbook' && hbClasses === null && !hbError) resolveHandbookScope();
+  }, [mode, hbClasses, hbError, resolveHandbookScope]);
+
+  if (!mode) {
+    const windowLabel = idsParam.length > 0 || lectureId
+      ? `${idsParam.length > 1 ? `${idsParam.length} lectures` : 'This lecture'}`
+      : scope === 'week' ? 'Your lectures from the past 7 days' : "Today's lectures";
+    return <ReviewModeChooser subtitle={windowLabel} onSelect={chooseMode} />;
+  }
+
+  if (mode === 'handbook') {
+    if (hbError) {
+      return (
+        <div className="max-w-2xl mx-auto px-4 py-10 text-center">
+          <p className="text-sm text-destructive">{hbError}</p>
+          <Link to="/planner" className="text-sm text-primary font-medium mt-2 inline-block hover:underline">Back to Study</Link>
+        </div>
+      );
+    }
+    if (hbPick) {
+      return (
+        <HandbookReader
+          classId={hbPick.classId}
+          lectureIds={hbPick.lectureIds}
+          onClose={() => navigate('/planner')}
+        />
+      );
+    }
+    if (hbClasses === null) {
+      return (
+        <div className="max-w-2xl mx-auto px-4 py-10 text-center">
+          <Loader2 className="w-8 h-8 text-primary mx-auto animate-spin mb-4" />
+          <p className="text-sm text-muted-foreground">Working out which lectures to include...</p>
+        </div>
+      );
+    }
+    if (hbClasses.length === 0) {
+      return (
+        <div className="max-w-2xl mx-auto px-4 py-10 text-center">
+          <BookOpen className="w-10 h-10 text-muted-foreground mx-auto mb-3" strokeWidth={1.5} />
+          <p className="text-sm text-muted-foreground">No processed lectures in this window yet.</p>
+          <Link to="/planner" className="text-sm text-primary font-medium mt-2 inline-block hover:underline">Back to Study</Link>
+        </div>
+      );
+    }
+    // More than one class in scope: a handbook belongs to a class, so ask.
+    return (
+      <div className="max-w-md mx-auto px-4 py-10 animate-fade-in">
+        <button type="button" onClick={() => { setHbClasses(null); setHbPick(null); chooseMode(''); }} className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6">
+          <ChevronLeft className="w-4 h-4" /> Back
+        </button>
+        <h1 className="font-heading text-xl font-bold text-foreground mb-1">Which class?</h1>
+        <p className="text-sm text-muted-foreground mb-6">A handbook covers one class at a time. These have lectures in this window.</p>
+        <div className="space-y-2">
+          {hbClasses.map((c) => (
+            <button key={c.classId} type="button" onClick={() => setHbPick(c)}
+              className="w-full rounded-xl border border-border bg-card p-4 text-left hover:border-primary/30 hover:shadow-2 transition-all duration-micro flex items-center gap-3">
+              <span className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center flex-shrink-0">
+                <BookOpen className="w-5 h-5" />
+              </span>
+              <span className="flex-1 min-w-0">
+                <span className="block text-sm font-medium text-foreground truncate">{c.name}</span>
+                <span className="block text-xs text-muted-foreground">{c.lectureIds.length} lecture{c.lectureIds.length !== 1 ? 's' : ''}</span>
+              </span>
+              <ArrowRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
