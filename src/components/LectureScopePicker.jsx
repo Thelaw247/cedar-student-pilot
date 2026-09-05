@@ -88,3 +88,21 @@ export function resolveScopeIds(selectedIds, lectures) {
   if (selectedIds.length === 0) return [];                                    // whole class
   return selectedIds.filter(id => id !== '__none__');
 }
+
+/**
+ * The same selection as an EXPLICIT list of lecture ids, for a caller that
+ * has to store what was picked rather than send "whole class" as a shorthand.
+ *
+ * assignments.lecture_ids is that caller: a deadline with coverage_scope
+ * 'custom' stores the lectures it covers, and an empty column there means
+ * "nobody has picked yet" (the resolver falls back to cumulative), not "this
+ * exam covers nothing". So "select all" has to expand to the real ids, and an
+ * explicit empty selection has to collapse back to empty rather than being
+ * mistaken for "everything".
+ */
+export function explicitScopeIds(selectedIds, lectures) {
+  const resolved = resolveScopeIds(selectedIds, lectures);
+  if (resolved === null) return [];                       // explicitly nothing
+  if (resolved.length === 0) return lectures.map(l => l.id); // whole class, written out
+  return resolved;
+}

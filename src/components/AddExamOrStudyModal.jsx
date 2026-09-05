@@ -4,6 +4,8 @@ import { Loader2, X, FileText, BookOpen, ChevronLeft } from 'lucide-react';
 import { getSetting } from '@/lib/settings';
 import { useFeatureGate } from '@/components/monetization/useFeatureGate';
 import ScheduleSkippedNotice from '@/components/monetization/ScheduleSkippedNotice';
+import LectureScopePicker, { explicitScopeIds } from '@/components/LectureScopePicker';
+import { COVERAGE_SCOPE_LABEL } from '@/lib/assignmentScope';
 
 export default function AddExamOrStudyModal({ classes, onClose }) {
   const [mode, setMode] = useState(null);
@@ -57,6 +59,18 @@ function ExamForm({ classes, onBack, onClose }) {
   // sessions and no explanation.
   const [scheduleSkipped, setScheduleSkipped] = useState(false);
   const scheduleGate = useFeatureGate('study_schedule');
+  // This form never showed a coverage control at all, so every exam in the
+  // database says 'cumulative' by default rather than by choice — and an exam
+  // that cannot say what it covers cannot have its sessions scoped to
+  // anything.
+  const [lectures, setLectures] = useState([]);
+  const [scopeIds, setScopeIds] = useState([]);
+
+  const loadLectures = async (classId) => {
+    if (!classId) { setLectures([]); return; }
+    try { setLectures(await base44.entities.Lecture.filter({ class_id: classId }, 'date')); }
+    catch { setLectures([]); }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -64,7 +78,10 @@ function ExamForm({ classes, onBack, onClose }) {
     setSaving(true);
     setError(null);
     try {
-      const assignment = await base44.entities.Assignment.create({ ...form });
+      const assignment = await base44.entities.Assignment.create({
+        ...form,
+        lecture_ids: form.coverage_scope === 'custom' ? explicitScopeIds(scopeIds, lectures) : [],
+      });
       if (!getSetting('autoGenerateSchedules')) { onClose(); return; }
       if (!scheduleGate.allowed) { setScheduleSkipped(true); setSaving(false); return; }
       await base44.functions.invoke('generateStudySchedule', { assignment_id: assignment.id });
@@ -89,7 +106,11 @@ function ExamForm({ classes, onBack, onClose }) {
           <input type="text" placeholder="Title (e.g. Midterm Exam)" value={form.title}
             onChange={e => setForm({ ...form, title: e.target.value })}
             className="w-full px-3 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40" autoFocus />
-          <select value={form.class_id} onChange={e => setForm({ ...form, class_id: e.target.value })}
+          <select value={form.class_id} onChange={(e) => {
+            setForm({ ...form, class_id: e.target.value });
+            setScopeIds([]);
+            if (form.coverage_scope === 'custom') loadLectures(e.target.value);
+          }}
             className="w-full px-3 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40">
             <option value="">Select a class...</option>
             {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -104,6 +125,22 @@ function ExamForm({ classes, onBack, onClose }) {
             <option value="assignment">Assignment</option>
             <option value="project">Project</option>
           </select>
+          <div>
+            <label className="text-xs font-medium text-muted-foreground mb-1.5 block">What does it cover?</label>
+            <select value={form.coverage_scope} onChange={(e) => {
+              const next = e.target.value;
+              setForm({ ...form, coverage_scope: next });
+              if (next === 'custom') loadLectures(form.class_id);
+            }}
+              className="w-full px-3 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40">
+              {Object.entries(COVERAGE_SCOPE_LABEL).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+            </select>
+          </div>
+          {form.coverage_scope === 'custom' && (
+            lectures.length > 0
+              ? <LectureScopePicker lectures={lectures} selectedIds={scopeIds} onChange={setScopeIds} />
+              : <p className="text-xs text-muted-foreground">{form.class_id ? 'No lectures recorded for this class yet — this will cover everything so far.' : 'Pick a class first.'}</p>
+          )}
           {error && <p className="text-xs text-destructive">{error}</p>}
           <div className="flex gap-2 pt-2">
             <button type="button" onClick={onBack} className="flex-1 px-4 py-2.5 rounded-lg border border-border text-sm font-medium text-muted-foreground hover:bg-muted">Back</button>

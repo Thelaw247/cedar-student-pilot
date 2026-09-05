@@ -4,6 +4,7 @@ import { pool } from '../lib/db.js';
 import { requireAuth } from '../middleware/requireAuth.js';
 import { invokeLLM, createLlmUsage } from '../lib/llm.js';
 import { gateFeature, settleFeature } from '../lib/credits.js';
+import { resolveAssignmentLectures } from '../../shared/assignmentScope.js';
 
 // Direct port of base44/functions/generateClassHandbook/entry.ts. See that
 // file's preserved header comment for the three real bugs this fixed
@@ -46,14 +47,17 @@ router.post('/', requireAuth, async (req, res) => {
       const asgn = (await pool.query('select * from assignments where id = $1 and user_id = $2', [assignment_id, userId])).rows[0];
       if (asgn) {
         scopeLabel = asgn.title || 'Exam Scope';
-        if (asgn.coverage_scope === 'since_last' && lectures.length > 0) {
-          const allAssignments = (await pool.query('select * from assignments where class_id = $1 and user_id = $2 order by due_date', [class_id, userId])).rows;
-          const prior = allAssignments.filter((a) => a.due_date < asgn.due_date).sort((a, b) => b.due_date.localeCompare(a.due_date));
-          if (prior.length > 0) {
-            const lastExamDate = prior[0].due_date;
-            lectures = lectures.filter((l) => l.date >= lastExamDate && l.date <= asgn.due_date);
-          }
-        }
+        // The shared resolver, so this route and every later caller answer
+        // "which lectures does this cover?" the same way. Two things it does
+        // that the eleven lines it replaces did not: 'since_last' measures
+        // from the previous EXAM OR QUIZ rather than from whatever deadline
+        // happened to fall most recently, and 'cumulative' stops at the due
+        // date instead of sweeping in lectures taught after the exam.
+        const priors = (await pool.query(
+          'select id, type, due_date from assignments where class_id = $1 and user_id = $2 and due_date < $3',
+          [class_id, userId, asgn.due_date],
+        )).rows;
+        lectures = resolveAssignmentLectures(asgn, lectures, priors);
       }
     }
 

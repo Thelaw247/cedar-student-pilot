@@ -15,6 +15,8 @@ import { classTint, classColor } from '@/lib/color';
 import { useBalance } from '@/hooks/useBalance';
 import LockedFeature from '@/components/monetization/LockedFeature';
 import ScheduleSkippedNotice from '@/components/monetization/ScheduleSkippedNotice';
+import LectureScopePicker, { explicitScopeIds } from '@/components/LectureScopePicker';
+import { COVERAGE_SCOPE_LABEL } from '@/lib/assignmentScope';
 import { useFeatureGate } from '@/components/monetization/useFeatureGate';
 import { hasFeature } from '@/lib/tiers';
 
@@ -849,6 +851,11 @@ function HandbookTab({ cls, lectures }) {
 
 function AddAssignmentModal({ classId, onClose }) {
   const [form, setForm] = useState({ title: '', due_date: '', type: 'assignment', coverage_scope: 'cumulative' });
+  // 'Specific lectures' has been a selectable option that did nothing since
+  // the column existed. It picks the lectures now, and they are stored on the
+  // assignment for the scope resolver to read back.
+  const [lectures, setLectures] = useState([]);
+  const [scopeIds, setScopeIds] = useState([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   // The deadline is free for everyone; planning the work around it ships with
@@ -862,7 +869,11 @@ function AddAssignmentModal({ classId, onClose }) {
     setSaving(true);
     setError(null);
     try {
-      const assignment = await base44.entities.Assignment.create({ ...form, class_id: classId });
+      const assignment = await base44.entities.Assignment.create({
+        ...form,
+        class_id: classId,
+        lecture_ids: form.coverage_scope === 'custom' ? explicitScopeIds(scopeIds, lectures) : [],
+      });
       if (!getSetting('autoGenerateSchedules')) { onClose(); return; }
       if (!scheduleGate.allowed) { setScheduleSkipped(true); setSaving(false); return; }
       await base44.functions.invoke('generateStudySchedule', { assignment_id: assignment.id });
@@ -896,12 +907,21 @@ function AddAssignmentModal({ classId, onClose }) {
             <option value="quiz">Quiz</option>
             <option value="project">Project</option>
           </select>
-          <select value={form.coverage_scope} onChange={e => setForm({ ...form, coverage_scope: e.target.value })}
+          <select value={form.coverage_scope} onChange={async (e) => {
+            const next = e.target.value;
+            setForm({ ...form, coverage_scope: next });
+            if (next === 'custom' && lectures.length === 0) {
+              try { setLectures(await base44.entities.Lecture.filter({ class_id: classId }, 'date')); } catch { /* the picker just stays empty */ }
+            }
+          }}
             className="w-full px-3 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40">
-            <option value="cumulative">Cumulative (all lectures)</option>
-            <option value="since_last">Since last exam</option>
-            <option value="custom">Custom lecture range</option>
+            {Object.entries(COVERAGE_SCOPE_LABEL).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
           </select>
+          {form.coverage_scope === 'custom' && (
+            lectures.length > 0
+              ? <LectureScopePicker lectures={lectures} selectedIds={scopeIds} onChange={setScopeIds} />
+              : <p className="text-xs text-muted-foreground">No lectures recorded for this class yet — this will cover everything so far.</p>
+          )}
           {error && <p className="text-xs text-destructive">{error}</p>}
           <div className="flex gap-2 pt-2">
             <button type="button" onClick={onClose} className="flex-1 px-4 py-2.5 rounded-lg border border-border text-sm font-medium text-muted-foreground hover:bg-muted">Cancel</button>
