@@ -21,22 +21,29 @@ import { classTint, classColor } from '@/lib/color';
  * Props:
  *   initialClassId — pre-selected class (from a session or lecture context); if
  *                    absent, the wizard asks the user to pick a class first.
- *   initialLectureIds — pre-selected lectures (e.g. opened from a lecture page);
- *                    when present with a review goal, the lecture step is skipped.
+ *   initialLectureIds — pre-selected lectures (from a lecture page, or from a
+ *                    booked session that already knows what it covers); the
+ *                    lecture step is skipped when they are present.
+ *   initialGoal — set only when the goal is already decided, which is what
+ *                    lets the whole wizard be skipped. Opening a lecture means
+ *                    "review this lecture". Opening a booked session does not:
+ *                    its lectures are known, but deep / sprint / review is
+ *                    still the student's call, and answering it for them picks
+ *                    their timer preset as a side effect.
  *   onComplete(config) — called with the derived config when the user is ready.
  *   onCancel() — called if the user backs all the way out.
  */
-export default function FocusSessionWizard({ initialClassId = null, initialLectureIds = [], onComplete, onCancel }) {
+export default function FocusSessionWizard({ initialClassId = null, initialLectureIds = [], initialGoal = null, onComplete, onCancel }) {
   // Steps: 'class' → 'goal' → ('lectures' | 'exam' | skip) → 'method'
-  // If we were opened straight from a lecture (lectures pre-seeded), the goal is
-  // already known (review those lectures) — skip ahead to the method question.
-  const seededFromLecture = initialClassId && initialLectureIds.length > 0;
+  // Only skip a step whose answer we actually have. Lectures alone skip the
+  // picker (see pickGoal); lectures AND a goal skip everything but the method.
+  const fullySeeded = !!(initialClassId && initialLectureIds.length > 0 && initialGoal);
   const [step, setStep] = useState(
-    seededFromLecture ? 'method' : (initialClassId ? 'goal' : 'class')
+    fullySeeded ? 'method' : (initialClassId ? 'goal' : 'class')
   );
   const [classId, setClassId] = useState(initialClassId);
   const [cls, setCls] = useState(null);
-  const [goal, setGoal] = useState(seededFromLecture ? 'review' : null); // 'review' | 'sprint' | 'deep'
+  const [goal, setGoal] = useState(fullySeeded ? initialGoal : null); // 'review' | 'sprint' | 'deep'
   const [lectureIds, setLectureIds] = useState(initialLectureIds);
   const [examAssignmentId, setExamAssignmentId] = useState(null);
 

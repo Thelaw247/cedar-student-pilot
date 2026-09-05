@@ -75,7 +75,16 @@ router.post('/', requireAuth, async (req, res) => {
       });
     }
 
-    const scopeKey = assignment_id ? `assignment:${assignment_id}` : (lecture_ids && lecture_ids.length > 0) ? `lectures:${[...lecture_ids].sort().join(',')}` : 'full';
+    // Both parts, when both are present. assignment_id used to short-circuit,
+    // so a call carrying an assignment AND a lecture list cached a narrowed
+    // set under the bare assignment key — two different lecture sets sharing
+    // one cache row, and Focus Mode sends exactly that combination. Sending
+    // only one of them still produces the key it always did, so every
+    // existing cached handbook keeps hitting.
+    const scopeParts = [];
+    if (assignment_id) scopeParts.push(`assignment:${assignment_id}`);
+    if (lecture_ids && lecture_ids.length > 0) scopeParts.push(`lectures:${[...lecture_ids].sort().join(',')}`);
+    const scopeKey = scopeParts.length > 0 ? scopeParts.join('|') : 'full';
     const sourceHash = sha256(sourceFingerprint(lecturesWithContent));
 
     const cachedRows = (await pool.query('select * from handbooks where class_id = $1 and scope_key = $2 and user_id = $3', [class_id, scopeKey, userId])).rows;

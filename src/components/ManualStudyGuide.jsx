@@ -23,7 +23,11 @@ export default function ManualStudyGuide({ classId, studyMode, lectureIds, assig
       setLoading(false);
     };
     load();
-  }, [classId, studyMode]);
+    // lectureIds is an array — serialise it, or a changed scope never
+    // refetches and the student reads a guide for the lectures they were
+    // studying last time. HandbookReader carries the same note; this is the
+    // same bug it fixed, in the file beside it.
+  }, [classId, studyMode, assignmentId, (lectureIds || []).join(',')]);
 
   const modeTitle = {
     deep: 'Deep Study Guide',

@@ -58,6 +58,11 @@ export default function FocusMode() {
   const [totalLectures, setTotalLectures] = useState(0);
   const [isProjectSession, setIsProjectSession] = useState(false);
   const [projectAssignment, setProjectAssignment] = useState(null);
+  // Set only when the goal is already decided — opening from a lecture means
+  // "review this lecture" and the wizard can skip straight to how. Opening a
+  // booked session does not: its lectures are known, but whether the student
+  // wants a review pass, an exam sprint or a deep session is still theirs.
+  const [wizardGoal, setWizardGoal] = useState(null);
 
   // Refs for timer tick (avoid stale closures)
   const phaseRef = useRef('idle');
@@ -87,6 +92,13 @@ export default function FocusMode() {
         setSession(s);
         if (s.class_id) base44.entities.Class.get(s.class_id).then(setCls);
         if (s.session_type === 'project') setIsProjectSession(true);
+        // The session already knows what it covers. It has since the day it
+        // was booked; Focus Mode simply never read it, so the one session
+        // type that could answer "which lectures?" opened empty and asked
+        // the student to pick them again.
+        if (Array.isArray(s.lecture_ids) && s.lecture_ids.length > 0) {
+          setSelectedLectureIds(s.lecture_ids);
+        }
         // Not just projects: any session tied to an assignment (exam/quiz/
         // assignment prep too) needs its rubric available for the checklist
         // below, and a project session additionally needs the roadmap step
@@ -101,6 +113,7 @@ export default function FocusMode() {
     if (lectureIdParam) {
       setSelectedLectureIds([lectureIdParam]);
       setStudyMode('review');
+      setWizardGoal('review');
       // Opened from a lecture — jump straight into the guided setup, pre-seeded
       // with this lecture and a review goal.
       setTimeout(() => setShowWizard(true), 300);
@@ -689,6 +702,7 @@ export default function FocusMode() {
         <FocusSessionWizard
           initialClassId={session?.class_id || cls?.id || classIdParam || null}
           initialLectureIds={selectedLectureIds}
+          initialGoal={wizardGoal}
           onComplete={handleWizardComplete}
           onCancel={() => setShowWizard(false)}
         />
