@@ -1,19 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { Loader2, Sparkles, Layers, FileQuestion, ClipboardList, FileText } from 'lucide-react';
 import FlashcardViewer from '@/components/FlashcardViewer';
 import QuizViewer from '@/components/QuizViewer';
 import LectureScopePicker, { resolveScopeIds } from '@/components/LectureScopePicker';
-import { useFeatureGate } from '@/components/monetization/useFeatureGate';
-import { Lock } from 'lucide-react';
-
-const materialTypes = [
-  { id: 'flashcards', label: 'Flashcards', icon: Layers, description: 'Flip cards with key terms and definitions' },
-  { id: 'quiz', label: 'Quiz', icon: FileQuestion, description: 'Multiple-choice questions to test knowledge' },
-  { id: 'practice_test', label: 'Practice Test', icon: ClipboardList, description: 'Mixed questions covering all lectures' },
-  { id: 'summary_sheet', label: 'Summary Sheet', icon: FileText, description: 'Comprehensive study summary by topic' },
-];
+import StudyToolbox from '@/components/StudyToolbox';
 
 /**
  * PracticePanel — flashcard / quiz / practice-test generation for a class,
@@ -25,15 +15,10 @@ const materialTypes = [
  *   initialClassId — preselect a class (optional)
  */
 export default function PracticePanel({ initialClassId = '', initialLectureIds = null }) {
-  const { allowed: practiceAllowed, requiredTierName: practiceTierName, lock: practiceLock } = useFeatureGate('study_material');
-  const navigate = useNavigate();
   const [classes, setClasses] = useState([]);
   const [selectedClass, setSelectedClass] = useState(initialClassId || '');
   const [lectures, setLectures] = useState([]);
   const [scopeIds, setScopeIds] = useState(initialLectureIds && initialLectureIds.length ? initialLectureIds : []);
-  const [selectedType, setSelectedType] = useState('flashcards');
-  const [generating, setGenerating] = useState(false);
-  const [result, setResult] = useState(null);
   const [existingFlashcards, setExistingFlashcards] = useState([]);
   const [existingQuestions, setExistingQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -64,7 +49,6 @@ export default function PracticePanel({ initialClassId = '', initialLectureIds =
 
   const loadClassData = async (id) => {
     setSelectedClass(id);
-    setResult(null);
     setScopeIds([]); // reset scope to whole class when switching class
     if (id) {
       const lecs = await base44.entities.Lecture.filter({ class_id: id }, 'date');
@@ -76,36 +60,15 @@ export default function PracticePanel({ initialClassId = '', initialLectureIds =
     }
   };
 
-  const generate = async () => {
+  // The panel owns the scope; the toolbox asks for it at the moment it
+  // generates, so a picker the student is still changing cannot be read
+  // stale. null means "not a usable selection yet" and the toolbox says so.
+  const scopeForGeneration = () => resolveScopeIds(scopeIds, lectures);
+
+  const refreshSaved = async () => {
     if (!selectedClass) return;
-    const ids = resolveScopeIds(scopeIds, lectures);
-    if (ids === null) { setResult({ error: 'Select at least one lecture (or choose Select all).' }); return; }
-    setGenerating(true);
-    setResult(null);
-    try {
-      const response = await base44.functions.invoke('generateStudyMaterial', {
-        class_id: selectedClass,
-        material_type: selectedType,
-        lecture_ids: ids, // [] = whole class; otherwise the chosen subset
-      });
-      setResult(response.data);
-      const fc = await base44.entities.Flashcard.filter({ class_id: selectedClass });
-      setExistingFlashcards(fc);
-      const pq = await base44.entities.PracticeQuestion.filter({ class_id: selectedClass });
-      setExistingQuestions(pq);
-    } catch (e) {
-      // Show what the server said when it said something. The generic line
-      // below hid a NOT NULL violation for two weeks: the student read
-      // "try again", tried again, and got the same thing.
-      const status = e?.response?.status;
-      const said = e?.response?.data?.message || e?.response?.data?.error;
-      setResult({
-        error: status === 402
-          ? (said || 'This needs an upgrade or more credits.')
-          : (said || 'Failed to generate study material. Please try again.'),
-      });
-    }
-    setGenerating(false);
+    setExistingFlashcards(await base44.entities.Flashcard.filter({ class_id: selectedClass }));
+    setExistingQuestions(await base44.entities.PracticeQuestion.filter({ class_id: selectedClass }));
   };
 
   if (loading) {
@@ -135,59 +98,13 @@ export default function PracticePanel({ initialClassId = '', initialLectureIds =
         </div>
       )}
 
-      {/* Material type selector */}
-      <div className="grid grid-cols-2 gap-3 mb-6">
-        {materialTypes.map(t => {
-          const Icon = t.icon;
-          return (
-            <button key={t.id} onClick={() => setSelectedType(t.id)}
-              className={`text-left p-4 rounded-xl border transition-all ${selectedType === t.id ? 'border-primary bg-primary/5' : 'border-border bg-card hover:border-primary/30'}`}>
-              <Icon className={`w-5 h-5 mb-2 ${selectedType === t.id ? 'text-primary' : 'text-muted-foreground'}`} />
-              <p className="text-sm font-medium text-foreground">{t.label}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">{t.description}</p>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Generate button — grey lock below Student (server re-enforces) */}
-      {!practiceAllowed ? (
-        <button onClick={practiceLock}
-          className="w-full py-3 rounded-xl bg-muted text-muted-foreground text-sm font-medium hover:text-foreground transition-colors flex items-center justify-center gap-2 mb-6">
-          <Lock className="w-4 h-4" /> Upgrade to use — practice generation ships with {practiceTierName}
-        </button>
-      ) : (
-      <button onClick={generate} disabled={generating || !selectedClass}
-        className="w-full py-3 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-2 mb-6">
-        {generating ? <><Loader2 className="w-4 h-4 animate-spin" /> Generating from {lectures.length} lectures...</> : <><Sparkles className="w-4 h-4" /> Generate {materialTypes.find(t => t.id === selectedType)?.label}</>}
-      </button>
-      )}
-
-      {/* Generated result */}
-      {result && !result.error && (
-        <div className="mb-8">
-          <div className="flex items-center gap-2 mb-3">
-            <Sparkles className="w-4 h-4 text-primary" />
-            <h2 className="font-heading text-sm font-semibold uppercase tracking-wide text-muted-foreground">Just Generated</h2>
-          </div>
-          {selectedType === 'flashcards' && result.material?.flashcards && (
-            <FlashcardViewer flashcards={result.material.flashcards} />
-          )}
-          {(selectedType === 'quiz' || selectedType === 'practice_test') && result.material?.questions && (
-            <QuizViewer questions={result.material.questions} />
-          )}
-          {selectedType === 'summary_sheet' && result.material?.summary && (
-            <div className="rounded-xl border border-border bg-card p-5">
-              <pre className="text-sm text-foreground whitespace-pre-wrap font-body">{result.material.summary}</pre>
-            </div>
-          )}
-        </div>
-      )}
-      {result?.error && (
-        <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 mb-6">
-          <p className="text-sm text-destructive">{result.error}</p>
-        </div>
-      )}
+      <StudyToolbox
+        classId={selectedClass}
+        resolveLectureIds={scopeForGeneration}
+        sourceCount={lectures.length}
+        scopeKey={selectedClass}
+        onGenerated={refreshSaved}
+      />
 
       {/* Existing materials */}
       {existingFlashcards.length > 0 && (

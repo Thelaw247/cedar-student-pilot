@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { X, Music, Play, Pause, Square, Brain, Check, BarChart3, Loader2, Clock } from 'lucide-react';
+import { X, Music, Play, Pause, Square, Brain, Check, BarChart3, Loader2, Clock, BookOpen, ClipboardList } from 'lucide-react';
 import MusicPlayer from '@/components/MusicPlayer';
 // AI Study Chat is WITHDRAWN pending a per-message price and a working
 // implementation. The component is left on disk — re-add the import plus the
@@ -12,6 +12,7 @@ import FocusSessionWizard from '@/components/FocusSessionWizard';
 import HandbookReader from '@/components/HandbookReader';
 import ManualStudyGuide from '@/components/ManualStudyGuide';
 import ProjectSessionEndModal from '@/components/ProjectSessionEndModal';
+import StudyToolbox from '@/components/StudyToolbox';
 import { SEMANTIC } from '@/lib/color';
 
 const STUDY_MODES = {
@@ -581,6 +582,49 @@ export default function FocusMode() {
               {[3, 5, 10, 15].map(m => <option key={m} value={m}>{m}m</option>)}
             </select>
           </label>
+        </div>
+      )}
+
+      {/* The tools, in the one place a student has already committed the
+          time. A focus session offered two of the six — the handbook and the
+          paper guide the wizard forks between — while the Practice tab had
+          the other four. Same component the Practice tab renders, with the
+          scope this session already knows, so there is nothing to pick and
+          nothing to keep in step. */}
+      {(phase === 'studying' || phase === 'paused' || phase === 'complete')
+        && !isProjectSession && (session?.class_id || cls?.id || wizardClassId) && (
+        <div className="w-full max-w-2xl mt-8 pt-6 border-t border-border">
+          <h2 className="font-heading text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-1">Study tools</h2>
+          <p className="text-xs text-muted-foreground mb-4">
+            {selectedLectureIds.length > 0
+              ? `Built from the ${selectedLectureIds.length} lecture${selectedLectureIds.length === 1 ? '' : 's'} this session covers.`
+              : 'Built from every lecture in this class.'}
+          </p>
+
+          {/* The two the wizard already chose between stay one tap away, so
+              all six live on the same screen rather than four here and two
+              behind a fork the student answered before the timer started. */}
+          <div className="grid grid-cols-2 gap-3 mb-6">
+            <button type="button" onClick={() => setShowHandbook(true)}
+              className="text-left p-4 rounded-xl border border-border bg-card hover:border-primary/30 transition-all">
+              <BookOpen className="w-5 h-5 mb-2 text-muted-foreground" />
+              <p className="text-sm font-medium text-foreground">Handbook</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Your lectures as chapters, with a quiz at the end of each</p>
+            </button>
+            <button type="button" onClick={() => setShowManualGuide(true)}
+              className="text-left p-4 rounded-xl border border-border bg-card hover:border-primary/30 transition-all">
+              <ClipboardList className="w-5 h-5 mb-2 text-muted-foreground" />
+              <p className="text-sm font-medium text-foreground">Paper guide</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Topics to work through away from the screen</p>
+            </button>
+          </div>
+
+          <StudyToolbox
+            classId={session?.class_id || cls?.id || wizardClassId}
+            resolveLectureIds={() => selectedLectureIds}
+            sourceCount={selectedLectureIds.length}
+            scopeKey={`${session?.id || cls?.id || ''}:${selectedLectureIds.join(',')}`}
+          />
         </div>
       )}
 

@@ -25,7 +25,10 @@ import { normalizeQuizQuestions } from '../lib/quizQuestions.js';
 
 const read = (p) => fs.readFileSync(new URL(p, import.meta.url), 'utf8');
 const ROUTE = read('../routes/generateStudyMaterial.js');
-const PANEL = read('../../src/components/PracticePanel.jsx');
+// The client half of this moved into StudyToolbox when the four generation
+// tools were extracted out of PracticePanel (phase 4). Same code, same
+// requirement — the file it lives in is not the point.
+const TOOLBOX = read('../../src/components/StudyToolbox.jsx');
 const VIEWER = read('../../src/components/QuizViewer.jsx');
 
 test('nothing reaches practice_questions without passing the validator', () => {
@@ -84,7 +87,7 @@ test('a failure is visible in all three places it used to be invisible', () => {
   assert.match(ROUTE, /logUsage\(\{ user_id: userId, feature: 'study_material', tier_at_time: gate\.balance\?\.tier, success: false \}\)/);
   assert.doesNotMatch(ROUTE.slice(ROUTE.indexOf('questions.length === 0')), /refusal/);
   // And the client stops overwriting whatever the server said.
-  assert.match(PANEL, /e\?\.response\?\.data\?\.message \|\| e\?\.response\?\.data\?\.error/);
+  assert.match(TOOLBOX, /e\?\.response\?\.data\?\.message \|\| e\?\.response\?\.data\?\.error/);
 });
 
 test('the student is not charged for a run that produced nothing', () => {
