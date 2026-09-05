@@ -77,8 +77,14 @@ export default function KnowledgeCoverageSection({ classes, coverage = [], lectu
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-sm font-bold tabular-nums" style={{ color: cls.color }}>{proficiency}%</p>
-                <p className="text-[10px] text-muted-foreground">{decayResult.allOverdue ? 'needs review' : 'proficient'}</p>
+                {/* Reviewed but never tested has no mastery figure. A dash
+                    says so; a 0% would read as "you know none of this". */}
+                <p className="text-sm font-bold tabular-nums" style={{ color: cls.color }}>
+                  {decayResult.measured ? `${proficiency}%` : '—'}
+                </p>
+                <p className="text-[10px] text-muted-foreground">
+                  {!decayResult.measured ? 'reviewed, not tested' : decayResult.allOverdue ? 'needs review' : 'proficient'}
+                </p>
               </div>
               {isExpanded ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
             </button>
@@ -89,13 +95,14 @@ export default function KnowledgeCoverageSection({ classes, coverage = [], lectu
                   const seen = l.concepts_seen || [];
                   const mastered = l.concepts_mastered || [];
                   const gaps = seen.filter(c => !mastered.includes(c));
-                  const lecProf = seen.length > 0 ? Math.round((mastered.length / seen.length) * 100) : 0;
+                  const tested = seen.length > 0;
+                  const lecProf = tested ? Math.round((mastered.length / seen.length) * 100) : 0;
 
                   return (
                     <div key={l.id} className="rounded-lg border border-border p-3">
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: lecProf >= 70 ? SEMANTIC.good : lecProf >= 40 ? SEMANTIC.warn : SEMANTIC.bad }} />
+                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: !tested ? 'hsl(var(--muted-foreground))' : lecProf >= 70 ? SEMANTIC.good : lecProf >= 40 ? SEMANTIC.warn : SEMANTIC.bad }} />
                           <span className="text-xs font-medium">Lecture Session</span>
                           {(() => {
                             const lecObj = classLectures.find(ll => ll.id === l.lecture_id);
@@ -122,7 +129,7 @@ export default function KnowledgeCoverageSection({ classes, coverage = [], lectu
                           >
                             <Brain className="w-3 h-3" /> Review
                           </button>
-                          <span className="text-xs font-bold tabular-nums">{lecProf}%</span>
+                          <span className="text-xs font-bold tabular-nums">{tested ? `${lecProf}%` : '—'}</span>
                         </div>
                       </div>
 

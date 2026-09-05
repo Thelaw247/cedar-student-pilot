@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Loader2, X, BookOpen, List, Clipboard } from 'lucide-react';
 
-export default function ManualStudyGuide({ classId, studyMode, lectureIds, assignmentId, onClose, onLoad }) {
+export default function ManualStudyGuide({ classId, studyMode, lectureIds, assignmentId, onClose, onLoad, onLecturesOpened = null }) {
   const [guide, setGuide] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -17,6 +17,12 @@ export default function ManualStudyGuide({ classId, studyMode, lectureIds, assig
         if (res.data?.error) throw new Error(res.data.error);
         setGuide(res.data);
         if (onLoad && res.data.chapters) onLoad(res.data.chapters.length);
+        // The paper guide renders every chapter at once, so a loaded guide is
+        // all of its lectures opened — unlike the handbook reader, which pages
+        // through them one at a time and reports each as it is reached.
+        if (onLecturesOpened && res.data.chapters) {
+          onLecturesOpened(res.data.chapters.map(ch => ch.lecture_id).filter(Boolean));
+        }
       } catch (e) {
         setError(e.message);
       }

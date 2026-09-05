@@ -31,8 +31,10 @@ import { useFeatureGate } from '@/components/monetization/useFeatureGate';
  *                      screen — switching class, opening a different session.
  *                      Clears the result without remounting, which would also
  *                      throw away the tool the student had chosen.
- *   onGenerated        called after a successful run, so a caller showing
- *                      saved material can refresh it
+ *   onGenerated        called with the lecture ids the material was built
+ *                      from, after a successful run. PracticePanel uses it to
+ *                      refresh its saved lists; a focus session uses it to
+ *                      record which lectures were opened.
  */
 
 const materialTypes = [
@@ -64,7 +66,11 @@ export default function StudyToolbox({ classId, resolveLectureIds, sourceCount =
         lecture_ids: ids, // [] = whole class; otherwise the chosen subset
       });
       setResult(response.data);
-      if (onGenerated) await onGenerated();
+      // Material a student is now looking at, built from these lectures: by
+      // any honest reading, they opened them. [] means the whole class, so
+      // report nothing rather than guessing which lectures that was — the
+      // caller knows its own scope.
+      if (onGenerated) await onGenerated(ids);
     } catch (e) {
       // Show what the server said when it said something. The generic line
       // below hid a NOT NULL violation for two weeks: the student read

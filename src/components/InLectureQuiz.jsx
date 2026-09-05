@@ -54,58 +54,38 @@ export default function InLectureQuiz({ lecture, cls, onClose }) {
     return () => clearTimeout(timer);
   }, [timeLeft, loading, showResult, error, questions.length]);
 
-  // Write KnowledgeCoverage when quiz completes
+  // Record what the quiz proved, once, when it finishes.
+  //
+  // This used to read the coverage row, merge the concept arrays in the
+  // browser and write it back — the same thirty lines HandbookReader had, and
+  // the same race: two tabs both found no row and both created one. The live
+  // database still held that duplicate pair. The merge lives on the server now
+  // (server/lib/knowledgeCoverage.js) behind a unique key, so there is one
+  // copy of the rule and no way to make a second row.
   useEffect(() => {
     if (!showResult || coverageWritten) return;
     const writeCoverage = async () => {
       try {
-        const today = new Date().toISOString().split('T')[0];
-        const existing = await base44.entities.KnowledgeCoverage.filter({ lecture_id: lecture.id });
-
-        // Compute concept-level mastery from quiz results
-        const conceptResults = {};
+        const tally = {};
         questions.forEach((q, i) => {
           const concept = q.concept || 'General';
-          if (!conceptResults[concept]) conceptResults[concept] = { correct: 0, total: 0 };
-          conceptResults[concept].total++;
-          if (isCorrect(q, i)) {
-            conceptResults[concept].correct++;
-          }
+          if (!tally[concept]) tally[concept] = { correct: 0, total: 0 };
+          tally[concept].total++;
+          if (isCorrect(q, i)) tally[concept].correct++;
         });
 
-        const newConceptsSeen = Object.keys(conceptResults);
-        const newConceptsMastered = Object.entries(conceptResults)
-          .filter(([, r]) => r.correct === r.total)
-          .map(([c]) => c);
-
-        if (existing.length > 0) {
-          const cov = existing[0];
-          const mergedSeen = [...new Set([...(cov.concepts_seen || []), ...newConceptsSeen])];
-          const mergedMastered = [...new Set([...(cov.concepts_mastered || []), ...newConceptsMastered])];
-          await base44.entities.KnowledgeCoverage.update(cov.id, {
-            last_reviewed_date: today,
-            sessions_reviewed: (cov.sessions_reviewed || 0) + 1,
-            concepts_seen: mergedSeen,
-            concepts_mastered: mergedMastered,
-            proficiency: mergedSeen.length > 0
-              ? Math.round((mergedMastered.length / mergedSeen.length) * 100)
-              : 0,
-          });
-        } else {
-          await base44.entities.KnowledgeCoverage.create({
-            class_id: lecture.class_id,
-            lecture_id: lecture.id,
-            last_reviewed_date: today,
-            sessions_reviewed: 1,
-            concepts_seen: newConceptsSeen,
-            concepts_mastered: newConceptsMastered,
-            proficiency: newConceptsSeen.length > 0
-              ? Math.round((newConceptsMastered.length / newConceptsSeen.length) * 100)
-              : 0,
-          });
-        }
+        await base44.functions.invoke('recordStudyCoverage', {
+          class_id: lecture.class_id,
+          lecture_ids: [lecture.id],
+          concepts_seen: Object.keys(tally),
+          concepts_mastered: Object.entries(tally)
+            .filter(([, r]) => r.correct === r.total)
+            .map(([c]) => c),
+        });
         setCoverageWritten(true);
       } catch (e) {
+        // The quiz result is still on screen and still correct; only the
+        // ledger missed it. Same failure mode as before, same silence.
         console.error('Failed to write coverage:', e);
       }
     };

@@ -4,8 +4,10 @@ import { requireAuth } from '../middleware/requireAuth.js';
 import {
   calculateReviewScores,
   conceptsFromReview,
+  masteryFromReview,
   normalizedConcept,
 } from '../lib/reviewScores.js';
+import { markLecturesReviewed } from '../lib/knowledgeCoverage.js';
 
 const router = express.Router();
 
@@ -120,6 +122,23 @@ router.post('/', requireAuth, async (req, res) => {
         [scores.proficiency_score, review_questions.length, [...conceptsFromReview(review_questions, self_assessment)], study_record_id, userId],
       );
     }
+
+    // The write the Deno -> Express port dropped. A post-session review is the
+    // strongest evidence of study the app collects -- questions answered,
+    // concepts self-rated -- and until now it moved a score on the review row
+    // and nothing on the lecture. Freshness badges stayed grey and proficiency
+    // did not budge after the one activity most likely to change it.
+    //
+    // Inside the same transaction as the review itself: a saved review whose
+    // lectures were never marked is the state that produced this bug.
+    const mastery = masteryFromReview(review_questions, self_assessment);
+    await markLecturesReviewed(client, {
+      userId,
+      classId: class_id,
+      lectureIds: lecture_ids,
+      conceptsSeen: mastery.seen,
+      conceptsMastered: mastery.mastered,
+    });
 
     await client.query('commit');
     return res.json({

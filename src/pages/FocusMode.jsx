@@ -64,6 +64,12 @@ export default function FocusMode() {
   // booked session does not: its lectures are known, but whether the student
   // wants a review pass, an exam sprint or a deep session is still theirs.
   const [wizardGoal, setWizardGoal] = useState(null);
+  // Which lectures this session actually opened, as opposed to which ones it
+  // was booked to cover. Only these get marked reviewed when the session ends
+  // — scheduling an hour on four lectures and opening two is two lectures
+  // studied, and a checklist that says otherwise is worse than no checklist.
+  const [openedLectureIds, setOpenedLectureIds] = useState([]);
+  const openedRef = useRef([]);
 
   // Refs for timer tick (avoid stale closures)
   const phaseRef = useRef('idle');
@@ -296,6 +302,35 @@ export default function FocusMode() {
     setMode(newMode);
   };
 
+  /**
+   * A tool reports the lectures it just put in front of the student.
+   *
+   * Written through to the session as it happens rather than accumulated for
+   * the end: a browser that dies forty minutes in should not cost a student
+   * the record of what they read. The union is computed against a ref because
+   * three tools can report within the same tick and state would only see the
+   * value each of them started from.
+   *
+   * Stable identity via useCallback — HandbookReader fires this from an
+   * effect, and a new function every render would make that effect loop.
+   */
+  const markOpened = useCallback(async (ids) => {
+    const incoming = (Array.isArray(ids) ? ids : []).filter(Boolean);
+    if (incoming.length === 0) return;
+    const merged = [...new Set([...openedRef.current, ...incoming])];
+    if (merged.length === openedRef.current.length) return;
+    openedRef.current = merged;
+    setOpenedLectureIds(merged);
+    if (!sessionId) return; // Ad-hoc session: nothing to write it to.
+    try {
+      await base44.entities.StudySession.update(sessionId, { opened_lecture_ids: merged });
+    } catch (e) {
+      // The list is still in memory and still goes up with the session at the
+      // end; only the crash-proofing was lost.
+      console.error('Could not record opened lectures:', e);
+    }
+  }, [sessionId]);
+
   // Stop & save to analytics — offers review
   const handleStop = async () => {
     if (studySeconds < 1) {
@@ -320,8 +355,34 @@ export default function FocusMode() {
         topics_reviewed: selectedLectureIds.length > 0 ? selectedLectureIds : undefined,
       });
       setSavedRecordId(record.id);
-      if (session && session.status === 'scheduled') {
-        await base44.entities.StudySession.update(session.id, { status: 'completed' });
+
+      // Close the session and mark the lectures it opened, in one server-side
+      // transaction. Two things that used to be one client write and one write
+      // that never existed: the session was marked completed here, and nothing
+      // anywhere recorded that its lectures had been studied, so a finished
+      // session left every freshness badge exactly as it found them.
+      //
+      // Its own try: coverage is bookkeeping, and a student who just studied
+      // for an hour must not be told their session failed to save because a
+      // ledger write did.
+      const coverageClassId = session?.class_id || cls?.id || wizardClassId || null;
+      if (sessionId || (coverageClassId && openedRef.current.length > 0)) {
+        try {
+          await base44.functions.invoke('recordStudyCoverage', {
+            session_id: sessionId || null,
+            class_id: coverageClassId,
+            lecture_ids: openedRef.current,
+          });
+        } catch (e) {
+          console.error('Could not record study coverage:', e);
+          // The session still has to close. This is the write that used to be
+          // here on its own, kept as the fallback for exactly that reason.
+          if (session && session.status === 'scheduled') {
+            try {
+              await base44.entities.StudySession.update(session.id, { status: 'completed' });
+            } catch { /* the planner will still show it as due; nothing else is lost */ }
+          }
+        }
       }
       if (isProjectSession) {
         setPhase('project_end');
@@ -599,6 +660,14 @@ export default function FocusMode() {
             {selectedLectureIds.length > 0
               ? `Built from the ${selectedLectureIds.length} lecture${selectedLectureIds.length === 1 ? '' : 's'} this session covers.`
               : 'Built from every lecture in this class.'}
+            {/* What will actually be ticked off when this session ends. Shown
+                while there is still time to open the rest, which is the only
+                moment the number is useful. */}
+            {openedLectureIds.length > 0 && (
+              <span className="text-primary">
+                {' '}{openedLectureIds.length}{selectedLectureIds.length > 0 ? ` of ${selectedLectureIds.length}` : ''} opened so far.
+              </span>
+            )}
           </p>
 
           {/* The two the wizard already chose between stay one tap away, so
@@ -624,6 +693,7 @@ export default function FocusMode() {
             resolveLectureIds={() => selectedLectureIds}
             sourceCount={selectedLectureIds.length}
             scopeKey={`${session?.id || cls?.id || ''}:${selectedLectureIds.join(',')}`}
+            onGenerated={markOpened}
           />
         </div>
       )}
@@ -760,6 +830,7 @@ export default function FocusMode() {
           assignmentId={studyMode === 'sprint' ? examAssignmentId : undefined}
           studyMode={studyMode}
           onClose={() => setShowHandbook(false)}
+          onLecturesOpened={markOpened}
           onQuizComplete={(result) => {
             setQuizResult(result);
             setLecturesCovered(result.lecturesCovered || 0);
@@ -777,6 +848,7 @@ export default function FocusMode() {
           assignmentId={studyMode === 'sprint' ? examAssignmentId : undefined}
           onClose={() => setShowManualGuide(false)}
           onLoad={(count) => setTotalLectures(count)}
+          onLecturesOpened={markOpened}
         />
       )}
 

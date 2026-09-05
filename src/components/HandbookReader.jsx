@@ -4,7 +4,7 @@ import { Loader2, X, BookOpen, ChevronLeft, ChevronRight, List, Zap, Check, Brai
 import QuizDepthSelector, { QUIZ_PRESETS } from '@/components/QuizDepthSelector';
 import QuizReview, { ChoiceOptions } from '@/components/quiz/QuizReview';
 
-export default function HandbookReader({ classId, lectureIds = null, assignmentId = null, studyMode = null, onClose, onQuizComplete = null }) {
+export default function HandbookReader({ classId, lectureIds = null, assignmentId = null, studyMode = null, onClose, onQuizComplete = null, onLecturesOpened = null }) {
   const [handbook, setHandbook] = useState(null);
   const [loading, setLoading] = useState(true);
   const [currentChapter, setCurrentChapter] = useState(0);
@@ -78,6 +78,20 @@ export default function HandbookReader({ classId, lectureIds = null, assignmentI
     setQuizLoading(false);
   };
 
+  // A chapter on screen is a lecture opened. Reported as it happens rather
+  // than at the end, because "which lectures did this session actually cover"
+  // has to survive a closed tab — and because a student who reads three
+  // chapters and leaves has still read three chapters.
+  useEffect(() => {
+    if (!onLecturesOpened || !handbook?.chapters?.length) return;
+    const id = handbook.chapters[currentChapter]?.lecture_id;
+    if (id) onLecturesOpened([id]);
+    // onLecturesOpened is deliberately not a dependency: a caller passing an
+    // inline arrow would hand us a new identity every render and this effect
+    // would never stop firing. What it reports depends on the chapter, and
+    // the chapter is what is listed.
+  }, [handbook, currentChapter]);
+
   const finishQuiz = async () => {
     const score = quizQuestions.filter((q, i) => {
       const ans = quizAnswers[i];
@@ -86,9 +100,14 @@ export default function HandbookReader({ classId, lectureIds = null, assignmentI
     }).length;
     const pct = Math.round((score / quizQuestions.length) * 100);
 
-    // Write KnowledgeCoverage for each lecture covered
+    // What the quiz proved, for the chapters it actually covered.
+    //
+    // One call for every lecture, not two round trips each, and the merge
+    // happens once on the server (server/lib/knowledgeCoverage.js) instead of
+    // being written out here and again in InLectureQuiz. The unique key added
+    // with it is why a slow network can no longer leave a student with two
+    // coverage rows for the same lecture — the live database had exactly that.
     const quizLectureIds = handbook.chapters.slice(0, currentChapter + 1).map(ch => ch.lecture_id);
-    const today = new Date().toISOString().split('T')[0];
     const conceptsSeen = [...new Set(quizQuestions.map(q => q.concept).filter(Boolean))];
     const conceptsMastered = [...new Set(
       quizQuestions.map((q, i) => {
@@ -98,33 +117,15 @@ export default function HandbookReader({ classId, lectureIds = null, assignmentI
       }).filter(Boolean)
     )];
 
-    for (const lecId of quizLectureIds) {
-      try {
-        const existing = await base44.entities.KnowledgeCoverage.filter({ lecture_id: lecId });
-        if (existing.length > 0) {
-          const cov = existing[0];
-          const mergedSeen = [...new Set([...(cov.concepts_seen || []), ...conceptsSeen])];
-          const mergedMastered = [...new Set([...(cov.concepts_mastered || []), ...conceptsMastered])];
-          await base44.entities.KnowledgeCoverage.update(cov.id, {
-            last_reviewed_date: today,
-            sessions_reviewed: (cov.sessions_reviewed || 0) + 1,
-            concepts_seen: mergedSeen,
-            concepts_mastered: mergedMastered,
-            proficiency: mergedSeen.length > 0 ? Math.round((mergedMastered.length / mergedSeen.length) * 100) : 0,
-          });
-        } else {
-          await base44.entities.KnowledgeCoverage.create({
-            class_id: classId,
-            lecture_id: lecId,
-            last_reviewed_date: today,
-            sessions_reviewed: 1,
-            concepts_seen: conceptsSeen,
-            concepts_mastered: conceptsMastered,
-            proficiency: conceptsSeen.length > 0 ? Math.round((conceptsMastered.length / conceptsSeen.length) * 100) : 0,
-          });
-        }
-      } catch (e) { console.error('Coverage write failed:', e); }
-    }
+    try {
+      await base44.functions.invoke('recordStudyCoverage', {
+        class_id: classId,
+        lecture_ids: quizLectureIds,
+        concepts_seen: conceptsSeen,
+        concepts_mastered: conceptsMastered,
+      });
+    } catch (e) { console.error('Coverage write failed:', e); }
+    if (onLecturesOpened) onLecturesOpened(quizLectureIds);
 
     setQuizResult({ score, total: quizQuestions.length, pct, lecturesCovered: quizLectureIds.length });
     if (onQuizComplete) onQuizComplete({

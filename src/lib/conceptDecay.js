@@ -1,4 +1,4 @@
-import { getSetting } from '@/lib/settings';
+import { getSetting } from './settings.js';
 
 export const DECAY_PRESETS = {
   fast: { decayStart: 7, decayEnd: 14, label: 'Fast' },
@@ -79,10 +79,24 @@ export function getDecayState(coverage, allClassLectures, lecture) {
  * Compute class-level proficiency with decay applied.
  * Each lecture's contribution is weighted by recency rank (newest = highest weight).
  * Fully decayed classes floor at a 'needs review' state.
+ *
+ * REVIEWED IS NOT THE SAME AS SCORED ZERO.
+ *
+ * Proficiency here means mastery, and mastery comes from questions answered.
+ * A coverage row with no concepts carries no such evidence — it says the
+ * student sat with the lecture, which is what a finished study session writes.
+ * Averaging that in as 0% would mean a student's mastery of a class FALLING
+ * because they studied, which is both wrong and the exact opposite of what the
+ * number is for. So concept-less rows set freshness (that is what they are
+ * evidence of) and stay out of the mastery average.
+ *
+ * `measured` says whether any row had concepts at all. False means the class
+ * has been reviewed but never tested, and the honest way to render that is a
+ * dash, not a zero.
  */
 export function computeClassProficiency(lecturesWithCoverage, allClassLectures) {
   if (!lecturesWithCoverage || lecturesWithCoverage.length === 0) {
-    return { proficiency: 0, decayState: 'unreviewed', allOverdue: false, worstState: 'unreviewed' };
+    return { proficiency: 0, decayState: 'unreviewed', allOverdue: false, worstState: 'unreviewed', measured: false };
   }
 
   let totalProficiency = 0;
@@ -91,10 +105,6 @@ export function computeClassProficiency(lecturesWithCoverage, allClassLectures) 
   let allDecayed = true;
 
   for (const { lecture, coverage } of lecturesWithCoverage) {
-    const recencyRank = computeRecencyRank(lecture, allClassLectures);
-    const weight = 0.4 + recencyRank * 0.6;
-    totalWeight += weight;
-
     const decay = getDecayState(coverage, allClassLectures, lecture);
     worstRank = Math.max(worstRank, STATE_RANKS[decay.state] || 0);
 
@@ -104,7 +114,14 @@ export function computeClassProficiency(lecturesWithCoverage, allClassLectures) 
 
     const seen = coverage?.concepts_seen || [];
     const mastered = coverage?.concepts_mastered || [];
-    const baseProf = seen.length > 0 ? (mastered.length / seen.length) * 100 : 0;
+    // No concepts, no opinion about mastery. Freshness above still counted.
+    if (seen.length === 0) continue;
+
+    const recencyRank = computeRecencyRank(lecture, allClassLectures);
+    const weight = 0.4 + recencyRank * 0.6;
+    totalWeight += weight;
+
+    const baseProf = (mastered.length / seen.length) * 100;
 
     const decayFactors = { fresh: 1.0, fading: 0.85, stale: 0.6, overdue: 0.3, unreviewed: 0.5 };
     // AI-estimated lectures were never actually recorded — their concepts are a
@@ -116,15 +133,18 @@ export function computeClassProficiency(lecturesWithCoverage, allClassLectures) 
     totalProficiency += effectiveProf * weight;
   }
 
-  const proficiency = totalWeight > 0 ? Math.round(totalProficiency / totalWeight) : 0;
+  const measured = totalWeight > 0;
+  const proficiency = measured ? Math.round(totalProficiency / totalWeight) : 0;
   const stateKeys = ['fresh', 'fading', 'stale', 'overdue', 'unreviewed'];
   const worstState = stateKeys[worstRank] || 'fresh';
 
   return {
-    proficiency: allDecayed ? Math.min(proficiency, 15) : proficiency,
+    // The overdue floor only makes sense over a number that means something.
+    proficiency: allDecayed && measured ? Math.min(proficiency, 15) : proficiency,
     decayState: worstState,
     allOverdue: allDecayed,
     worstState,
+    measured,
   };
 }
 
@@ -153,7 +173,7 @@ export function pairCoverageWithLectures(coverageRows, classLectures = []) {
  * concept. A plain mean would let a one-concept class swing the headline
  * number as hard as a whole semester's worth of material.
  *
- * @param {Array<{proficiency: number, conceptsSeen: number}>} perClass
+ * @param {Array<{proficiency: number, conceptsSeen: number, measured?: boolean}>} perClass
  * @returns {number|null} 0-100, or null when no class has any data
  */
 export function aggregateProficiency(perClass) {
@@ -163,6 +183,12 @@ export function aggregateProficiency(perClass) {
   let weighted = 0;
   let totalWeight = 0;
   for (const e of entries) {
+    // A class that has been reviewed but never tested has no mastery to
+    // average — see computeClassProficiency. Counting it as 0 would drag the
+    // headline number down for studying, which is not a thing this figure
+    // should ever do. `measured === false` is explicit so any caller that
+    // predates the field keeps its old behaviour.
+    if (e.measured === false) continue;
     // Every class with data counts at least once, even before concepts are
     // tracked, so it can't be silently dropped from the average.
     const weight = Math.max(1, Number(e.conceptsSeen) || 0);

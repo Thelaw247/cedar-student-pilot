@@ -73,7 +73,10 @@ test('a result stops being shown when it stops belonging to the screen', () => {
 test('the panel still shows what was saved, and refreshes after a run', () => {
   assert.match(PANEL, /const refreshSaved = async \(\) =>/);
   assert.match(PANEL, /onGenerated=\{refreshSaved\}/);
-  assert.match(TOOLBOX, /if \(onGenerated\) await onGenerated\(\)/);
+  // Phase 5 gave the callback an argument: the lectures the material was
+  // built from, which is how a focus session learns what it opened. The panel
+  // ignores it and just refreshes.
+  assert.match(TOOLBOX, /if \(onGenerated\) await onGenerated\(ids\)/);
   // Saved material is the panel's, not the toolbox's — a focus session has no
   // use for a wall of every card the class has ever produced.
   assert.match(PANEL, /Saved Flashcards/);

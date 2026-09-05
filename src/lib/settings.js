@@ -1,4 +1,4 @@
-import { userStorageKey } from './currentUser';
+import { userStorageKey } from './currentUser.js';
 
 const settingsKey = () => userStorageKey('settings');
 

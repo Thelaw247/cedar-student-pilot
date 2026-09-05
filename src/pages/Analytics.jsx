@@ -182,7 +182,14 @@ export default function Analytics() {
   }, [reviews, effectiveClassId, classes]);
 
   // Does the current scope have anything at all to show?
-  const hasAnyData = avgProficiency !== null || latestReviews.length > 0;
+  //
+  // A coverage row counts even when it carries no concepts. Finishing a study
+  // session writes one, and a student who has studied three times has data —
+  // it just isn't a mastery score yet, which the ring already renders as a
+  // dash. Hiding the whole panel behind "no data" would be telling them their
+  // sessions did not count.
+  const hasAnyCoverage = scopedClassIds.some((id) => proficiencyByClass[id] !== null && proficiencyByClass[id] !== undefined);
+  const hasAnyData = avgProficiency !== null || latestReviews.length > 0 || hasAnyCoverage;
 
   // Overall knowledge growth data (cumulative coverage over reviews)
   const growthData = [...latestReviews].reverse().map((r, idx) => ({
