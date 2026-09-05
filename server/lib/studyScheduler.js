@@ -1,5 +1,6 @@
 import { pool } from './db.js';
 import { getClassMeetingsForDate } from '../../src/lib/classSchedule.js';
+import { resolveAssignmentLectures } from '../../shared/assignmentScope.js';
 
 // One shared placement engine for every route that books a study_sessions
 // row (3 Sep 2026 rework). Before this there were four separate copies of
@@ -268,6 +269,69 @@ export async function scheduleMinutesAsap(opts) {
   return search(opts, { totalMinutes: opts.totalMinutes });
 }
 
+const MAX_TITLE_CHARS = 120;
+
+/** What a lecture is called on a session card. */
+function lectureLabel(lecture) {
+  const title = (lecture?.ai_title || '').trim();
+  if (title) return title;
+  const date = lecture?.date instanceof Date ? dateStr(lecture.date) : lecture?.date;
+  return date ? `Lecture from ${date}` : 'a lecture';
+}
+
+/**
+ * Deal a deadline's lectures across its sessions, in teaching order.
+ *
+ * Two shapes, because there are two situations and one rule cannot serve
+ * both:
+ *
+ *   More lectures than sessions -> contiguous, balanced chunks. Nine lectures
+ *   over four sessions is 3/2/2/2, earliest material first, so a session is a
+ *   block of the course rather than a scattering of it.
+ *
+ *   Fewer lectures than sessions -> the lectures cycle. Three lectures over
+ *   seven sessions gives each one two or three passes, spaced days apart,
+ *   which is the whole reason a week of prep beats one long night. The
+ *   alternative -- four empty sessions -- is what the student had before.
+ *
+ * Pure, so both shapes are testable without a database or a calendar.
+ */
+export function distributeLectures(lectureIds, sessionCount) {
+  const ids = Array.isArray(lectureIds) ? lectureIds.filter(Boolean) : [];
+  const count = Math.max(0, sessionCount | 0);
+  const out = Array.from({ length: count }, () => []);
+  if (ids.length === 0 || count === 0) return out;
+
+  if (ids.length < count) {
+    for (let i = 0; i < count; i++) out[i] = [ids[i % ids.length]];
+    return out;
+  }
+
+  const base = Math.floor(ids.length / count);
+  const extra = ids.length % count;
+  let cursor = 0;
+  for (let i = 0; i < count; i++) {
+    const size = base + (i < extra ? 1 : 0);
+    out[i] = ids.slice(cursor, cursor + size);
+    cursor += size;
+  }
+  return out;
+}
+
+/** The title and the note for a session covering these lectures. */
+export function describeSession(assignmentTitle, lectures, fallbackIndex) {
+  if (lectures.length === 0) {
+    return { title: `${assignmentTitle} — Session ${fallbackIndex + 1}`, notes: null };
+  }
+  const labels = lectures.map(lectureLabel);
+  const suffix = labels.length === 1 ? labels[0] : `${labels[0]} + ${labels.length - 1} more`;
+  const title = `${assignmentTitle} — ${suffix}`;
+  return {
+    title: title.length > MAX_TITLE_CHARS ? `${title.slice(0, MAX_TITLE_CHARS - 1)}…` : title,
+    notes: `Covers: ${labels.join(', ')}`,
+  };
+}
+
 /**
  * Book the standard set of prep sessions for an assignment/exam/quiz/project
  * — the one place this happens now. Used by the generateStudySchedule route
@@ -298,17 +362,40 @@ export async function bookAssignmentSessions({ userId, assignment }) {
   const daysUntil = Math.max(1, Math.ceil((new Date(`${dueDateStr}T00:00:00`) - new Date(`${today}T00:00:00`)) / 86400000));
   const sessionCount = Math.min(Math.max(daysUntil, 3), 10);
 
+  // What this deadline actually covers, so each session can be about
+  // something. A class with no processed lectures resolves to nothing, and
+  // every session below books exactly as it did before.
+  const classLectures = (await pool.query(
+    'select id, date, ai_title from lectures where class_id = $1 and user_id = $2',
+    [assignment.class_id, userId],
+  )).rows;
+  const priorAssignments = (await pool.query(
+    'select id, type, due_date from assignments where class_id = $1 and user_id = $2 and due_date < $3',
+    [assignment.class_id, userId, dueDateStr],
+  )).rows;
+  const covered = resolveAssignmentLectures(assignment, classLectures, priorAssignments);
+  const byId = new Map(covered.map((l) => [l.id, l]));
+
   const placements = await scheduleAsap({
     userId, classId: assignment.class_id, count: sessionCount, fromDate: today, horizonDate: dueDateStr,
     minMinutes: MIN_SESSION_MINUTES, maxMinutes: MAX_SESSION_MINUTES,
   });
 
-  const rows = placements.map((p, i) => ({
-    assignment_id: assignment.id, user_id: userId, class_id: assignment.class_id,
-    title: `${assignment.title} — Session ${i + 1}`,
-    scheduled_date: p.date, scheduled_time: p.time, duration_minutes: p.duration_minutes,
-    priority: i === placements.length - 1 ? 'high' : 'medium', status: 'scheduled', notes: null,
-  }));
+  // Dealt across the sessions actually placed, not the number requested — a
+  // full calendar can return fewer, and the last lectures must not fall off
+  // the end of a shorter plan.
+  const perSession = distributeLectures(covered.map((l) => l.id), placements.length);
+
+  const rows = placements.map((p, i) => {
+    const lectures = perSession[i].map((id) => byId.get(id)).filter(Boolean);
+    const { title, notes } = describeSession(assignment.title, lectures, i);
+    return {
+      assignment_id: assignment.id, user_id: userId, class_id: assignment.class_id,
+      title, notes, lecture_ids: perSession[i],
+      scheduled_date: p.date, scheduled_time: p.time, duration_minutes: p.duration_minutes,
+      priority: i === placements.length - 1 ? 'high' : 'medium', status: 'scheduled',
+    };
+  });
 
   // Exams and quizzes also get one dedicated final-review pass the day
   // before the due date (or the due date itself if the day-before is full).
@@ -329,6 +416,9 @@ export async function bookAssignmentSessions({ userId, assignment }) {
         assignment_id: assignment.id, user_id: userId, class_id: assignment.class_id,
         title: `${assignment.title} — Final review`, scheduled_date: reviewPlacement.date, scheduled_time: reviewPlacement.time,
         duration_minutes: reviewPlacement.duration_minutes, priority: 'high', status: 'scheduled',
+        // Everything, not a slice: a final pass is the one session that is
+        // supposed to touch the whole scope.
+        lecture_ids: covered.map((l) => l.id),
         notes: "Light review session — skim key concepts, don't go in depth.",
       });
     }
@@ -336,9 +426,9 @@ export async function bookAssignmentSessions({ userId, assignment }) {
 
   for (const row of rows) {
     await pool.query(
-      `insert into study_sessions (assignment_id, user_id, class_id, title, scheduled_date, scheduled_time, duration_minutes, priority, status, notes)
-       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
-      [row.assignment_id, row.user_id, row.class_id, row.title, row.scheduled_date, row.scheduled_time, row.duration_minutes, row.priority, row.status, row.notes]);
+      `insert into study_sessions (assignment_id, user_id, class_id, title, scheduled_date, scheduled_time, duration_minutes, priority, status, notes, lecture_ids)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::uuid[])`,
+      [row.assignment_id, row.user_id, row.class_id, row.title, row.scheduled_date, row.scheduled_time, row.duration_minutes, row.priority, row.status, row.notes, row.lecture_ids]);
   }
   return rows.length;
 }

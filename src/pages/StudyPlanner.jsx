@@ -301,9 +301,14 @@ export default function StudyPlanner() {
                           <span className={`text-[11px] font-semibold px-2 py-0.5 rounded border uppercase ${priorityColors[s.priority] || priorityColors.medium}`}>
                             {s.priority}
                           </span>
+                          {/* The badge reads session_type, which is what the
+                              column means. It used to read "has notes", so a
+                              session was labelled Review for carrying any
+                              description at all — and prep sessions now
+                              describe the lectures they cover. */}
                           {s.session_type === 'project' ? (
                             <span className="text-[11px] font-medium px-2 py-0.5 rounded bg-purple-500/10 text-purple-600 border border-purple-500/20">Project</span>
-                          ) : sessionDescription(s) && (
+                          ) : s.session_type === 'review' && (
                             <span className="text-[11px] font-medium px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">Review</span>
                           )}
                           {overdue && (
