@@ -23,7 +23,7 @@ const PANEL = read('../../src/components/PracticePanel.jsx');
 const p = (qs) => new URLSearchParams(qs);
 
 test('a scope reads back exactly as it was written', () => {
-  const scope = { tab: 'now', classId: 'c1', lectureIds: ['l1', 'l2'], assignmentId: 'a1' };
+  const scope = { tab: 'now', classId: 'c1', lectureIds: ['l1', 'l2'], assignmentId: 'a1', sessionId: 's1' };
   assert.deepEqual(readStudyScope(p(new URLSearchParams(studyScopeParams(scope)).toString())), scope);
 });
 

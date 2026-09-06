@@ -3,17 +3,17 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
 /**
- * Phase 4: one toolbox, used in both places.
+ * One toolbox, and one place a student studies.
  *
- * The Practice tab had four generation tools; a focus session had none, and
- * offered instead a fork between the handbook and the paper guide. So the one
- * screen where a student had already committed an hour gave them the fewest
- * tools in the app.
+ * It began as an extraction: the Practice tab had four generation tools and a
+ * focus session had none, so the screen where a student had already committed
+ * an hour gave them the fewest tools in the app. The toolbox was pulled out
+ * and rendered in both.
  *
- * This is an extraction, not a second implementation. A copy inside FocusMode
- * would have been two generate buttons drifting apart — and PracticePanel's
- * own tests are the proof that the Practice tab is unchanged, because they
- * were not touched.
+ * The navigation teardown finished the job from the other end. There is no
+ * second study screen to render it on any more — the timer came to the tools
+ * rather than the tools being copied to the timer — so the toolbox has one
+ * caller again, and this time that is the point rather than the problem.
  */
 
 const read = (p) => fs.readFileSync(new URL(p, import.meta.url), 'utf8');
@@ -21,11 +21,14 @@ const TOOLBOX = read('../../src/components/StudyToolbox.jsx');
 const PANEL = read('../../src/components/PracticePanel.jsx');
 const FOCUS = read('../../src/pages/FocusMode.jsx');
 
-test('both callers render the same component', () => {
+test('one caller renders it, and the timer comes to it', () => {
   assert.match(PANEL, /import StudyToolbox from '@\/components\/StudyToolbox'/);
-  assert.match(FOCUS, /import StudyToolbox from '@\/components\/StudyToolbox'/);
   assert.match(PANEL, /<StudyToolbox/);
-  assert.match(FOCUS, /<StudyToolbox/);
+  // The project screen is the only other study surface left, and generating
+  // flashcards was never part of working through a roadmap step — the old
+  // render there was already guarded by !isProjectSession.
+  assert.doesNotMatch(FOCUS, /<StudyToolbox/);
+  assert.match(FOCUS, /<StudyTimer variant="full"/, 'the project screen keeps the clock, not the tools');
 });
 
 test('the generation lives in one file, not two', () => {
@@ -35,6 +38,11 @@ test('the generation lives in one file, not two', () => {
     assert.doesNotMatch(src, /invoke\('generateStudyMaterial'/, `${name} still generates its own material`);
     assert.doesNotMatch(src, /material_type:/, `${name} still builds the request`);
   }
+  // And nowhere else in the app either.
+  const files = fs.readdirSync(new URL('../../src', import.meta.url), { recursive: true })
+    .filter((f) => String(f).endsWith('.jsx') || String(f).endsWith('.js'));
+  const callers = files.filter((f) => /invoke\('generateStudyMaterial'/.test(read(`../../src/${f}`)));
+  assert.deepEqual(callers, ['components/StudyToolbox.jsx']);
   assert.match(TOOLBOX, /invoke\('generateStudyMaterial'/);
   assert.equal((TOOLBOX.match(/invoke\('generateStudyMaterial'/g) || []).length, 1);
 });
@@ -55,9 +63,8 @@ test('the caller owns the scope, and is asked for it at the moment of generating
   // picker. A function is asked when it matters.
   assert.match(TOOLBOX, /const ids = resolveLectureIds \? resolveLectureIds\(\) : \[\]/);
   assert.match(TOOLBOX, /if \(ids === null\) \{ setResult\(\{ error:/, 'an unusable selection must still say so');
-  // The Practice tab resolves from its picker; a session already knows.
+  // The study page resolves it from the one picker at the top.
   assert.match(PANEL, /const scopeForGeneration = \(\) => resolveScopeIds\(scopeIds, lectures\)/);
-  assert.match(FOCUS, /resolveLectureIds=\{\(\) => selectedLectureIds\}/);
 });
 
 test('a result stops being shown when it stops belonging to the screen', () => {
@@ -66,17 +73,17 @@ test('a result stops being shown when it stops belonging to the screen', () => {
   assert.match(TOOLBOX, /useEffect\(\(\) => \{ setResult\(null\); \}, \[scopeKey\]\)/);
   assert.match(PANEL, /scopeKey=\{selectedClass\}/);
   assert.doesNotMatch(PANEL, /setResult\(null\)/, 'the panel no longer owns that state');
-  // A focus session's scope is its session and its lectures.
-  assert.match(FOCUS, /scopeKey=\{`\$\{session\?\.id \|\| cls\?\.id \|\| ''\}:\$\{selectedLectureIds\.join\(','\)\}`\}/);
 });
 
 test('the panel still shows what was saved, and refreshes after a run', () => {
   assert.match(PANEL, /const refreshSaved = async \(\) =>/);
-  assert.match(PANEL, /onGenerated=\{refreshSaved\}/);
-  // Phase 5 gave the callback an argument: the lectures the material was
-  // built from, which is how a focus session learns what it opened. The panel
-  // ignores it and just refreshes.
+  assert.match(PANEL, /onGenerated=\{onGenerated\}/);
+  assert.match(PANEL, /await refreshSaved\(\);/, 'a run still refreshes the saved lists');
+  // The callback carries the lectures the material was built from, which is
+  // how the running session learns what it opened — the panel refreshes its
+  // saved lists AND reports them.
   assert.match(TOOLBOX, /if \(onGenerated\) await onGenerated\(ids\)/);
+  assert.match(PANEL, /await studySession\.markOpened\(ids\)/);
   // Saved material is the panel's, not the toolbox's — a focus session has no
   // use for a wall of every card the class has ever produced.
   assert.match(PANEL, /Saved Flashcards/);
@@ -84,18 +91,21 @@ test('the panel still shows what was saved, and refreshes after a run', () => {
   assert.doesNotMatch(TOOLBOX, /Saved/);
 });
 
-test('all six tools are on the focus screen, not four here and two behind a fork', () => {
-  const block = FOCUS.slice(FOCUS.indexOf('Study tools'), FOCUS.indexOf('{/* Complete state */}'));
-  assert.match(block, /setShowHandbook\(true\)/);
-  assert.match(block, /setShowManualGuide\(true\)/);
-  assert.match(block, /<StudyToolbox/);
-  // And it says what the material will be built from, because a session that
-  // knows its lectures should not make the student guess.
-  assert.match(block, /this session covers/);
+test('all six tools are on one page, under one picker', () => {
+  const SHELF = read('../../src/components/StudyShelf.jsx');
+  for (const title of ['Quiz me', 'Handbook', 'Paper guide']) {
+    assert.match(SHELF, new RegExp(`title="${title}"`));
+  }
+  assert.match(PANEL, /<StudyShelf/);
+  assert.match(PANEL, /<StudyToolbox/);
+  assert.equal((PANEL.match(/<LectureScopePicker/g) || []).length, 1);
 });
 
-test('the toolbox appears once the session is running, and never on a project', () => {
-  // A project session works through a roadmap of steps; generating flashcards
-  // for it is not the same activity and its screen already has a checklist.
-  assert.match(FOCUS, /\{\(phase === 'studying' \|\| phase === 'paused' \|\| phase === 'complete'\)\s*\n\s*&& !isProjectSession && \(session\?\.class_id \|\| cls\?\.id \|\| wizardClassId\) && \(/);
+test('a project session gets the clock and its roadmap, not the material tools', () => {
+  // Working through a roadmap step is not the same activity as building
+  // flashcards, and its screen already has a rubric checklist. The old render
+  // was guarded by !isProjectSession; now there is simply nothing to guard.
+  assert.match(FOCUS, /session_type !== 'project'/);
+  assert.match(FOCUS, /roadmap_step_index/);
+  assert.doesNotMatch(FOCUS, /<StudyShelf/);
 });

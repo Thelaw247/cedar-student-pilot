@@ -68,6 +68,28 @@ const RedirectPreservingQuery = ({ to }) => {
   return <Navigate to={`${to}${location.search}${location.hash}`} replace />;
 };
 
+/**
+ * /focus, translated into a scope.
+ *
+ * The old ad-hoc focus session opened a wizard that asked which class and what
+ * for. Its callers already knew: the lecture page sent ?lectureId&classId, the
+ * rail and Home sent nothing at all. Those become the study page's scope, so a
+ * link that knew something keeps it instead of being asked again.
+ *
+ * /focus/:sessionId is NOT redirected here — FocusMode has to read the session
+ * first, because a project session keeps its own screen.
+ */
+const RedirectFocusToStudy = () => {
+  const location = useLocation();
+  const q = new URLSearchParams(location.search);
+  const next = new URLSearchParams({ tab: 'now' });
+  const classId = q.get('classId');
+  const lectureId = q.get('lectureId');
+  if (classId) next.set('classId', classId);
+  if (lectureId) next.set('ids', lectureId);
+  return <Navigate to={`/study?${next.toString()}`} replace />;
+};
+
 const AuthenticatedApp = () => {
   // Deliberately NOT gated on isLoadingAuth / isLoadingPublicSettings.
   //
@@ -125,7 +147,7 @@ const AuthenticatedApp = () => {
             themselves (enrichment pass), alongside the student's own. */}
         <Route path="/todos" element={<Todos />} />
         <Route path="/settings" element={<SettingsPage />} />
-        <Route path="/focus" element={<FocusMode />} />
+        <Route path="/focus" element={<RedirectFocusToStudy />} />
         <Route path="/focus/:sessionId" element={<FocusMode />} />
         {/* Study Tools merged into the Study tab (/planner); redirect old links. */}
         <Route path="/study-tools" element={<Navigate to="/study" replace />} />

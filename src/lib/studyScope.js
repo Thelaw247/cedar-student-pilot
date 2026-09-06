@@ -14,7 +14,7 @@ import { useSearchParams } from 'react-router-dom';
  * refresh, a deep link from a lecture page, and the back button. So it lives
  * there, and both tabs read it.
  *
- *   /study?tab=now&classId=<uuid>&ids=<uuid,uuid>&assignmentId=<uuid>
+ *   /study?tab=now&classId=<uuid>&ids=<uuid,uuid>&assignmentId=<uuid>&sessionId=<uuid>
  *
  * `ids` empty means the whole class, which is what LectureScopePicker has
  * always meant by an empty selection — the same convention, not a new one.
@@ -22,6 +22,10 @@ import { useSearchParams } from 'react-router-dom';
  * `assignmentId` is read and written here but not yet shown. It is how "study
  * for Midterm 2" becomes part of the scope instead of a question a wizard
  * asks, and resolveAssignmentLectures already turns it into lectures.
+ *
+ * `sessionId` is the booked session this sitting belongs to. It is what
+ * /focus/:id redirects into, and it is what makes the timer close the session
+ * and tick its lectures off when it stops.
  */
 
 export const STUDY_TABS = ['now', 'schedule'];
@@ -49,6 +53,7 @@ export function readStudyScope(searchParams) {
     classId: get('classId') || '',
     lectureIds: (get('ids') || '').split(',').map((s) => s.trim()).filter(Boolean),
     assignmentId: get('assignmentId') || '',
+    sessionId: get('sessionId') || '',
   };
 }
 
@@ -67,6 +72,7 @@ export function studyScopeParams(scope = {}) {
   if (scope.classId) out.classId = scope.classId;
   if (Array.isArray(scope.lectureIds) && scope.lectureIds.length > 0) out.ids = scope.lectureIds.join(',');
   if (scope.assignmentId) out.assignmentId = scope.assignmentId;
+  if (scope.sessionId) out.sessionId = scope.sessionId;
   return out;
 }
 
@@ -98,7 +104,7 @@ export function useStudyScope() {
       const merged = { ...next, ...patch };
       const params = new URLSearchParams(current);
       // Rewrite only the scope keys, so anything else on the URL survives.
-      for (const key of ['tab', 'classId', 'ids', 'assignmentId']) params.delete(key);
+      for (const key of ['tab', 'classId', 'ids', 'assignmentId', 'sessionId']) params.delete(key);
       for (const [key, value] of Object.entries(studyScopeParams(merged))) params.set(key, value);
       return params;
     }, { replace: true });

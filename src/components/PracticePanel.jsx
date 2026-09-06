@@ -5,6 +5,7 @@ import QuizViewer from '@/components/QuizViewer';
 import LectureScopePicker, { resolveScopeIds, explicitScopeIds } from '@/components/LectureScopePicker';
 import StudyToolbox from '@/components/StudyToolbox';
 import StudyShelf from '@/components/StudyShelf';
+import { useStudySession } from '@/study/StudySessionContext';
 
 /**
  * PracticePanel — the study shelf: pick a class and which of its lectures
@@ -26,6 +27,7 @@ import StudyShelf from '@/components/StudyShelf';
  *     the tile live, which is exactly how it behaved before.
  */
 export default function PracticePanel({ initialClassId = '', initialLectureIds = null, onScopeChange = null, allLectures = null }) {
+  const studySession = useStudySession();
   const [classes, setClasses] = useState([]);
   const [selectedClass, setSelectedClass] = useState(initialClassId || '');
   const [lectures, setLectures] = useState([]);
@@ -90,6 +92,15 @@ export default function PracticePanel({ initialClassId = '', initialLectureIds =
     setExistingQuestions(await base44.entities.PracticeQuestion.filter({ class_id: selectedClass }));
   };
 
+  // Generated material is material the student is now looking at, built from
+  // these lectures — by any honest reading, they opened them. That write-
+  // through was Focus Mode's; it belongs to the session, which now outlives
+  // any one page.
+  const onGenerated = async (ids) => {
+    await studySession.markOpened(ids);
+    await refreshSaved();
+  };
+
   if (loading) {
     return <div className="flex items-center justify-center py-16"><div className="w-8 h-8 border-3 border-muted border-t-primary rounded-full animate-spin"></div></div>;
   }
@@ -141,7 +152,7 @@ export default function PracticePanel({ initialClassId = '', initialLectureIds =
         resolveLectureIds={scopeForGeneration}
         sourceCount={reviewLectureIds.length}
         scopeKey={selectedClass}
-        onGenerated={refreshSaved}
+        onGenerated={onGenerated}
       />
 
       {/* Existing materials */}

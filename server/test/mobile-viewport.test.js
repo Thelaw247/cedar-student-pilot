@@ -65,7 +65,9 @@ test('every modal panel can scroll', () => {
     '../../src/components/AttendancePrompt.jsx',
     '../../src/components/RebookSessionModal.jsx',
     '../../src/pages/ClassDetail.jsx',
-    '../../src/pages/FocusMode.jsx',
+    // The session modals — interval end, saved, project end — moved out of
+    // Focus Mode and into the timer, which is now rendered on two screens.
+    '../../src/study/StudyTimer.jsx',
   ];
   for (const p of files) {
     const src = read(p);

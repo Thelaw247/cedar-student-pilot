@@ -5,6 +5,7 @@ import UserMenuButton from '@/components/UserMenuButton';
 import ClassStatusBar from '@/components/ClassStatusBar';
 import { Search, Keyboard } from 'lucide-react';
 import CreditMeter from '@/components/monetization/CreditMeter';
+import NavStudyClock from '@/study/NavStudyClock';
 
 export default function Sidebar() {
   return (
@@ -35,6 +36,9 @@ export default function Sidebar() {
           >
             <item.icon className="w-[18px] h-[18px]" strokeWidth={2} />
             {item.label}
+            {/* A running study session is visible from every page, so it
+                cannot be left counting on a screen that never mentions it. */}
+            <NavStudyClock to={item.to} />
           </NavLink>
         ))}
       </nav>

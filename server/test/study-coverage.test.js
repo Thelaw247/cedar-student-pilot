@@ -20,7 +20,12 @@ const LIB = read('../lib/knowledgeCoverage.js');
 const ROUTE = read('../routes/recordStudyCoverage.js');
 const INDEX = read('../index.js');
 const REVIEW = read('../routes/processSessionReview.js');
-const FOCUS = read('../../src/pages/FocusMode.jsx');
+// The engine moved out of Focus Mode and into a provider above the router
+// (navigation teardown, phase 3). The guarantees below did not move with it
+// by accident — they are asserted at its new address.
+const CTX = read('../../src/study/StudySessionContext.jsx');
+const SHELF = read('../../src/components/StudyShelf.jsx');
+const PANEL = read('../../src/components/PracticePanel.jsx');
 const QUIZ = read('../../src/components/InLectureQuiz.jsx');
 const HANDBOOK = read('../../src/components/HandbookReader.jsx');
 const GUIDE = read('../../src/components/ManualStudyGuide.jsx');
@@ -191,7 +196,7 @@ test('lecture ids from the browser are filtered against the database', () => {
 test('the route is mounted', () => {
   assert.match(INDEX, /app\.use\('\/record-study-coverage', recordStudyCoverageRouter\)/);
   // functionPath('recordStudyCoverage') -> '/record-study-coverage'
-  assert.match(FOCUS, /invoke\('recordStudyCoverage'/);
+  assert.match(CTX, /invoke\('recordStudyCoverage'/);
 });
 
 // --------------------------------------------- the review write that was lost
@@ -281,20 +286,25 @@ test('every tool reports what it put in front of the student', () => {
   assert.match(TOOLBOX, /onGenerated\(ids\)/, 'material built from lectures means those lectures were opened');
   assert.match(HANDBOOK, /onLecturesOpened\(\[id\]\)/, 'a chapter on screen is a lecture opened');
   assert.match(GUIDE, /onLecturesOpened\(res\.data\.chapters\.map/);
-  for (const wiring of [/onGenerated=\{markOpened\}/, /onLecturesOpened=\{markOpened\}/]) {
-    assert.match(FOCUS, wiring);
-  }
-  assert.equal((FOCUS.match(/onLecturesOpened=\{markOpened\}/g) || []).length, 2,
+  // The reports now go to the session rather than to whichever page happens
+  // to be mounted, which is the whole point of the clock outliving the page.
+  assert.equal((SHELF.match(/onLecturesOpened=\{studySession\.markOpened\}/g) || []).length, 2,
     'the handbook and the paper guide both report');
+  assert.match(PANEL, /await studySession\.markOpened\(ids\)/,
+    'generated material is material the student is now looking at');
+  assert.match(PANEL, /onGenerated=\{onGenerated\}/);
 });
 
 test('opened lectures are written through as they happen', () => {
-  assert.match(FOCUS, /StudySession\.update\(sessionId, \{ opened_lecture_ids: merged \}\)/,
+  assert.match(CTX, /StudySession\.update\(id, \{ opened_lecture_ids: merged \}\)/,
     'a browser that dies mid-session must not lose the record');
-  assert.match(FOCUS, /openedRef\.current/,
+  assert.match(CTX, /openedRef\.current/,
     'three tools can report in one tick; state would only see what each started from');
-  assert.match(FOCUS, /useCallback/,
+  assert.match(CTX, /const markOpened = useCallback/,
     'HandbookReader fires this from an effect — an unstable identity would loop it');
+  // The session id is read from a ref, not captured: markOpened is handed to
+  // tools that outlive the render that created them.
+  assert.match(CTX, /const id = sessionIdRef\.current;/);
 });
 
 test('the handbook effect cannot loop on an inline callback', () => {
@@ -312,9 +322,26 @@ test('the browser no longer merges coverage by hand', () => {
 });
 
 test('a coverage failure never tells a student their session was lost', () => {
-  const stop = FOCUS.slice(FOCUS.indexOf('const handleStop'), FOCUS.indexOf('// Cancel without saving'));
+  const stop = CTX.slice(CTX.indexOf('const stop = useCallback'));
   assert.match(stop, /invoke\('recordStudyCoverage'/);
   assert.match(stop, /catch \(e\) \{\s*\n\s*console\.error\('Could not record study coverage/);
   assert.match(stop, /StudySession\.update\(session\.id, \{ status: 'completed' \}\)/,
     'the session still has to close when the ledger write fails');
+  // And the order is the contract: the record the student is told about is
+  // written first, then the bookkeeping that must never fail loudly.
+  const recordAt = stop.indexOf('StudyRecord.create');
+  const coverageAt = stop.indexOf("invoke('recordStudyCoverage'");
+  assert.ok(recordAt > 0 && recordAt < coverageAt, 'the study record must be written first');
+});
+
+test('one clock, above the router, so a tool cannot end the session it belongs to', () => {
+  // Three of the study tools are routes. With the timer inside the page,
+  // pressing "Quiz me" would have ended the session — silently, and the
+  // student would have found out at the end when nothing was saved.
+  const LAYOUT = read('../../src/components/Layout.jsx');
+  assert.match(LAYOUT, /<StudySessionProvider>/);
+  assert.match(LAYOUT, /import \{ StudySessionProvider \} from '@\/study\/StudySessionContext'/);
+  const PLANNER = read('../../src/pages/StudyPlanner.jsx');
+  assert.match(PLANNER, /<StudyTimer variant="strip"/);
+  assert.doesNotMatch(PLANNER, /setInterval/, 'the page must not run a clock of its own');
 });

@@ -59,7 +59,7 @@ test('the handbook branch reuses the reader rather than a second one', () => {
     'a single class must open straight into the handbook, not ask a pointless question');
   // The shelf never reaches that question: it already knows the class, so it
   // opens the reader itself rather than routing through the resolver.
-  assert.match(SHELF, /<HandbookReader classId=\{classId\} lectureIds=\{scopedIds\}/);
+  assert.match(SHELF, /<HandbookReader\s+classId=\{classId\}\s+lectureIds=\{scopedIds\}/);
 });
 
 test('everything that says "this week" means the same seven days', () => {

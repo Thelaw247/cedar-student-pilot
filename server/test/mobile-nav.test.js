@@ -26,9 +26,13 @@ test('the layout reserves space for the fixed nav including the safe-area inset'
   assert.match(layout, /pb-\[calc\(5rem\+env\(safe-area-inset-bottom\)\)\]/);
 });
 
-test('the recording island and focus button clear the nav on notched phones', () => {
+test('the recording island clears the nav on notched phones', () => {
   assert.match(read('../../src/recording/RecordingIsland.jsx'), /bottom-\[calc\(84px\+env\(safe-area-inset-bottom\)\)\]/);
-  assert.match(read('../../src/pages/FocusMode.jsx'), /bottom-\[calc\(5\.5rem\+env\(safe-area-inset-bottom\)\)\]/);
+  // This used to also check a floating button on Focus Mode. That button was
+  // the withdrawn AI chat toggle and had been inside a comment block for
+  // months, so the assertion was passing against code that could not render;
+  // the page itself is now the project-session screen and floats nothing.
+  // The island is the one floating control left, and it is the one guarded.
 });
 
 test('the landing hero carries an honest App Store coming-soon badge, not a dead link', () => {

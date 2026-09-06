@@ -13,13 +13,15 @@ import { CalendarDays, BookOpen, Brain, ListChecks, BarChart3, Settings } from '
  * Adding a non-primary item again means reinstating that sheet in BottomNav.
  * The desktop sidebar shows every item inline regardless of this flag.
  *
- * Note: the Study tab (/planner) absorbed the old "Practice" / Study Tools
- * page, so there is no separate Practice nav item anymore.
+ * Note: the Study tab absorbed the old "Practice" / Study Tools page and,
+ * with the navigation teardown, Focus Mode's timer as well — so there is no
+ * separate Practice or Focus nav item. /planner still redirects to /study for
+ * links already in the wild.
  */
 export const NAV_ITEMS = [
   { to: '/today',     label: 'Today',     icon: CalendarDays, primary: true },
   { to: '/classes',   label: 'Classes',   icon: BookOpen,     primary: true },
-  { to: '/planner',   label: 'Study',     icon: Brain,        primary: true },
+  { to: '/study',     label: 'Study',     icon: Brain,        primary: true },
   // To-do (3 Sep 2026): the checklist the enrichment pass fills from each
   // lecture, plus the student's own items. Six primary tabs still fit a
   // 360px bar at 11px labels; the mobile bar renders them evenly.

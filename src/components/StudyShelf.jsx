@@ -6,6 +6,7 @@ import HandbookReader from '@/components/HandbookReader';
 import ManualStudyGuide from '@/components/ManualStudyGuide';
 import { localDay, daysAgo } from '@/lib/localDay';
 import { scopeBlockReason, windowBlockReason } from '@/lib/studyShelf';
+import { useStudySession } from '@/study/StudySessionContext';
 
 /**
  * Every way to study these lectures, on one shelf, with nothing to answer.
@@ -58,6 +59,11 @@ export default function StudyShelf({
   allLectures = null,
 }) {
   const navigate = useNavigate();
+  // What a tool put in front of the student is what a running session ticks
+  // off when it stops. The handbook and the paper guide already report the
+  // lectures they open; they just had nowhere to report them outside Focus
+  // Mode. Now the session is above the router, so they always do.
+  const studySession = useStudySession();
   const review = useFeatureGate('lecture_review');
   const handbook = useFeatureGate('handbook');
   // The handbook and the paper guide are two readings of the same generated
@@ -135,13 +141,20 @@ export default function StudyShelf({
       </div>
 
       {overlay === 'handbook' && classId && (
-        <HandbookReader classId={classId} lectureIds={scopedIds} onClose={() => setOverlay(null)} />
+        <HandbookReader
+          classId={classId}
+          lectureIds={scopedIds}
+          onClose={() => setOverlay(null)}
+          onLecturesOpened={studySession.markOpened}
+          onQuizComplete={studySession.recordQuiz}
+        />
       )}
       {overlay === 'guide' && classId && (
         <ManualStudyGuide
           classId={classId}
           lectureIds={scopedIds || undefined}
           onClose={() => setOverlay(null)}
+          onLecturesOpened={studySession.markOpened}
         />
       )}
     </div>

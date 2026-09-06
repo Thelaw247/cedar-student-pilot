@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
 import { GraduationCap, Calendar, Clock, Check, X, Headphones, Plus, CalendarClock, Pencil } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import AddExamOrStudyModal from '@/components/AddExamOrStudyModal';
 import RebookSessionModal from '@/components/RebookSessionModal';
 import AssignmentEditModal from '@/components/AssignmentEditModal';
@@ -12,6 +12,8 @@ import { sessionTitle, sessionDescription } from '@/lib/sessionTitle';
 import { classColor } from '@/lib/color';
 import Segmented from '@/components/ui/Segmented';
 import { useStudyScope } from '@/lib/studyScope';
+import StudyTimer from '@/study/StudyTimer';
+import { useStudySession } from '@/study/StudySessionContext';
 
 const priorityColors = {
   high: 'bg-rose-500/10 text-rose-600 border-rose-500/20',
@@ -31,6 +33,7 @@ export default function StudyPlanner() {
   // renamed in the last phase, once the timer has moved too — until then
   // "Practice" is still the honest word for a tab with no clock on it.
   const [scope, setScope] = useStudyScope();
+  const studySession = useStudySession();
   const tab = scope.tab;
   const setTab = (next) => setScope({ tab: next });
   const deepClassId = scope.classId;
@@ -81,6 +84,42 @@ export default function StudyPlanner() {
   }, []);
 
   useEffect(() => { loadData(); }, [loadData]);
+
+  /**
+   * A booked session named in the URL becomes the sitting.
+   *
+   * /focus/:id redirects to /study?sessionId=…, so this is where "open my
+   * 4pm BIO block" lands. Adopting it fills the scope in from what the
+   * session already covers and sets the goal to the length it was booked
+   * for — the three questions the wizard used to ask, answered from the row.
+   *
+   * It does NOT start the clock. Focus Mode never did either, and a timer
+   * that starts itself records time nobody spent.
+   */
+  useEffect(() => {
+    if (!scope.sessionId || studySession.sessionId === scope.sessionId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const s = await base44.entities.StudySession.get(scope.sessionId);
+        if (cancelled || !s) return;
+        const [c, a] = await Promise.all([
+          s.class_id ? base44.entities.Class.get(s.class_id).catch(() => null) : null,
+          s.assignment_id ? base44.entities.Assignment.get(s.assignment_id).catch(() => null) : null,
+        ]);
+        if (cancelled) return;
+        const ids = Array.isArray(s.lecture_ids) ? s.lecture_ids.filter(Boolean) : [];
+        const took = studySession.adopt({ session: s, cls: c, assignment: a, classId: s.class_id, lectureIds: ids });
+        // And the pickers follow — but only if the session was actually
+        // adopted. Repointing them at a second session's lectures while the
+        // first one is still counting would file what gets opened against the
+        // wrong sitting.
+        if (took) setScope({ tab: 'now', classId: s.class_id || '', lectureIds: ids });
+      } catch { /* a deleted session just leaves the page as it is */ }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scope.sessionId]);
 
   const toggleStatus = async (session) => {
     const newStatus = session.status === 'completed' ? 'scheduled' : 'completed';
@@ -173,6 +212,11 @@ export default function StudyPlanner() {
           </button>
         )}
       </div>
+
+      {/* The clock, above the tabs on purpose: switching to Plan must not
+          stop it, and neither must opening a quiz — the state lives in
+          StudySessionProvider, above the router. */}
+      <StudyTimer variant="strip" className="mb-4" />
 
       {/* Sub-tabs */}
       <div className="mb-6">
@@ -365,10 +409,14 @@ export default function StudyPlanner() {
                           className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-border text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
                           <CalendarClock className="w-3.5 h-3.5" /> Rebook
                         </button>
-                        <Link to={`/focus/${s.id}`}
+                        {/* Was "Focus", and it opened a wizard that asked what
+                            this session was for — a question the row itself
+                            answers. It now brings the session here: scope
+                            filled in, goal set to its booked length. */}
+                        <button type="button" onClick={() => setScope({ tab: 'now', sessionId: s.id })}
                           className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-border text-xs font-medium text-foreground hover:bg-primary/5 hover:border-primary/30 transition-colors">
-                          <Headphones className="w-3.5 h-3.5" /> Focus
-                        </Link>
+                          <Headphones className="w-3.5 h-3.5" /> Study this
+                        </button>
                         {/* Edit — same modal as the deadline cards / Classes tab.
                             Only shown when this session belongs to an assignment
                             (some ad-hoc study blocks don't). */}

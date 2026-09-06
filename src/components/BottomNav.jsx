@@ -1,6 +1,7 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { PRIMARY_NAV_ITEMS } from '@/lib/navItems';
+import { NavStudyDot } from '@/study/NavStudyClock';
 
 /**
  * Mobile bottom navigation.
@@ -26,13 +27,16 @@ export default function BottomNav() {
             to={item.to}
             end={item.to === '/'}
             className={({ isActive }) =>
-              `flex flex-col items-center gap-1 px-3 py-1.5 rounded-lg transition-colors ${
+              `relative flex flex-col items-center gap-1 px-3 py-1.5 rounded-lg transition-colors ${
                 isActive ? 'text-primary' : 'text-muted-foreground'
               }`
             }
           >
             <item.icon className="w-5 h-5" strokeWidth={2} />
             <span className="text-[11px] font-medium">{item.label}</span>
+            {/* No room for digits in a six-tab bar; the dot says a session is
+                running and the tab it sits on is where the controls are. */}
+            <NavStudyDot to={item.to} />
           </NavLink>
         ))}
       </div>
