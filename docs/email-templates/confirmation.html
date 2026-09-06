@@ -11,7 +11,7 @@
 <title>Welcome to Praelecta</title>
 </head>
 <body style="margin:0;padding:0;background-color:#F7F9FD;">
-<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">One click to confirm your email and start recording lectures.</div>
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">Your confirmation code is inside — six digits, valid for one hour.</div>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#F7F9FD;padding:32px 16px;">
   <tr>
     <td align="center">
@@ -27,15 +27,28 @@
         <tr>
           <td style="background-color:#FFFFFF;border:1px solid #DFE4EE;border-radius:16px;padding:32px;">
             <h1 style="margin:0 0 14px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:22px;font-weight:700;color:#101828;letter-spacing:-0.02em;line-height:1.25;">Welcome to Praelecta</h1>
-            <p style="margin:0 0 16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:23px;color:#3D4661;">Thanks for signing up. Confirm your email address and your account is ready — your first lecture recording is a tap away.</p>
-            <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin:8px 0 0;">
+            <p style="margin:0 0 16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:23px;color:#3D4661;">Thanks for signing up. Enter this code on the confirmation screen and your account is ready — your first lecture recording is a tap away.</p>
+            <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin:4px 0 20px;">
               <tr>
-                <td align="center">
-                  <a href="{{ .ConfirmationURL }}" style="display:inline-block;background-color:#2E66FF;color:#FFFFFF;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;font-weight:600;text-decoration:none;padding:13px 32px;border-radius:12px;">Confirm my email</a>
+                <td align="center" style="background-color:#F4F7FD;border:1px solid #DFE4EE;border-radius:14px;padding:18px 16px;">
+                  <p style="margin:0 0 8px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:11px;font-weight:600;letter-spacing:0.09em;text-transform:uppercase;color:#6B7488;">Your confirmation code</p>
+                  <!-- Monospace and letter-spaced so 0/O and 1/l cannot be
+                       misread off a phone screen. Selectable text, never an
+                       image: half of email clients block images, and nobody
+                       can copy a picture of a code. -->
+                  <p style="margin:0;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:32px;font-weight:700;letter-spacing:0.16em;line-height:1.15;color:#101828;">{{ .Token }}</p>
+                  <p style="margin:10px 0 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:12px;line-height:18px;color:#6B7488;">Type this into the Praelecta tab you signed up in.</p>
                 </td>
               </tr>
             </table>
-            <p style="margin:24px 0 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:12.5px;line-height:19px;color:#6B7488;">Didn&rsquo;t create a Praelecta account? You can ignore this email and nothing will happen.</p>
+            <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin:8px 0 0;">
+              <tr>
+                <td align="center">
+                  <a href="{{ .ConfirmationURL }}" style="display:inline-block;background-color:#FFFFFF;color:#2E66FF;border:1px solid #C9D6F5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;font-weight:600;text-decoration:none;padding:13px 32px;border-radius:12px;">Or confirm with one tap</a>
+                </td>
+              </tr>
+            </table>
+            <p style="margin:24px 0 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:12.5px;line-height:19px;color:#6B7488;">The code and the link do the same thing, and either one works once. Didn&rsquo;t create a Praelecta account? You can ignore this email and nothing will happen.</p>
             <p style="margin:16px 0 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:11px;line-height:17px;color:#9AA3B8;word-break:break-all;">Button not working? Copy this link into your browser:<br><a href="{{ .ConfirmationURL }}" style="color:#2E66FF;text-decoration:underline;">{{ .ConfirmationURL }}</a></p>
           </td>
         </tr>

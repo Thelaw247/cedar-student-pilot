@@ -28,10 +28,18 @@ export function escapeHtml(value) {
  * @param {{label:string, url:string}} [o.cta]  The one button.
  * @param {string} [o.footnote]      Small grey text under the button ("Didn't ask for this?…").
  * @param {string} [o.preheader]     Inbox preview line, hidden in the body.
- * @param {boolean} [o.rawUrls]      When true, o.cta.url is a template variable and is not escaped.
+ * @param {{label:string, value:string}} [o.code]  A one-time code, shown big
+ *   and selectable ABOVE the button. Set when the recipient may be typing it
+ *   back into a screen they are already looking at, which is most of the time:
+ *   a link opened from a mail app lands in that app's own browser, with its
+ *   own storage, and signs in a session the person cannot see.
+ * @param {boolean} [o.rawUrls]      When true, o.cta.url and o.code.value are
+ *   template variables ({{ .ConfirmationURL }}, {{ .Token }}) and are passed
+ *   through unescaped.
  */
-export function renderEmail({ heading, paragraphs = [], cta, footnote, preheader, rawUrls = false }) {
+export function renderEmail({ heading, paragraphs = [], cta, code, footnote, preheader, rawUrls = false }) {
   const url = cta ? (rawUrls ? cta.url : escapeHtml(cta.url)) : '';
+  const codeValue = code ? (rawUrls ? code.value : escapeHtml(code.value)) : '';
   const p = (html, extra = '') =>
     `<p style="margin:0 0 16px;font-family:${FONT};font-size:15px;line-height:23px;color:#3D4661;${extra}">${html}</p>`;
 
@@ -61,10 +69,23 @@ ${preheader ? `<div style="display:none;max-height:0;overflow:hidden;opacity:0;c
           <td style="background-color:#FFFFFF;border:1px solid #DFE4EE;border-radius:16px;padding:32px;">
             <h1 style="margin:0 0 14px;font-family:${FONT};font-size:22px;font-weight:700;color:#101828;letter-spacing:-0.02em;line-height:1.25;">${escapeHtml(heading)}</h1>
             ${paragraphs.map((html) => p(html)).join('\n            ')}
+            ${code ? `<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin:4px 0 20px;">
+              <tr>
+                <td align="center" style="background-color:#F4F7FD;border:1px solid #DFE4EE;border-radius:14px;padding:18px 16px;">
+                  <p style="margin:0 0 8px;font-family:${FONT};font-size:11px;font-weight:600;letter-spacing:0.09em;text-transform:uppercase;color:#6B7488;">${escapeHtml(code.label)}</p>
+                  <!-- Monospace and letter-spaced so 0/O and 1/l cannot be
+                       misread off a phone screen. Selectable text, never an
+                       image: half of email clients block images, and nobody
+                       can copy a picture of a code. -->
+                  <p style="margin:0;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:32px;font-weight:700;letter-spacing:0.16em;line-height:1.15;color:#101828;">${codeValue}</p>
+                  <p style="margin:10px 0 0;font-family:${FONT};font-size:12px;line-height:18px;color:#6B7488;">Type this into the Praelecta tab you signed up in.</p>
+                </td>
+              </tr>
+            </table>` : ''}
             ${cta ? `<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin:8px 0 0;">
               <tr>
                 <td align="center">
-                  <a href="${url}" style="display:inline-block;background-color:#2E66FF;color:#FFFFFF;font-family:${FONT};font-size:15px;font-weight:600;text-decoration:none;padding:13px 32px;border-radius:12px;">${escapeHtml(cta.label)}</a>
+                  <a href="${url}" style="display:inline-block;background-color:${code ? '#FFFFFF' : '#2E66FF'};color:${code ? '#2E66FF' : '#FFFFFF'};${code ? 'border:1px solid #C9D6F5;' : ''}font-family:${FONT};font-size:15px;font-weight:600;text-decoration:none;padding:13px 32px;border-radius:12px;">${escapeHtml(cta.label)}</a>
                 </td>
               </tr>
             </table>` : ''}
@@ -85,5 +106,5 @@ ${preheader ? `<div style="display:none;max-height:0;overflow:hidden;opacity:0;c
   </tr>
 </table>
 </body>
-</html>`;
+</html>`.replace(/\n[ \t]+(?=\n)/g, '');
 }

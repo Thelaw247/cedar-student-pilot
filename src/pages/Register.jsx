@@ -107,7 +107,14 @@ export default function Register() {
       const explicitReturn = new URLSearchParams(window.location.search).get('returnTo');
       window.location.href = explicitReturn ? safeReturnTo() : '/welcome';
     } catch (err) {
-      setError(err.message || "Invalid verification code");
+      // The code and the link are the same token, so using one burns the
+      // other. "Invalid verification code" is true and useless in the case
+      // that actually happens: they tapped the link first, on a device this
+      // browser knows nothing about, and their account is already confirmed.
+      const raw = String(err?.message || "");
+      setError(/expired|invalid/i.test(raw)
+        ? "That code has expired or has already been used. If you tapped the button in the email, your account is confirmed — sign in below."
+        : raw || "Invalid verification code");
     } finally {
       setLoading(false);
     }
@@ -118,8 +125,8 @@ export default function Register() {
     try {
       await base44.auth.resendOtp(email);
       toast({
-        title: "Confirmation sent",
-        description: "Check your email for the new confirmation message.",
+        title: "New code sent",
+        description: "Check your email for the new six-digit code.",
       });
     } catch (err) {
       setError(err.message || "Failed to resend code");
@@ -141,7 +148,7 @@ export default function Register() {
       <AuthLayout
         icon={Mail}
         title="Check your email"
-        subtitle={`We sent a confirmation message to ${email}`}
+        subtitle={`We sent a six-digit code to ${email}`}
       >
         {error && (
           <div className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
@@ -149,19 +156,13 @@ export default function Register() {
           </div>
         )}
         {USE_SUPABASE && (
-          <>
-            {/* The email contains a LINK. Say that plainly and put it first:
-                the old copy offered the link and the code as equal options
-                above a six-digit box, so the box read as the thing to do, and
-                a student who could not find a code in the email concluded the
-                email was broken. */}
-            <p className="mb-2 text-center text-sm text-foreground">
-              Tap the confirm button in that email and you are in — there is nothing to type here.
-            </p>
-            <p className="mb-5 text-center text-xs text-muted-foreground">
-              Opened it on another device? Enter the six-digit code instead, if your message has one.
-            </p>
-          </>
+          <p className="mb-5 text-center text-sm text-muted-foreground">
+            {/* The email now leads with the code, so this screen does too. The
+                code is the path that cannot go wrong: it comes back to the tab
+                already open in front of the student, whichever device or app
+                they read the email in. */}
+            Enter it below. The email also has a one-tap button if you would rather use that.
+          </p>
         )}
         <div className="flex justify-center mb-6">
           <InputOTP
@@ -196,7 +197,7 @@ export default function Register() {
           )}
         </Button>
         <p className="text-center text-sm text-muted-foreground mt-4">
-          Didn't receive the code?{" "}
+          Didn't get the code?{" "}
           <button onClick={handleResend} className="text-primary font-medium hover:underline">
             Resend
           </button>

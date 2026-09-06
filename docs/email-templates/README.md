@@ -21,6 +21,12 @@ switch the body editor to source/HTML, select-all, paste the file, **Save**.
 
 "Invite user" and "Reauthentication" are not used by the app; leave them.
 
+**6 Sep 2026 — only `confirmation.html` changed.** It now renders Supabase's
+`{{ .Token }}`, the six-digit code, above the one-tap link. Re-paste that one
+template; the other three are byte-identical to what is already installed.
+Nothing else has to change — `verifyOtp({ type: 'signup' })` on the confirm
+screen has always accepted this code, there was simply never one in the email.
+
 Check: **Authentication → URL Configuration** must have Site URL
 `https://praelecta.ca` and the redirect allowlist entries for it, or the
 links land on the login page instead of the reset page.

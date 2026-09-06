@@ -5,8 +5,8 @@
  * is the versioned source — run this, then paste each file into
  * Authentication → Emails → <template> (HTML/source mode).
  *
- * The {{ .ConfirmationURL }} placeholders are Supabase's, not ours, so the
- * layout is told not to escape them.
+ * The {{ .ConfirmationURL }} and {{ .Token }} placeholders are Supabase's, not
+ * ours, so the layout is told not to escape them.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -16,15 +16,24 @@ import { renderEmail } from '../server/lib/emailLayout.js';
 const out = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'docs', 'email-templates');
 
 export const TEMPLATES = {
+  // The code leads, and the link is the shortcut underneath it.
+  //
+  // A link-only confirmation looked fine and was not. Mail apps open links in
+  // their OWN in-app browser, which has its own storage — so the tap signs in
+  // a session the student cannot see, while the tab they signed up in sits
+  // there waiting. On 6 Sep that gap cost a real signup nine and a half
+  // minutes. A code carries back to the screen already in front of them, and
+  // works from a laptop when the email is on a phone.
   confirmation: {
     subject: 'Confirm your Praelecta account',
     heading: 'Welcome to Praelecta',
-    preheader: 'One click to confirm your email and start recording lectures.',
+    preheader: 'Your confirmation code is inside — six digits, valid for one hour.',
     paragraphs: [
-      'Thanks for signing up. Confirm your email address and your account is ready — your first lecture recording is a tap away.',
+      'Thanks for signing up. Enter this code on the confirmation screen and your account is ready — your first lecture recording is a tap away.',
     ],
-    cta: { label: 'Confirm my email', url: '{{ .ConfirmationURL }}' },
-    footnote: 'Didn&rsquo;t create a Praelecta account? You can ignore this email and nothing will happen.',
+    code: { label: 'Your confirmation code', value: '{{ .Token }}' },
+    cta: { label: 'Or confirm with one tap', url: '{{ .ConfirmationURL }}' },
+    footnote: 'The code and the link do the same thing, and either one works once. Didn&rsquo;t create a Praelecta account? You can ignore this email and nothing will happen.',
   },
   recovery: {
     subject: 'Reset your Praelecta password',

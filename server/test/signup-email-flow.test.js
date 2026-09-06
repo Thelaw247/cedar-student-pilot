@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 
 /**
  * The signup email sends a link. The app demanded a code.
@@ -32,6 +34,8 @@ const APP = read('../../src/App.jsx');
 const CALLBACK = read('../../src/pages/AuthCallback.jsx');
 const REGISTER = read('../../src/pages/Register.jsx');
 const CLIENT = read('../../src/lib/cedarClient.js');
+const BUILDER = read('../../scripts/build-email-templates.mjs');
+const TEMPLATE = read('../../docs/email-templates/confirmation.html');
 
 test('there is a route for an email link to land on, and it is public', () => {
   assert.ok(APP.includes('path="/auth/callback"'), '/auth/callback has no <Route> in App.jsx');
@@ -76,13 +80,34 @@ test('the code screen leaves when the session arrives', () => {
   assert.match(effect.slice(0, 400), /navigate\(/);
 });
 
-test('the screen says the email contains a link', () => {
+test('the email carries a six-digit code, not only a link', () => {
+  // A link-only confirmation is the shape that broke. Mail apps open links in
+  // their own in-app browser, with its own storage, so the tap signs in a
+  // session the student cannot see while the tab they signed up in waits. A
+  // code comes back to the screen already in front of them.
+  assert.match(BUILDER, /code: \{ label: '[^']+', value: '\{\{ \.Token \}\}' \}/,
+    'the confirmation template does not render Supabase\'s OTP');
+  assert.match(TEMPLATE, /\{\{ \.Token \}\}/, 'the generated template has no code in it');
+  assert.match(TEMPLATE, /\{\{ \.ConfirmationURL \}\}/, 'the one-tap link was dropped along with it');
+  // Selectable text. Half of email clients block images, and nobody can copy a
+  // picture of a code.
+  assert.doesNotMatch(TEMPLATE, /<img[^>]*Token/, 'the code is rendered as an image');
+});
+
+test('the code is the primary path on both the email and the screen', () => {
+  const card = TEMPLATE.slice(TEMPLATE.indexOf('<h1'), TEMPLATE.indexOf('Button not working'));
+  assert.ok(card.indexOf('{{ .Token }}') < card.indexOf('{{ .ConfirmationURL }}'),
+    'the link comes before the code in the email');
   const otp = REGISTER.slice(REGISTER.indexOf('if (showOtp)'));
-  assert.match(otp, /nothing to type here/,
-    'the copy still offers the link and the code as equal options, above a code box');
-  const linkAt = otp.indexOf('Tap the confirm button');
-  const codeAt = otp.indexOf('six-digit code');
-  assert.ok(linkAt > -1 && linkAt < codeAt, 'the code is still presented before the link');
+  assert.match(otp, /six-digit code to \$\{email\}/, 'the screen no longer says a code is coming');
+  assert.match(otp, /Enter it below/);
+});
+
+test('a burnt code explains itself', () => {
+  // The code and the link are the same token, so using one invalidates the
+  // other — and that is the case that actually happens.
+  assert.match(REGISTER, /already been used/);
+  assert.match(REGISTER, /your account is confirmed/);
 });
 
 test('the callback waits for the app to agree there is a session', () => {
@@ -102,4 +127,15 @@ test('a bounce to login does not destroy the credential in the URL', () => {
   const redirect = APP.slice(APP.indexOf('const RedirectToLogin'), APP.indexOf('const AuthenticatedApp'));
   assert.match(redirect, /location\.hash/,
     'the fragment is dropped, so an email link that lands on a protected route becomes unusable');
+});
+
+test('the checked-in templates are what the builder produces', () => {
+  // These files are pasted into a dashboard by hand, so a stale one means the
+  // live email and the repository disagree with nobody noticing.
+  const built = execFileSync(process.execPath,
+    [fileURLToPath(new URL('../../scripts/build-email-templates.mjs', import.meta.url))],
+    { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+  assert.match(built, /wrote docs\/email-templates\/confirmation\.html/);
+  assert.equal(read('../../docs/email-templates/confirmation.html'), TEMPLATE,
+    'docs/email-templates/confirmation.html is out of date — run node scripts/build-email-templates.mjs');
 });
