@@ -4,6 +4,7 @@ import { Loader2, Sparkles, Layers, FileQuestion, ClipboardList, FileText, Lock 
 import FlashcardViewer from '@/components/FlashcardViewer';
 import QuizViewer from '@/components/QuizViewer';
 import { useFeatureGate } from '@/components/monetization/useFeatureGate';
+import GateNotice, { gateFromError } from '@/components/monetization/GateNotice';
 
 /**
  * The four things Praelecta can build from a set of lectures, and the one
@@ -72,16 +73,16 @@ export default function StudyToolbox({ classId, resolveLectureIds, sourceCount =
       // caller knows its own scope.
       if (onGenerated) await onGenerated(ids);
     } catch (e) {
+      // A refusal is kept whole so it can be rendered as something to press.
+      // It used to be flattened to its message, which left the student reading
+      // "this needs Scholar" with no way to get Scholar.
+      const gate = gateFromError(e);
+      if (gate) { setResult({ gate }); setGenerating(false); return; }
       // Show what the server said when it said something. The generic line
       // below hid a NOT NULL violation for two weeks: the student read
       // "try again", tried again, and got the same thing.
-      const status = e?.response?.status;
       const said = e?.response?.data?.message || e?.response?.data?.error;
-      setResult({
-        error: status === 402
-          ? (said || 'This needs an upgrade or more credits.')
-          : (said || 'Failed to generate study material. Please try again.'),
-      });
+      setResult({ error: said || 'Failed to generate study material. Please try again.' });
     }
     setGenerating(false);
   };
@@ -136,6 +137,7 @@ export default function StudyToolbox({ classId, resolveLectureIds, sourceCount =
           )}
         </div>
       )}
+      {result?.gate && <GateNotice gate={result.gate} source="study-material" className="mb-6" />}
       {result?.error && (
         <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 mb-6">
           <p className="text-sm text-destructive">{result.error}</p>

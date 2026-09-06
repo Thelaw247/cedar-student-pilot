@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Loader2, X, BookOpen, List, Clipboard } from 'lucide-react';
+import GateNotice, { gateFromError } from '@/components/monetization/GateNotice';
 
 export default function ManualStudyGuide({ classId, studyMode, lectureIds, assignmentId, onClose, onLoad, onLecturesOpened = null }) {
   const [guide, setGuide] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [gate, setGate] = useState(null);
 
   useEffect(() => {
     const load = async () => {
@@ -24,7 +26,8 @@ export default function ManualStudyGuide({ classId, studyMode, lectureIds, assig
           onLecturesOpened(res.data.chapters.map(ch => ch.lecture_id).filter(Boolean));
         }
       } catch (e) {
-        setError(e.message);
+        const g = gateFromError(e);
+        if (g) setGate(g); else setError(e.message);
       }
       setLoading(false);
     };
@@ -53,6 +56,19 @@ export default function ManualStudyGuide({ classId, studyMode, lectureIds, assig
         <Loader2 className="w-10 h-10 animate-spin text-primary mb-4" />
         <h3 className="font-heading text-lg font-semibold mb-1">Building Your Study Guide</h3>
         <p className="text-sm text-muted-foreground text-center max-w-xs">Compiling material for your manual study session...</p>
+      </div>
+    );
+  }
+
+  if (gate) {
+    return (
+      <div className="fixed inset-0 z-50 bg-background flex flex-col items-center justify-center px-6">
+        <div className="w-full max-w-sm">
+          <GateNotice gate={gate} source="paper-guide" />
+          <button onClick={onClose} className="mt-3 w-full px-4 py-2 rounded-lg border border-border text-sm font-medium text-muted-foreground hover:text-foreground">
+            Close
+          </button>
+        </div>
       </div>
     );
   }

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
+import GateNotice, { gateFromError } from '@/components/monetization/GateNotice';
 import { Loader2, X, Brain, ChevronRight, Award, TrendingUp, BookOpen, Target } from 'lucide-react';
 import QuizReview, { ChoiceOptions, isChoiceCorrect } from '@/components/quiz/QuizReview';
 
@@ -22,6 +23,7 @@ export default function SessionReview({
   const [results, setResults] = useState(null);
   const [generating, setGenerating] = useState(false);
   const [currentQuestion, setCurrentQuestion] = useState(0);
+  const [gate, setGate] = useState(null);
 
   useEffect(() => {
     generateReview();
@@ -40,6 +42,8 @@ export default function SessionReview({
       setSelfAssessmentTopics(res.data.self_assessment_topics || []);
       setPhase(res.data.review_questions?.length > 0 ? 'questions' : 'empty');
     } catch (e) {
+      const g = gateFromError(e);
+      if (g) { setGate(g); setPhase('gate'); return; }
       setPhase('error');
     }
   };
@@ -104,6 +108,21 @@ export default function SessionReview({
         <p className="text-sm text-muted-foreground text-center max-w-xs">
           AI is creating personalized questions from your lecture content...
         </p>
+      </div>
+    );
+  }
+
+  // A refusal is its own phase. It used to land in 'error' beside a network
+  // failure, which is a different thing with a different remedy.
+  if (phase === 'gate') {
+    return (
+      <div className="fixed inset-0 z-50 bg-background flex items-center justify-center px-6">
+        <div className="w-full max-w-sm">
+          <GateNotice gate={gate} source="session-review" />
+          <button onClick={onClose} className="mt-3 w-full px-4 py-2 rounded-lg border border-border text-sm font-medium text-muted-foreground hover:text-foreground">
+            Close
+          </button>
+        </div>
       </div>
     );
   }

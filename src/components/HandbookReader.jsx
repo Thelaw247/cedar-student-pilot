@@ -3,6 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { Loader2, X, BookOpen, ChevronLeft, ChevronRight, List, Zap, Check, Brain, Expand, Filter } from 'lucide-react';
 import QuizDepthSelector, { QUIZ_PRESETS } from '@/components/QuizDepthSelector';
 import QuizReview, { ChoiceOptions } from '@/components/quiz/QuizReview';
+import GateNotice, { gateFromError } from '@/components/monetization/GateNotice';
 
 export default function HandbookReader({ classId, lectureIds = null, assignmentId = null, studyMode = null, onClose, onQuizComplete = null, onLecturesOpened = null }) {
   const [handbook, setHandbook] = useState(null);
@@ -18,6 +19,9 @@ export default function HandbookReader({ classId, lectureIds = null, assignmentI
   const [quizIdx, setQuizIdx] = useState(0);
   const [quizResult, setQuizResult] = useState(null);
   const [error, setError] = useState(null);
+  // A tier refusal is kept whole rather than flattened to its sentence, so it
+  // can be rendered as something the student can press.
+  const [gate, setGate] = useState(null);
 
   useEffect(() => {
     const load = async () => {
@@ -34,7 +38,8 @@ export default function HandbookReader({ classId, lectureIds = null, assignmentI
         setHandbook(res.data);
         setCurrentChapter(0);
       } catch (e) {
-        setError(e.message);
+        const g = gateFromError(e);
+        if (g) setGate(g); else setError(e.message);
       }
       setLoading(false);
     };
@@ -73,7 +78,8 @@ export default function HandbookReader({ classId, lectureIds = null, assignmentI
         setError('No quiz content available for these lectures.');
       }
     } catch (e) {
-      setError(e.message);
+      const g = gateFromError(e);
+      if (g) setGate(g); else setError(e.message);
     }
     setQuizLoading(false);
   };
@@ -146,6 +152,19 @@ export default function HandbookReader({ classId, lectureIds = null, assignmentI
         <p className="text-sm text-muted-foreground text-center max-w-xs">
           Compiling lecture notes, summaries, and concepts into a study guide...
         </p>
+      </div>
+    );
+  }
+
+  if (gate) {
+    return (
+      <div className="fixed inset-0 z-50 bg-background flex flex-col items-center justify-center px-6">
+        <div className="w-full max-w-sm">
+          <GateNotice gate={gate} source="handbook" />
+          <button onClick={onClose} className="mt-3 w-full px-4 py-2 rounded-lg border border-border text-sm font-medium text-muted-foreground hover:text-foreground">
+            Close
+          </button>
+        </div>
       </div>
     );
   }

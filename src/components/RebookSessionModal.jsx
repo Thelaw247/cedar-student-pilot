@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
+import GateNotice, { gateFromError } from '@/components/monetization/GateNotice';
 import { Sparkles, CalendarClock, Zap, X, Loader2, Check, Calendar } from 'lucide-react';
 
 export default function RebookSessionModal({ session, className = '', onClose, onRebooked }) {
@@ -12,6 +13,7 @@ export default function RebookSessionModal({ session, className = '', onClose, o
   const [manualTime, setManualTime] = useState('19:00');
   const [manualLoading, setManualLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [gate, setGate] = useState(null);
 
   function getTodayString() {
     const d = new Date();
@@ -32,6 +34,8 @@ export default function RebookSessionModal({ session, className = '', onClose, o
       setMode('done');
       onRebooked?.();
     } catch (e) {
+      const g = gateFromError(e);
+      if (g) { setGate(g); setAiLoading(false); return; }
       setError(e?.response?.data?.error || e?.message || 'Could not rebook. Try again.');
     }
     setAiLoading(false);
@@ -92,6 +96,7 @@ export default function RebookSessionModal({ session, className = '', onClose, o
           <span>Was: {session.scheduled_date}{session.scheduled_time ? ` at ${session.scheduled_time}` : ''}</span>
         </div>
 
+        {gate && <GateNotice gate={gate} source="smart-rebook" className="mb-3" />}
         {error && (
           <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 mb-4 text-xs text-destructive">
             {error}

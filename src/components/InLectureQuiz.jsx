@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { X, Loader2, Check, Clock, Brain, ArrowRight } from 'lucide-react';
 import QuizReview, { ChoiceOptions, isChoiceCorrect } from '@/components/quiz/QuizReview';
+import GateNotice, { gateFromError } from '@/components/monetization/GateNotice';
 
 const QUIZ_DURATION = 300; // 5 minutes in seconds
 
@@ -16,6 +17,7 @@ export default function InLectureQuiz({ lecture, cls, onClose }) {
   const [showResult, setShowResult] = useState(false);
   const [coverageWritten, setCoverageWritten] = useState(false);
   const [error, setError] = useState(null);
+  const [gate, setGate] = useState(null);
 
   // Every question is multiple choice and graded locally; the server has
   // already validated the shape (server/lib/quizQuestions.js).
@@ -36,6 +38,8 @@ export default function InLectureQuiz({ lecture, cls, onClose }) {
           setError(res.data?.message || 'No quiz content available for this lecture.');
         }
       } catch (e) {
+        const g = gateFromError(e);
+        if (g) { setGate(g); setLoading(false); return; }
         setError(e.message || 'Failed to generate quiz.');
       }
       setLoading(false);
@@ -112,6 +116,19 @@ export default function InLectureQuiz({ lecture, cls, onClose }) {
   }
 
   // Error / empty state
+  if (gate) {
+    return (
+      <div className="fixed inset-0 z-50 bg-background flex flex-col items-center justify-center px-6">
+        <div className="w-full max-w-sm">
+          <GateNotice gate={gate} source="quick-quiz" />
+          <button onClick={onClose} className="mt-3 w-full px-4 py-2 rounded-lg border border-border text-sm font-medium text-muted-foreground hover:text-foreground">
+            Close
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (error || questions.length === 0) {
     return (
       <div className="fixed inset-0 z-50 bg-black/50 glass flex items-center justify-center px-4">

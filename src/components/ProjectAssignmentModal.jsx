@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import GateNotice, { gateFromError } from '@/components/monetization/GateNotice';
 import { base44 } from '@/api/base44Client';
 import { Loader2, X, ArrowRight, ArrowLeft, Check, Sparkles, Clock, ListChecks } from 'lucide-react';
 
@@ -13,6 +14,10 @@ export default function ProjectAssignmentModal({ classId, className, onClose }) 
   const [loadingFields, setLoadingFields] = useState(false);
   const [loadingRoadmap, setLoadingRoadmap] = useState(false);
   const [creating, setCreating] = useState(false);
+  // alert() cannot hold a button, so a refusal that can only be resolved by
+  // upgrading was a dead end here by construction.
+  const [gate, setGate] = useState(null);
+  const [error, setError] = useState(null);
 
   const analyzeProject = async () => {
     setLoadingFields(true);
@@ -25,7 +30,8 @@ export default function ProjectAssignmentModal({ classId, className, onClose }) 
       setFields(res.data.fields || []);
       setStep('fields');
     } catch (e) {
-      alert('Could not analyze project. Please try again.');
+      const g = gateFromError(e);
+      if (g) setGate(g); else setError('Could not analyze project. Please try again.');
     }
     setLoadingFields(false);
   };
@@ -43,7 +49,8 @@ export default function ProjectAssignmentModal({ classId, className, onClose }) 
       setRoadmap(res.data.roadmap || []);
       setStep('roadmap');
     } catch (e) {
-      alert('Could not generate roadmap. Please try again.');
+      const g = gateFromError(e);
+      if (g) setGate(g); else setError('Could not generate roadmap. Please try again.');
     }
     setLoadingRoadmap(false);
   };
@@ -95,7 +102,8 @@ export default function ProjectAssignmentModal({ classId, className, onClose }) 
       setStep('done');
       setTimeout(() => onClose(), 2000);
     } catch (e) {
-      alert('Could not create project. Please try again.');
+      const g = gateFromError(e);
+      if (g) setGate(g); else setError('Could not create project. Please try again.');
     }
     setCreating(false);
   };
@@ -111,6 +119,13 @@ export default function ProjectAssignmentModal({ classId, className, onClose }) 
         </div>
 
         {/* Step 1: Basic form */}
+        {gate && <GateNotice gate={gate} source="project-roadmap" className="mb-4" />}
+        {error && (
+          <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 mb-4">
+            <p className="text-xs text-destructive">{error}</p>
+          </div>
+        )}
+
         {step === 'form' && (
           <div className="space-y-3">
             <div>

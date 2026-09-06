@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, Link, useSearchParams } from 'react-router-dom';
 import CoverageChecklist from '@/components/CoverageChecklist';
+import GateNotice, { gateFromError } from '@/components/monetization/GateNotice';
 import { base44 } from '@/api/base44Client';
 import { onDataChange } from '@/lib/dataChanged';
 import { ChevronLeft, Plus, GraduationCap, Clock, MapPin, Mic, Loader2, Calendar, AlertCircle, Brain, Headphones, Pencil, AlertTriangle, Search, X, BookOpen, FolderPlus, Shield, Mail, Check, Archive, RotateCcw, CheckCircle2 } from 'lucide-react';
@@ -722,6 +723,8 @@ function StudyTab({ classId, cls, lectures, onUpdate }) {
 function MissedLectureConfirmModal({ classId, onClose, onGenerated }) {
   const [notes, setNotes] = useState('');
   const [generating, setGenerating] = useState(false);
+  const [gate, setGate] = useState(null);
+  const [error, setError] = useState(null);
 
   const confirmGenerate = async () => {
     setGenerating(true);
@@ -733,7 +736,9 @@ function MissedLectureConfirmModal({ classId, onClose, onGenerated }) {
       });
       onGenerated();
     } catch (e) {
-      alert('Failed to generate missed lecture summary. Please try again.');
+      // An alert cannot hold an upgrade button, which is why this is inline now.
+      const g = gateFromError(e);
+      if (g) setGate(g); else setError('Failed to generate missed lecture summary. Please try again.');
       setGenerating(false);
     }
   };
@@ -764,6 +769,13 @@ function MissedLectureConfirmModal({ classId, onClose, onGenerated }) {
           rows={3}
         />
         <p className="text-[11px] text-muted-foreground -mt-3 mb-4">Anything you add here guides the AI's estimate alongside your course's previous lectures.</p>
+
+        {gate && <GateNotice gate={gate} source="missed-summary" className="mb-4" />}
+        {error && (
+          <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 mb-4">
+            <p className="text-xs text-destructive">{error}</p>
+          </div>
+        )}
 
         <div className="flex gap-2">
           <button onClick={onClose} disabled={generating}
