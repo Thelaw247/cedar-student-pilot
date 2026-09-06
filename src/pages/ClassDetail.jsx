@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, Link, useSearchParams } from 'react-router-dom';
 import CoverageChecklist from '@/components/CoverageChecklist';
 import { base44 } from '@/api/base44Client';
+import { onDataChange } from '@/lib/dataChanged';
 import { ChevronLeft, Plus, GraduationCap, Clock, MapPin, Mic, Loader2, Calendar, AlertCircle, Brain, Headphones, Pencil, AlertTriangle, Search, X, BookOpen, FolderPlus, Shield, Mail, Check, Archive, RotateCcw, CheckCircle2 } from 'lucide-react';
 import EditClassModal from '@/components/EditClassModal';
 import ProjectAssignmentModal from '@/components/ProjectAssignmentModal';
@@ -38,8 +39,12 @@ export default function ClassDetail() {
   // is showing (also from the "What Matters Today" priority card).
   const highlightAssignmentId = searchParams.get('assignmentId') || null;
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
+  // A refetch triggered by something else must never blank the page the
+  // student is reading. `loading` renders a full-page spinner, so it belongs
+  // to the first load only — the same rule the status poll below already
+  // follows, applied to the path that skipped it.
+  const loadData = useCallback(async ({ quiet = false } = {}) => {
+    if (!quiet) setLoading(true);
     try {
       const c = await base44.entities.Class.get(classId);
       setCls(c);
@@ -57,13 +62,12 @@ export default function ClassDetail() {
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  // The recording island processes lectures globally now — when it finishes
-  // (fires 'cedar-data-changed'), refresh this page's lecture list too.
-  useEffect(() => {
-    const handler = () => loadData();
-    window.addEventListener('cedar-data-changed', handler);
-    return () => window.removeEventListener('cedar-data-changed', handler);
-  }, [loadData]);
+  // The recording island processes lectures globally now — when it finishes,
+  // refresh this page's lists too. Only for the rows this page reads.
+  useEffect(
+    () => onDataChange(() => loadData({ quiet: true }), ['Lecture', 'Class', 'Assignment', 'KnowledgeCoverage']),
+    [loadData],
+  );
 
   const changeTab = (t) => {
     setTab(t);

@@ -3,15 +3,19 @@ import { base44 } from '@/api/base44Client';
 import { fetchWithCache } from '@/hooks/useEntityData';
 import { invalidateEntity } from '@/lib/cache';
 import { enqueueOperation } from '@/lib/syncQueue';
+import { announceDataChange, onDataChange } from '@/lib/dataChanged';
 
 /**
  * The to-do list, shared by the To-Do tab and the per-lecture checklist.
  *
  * Reads go through the entity cache like every other list in the app;
  * writes are optimistic (the checkbox flips immediately) and queue for
- * sync when offline, the same contract notes use. Every change fires
- * `cedar-data-changed` so the other surface showing the same items — the
- * lecture page, the tab, the rail — refreshes without a reload.
+ * sync when offline, the same contract notes use. Every change announces
+ * itself as a Todo change, so the other surface showing the same items — the
+ * tab, the rail — refreshes, and a page that does not read to-dos is left
+ * alone. It used to announce nothing in particular, and every listener
+ * answered by refetching everything it owns: ticking a box on a lecture page
+ * made that page reload itself, spinner and all.
  *
  * `filter` narrows the query: `{ lecture_id }` for one lecture's items,
  * nothing for the whole list.
@@ -35,13 +39,12 @@ export function useTodos(filter = undefined) {
 
   useEffect(() => {
     load();
-    window.addEventListener('cedar-data-changed', load);
-    return () => window.removeEventListener('cedar-data-changed', load);
+    return onDataChange(load, ['Todo']);
   }, [load]);
 
   const announce = () => {
     invalidateEntity('Todo');
-    window.dispatchEvent(new Event('cedar-data-changed'));
+    announceDataChange(['Todo']);
   };
 
   const write = async (operation, args, optimistic) => {

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { base44 } from '@/api/base44Client';
+import { onDataChange } from '@/lib/dataChanged';
 
 /**
  * Shared credit-balance store.
@@ -49,11 +50,11 @@ export function useBalance() {
     listeners.add(listener);
     if (cached) setLoading(false);
     else fetchBalance().catch(() => setLoading(false));
-    window.addEventListener('cedar-data-changed', refresh);
+    const offData = onDataChange(refresh, ['Credits']);
     window.addEventListener('focus', refresh);
     return () => {
       listeners.delete(listener);
-      window.removeEventListener('cedar-data-changed', refresh);
+      offData();
       window.removeEventListener('focus', refresh);
     };
   }, [refresh]);

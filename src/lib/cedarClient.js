@@ -1,5 +1,6 @@
 import { supabase } from './supabaseClient.js';
 import { functionPath } from './functionPath.js';
+import { announceDataChange } from './dataChanged.js';
 
 // Compatibility layer replacing @base44/sdk. Not a 1:1 reimplementation of
 // Base44's client — a deliberately similar-enough shape (entities.X.filter/
@@ -148,7 +149,9 @@ function announceCreditsSpent(response) {
   try {
     const spent = Number(response.headers.get(CREDITS_SPENT_HEADER));
     if (Number.isFinite(spent) && spent > 0) {
-      window.dispatchEvent(new CustomEvent('cedar-data-changed'));
+      // Only the balance moved. Announcing this broadly made every open page
+      // refetch itself each time a student generated anything.
+      announceDataChange(['Credits']);
     }
   } catch {
     // Header parsing must never break the request it rode in on.

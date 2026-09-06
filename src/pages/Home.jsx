@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
+import { onDataChange } from '@/lib/dataChanged';
 import { fetchWithCache } from '@/hooks/useEntityData';
 import UserMenuButton from '@/components/UserMenuButton';
 import CreditMeter from '@/components/monetization/CreditMeter';
@@ -51,8 +52,10 @@ export default function Home() {
     onNewEvent: () => setShowAddEvent(true),
   });
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
+  // A background refetch must not blank the screen someone is reading. The
+  // spinner belongs to the first load.
+  const loadData = useCallback(async ({ quiet = false } = {}) => {
+    if (!quiet) setLoading(true);
     try {
       const semesters = await fetchWithCache('Semester', 'filter', [{ is_active: true }]);
       if (semesters.length > 0) setActiveSemester(semesters[0]);
@@ -100,11 +103,11 @@ export default function Home() {
     } catch (e) { console.error(e); }
   }, [showUndo, loadData]);
 
-  useEffect(() => {
-    const handler = () => loadData();
-    window.addEventListener('cedar-data-changed', handler);
-    return () => window.removeEventListener('cedar-data-changed', handler);
-  }, [loadData]);
+  useEffect(
+    () => onDataChange(() => loadData({ quiet: true }),
+      ['Semester', 'Class', 'CalendarEvent', 'Assignment', 'StudySession', 'ClassAttendance', 'Lecture']),
+    [loadData],
+  );
 
   useEffect(() => {
     // 30s tick: the clock shows h:mm and every calculation here runs on

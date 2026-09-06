@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { onDataChange } from '@/lib/dataChanged';
 import { Link } from 'react-router-dom';
 import { useTodaySchedule } from '@/hooks/useTodaySchedule';
 import { fetchWithCache } from '@/hooks/useEntityData';
@@ -61,9 +62,11 @@ export default function DesktopRail() {
     };
     load();
     // Stay current: a finished recording or an edited deadline shows up here
-    // without a reload (same app-wide signal every page listens to).
-    window.addEventListener('cedar-data-changed', load);
-    return () => { cancelled = true; window.removeEventListener('cedar-data-changed', load); };
+    // without a reload. Only for the rows the rail actually shows — it used to
+    // rebuild itself every time anything anywhere changed, a ticked to-do
+    // included.
+    const off = onDataChange(load, ['Assignment', 'Lecture', 'Semester', 'Class']);
+    return () => { cancelled = true; off(); };
   }, []);
 
   const classById = new Map(classes.map((c) => [c.id, c]));

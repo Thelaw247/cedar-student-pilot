@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
+import { onDataChange } from '@/lib/dataChanged';
 import { fetchWithCache } from '@/hooks/useEntityData';
 import { cacheGet, cacheSet, invalidateEntity } from '@/lib/cache';
 import { enqueueOperation } from '@/lib/syncQueue';
@@ -73,8 +74,12 @@ export default function LectureDetail() {
   const jumpTo = useCallback((anchor) => setJump({ ...anchor, nonce: Date.now() }), []);
   const [materialsCount, setMaterialsCount] = useState(0);
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
+  // A refetch triggered by something else must never blank the page the
+  // student is reading. `loading` renders a full-page spinner, so it belongs
+  // to the first load only — the same rule the status poll below already
+  // follows, applied to the path that skipped it.
+  const loadData = useCallback(async ({ quiet = false } = {}) => {
+    if (!quiet) setLoading(true);
     try {
       // Try cache first for instant load, then fetch fresh
       const cachedLec = cacheGet('Lecture', 'get', [lectureId]);
@@ -125,12 +130,11 @@ export default function LectureDetail() {
     return () => { cancelled = true; };
   }, [lecture?.recording_url]);
 
-  // Refetch when sync completes after reconnection
-  useEffect(() => {
-    const handler = () => loadData();
-    window.addEventListener('cedar-data-changed', handler);
-    return () => window.removeEventListener('cedar-data-changed', handler);
-  }, [loadData]);
+  // Refetch when something this page actually reads has changed — a sync
+  // after reconnection, a finished recording. Not when a to-do was ticked in
+  // the checklist at the bottom: that list owns its own state and has already
+  // updated itself.
+  useEffect(() => onDataChange(() => loadData({ quiet: true }), ['Lecture', 'Class', 'Note']), [loadData]);
 
   // Lecture processing is asynchronous — the server answers 202 and works in
   // the background. While this page shows "AI Processing...", poll quietly
