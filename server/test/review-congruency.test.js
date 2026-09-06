@@ -8,52 +8,46 @@ import fs from 'node:fs';
  * focus session opened the handbook. Both are real ways to review — the
  * mistake was deciding for the student.
  *
- * The choice now lives on /lecture-review itself, which is where every review
- * entry point already pointed, so no link had to change and no second chooser
- * had to be built. The answer rides in the URL, so it is bookmarkable and a
- * deep link that already knows the answer skips the question.
+ * The first fix put the choice on /lecture-review itself, so every entry point
+ * landed on the same question. That was congruent and it was still a wall:
+ * five of the app's fourteen study doors opened onto something to answer
+ * rather than something to read.
+ *
+ * So the question stopped being a screen and became two tiles on the study
+ * shelf, each linking to the thing it names. The route keeps honouring
+ * ?mode= — that is what the tiles use — and a link that says nothing gets the
+ * quiz, which is what "review" meant on every entry point that never asked.
  */
 
 const read = (p) => fs.readFileSync(new URL(p, import.meta.url), 'utf8');
 const REVIEW = read('../../src/pages/LectureReview.jsx');
-const CHOOSER = read('../../src/components/ReviewModeChooser.jsx');
-const FROM_LECTURES = read('../../src/components/ReviewFromLectures.jsx');
+const SHELF = read('../../src/components/StudyShelf.jsx');
 const DETAIL = read('../../src/pages/LectureDetail.jsx');
 
-test('every review entry point still goes to the one route that asks', () => {
-  // The fix is at the destination, not at each button, so these are unchanged
-  // — and must stay unchanged, or an entry point silently skips the question.
-  assert.match(FROM_LECTURES, /to="\/lecture-review\/today"/);
-  assert.match(FROM_LECTURES, /to="\/lecture-review\/week"/);
-  assert.match(FROM_LECTURES, /navigate\(`\/lecture-review\?ids=/);
+test('the review entry points land on material, not on a question', () => {
+  // The shelf says which kind it means. The lecture page does not yet — it is
+  // repointed in phase 4 — so the default has to be the one it always ran.
+  assert.match(SHELF, /navigate\(`\/lecture-review\?ids=\$\{lectureIds\.join\(','\)\}&mode=quiz`\)/);
+  assert.match(SHELF, /navigate\('\/lecture-review\/today\?mode=quiz'\)/);
+  assert.match(SHELF, /navigate\('\/lecture-review\/week\?mode=quiz'\)/);
   assert.match(DETAIL, /to=\{`\/lecture-review\?ids=\$\{lectureId\}`\}/);
+  assert.match(REVIEW, /const mode = searchParams\.get\('mode'\) \|\| 'quiz'/,
+    'a link with no mode must land on something rather than on a fork');
 });
 
-test('the question is asked before anything is generated or charged', () => {
-  // Generating the quiz is a billed LLM call. Asking after would either bill
-  // for work the student did not choose or throw it away.
+test('nothing is generated or charged for a mode that is not in play', () => {
+  // Generating the quiz is a billed LLM call, and the handbook branch below
+  // builds its own material. Running both would bill for work nobody asked for.
   assert.match(REVIEW, /if \(mode !== 'quiz'\) \{ setLoading\(false\); return; \}/);
   const guardAt = REVIEW.indexOf("if (mode !== 'quiz')");
   const invokeAt = REVIEW.indexOf("invoke('generateLectureReview'");
   assert.ok(guardAt > -1 && invokeAt > guardAt, 'the gate must come before the call');
-  assert.match(REVIEW, /if \(!mode\) \{/);
-  assert.match(REVIEW, /<ReviewModeChooser/);
 });
 
-test('the answer is in the URL, so it survives a reload and can be linked', () => {
+test('the mode is in the URL, so it survives a reload and can be linked', () => {
   assert.match(REVIEW, /searchParams\.get\('mode'\)/);
-  assert.match(REVIEW, /if \(next\) sp\.set\('mode', next\); else sp\.delete\('mode'\);/);
-  assert.match(REVIEW, /setSearchParams\(sp, \{ replace: true \}\)/);
-  // Re-running the effect on mode is what makes the quiz start on choosing it.
+  // Re-running the effect on mode is what makes a mode change start the quiz.
   assert.match(REVIEW, /\}, \[mode, scope, lectureId, searchParams\.get\('ids'\)\]\);/);
-});
-
-test('both options are offered, in the same words, from one component', () => {
-  assert.match(CHOOSER, /How do you want to review\?/);
-  assert.match(CHOOSER, /Quiz me/);
-  assert.match(CHOOSER, /Read the handbook/);
-  assert.match(CHOOSER, /onSelect\('quiz'\)/);
-  assert.match(CHOOSER, /onSelect\('handbook'\)/);
 });
 
 test('the handbook branch reuses the reader rather than a second one', () => {
@@ -63,27 +57,36 @@ test('the handbook branch reuses the reader rather than a second one', () => {
   assert.match(REVIEW, /Which class\?/);
   assert.match(REVIEW, /if \(resolved\.length === 1\) setHbPick\(resolved\[0\]\)/,
     'a single class must open straight into the handbook, not ask a pointless question');
+  // The shelf never reaches that question: it already knows the class, so it
+  // opens the reader itself rather than routing through the resolver.
+  assert.match(SHELF, /<HandbookReader classId=\{classId\} lectureIds=\{scopedIds\}/);
 });
 
-test('both branches agree on what "this week" means', () => {
-  // The server window is date >= today - 7 days. The client resolves the
-  // handbook scope itself, so a different arithmetic here would hand the two
-  // paths different lectures for the same button.
-  assert.match(REVIEW, /function localDay\(/);
+test('everything that says "this week" means the same seven days', () => {
+  // The server window is `date between (today - 7 days) and today`. Three
+  // places decide something about that window — the quiz payload, the client
+  // side handbook scope, and the shelf that greys the tile out — so they share
+  // one helper instead of three copies of the same arithmetic.
+  assert.match(REVIEW, /import \{ localDay \} from '@\/lib\/localDay'/);
+  assert.doesNotMatch(REVIEW, /function localDay\(/, 'a private copy has grown back');
   assert.match(REVIEW, /scope === 'week' \? localDay\(new Date\(Date\.now\(\) - 7 \* 86400000\)\) : today/);
+  assert.match(REVIEW, /payload = \{ scope, local_date: localDay\(\) \};/);
+  assert.match(SHELF, /const weekFrom = daysAgo\(7\)/);
   const SERVER = read('../routes/generateLectureReview.js');
   assert.match(SERVER, /interval '7 days'/);
-  // And the quiz payload uses the same helper rather than its own copy.
-  assert.match(REVIEW, /payload = \{ scope, local_date: localDay\(\) \};/);
 });
 
-test('the dead second chooser is gone', () => {
-  // StudyModeSelector asked a near-identical question and nothing rendered it.
-  // Leaving it in the tree is how the next person adds a third chooser.
+test('no chooser screen survives anywhere in the tree', () => {
+  // StudyModeSelector asked a near-identical question and nothing rendered it;
+  // ReviewModeChooser asked it for real. Leaving either in the tree is how the
+  // next person adds a third.
   assert.throws(() => read('../../src/components/StudyModeSelector.jsx'), /ENOENT/);
+  assert.throws(() => read('../../src/components/ReviewModeChooser.jsx'), /ENOENT/);
   const files = fs.readdirSync(new URL('../../src', import.meta.url), { recursive: true });
   for (const f of files) {
     if (!String(f).endsWith('.jsx')) continue;
-    assert.doesNotMatch(read(`../../src/${f}`), /StudyModeSelector/, `${f} still imports it`);
+    const src = read(`../../src/${f}`);
+    assert.doesNotMatch(src, /StudyModeSelector/, `${f} still imports it`);
+    assert.doesNotMatch(src, /ReviewModeChooser/, `${f} still imports it`);
   }
 });

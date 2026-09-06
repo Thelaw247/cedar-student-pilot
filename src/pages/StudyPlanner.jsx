@@ -6,7 +6,6 @@ import AddExamOrStudyModal from '@/components/AddExamOrStudyModal';
 import RebookSessionModal from '@/components/RebookSessionModal';
 import AssignmentEditModal from '@/components/AssignmentEditModal';
 import PracticePanel from '@/components/PracticePanel';
-import ReviewFromLectures from '@/components/ReviewFromLectures';
 import DeleteXButton from '@/components/DeleteXButton';
 import CoverageChecklist from '@/components/CoverageChecklist';
 import { sessionTitle, sessionDescription } from '@/lib/sessionTitle';
@@ -28,10 +27,9 @@ export default function StudyPlanner() {
   // so switching tabs keeps it, refreshing keeps it, and a lecture page can
   // hand it over by linking. See src/lib/studyScope.js.
   //
-  // The tab values are the final ones ('now' / 'schedule'); the LABELS below
-  // are still the old ones, because the review tools do not move onto the
-  // Study-now tab until the next phase and calling it that before they arrive
-  // would be a lie.
+  // The tab values are the final ones ('now' / 'schedule'). The labels are
+  // renamed in the last phase, once the timer has moved too — until then
+  // "Practice" is still the honest word for a tab with no clock on it.
   const [scope, setScope] = useStudyScope();
   const tab = scope.tab;
   const setTab = (next) => setScope({ tab: next });
@@ -166,7 +164,7 @@ export default function StudyPlanner() {
       <div className="flex items-center justify-between mb-4">
         <div>
           <h1 className="font-heading text-2xl sm:text-3xl font-bold">Study</h1>
-          <p className="text-muted-foreground text-sm mt-0.5">Everything for studying — plan, review, and practice</p>
+          <p className="text-muted-foreground text-sm mt-0.5">Practice to study now; Plan for what is due and when</p>
         </div>
         {tab === 'schedule' && (
           <button onClick={() => setShowAdd(true)}
@@ -196,18 +194,13 @@ export default function StudyPlanner() {
           initialClassId={deepClassId}
           initialLectureIds={deepLectureIds.length ? deepLectureIds : null}
           onScopeChange={setScope}
+          allLectures={lectures}
         />
       ) : (
         <div>
-          {/* Review from lectures */}
-          <div className="mb-8">
-            <h2 className="font-heading text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Review from Lectures</h2>
-            <ReviewFromLectures
-              initialClassId={deepClassId}
-              initialLectureIds={deepLectureIds.length ? deepLectureIds : null}
-              onScopeChange={setScope}
-            />
-          </div>
+          {/* The review tools used to sit here, above the deadlines, with a
+              class picker and a lecture picker of their own. They are on the
+              Practice tab now, under the one selection — this tab is dates. */}
 
           {/* Upcoming deadlines */}
           {deadlineAssignments.length > 0 && (

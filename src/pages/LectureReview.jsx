@@ -5,35 +5,32 @@ import { ChevronLeft, Loader2, Check, ListChecks, ArrowRight, RotateCcw, Lock, B
 import { useUpgrade } from '@/components/monetization/UpgradeContext';
 import { featureMinTierName } from '@/lib/tiers';
 import QuizReview, { ChoiceOptions, scoreQuiz } from '@/components/quiz/QuizReview';
-import ReviewModeChooser from '@/components/ReviewModeChooser';
 import HandbookReader from '@/components/HandbookReader';
-
 // The student's local calendar day. Lectures carry the local date they were
 // recorded on, so a UTC day would drop an evening lecture the moment UTC
-// rolls past midnight. Shared by the quiz payload and the handbook scope so
-// the two can never disagree about what "this week" means.
-function localDay(d = new Date()) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
+// rolls past midnight. Shared with the shelf that decides whether today's
+// review is worth offering, so the two cannot disagree about what today is.
+import { localDay } from '@/lib/localDay';
 
 export default function LectureReview() {
   const { openUpgrade } = useUpgrade();
   const params = useParams();
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const scope = params.scope || 'today';
   const lectureId = params.lectureId;
   // An arbitrary set of lectures can be passed as ?ids=a,b,c (from the scope
   // picker). Takes precedence over scope/single-lecture.
   const idsParam = (searchParams.get('ids') || '').split(',').map(s => s.trim()).filter(Boolean);
-  // Quiz or handbook. Absent means the student has not been asked yet; the
-  // answer lives in the URL so it survives a reload and can be deep-linked.
-  const mode = searchParams.get('mode');
-  const chooseMode = (next) => {
-    const sp = new URLSearchParams(searchParams);
-    if (next) sp.set('mode', next); else sp.delete('mode');
-    setSearchParams(sp, { replace: true });
-  };
+  // Quiz or handbook — and quiz unless something says otherwise.
+  //
+  // This used to be a question. Arriving here with no ?mode showed a screen
+  // asking "how do you want to review?", so "Review this week" and the Review
+  // button on a lecture both landed on a fork rather than on anything to read.
+  // Both are now tiles on the study shelf, which links straight to the one it
+  // means; a link that says nothing gets the quiz, which is what "review" has
+  // always meant on the entry points that never asked.
+  const mode = searchParams.get('mode') || 'quiz';
 
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
@@ -46,8 +43,8 @@ export default function LectureReview() {
   const finishReview = () => setShowResult(true);
 
   useEffect(() => {
-    // Nothing is generated — and nothing is charged — until the student has
-    // said which kind of review they want.
+    // The handbook branch below builds its own material; nothing is generated
+    // — and nothing is charged — for a quiz that is not the mode in play.
     if (mode !== 'quiz') { setLoading(false); return; }
     const run = async () => {
       setLoading(true);
@@ -122,19 +119,12 @@ export default function LectureReview() {
     if (mode === 'handbook' && hbClasses === null && !hbError) resolveHandbookScope();
   }, [mode, hbClasses, hbError, resolveHandbookScope]);
 
-  if (!mode) {
-    const windowLabel = idsParam.length > 0 || lectureId
-      ? `${idsParam.length > 1 ? `${idsParam.length} lectures` : 'This lecture'}`
-      : scope === 'week' ? 'Your lectures from the past 7 days' : "Today's lectures";
-    return <ReviewModeChooser subtitle={windowLabel} onSelect={chooseMode} />;
-  }
-
   if (mode === 'handbook') {
     if (hbError) {
       return (
         <div className="max-w-2xl mx-auto px-4 py-10 text-center">
           <p className="text-sm text-destructive">{hbError}</p>
-          <Link to="/planner" className="text-sm text-primary font-medium mt-2 inline-block hover:underline">Back to Study</Link>
+          <Link to="/study" className="text-sm text-primary font-medium mt-2 inline-block hover:underline">Back to Study</Link>
         </div>
       );
     }
@@ -143,7 +133,7 @@ export default function LectureReview() {
         <HandbookReader
           classId={hbPick.classId}
           lectureIds={hbPick.lectureIds}
-          onClose={() => navigate('/planner')}
+          onClose={() => navigate('/study?tab=now')}
         />
       );
     }
@@ -160,16 +150,18 @@ export default function LectureReview() {
         <div className="max-w-2xl mx-auto px-4 py-10 text-center">
           <BookOpen className="w-10 h-10 text-muted-foreground mx-auto mb-3" strokeWidth={1.5} />
           <p className="text-sm text-muted-foreground">No processed lectures in this window yet.</p>
-          <Link to="/planner" className="text-sm text-primary font-medium mt-2 inline-block hover:underline">Back to Study</Link>
+          <Link to="/study" className="text-sm text-primary font-medium mt-2 inline-block hover:underline">Back to Study</Link>
         </div>
       );
     }
     // More than one class in scope: a handbook belongs to a class, so ask.
     return (
       <div className="max-w-md mx-auto px-4 py-10 animate-fade-in">
-        <button type="button" onClick={() => { setHbClasses(null); setHbPick(null); chooseMode(''); }} className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6">
+        {/* Back used to clear ?mode and land on the "quiz or handbook?" fork.
+            With the fork gone there is nowhere behind this but the shelf. */}
+        <Link to="/study?tab=now" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6">
           <ChevronLeft className="w-4 h-4" /> Back
-        </button>
+        </Link>
         <h1 className="font-heading text-xl font-bold text-foreground mb-1">Which class?</h1>
         <p className="text-sm text-muted-foreground mb-6">A handbook covers one class at a time. These have lectures in this window.</p>
         <div className="space-y-2">
@@ -217,7 +209,7 @@ export default function LectureReview() {
           className="w-full py-3 rounded-button bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors duration-micro">
           See plans
         </button>
-        <Link to="/planner" className="text-sm text-muted-foreground hover:text-foreground mt-3 inline-block">Back to Study</Link>
+        <Link to="/study" className="text-sm text-muted-foreground hover:text-foreground mt-3 inline-block">Back to Study</Link>
       </div>
     );
   }
@@ -226,7 +218,7 @@ export default function LectureReview() {
     return (
       <div className="max-w-2xl mx-auto px-4 py-10 text-center">
         <p className="text-sm text-destructive">{data.error}</p>
-        <Link to="/planner" className="text-sm text-primary font-medium mt-2 inline-block hover:underline">Back to Study</Link>
+        <Link to="/study" className="text-sm text-primary font-medium mt-2 inline-block hover:underline">Back to Study</Link>
       </div>
     );
   }
@@ -236,7 +228,7 @@ export default function LectureReview() {
       <div className="max-w-2xl mx-auto px-4 py-10 text-center">
         <ListChecks className="w-10 h-10 text-muted-foreground mx-auto mb-3" strokeWidth={1.5} />
         <p className="text-sm text-muted-foreground">{data?.message || 'No lecture content available for review yet.'}</p>
-        <Link to="/planner" className="text-sm text-primary font-medium mt-2 inline-block hover:underline">Back to Study</Link>
+        <Link to="/study" className="text-sm text-primary font-medium mt-2 inline-block hover:underline">Back to Study</Link>
       </div>
     );
   }
@@ -286,7 +278,7 @@ export default function LectureReview() {
             className="flex-1 py-3 rounded-xl border border-border text-sm font-medium text-muted-foreground hover:bg-muted flex items-center justify-center gap-2">
             <RotateCcw className="w-4 h-4" /> Retry
           </button>
-          <Link to="/planner" className="flex-1 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 flex items-center justify-center gap-2">
+          <Link to="/study" className="flex-1 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 flex items-center justify-center gap-2">
             Done
           </Link>
         </div>
@@ -297,7 +289,7 @@ export default function LectureReview() {
   // Question screen
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 lg:py-10 animate-fade-in">
-      <Link to="/planner" className="text-sm text-muted-foreground hover:text-foreground mb-4 inline-flex items-center gap-1">
+      <Link to="/study" className="text-sm text-muted-foreground hover:text-foreground mb-4 inline-flex items-center gap-1">
         <ChevronLeft className="w-4 h-4" /> Back
       </Link>
 

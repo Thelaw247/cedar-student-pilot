@@ -3,7 +3,11 @@ import { base44 } from '@/api/base44Client';
 import { Loader2, X, BookOpen, List, Clipboard } from 'lucide-react';
 import GateNotice, { gateFromError } from '@/components/monetization/GateNotice';
 
-export default function ManualStudyGuide({ classId, studyMode, lectureIds, assignmentId, onClose, onLoad, onLecturesOpened = null }) {
+// Everything but the class and the close handler is optional: the study shelf
+// opens this with a scope and nothing else, while a focus session also has a
+// mode, an exam and a chapter count to report back. The defaults are what the
+// body already treated a missing prop as.
+export default function ManualStudyGuide({ classId, studyMode = null, lectureIds = null, assignmentId = null, onClose, onLoad = null, onLecturesOpened = null }) {
   const [guide, setGuide] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);

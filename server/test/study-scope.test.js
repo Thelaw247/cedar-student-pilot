@@ -20,7 +20,6 @@ const read = (rel) => fs.readFileSync(new URL(rel, import.meta.url), 'utf8');
 const APP = read('../../src/App.jsx');
 const PLANNER = read('../../src/pages/StudyPlanner.jsx');
 const PANEL = read('../../src/components/PracticePanel.jsx');
-const REVIEW = read('../../src/components/ReviewFromLectures.jsx');
 const p = (qs) => new URLSearchParams(qs);
 
 test('a scope reads back exactly as it was written', () => {
@@ -68,18 +67,18 @@ test('the page holds the scope in the URL, not in its own state', () => {
   assert.doesNotMatch(PLANNER, /useSearchParams/, 'the page reads the query string behind the hook');
 });
 
-test('both pickers report to the same place', () => {
-  // This is the whole point of the phase: two tabs, one selection.
-  for (const [name, src] of [['PracticePanel', PANEL], ['ReviewFromLectures', REVIEW]]) {
-    assert.match(src, /onScopeChange/, `${name} keeps its selection to itself`);
-    assert.match(src, /onScopeChange\(\{ classId: id, lectureIds: \[\] \}\)/,
-      `${name} does not report a class change`);
-    assert.match(src, /onScopeChange\(\{ lectureIds: ids \|\| \[\] \}\)/,
-      `${name} does not report a lecture change`);
-  }
-  assert.match(PLANNER, /onScopeChange=\{setScope\}/);
-  assert.equal((PLANNER.match(/onScopeChange=\{setScope\}/g) || []).length, 2,
-    'one of the two tabs is not wired');
+test('the one picker reports to the URL', () => {
+  // Phase 1 wired two pickers to one scope; phase 2 deleted the second picker
+  // outright (ReviewFromLectures went with it), so there is one left and it
+  // still has to report. The count is 1 rather than 2 for that reason — if a
+  // second picker ever comes back, it belongs on this list.
+  assert.match(PANEL, /onScopeChange/, 'PracticePanel keeps its selection to itself');
+  assert.match(PANEL, /onScopeChange\(\{ classId: id, lectureIds: \[\] \}\)/,
+    'PracticePanel does not report a class change');
+  assert.match(PANEL, /onScopeChange\(\{ lectureIds: ids \|\| \[\] \}\)/,
+    'PracticePanel does not report a lecture change');
+  assert.equal((PLANNER.match(/onScopeChange=\{setScope\}/g) || []).length, 1,
+    'the practice tab is not wired to the scope');
 });
 
 test('changing the scope does not fill up the back button', () => {

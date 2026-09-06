@@ -2,22 +2,30 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
 import FlashcardViewer from '@/components/FlashcardViewer';
 import QuizViewer from '@/components/QuizViewer';
-import LectureScopePicker, { resolveScopeIds } from '@/components/LectureScopePicker';
+import LectureScopePicker, { resolveScopeIds, explicitScopeIds } from '@/components/LectureScopePicker';
 import StudyToolbox from '@/components/StudyToolbox';
+import StudyShelf from '@/components/StudyShelf';
 
 /**
- * PracticePanel — flashcard / quiz / practice-test generation for a class,
- * plus the class's saved sets. Extracted from the old StudyTools page so it
- * can live inside the Study tab and anywhere else. Self-contained: loads its
- * own classes/lectures/materials.
+ * PracticePanel — the study shelf: pick a class and which of its lectures
+ * once, then every tool in the app works on that selection.
+ *
+ * It started as flashcard/quiz generation only, which is why the review tools
+ * lived on the other tab with a second class picker and a second lecture
+ * picker of their own. Those are gone; StudyShelf holds them now, above the
+ * generation tools, under this one selection.
  *
  * Props:
  *   initialClassId, initialLectureIds — the scope to open with
  *   onScopeChange — report a change back, so the URL holds the selection and
  *     the other tab opens on the same class instead of asking again. Optional:
  *     the panel still works standalone.
+ *   allLectures — every lecture the page already loaded, passed through to the
+ *     shelf so "today's lectures" can grey itself out when there are none.
+ *     Optional, and deliberately not fetched here: an unknown window leaves
+ *     the tile live, which is exactly how it behaved before.
  */
-export default function PracticePanel({ initialClassId = '', initialLectureIds = null, onScopeChange = null }) {
+export default function PracticePanel({ initialClassId = '', initialLectureIds = null, onScopeChange = null, allLectures = null }) {
   const [classes, setClasses] = useState([]);
   const [selectedClass, setSelectedClass] = useState(initialClassId || '');
   const [lectures, setLectures] = useState([]);
@@ -69,6 +77,13 @@ export default function PracticePanel({ initialClassId = '', initialLectureIds =
   // stale. null means "not a usable selection yet" and the toolbox says so.
   const scopeForGeneration = () => resolveScopeIds(scopeIds, lectures);
 
+  // The same selection, written out. The review runner is handed lecture ids
+  // in a URL and has no "whole class" shorthand to expand — an empty ?ids=
+  // there falls through to "today", which is a different set of lectures
+  // entirely. `wholeClass` keeps the distinction the handbook cache needs.
+  const reviewLectureIds = explicitScopeIds(scopeIds, lectures);
+  const wholeClass = resolveScopeIds(scopeIds, lectures)?.length === 0;
+
   const refreshSaved = async () => {
     if (!selectedClass) return;
     setExistingFlashcards(await base44.entities.Flashcard.filter({ class_id: selectedClass }));
@@ -109,10 +124,22 @@ export default function PracticePanel({ initialClassId = '', initialLectureIds =
         </div>
       )}
 
+      {/* Start something now — quiz, handbook, paper guide. */}
+      <StudyShelf
+        classId={selectedClass}
+        lectureIds={reviewLectureIds}
+        wholeClass={wholeClass}
+        lectureCount={lectures.length}
+        hasClasses={classes.length > 0}
+        allLectures={allLectures}
+      />
+
+      {/* Build something that stays — saved to the class, below. */}
+      <h2 className="font-heading text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-3">Make study material</h2>
       <StudyToolbox
         classId={selectedClass}
         resolveLectureIds={scopeForGeneration}
-        sourceCount={lectures.length}
+        sourceCount={reviewLectureIds.length}
         scopeKey={selectedClass}
         onGenerated={refreshSaved}
       />
