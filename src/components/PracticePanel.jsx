@@ -12,9 +12,12 @@ import StudyToolbox from '@/components/StudyToolbox';
  * own classes/lectures/materials.
  *
  * Props:
- *   initialClassId — preselect a class (optional)
+ *   initialClassId, initialLectureIds — the scope to open with
+ *   onScopeChange — report a change back, so the URL holds the selection and
+ *     the other tab opens on the same class instead of asking again. Optional:
+ *     the panel still works standalone.
  */
-export default function PracticePanel({ initialClassId = '', initialLectureIds = null }) {
+export default function PracticePanel({ initialClassId = '', initialLectureIds = null, onScopeChange = null }) {
   const [classes, setClasses] = useState([]);
   const [selectedClass, setSelectedClass] = useState(initialClassId || '');
   const [lectures, setLectures] = useState([]);
@@ -50,6 +53,7 @@ export default function PracticePanel({ initialClassId = '', initialLectureIds =
   const loadClassData = async (id) => {
     setSelectedClass(id);
     setScopeIds([]); // reset scope to whole class when switching class
+    if (onScopeChange) onScopeChange({ classId: id, lectureIds: [] });
     if (id) {
       const lecs = await base44.entities.Lecture.filter({ class_id: id }, 'date');
       setLectures(lecs);
@@ -94,7 +98,14 @@ export default function PracticePanel({ initialClassId = '', initialLectureIds =
       {selectedClass && lectures.length > 0 && (
         <div className="mb-6">
           <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Study which lectures?</label>
-          <LectureScopePicker lectures={lectures} selectedIds={scopeIds} onChange={setScopeIds} />
+          <LectureScopePicker
+            lectures={lectures}
+            selectedIds={scopeIds}
+            onChange={(ids) => {
+              setScopeIds(ids);
+              if (onScopeChange) onScopeChange({ lectureIds: ids || [] });
+            }}
+          />
         </div>
       )}
 

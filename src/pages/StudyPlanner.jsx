@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
 import { GraduationCap, Calendar, Clock, Check, X, Headphones, Plus, CalendarClock, Pencil } from 'lucide-react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import AddExamOrStudyModal from '@/components/AddExamOrStudyModal';
 import RebookSessionModal from '@/components/RebookSessionModal';
 import AssignmentEditModal from '@/components/AssignmentEditModal';
@@ -12,6 +12,7 @@ import CoverageChecklist from '@/components/CoverageChecklist';
 import { sessionTitle, sessionDescription } from '@/lib/sessionTitle';
 import { classColor } from '@/lib/color';
 import Segmented from '@/components/ui/Segmented';
+import { useStudyScope } from '@/lib/studyScope';
 
 const priorityColors = {
   high: 'bg-rose-500/10 text-rose-600 border-rose-500/20',
@@ -23,13 +24,19 @@ const statusIcons = { scheduled: Clock, completed: Check, skipped: X };
 
 export default function StudyPlanner() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  // Deep-link support: /planner?tab=practice&classId=X&ids=a,b,c
-  const initialTab = searchParams.get('tab') === 'practice' ? 'practice' : 'plan';
-  const deepClassId = searchParams.get('classId') || '';
-  const deepLectureIds = (searchParams.get('ids') || '').split(',').map(s => s.trim()).filter(Boolean);
-
-  const [tab, setTab] = useState(initialTab);
+  // What you are studying lives in the URL, not in this component's state —
+  // so switching tabs keeps it, refreshing keeps it, and a lecture page can
+  // hand it over by linking. See src/lib/studyScope.js.
+  //
+  // The tab values are the final ones ('now' / 'schedule'); the LABELS below
+  // are still the old ones, because the review tools do not move onto the
+  // Study-now tab until the next phase and calling it that before they arrive
+  // would be a lie.
+  const [scope, setScope] = useStudyScope();
+  const tab = scope.tab;
+  const setTab = (next) => setScope({ tab: next });
+  const deepClassId = scope.classId;
+  const deepLectureIds = scope.lectureIds;
   const [sessions, setSessions] = useState([]);
   const [assignments, setAssignments] = useState([]);
   // Loaded alongside, so a deadline can show what has actually been covered.
@@ -161,7 +168,7 @@ export default function StudyPlanner() {
           <h1 className="font-heading text-2xl sm:text-3xl font-bold">Study</h1>
           <p className="text-muted-foreground text-sm mt-0.5">Everything for studying — plan, review, and practice</p>
         </div>
-        {tab === 'plan' && (
+        {tab === 'schedule' && (
           <button onClick={() => setShowAdd(true)}
             className="inline-flex items-center gap-1.5 bg-primary text-primary-foreground px-3 py-2 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors flex-shrink-0">
             <Plus className="w-4 h-4" /> Add
@@ -174,7 +181,7 @@ export default function StudyPlanner() {
         <Segmented
           value={tab}
           onChange={setTab}
-          options={[{ value: 'plan', label: 'Plan' }, { value: 'practice', label: 'Practice' }]}
+          options={[{ value: 'schedule', label: 'Plan' }, { value: 'now', label: 'Practice' }]}
         />
       </div>
 
@@ -184,14 +191,22 @@ export default function StudyPlanner() {
           <div className="h-16 bg-muted rounded-xl" />
           <div className="h-16 bg-muted rounded-xl" />
         </div>
-      ) : tab === 'practice' ? (
-        <PracticePanel initialClassId={deepClassId} initialLectureIds={deepLectureIds.length ? deepLectureIds : null} />
+      ) : tab === 'now' ? (
+        <PracticePanel
+          initialClassId={deepClassId}
+          initialLectureIds={deepLectureIds.length ? deepLectureIds : null}
+          onScopeChange={setScope}
+        />
       ) : (
         <div>
           {/* Review from lectures */}
           <div className="mb-8">
             <h2 className="font-heading text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Review from Lectures</h2>
-            <ReviewFromLectures initialClassId={deepClassId} initialLectureIds={deepLectureIds.length ? deepLectureIds : null} />
+            <ReviewFromLectures
+              initialClassId={deepClassId}
+              initialLectureIds={deepLectureIds.length ? deepLectureIds : null}
+              onScopeChange={setScope}
+            />
           </div>
 
           {/* Upcoming deadlines */}

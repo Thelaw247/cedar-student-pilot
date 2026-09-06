@@ -13,9 +13,12 @@ import { Lock, BookOpenCheck } from 'lucide-react';
  * runner with those ids.
  *
  * Props:
- *   initialClassId, initialLectureIds — optional pre-scoping (from deep links)
+ *   initialClassId, initialLectureIds — the scope to open with
+ *   onScopeChange — report a change back, so the Practice tab opens on the
+ *     same class. Both tabs kept their own copy of this selection, which is
+ *     why picking a class in one and switching asked again.
  */
-export default function ReviewFromLectures({ initialClassId = '', initialLectureIds = null }) {
+export default function ReviewFromLectures({ initialClassId = '', initialLectureIds = null, onScopeChange = null }) {
   const { allowed: reviewAllowed, requiredTierName: reviewTierName, lock: reviewLock } = useFeatureGate('lecture_review');
   const navigate = useNavigate();
   const [classes, setClasses] = useState([]);
@@ -47,6 +50,7 @@ export default function ReviewFromLectures({ initialClassId = '', initialLecture
   const onPickClass = async (id) => {
     setSelectedClass(id);
     setScopeIds([]);
+    if (onScopeChange) onScopeChange({ classId: id, lectureIds: [] });
     await loadLectures(id);
   };
 
@@ -119,7 +123,14 @@ export default function ReviewFromLectures({ initialClassId = '', initialLecture
           </select>
         )}
 
-        <LectureScopePicker lectures={lectures} selectedIds={scopeIds} onChange={setScopeIds} />
+        <LectureScopePicker
+          lectures={lectures}
+          selectedIds={scopeIds}
+          onChange={(ids) => {
+            setScopeIds(ids);
+            if (onScopeChange) onScopeChange({ lectureIds: ids || [] });
+          }}
+        />
 
         <button onClick={launchScopedReview} disabled={lectures.length === 0}
           className="mt-3 w-full py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-2">

@@ -56,6 +56,18 @@ const RedirectToLogin = () => {
   return <Navigate to={`/login?returnTo=${returnTo}${location.hash || ''}`} replace />;
 };
 
+/**
+ * A renamed route that keeps its query string.
+ *
+ * <Navigate to="/study"> drops the search, and the search is where the scope
+ * lives — so a bookmarked /planner?tab=practice&classId=… would have landed on
+ * an empty study page rather than the one it named.
+ */
+const RedirectPreservingQuery = ({ to }) => {
+  const location = useLocation();
+  return <Navigate to={`${to}${location.search}${location.hash}`} replace />;
+};
+
 const AuthenticatedApp = () => {
   // Deliberately NOT gated on isLoadingAuth / isLoadingPublicSettings.
   //
@@ -103,7 +115,12 @@ const AuthenticatedApp = () => {
         {/* The AI Assistant was withdrawn (feature-flagged off since Base44)
             and its dead source purged in the conversion redesign; git history
             holds it if a real use case ever earns it back. */}
-        <Route path="/planner" element={<StudyPlanner />} />
+        <Route path="/study" element={<StudyPlanner />} />
+        {/* /planner is the name this page had. Redirect rather than rename in
+            place: the link is in students' history, in the risk card on Home,
+            and on every "Back to Study" in the review runner. RedirectPreservingQuery
+            carries the scope through, which a bare <Navigate> would drop. */}
+        <Route path="/planner" element={<RedirectPreservingQuery to="/study" />} />
         {/* The To-do tab: tasks professors assign in lectures land here by
             themselves (enrichment pass), alongside the student's own. */}
         <Route path="/todos" element={<Todos />} />
@@ -111,8 +128,8 @@ const AuthenticatedApp = () => {
         <Route path="/focus" element={<FocusMode />} />
         <Route path="/focus/:sessionId" element={<FocusMode />} />
         {/* Study Tools merged into the Study tab (/planner); redirect old links. */}
-        <Route path="/study-tools" element={<Navigate to="/planner" replace />} />
-        <Route path="/study-tools/:classId" element={<Navigate to="/planner" replace />} />
+        <Route path="/study-tools" element={<Navigate to="/study" replace />} />
+        <Route path="/study-tools/:classId" element={<Navigate to="/study" replace />} />
         <Route path="/analytics" element={<Analytics />} />
         {/* Lecture review is the review runner launched from the Study tab. */}
         <Route path="/lecture-review" element={<LectureReview />} />
