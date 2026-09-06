@@ -370,7 +370,17 @@ const auth = {
     // account that agreed to nothing — the client is the second line after the
     // checkbox, the same way the server is the authority on credits.
     if (!legalVersion) throw new Error('Terms acceptance is required to create an account');
-    const emailRedirectTo = `${window.location.origin}/today`;
+    // /auth/callback, not /today. /today is a protected route that knows
+    // nothing about finishing a sign-up: it could only ever work by accident,
+    // because supabase-js happens to consume an `#access_token=` fragment on
+    // whatever page it loads on. Anything else in the link — a PKCE code, a
+    // token_hash, an expired-link error — did nothing at all there.
+    //
+    // Requires https://praelecta.ca/auth/callback (or a /** wildcard) in the
+    // Supabase redirect allowlist. Without it GoTrue falls back to the Site
+    // URL, which still signs the visitor in via the fragment but leaves them
+    // on the landing page instead of onboarding.
+    const emailRedirectTo = `${window.location.origin}/auth/callback?next=/welcome`;
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -407,7 +417,7 @@ const auth = {
     const { data, error } = await supabase.auth.resend({
       type: 'signup',
       email,
-      options: { emailRedirectTo: `${window.location.origin}/today` },
+      options: { emailRedirectTo: `${window.location.origin}/auth/callback?next=/welcome` },
     });
     if (error) throw error;
     return data;

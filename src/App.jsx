@@ -13,6 +13,7 @@ const Register = lazy(() => import('./pages/Register'));
 const Onboarding = lazy(() => import('./pages/Onboarding'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
+const AuthCallback = lazy(() => import('./pages/AuthCallback'));
 const OAuthConsent = lazy(() => import('@/pages/OAuthConsent'));
 const Home = lazy(() => import('./pages/Home'));
 const Classes = lazy(() => import('./pages/Classes'));
@@ -47,7 +48,12 @@ const RouteFallback = () => (
 const RedirectToLogin = () => {
   const location = useLocation();
   const returnTo = encodeURIComponent(location.pathname + location.search);
-  return <Navigate to={`/login?returnTo=${returnTo}`} replace />;
+  // The fragment travels too. An email link that lands on a protected route
+  // carries its tokens in the hash, and dropping it here destroyed the one
+  // credential the visitor had — the link became unusable rather than
+  // retryable. ProtectedRoute waits for auth before rendering this, so it
+  // should not happen; keeping the hash means it costs nothing when it does.
+  return <Navigate to={`/login?returnTo=${returnTo}${location.hash || ''}`} replace />;
 };
 
 const AuthenticatedApp = () => {
@@ -68,6 +74,9 @@ const AuthenticatedApp = () => {
       <Route path="/" element={<Landing />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      {/* Where email links land. Public, because a route whose job is to sign
+          you in cannot require you to already be signed in. */}
+      <Route path="/auth/callback" element={<AuthCallback />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/oauth-consent" element={<OAuthConsent />} />

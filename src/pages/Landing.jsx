@@ -39,6 +39,18 @@ function LandingFooter() {
 }
 
 export default function Landing() {
+  // The dark floor goes on the canvas for as long as this page is mounted.
+  //
+  // On a phone, iOS reveals a rubber-band region above the top and below the
+  // bottom of the document that no element inside the page can cover — only
+  // the canvas background fills it. The app's own background is the light
+  // theme, so scrolling to the end of this dark page ended in a band of white
+  // that looks like the page ran out. See the note beside .landing-active.
+  useEffect(() => {
+    document.documentElement.classList.add('landing-active');
+    return () => document.documentElement.classList.remove('landing-active');
+  }, []);
+
   useEffect(() => {
     const previousTitle = document.title;
     document.title = "Praelecta — You show up, we'll do the rest";

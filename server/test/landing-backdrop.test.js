@@ -20,10 +20,13 @@ import fs from 'node:fs';
 const CSS = fs.readFileSync(new URL('../../src/index.css', import.meta.url), 'utf8');
 const LANDING = fs.readFileSync(new URL('../../src/pages/Landing.jsx', import.meta.url), 'utf8');
 
+// Declarations only. Comments are stripped because these rules are heavily
+// commented — with the very property names the negative assertions look for,
+// since explaining why something is NOT there means naming it.
 const block = (selector) => {
   const at = CSS.indexOf(`${selector} {`);
   assert.ok(at > -1, `${selector} is not defined in index.css`);
-  return CSS.slice(at, CSS.indexOf('\n}', at));
+  return CSS.slice(at, CSS.indexOf('\n}', at)).replace(/\/\*[\s\S]*?\*\//g, '');
 };
 
 test('the backdrop paints its own opaque floor', () => {
@@ -71,4 +74,48 @@ test('the backdrop sits OUTSIDE the overflow-hidden surface', () => {
   assert.ok(surfaceAt > -1, 'the landing-surface wrapper is gone');
   assert.ok(backdropAt < surfaceAt,
     'the backdrop is inside .landing-surface again — iOS will clip it to that scroll container');
+});
+
+/* ---------------------------------------------------------------------------
+   6 Sep 2026. Reported again from a phone: no background, and a band of white
+   at the bottom of the page. Both were still true after the fixes above,
+   because both had a cause those fixes did not touch.
+   --------------------------------------------------------------------------- */
+
+test('the dark floor is on the canvas, not only on an element', () => {
+  // The white band. iOS reveals a rubber-band region above the top and below
+  // the bottom of the document, and NO element inside the page can cover it —
+  // only the canvas background fills it. The app's own body colour is the
+  // light theme, so a dark page ended in white the moment you scrolled past
+  // the footer. Desktop never shows it, which is why it survived every
+  // desktop check.
+  assert.match(CSS, /html\.landing-active[\s\S]{0,80}background-color:\s*hsl\(/,
+    'nothing paints the canvas dark, so the overscroll region stays light-theme white');
+  assert.match(LANDING, /classList\.add\('landing-active'\)/,
+    'Landing.jsx never puts the class on, so the canvas rule can never apply');
+  assert.match(LANDING, /classList\.remove\('landing-active'\)/,
+    'the class is never removed, so every page after this one inherits a dark canvas');
+});
+
+test('the backdrop does not depend on a negative z-index', () => {
+  // z-index: -1 only works while nothing between the element and the root
+  // creates a stacking context, and it puts the layer on the far side of a
+  // compositor boundary. Two positioned siblings ordered 0 and 1 need no such
+  // assumption.
+  assert.doesNotMatch(block('.landing-backdrop'), /z-index:\s*-/,
+    'a negative z-index puts the artwork behind the page background on iOS');
+  assert.match(block('.landing-backdrop'), /z-index:\s*0/);
+  assert.match(block('.landing-surface'), /z-index:\s*1/,
+    'the surface must be ordered above the backdrop, or the backdrop covers the page');
+  assert.match(block('.landing-surface'), /position:\s*relative/,
+    'z-index does nothing on a static element');
+});
+
+test('the backdrop is not promoted to its own compositing layer', () => {
+  // will-change: transform on a fixed, negatively-stacked element is what let
+  // iOS order it behind the page background. It buys nothing here — nothing on
+  // this element ever transforms, and the browser already holds a fixed
+  // element still without being told.
+  assert.doesNotMatch(block('.landing-backdrop'), /will-change/,
+    'compositing promotion on the backdrop is what made it vanish on iOS');
 });

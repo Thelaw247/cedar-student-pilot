@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, Link, useSearchParams } from 'react-router-dom';
+import CoverageChecklist from '@/components/CoverageChecklist';
 import { base44 } from '@/api/base44Client';
 import { ChevronLeft, Plus, GraduationCap, Clock, MapPin, Mic, Loader2, Calendar, AlertCircle, Brain, Headphones, Pencil, AlertTriangle, Search, X, BookOpen, FolderPlus, Shield, Mail, Check, Archive, RotateCcw, CheckCircle2 } from 'lucide-react';
 import EditClassModal from '@/components/EditClassModal';
@@ -124,7 +125,7 @@ export default function ClassDetail() {
         <LectureTab lectures={lectures} coverage={coverage} classId={classId} cls={cls} onUpdate={loadData} autoRecord={searchParams.get('record') === '1'} onAutoRecordConsumed={() => { searchParams.delete('record'); setSearchParams(searchParams, { replace: true }); }} />
       )}
       {tab === 'assignments' && (
-        <AssignmentTab assignments={assignments} classId={classId} cls={cls} onUpdate={loadData} highlightAssignmentId={highlightAssignmentId} />
+        <AssignmentTab assignments={assignments} lectures={lectures} coverage={coverage} classId={classId} cls={cls} onUpdate={loadData} highlightAssignmentId={highlightAssignmentId} />
       )}
       {tab === 'handbook' && (
         <HandbookTab cls={cls} lectures={lectures} />
@@ -444,7 +445,7 @@ function RecordModal({ classId, cls, onClose }) {
   );
 }
 
-function AssignmentTab({ assignments, classId, cls, onUpdate, highlightAssignmentId }) {
+function AssignmentTab({ assignments, lectures = [], coverage = [], classId, cls, onUpdate, highlightAssignmentId }) {
   const [showAdd, setShowAdd] = useState(false);
   const [showProject, setShowProject] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
@@ -543,6 +544,20 @@ function AssignmentTab({ assignments, classId, cls, onUpdate, highlightAssignmen
             </div>
           </div>
         </button>
+
+        {/* What this deadline covers, and how much of it has been reviewed.
+            Expanded here: this is the assignments tab, where a student came to
+            look at exactly this. On the planner it starts collapsed, because
+            that page is a list of everything at once. */}
+        {a.type !== 'project' && !resolved && (
+          <CoverageChecklist
+            assignment={a}
+            lectures={lectures}
+            priorAssignments={assignments}
+            coverage={coverage}
+            defaultOpen
+          />
+        )}
 
         {/* Past-due prompt — resolve the deadline and clear its leftover sessions */}
         {pastDue && (

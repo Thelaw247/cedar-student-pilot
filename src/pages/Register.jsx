@@ -1,5 +1,5 @@
-import React, { useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import React, { useEffect, useRef, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,7 @@ import FacebookIcon from "@/components/FacebookIcon";
 import { toast } from "@/components/ui/use-toast";
 import { safeReturnTo } from "@/lib/authReturnTo";
 import { LEGAL_VERSION } from "@/lib/legal";
+import { useAuth } from "@/lib/AuthContext";
 
 const USE_SUPABASE = import.meta.env.VITE_BACKEND_MODE === "supabase";
 const APPLE_AUTH_ENABLED = !USE_SUPABASE || import.meta.env.VITE_ENABLE_APPLE_AUTH === "true";
@@ -27,6 +28,8 @@ function registrationErrorMessage(error) {
 }
 
 export default function Register() {
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -40,6 +43,21 @@ export default function Register() {
   const [agreed, setAgreed] = useState(false);
   const [agreeError, setAgreeError] = useState(false);
   const agreeRef = useRef(null);
+
+  // The confirmation link, opened in another tab, signs this browser in —
+  // supabase-js broadcasts it and AuthContext picks it up. This screen used to
+  // sit there regardless, still demanding a six-digit code the email never
+  // contained, in a browser that was already signed in. That is the bug a
+  // student actually reported: the link worked, the page did not notice.
+  //
+  // Guarded on showOtp so it can never hijack someone who arrived at /register
+  // while already signed in for another reason.
+  useEffect(() => {
+    if (showOtp && isAuthenticated) {
+      const explicitReturn = new URLSearchParams(window.location.search).get('returnTo');
+      navigate(explicitReturn ? safeReturnTo() : '/welcome', { replace: true });
+    }
+  }, [showOtp, isAuthenticated, navigate]);
 
   // Every path that can create an account goes through this — the email form
   // and both social buttons. Supabase's OAuth sign-in creates the account on
@@ -131,10 +149,19 @@ export default function Register() {
           </div>
         )}
         {USE_SUPABASE && (
-          <p className="mb-5 text-center text-sm text-muted-foreground">
-            Open the confirmation link in the email. If the message contains a six-digit code instead,
-            enter it below.
-          </p>
+          <>
+            {/* The email contains a LINK. Say that plainly and put it first:
+                the old copy offered the link and the code as equal options
+                above a six-digit box, so the box read as the thing to do, and
+                a student who could not find a code in the email concluded the
+                email was broken. */}
+            <p className="mb-2 text-center text-sm text-foreground">
+              Tap the confirm button in that email and you are in — there is nothing to type here.
+            </p>
+            <p className="mb-5 text-center text-xs text-muted-foreground">
+              Opened it on another device? Enter the six-digit code instead, if your message has one.
+            </p>
+          </>
         )}
         <div className="flex justify-center mb-6">
           <InputOTP

@@ -8,6 +8,7 @@ import AssignmentEditModal from '@/components/AssignmentEditModal';
 import PracticePanel from '@/components/PracticePanel';
 import ReviewFromLectures from '@/components/ReviewFromLectures';
 import DeleteXButton from '@/components/DeleteXButton';
+import CoverageChecklist from '@/components/CoverageChecklist';
 import { sessionTitle, sessionDescription } from '@/lib/sessionTitle';
 import { classColor } from '@/lib/color';
 import Segmented from '@/components/ui/Segmented';
@@ -31,6 +32,9 @@ export default function StudyPlanner() {
   const [tab, setTab] = useState(initialTab);
   const [sessions, setSessions] = useState([]);
   const [assignments, setAssignments] = useState([]);
+  // Loaded alongside, so a deadline can show what has actually been covered.
+  const [lectures, setLectures] = useState([]);
+  const [coverage, setCoverage] = useState([]);
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
@@ -50,13 +54,21 @@ export default function StudyPlanner() {
         setClasses(cls);
         const allAssignments = [];
         const allSessions = [];
+        const allLectures = [];
+        const allCoverage = [];
         for (const c of cls) {
           const asgns = await base44.entities.Assignment.filter({ class_id: c.id });
           allAssignments.push(...asgns);
           const sess = await base44.entities.StudySession.filter({ class_id: c.id }, 'scheduled_date');
           allSessions.push(...sess);
+          // The two halves of the coverage checklist: what a deadline resolves
+          // to, and which of those have been reviewed.
+          allLectures.push(...await base44.entities.Lecture.filter({ class_id: c.id }, 'date'));
+          allCoverage.push(...await base44.entities.KnowledgeCoverage.filter({ class_id: c.id }));
         }
         setAssignments(allAssignments);
+        setLectures(allLectures);
+        setCoverage(allCoverage);
         setSessions(allSessions.sort((a, b) => (a.scheduled_date || '').localeCompare(b.scheduled_date || '')));
       }
     } catch (e) { console.error(e); }
@@ -229,6 +241,19 @@ export default function StudyPlanner() {
                           <Pencil className="w-3.5 h-3.5" />
                         </button>
                       </div>
+
+                      {/* What this deadline covers, and how much of it is done.
+                          Not on a project: a project has a roadmap of steps and
+                          its own progress, and lectures are not what it is
+                          made of. */}
+                      {a.type !== 'project' && (
+                        <CoverageChecklist
+                          assignment={a}
+                          lectures={lectures.filter(l => l.class_id === a.class_id)}
+                          priorAssignments={assignments.filter(x => x.class_id === a.class_id)}
+                          coverage={coverage.filter(k => k.class_id === a.class_id)}
+                        />
+                      )}
 
                       {/* Past-due prompt — resolve and clear the sessions made for it */}
                       {pastDue && (

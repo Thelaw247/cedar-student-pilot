@@ -264,6 +264,13 @@
    the auth card and the app one product rather than three.
    --------------------------------------------------------------------------- */
 .landing-surface {
+  /* Above .landing-backdrop, which is z-index: 0. The Tailwind `relative` on
+     the element supplies the same position, but the pairing is what makes the
+     backdrop visible, so both halves of it live here where they can be read
+     together. */
+  position: relative;
+  z-index: 1;
+
 /* The brand blue at its light-theme lightness (59%) only reaches 3.97:1 on
    this ground — fine for headings, a fail for the small labels and inline
    links both dark surfaces use it for. Lifting it to 67% clears AA on the
@@ -294,6 +301,32 @@
   color-scheme: dark;
 }
 
+/* The floor, on the canvas itself, for as long as the landing page is open.
+   Landing.jsx adds and removes this class.
+
+   Everything dark about this page was painted by elements inside the document,
+   over a body that is --background — the LIGHT theme colour, because the app
+   itself is light. Anywhere the page does not paint, that light colour is what
+   shows, and on a phone there are two such places:
+
+     the rubber-band overscroll region, which iOS reveals above the top and
+     below the bottom of the document and which no element can ever cover, and
+
+     any moment the fixed backdrop is not painting.
+
+   The first is why the page ends in a band of white when you scroll to the
+   bottom on a phone and not on a desktop. The background-color of the canvas
+   is the only thing that fills it. Setting it on <html> also stops the address
+   bar and the status area from tinting themselves light on iOS.
+
+   Belt and braces on purpose: with this in place, the worst a failure of the
+   artwork layer can now do is leave the page dark without a waveform, instead
+   of white. */
+html.landing-active,
+html.landing-active body {
+  background-color: hsl(222 33% 8%);
+}
+
 /* The waveform is held still and the page scrolls over it.
 
    Getting both halves of that has one trap. `background-attachment: fixed` is
@@ -315,12 +348,18 @@
 .landing-backdrop {
   position: fixed;
   inset: 0;
-  z-index: -1;
+  /* Above the canvas, below the page. NOT z-index: -1.
+     A negative z-index only works while nothing between here and the root
+     creates a stacking context, and it puts the layer on the wrong side of a
+     compositor boundary on iOS — the artwork simply stopped existing there.
+     Two positioned siblings ordered 0 and 1 need no such assumption. */
+  z-index: 0;
   overflow: hidden;
   background-color: hsl(222 33% 8%);
-  /* Its own layer: the compositor holds the image still instead of repainting
-     the artwork on every scroll frame. */
-  will-change: transform;
+  /* No will-change here. It promoted this element to its own compositing
+     layer, which is what let iOS Safari order it behind the page background
+     instead of in front of it. A fixed element that never transforms has
+     nothing to gain from the hint: the browser already holds it still. */
 }
 /* The artwork, dimmed, on its own layer so the floor beneath it stays fully
    opaque. Covers the viewport exactly — no zoom-to-blur, because the element it
