@@ -78,9 +78,21 @@ test('the class page has one door, not a three-card menu', () => {
   assert.match(CLASS, /\{ value: 'handbook', label: 'Handbook' \}/);
 });
 
-test('the rail stops offering what the nav item beside it does better', () => {
-  assert.doesNotMatch(RAIL, /label: 'Focus session'/);
-  assert.match(RAIL, /label: 'Add a class'/, 'the one quick action with no other entry point');
+test('the rail stops offering what other controls already do', () => {
+  // "Focus session" sat one screen from the Study nav item. "Add a class" sat
+  // behind the same + button that already offers Add Event and Add Exam. With
+  // both gone the Quick actions block held nothing, so it went too — the rail
+  // now only tells you things and links into them.
+  assert.doesNotMatch(RAIL, /QUICK_ACTIONS/);
+  // The rendered heading, not the prose — the comment above explains what the
+  // block was, and a bare match would fail on its own obituary.
+  assert.doesNotMatch(RAIL, />\s*Quick actions\s*</);
+  // The + button is where those doors live, and it still has all three.
+  const HOME = read('../../src/pages/Home.jsx');
+  assert.match(HOME, /<FloatingActionButton actions=\{\[/);
+  for (const label of ['Add Event', 'Add Exam', 'Add Class']) {
+    assert.match(HOME, new RegExp(`label: '${label}'`), `the + button lost ${label}`);
+  }
 });
 
 // --- a booked session knows where it belongs ------------------------------

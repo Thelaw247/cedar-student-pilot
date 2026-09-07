@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Loader2, Sparkles, Layers, FileQuestion, ClipboardList, FileText, Lock } from 'lucide-react';
+import { Loader2, Sparkles, Layers, ClipboardList, FileText, Lock } from 'lucide-react';
 import FlashcardViewer from '@/components/FlashcardViewer';
 import QuizViewer from '@/components/QuizViewer';
 import { useFeatureGate } from '@/components/monetization/useFeatureGate';
@@ -38,11 +38,23 @@ import GateNotice, { gateFromError } from '@/components/monetization/GateNotice'
  *                      record which lectures were opened.
  */
 
+/**
+ * Three things to build, not four.
+ *
+ * "Quiz" and "Practice Test" were one tool twice: the same prompt, the same
+ * validator, the same rows saved to the class — the server's only instruction
+ * that differed was "generate 5" against "generate 8". Two tiles, two charges,
+ * one feature with a number in it.
+ *
+ * And "Quiz" collided with "Quiz me" on the shelf above, which is a different
+ * act entirely: that one runs questions at you now, in teaching order, and
+ * saves nothing. These build material that stays. The labels say which is
+ * which instead of leaving a student to find out by pressing both.
+ */
 const materialTypes = [
   { id: 'flashcards', label: 'Flashcards', icon: Layers, description: 'Flip cards with key terms and definitions' },
-  { id: 'quiz', label: 'Quiz', icon: FileQuestion, description: 'Multiple-choice questions to test knowledge' },
-  { id: 'practice_test', label: 'Practice Test', icon: ClipboardList, description: 'Mixed questions covering all lectures' },
-  { id: 'summary_sheet', label: 'Summary Sheet', icon: FileText, description: 'Comprehensive study summary by topic' },
+  { id: 'practice_test', label: 'Practice questions', icon: ClipboardList, description: 'A set of multiple-choice questions, saved to this class' },
+  { id: 'summary_sheet', label: 'Summary sheet', icon: FileText, description: 'The whole scope written up, topic by topic' },
 ];
 
 export default function StudyToolbox({ classId, resolveLectureIds, sourceCount = 0, scopeKey = null, onGenerated = null }) {
@@ -90,7 +102,9 @@ export default function StudyToolbox({ classId, resolveLectureIds, sourceCount =
   return (
     <div>
       {/* Material type selector */}
-      <div className="grid grid-cols-2 gap-3 mb-6">
+      {/* Three tiles, so three columns from the width that fits them — two
+          columns would leave the third alone in a half-width row. */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
         {materialTypes.map(t => {
           const Icon = t.icon;
           return (
@@ -113,7 +127,7 @@ export default function StudyToolbox({ classId, resolveLectureIds, sourceCount =
       ) : (
       <button type="button" onClick={generate} disabled={generating || !classId}
         className="w-full py-3 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-2 mb-6">
-        {generating ? <><Loader2 className="w-4 h-4 animate-spin" /> Generating from {sourceCount} lectures...</> : <><Sparkles className="w-4 h-4" /> Generate {materialTypes.find(t => t.id === selectedType)?.label}</>}
+        {generating ? <><Loader2 className="w-4 h-4 animate-spin" /> Generating from {sourceCount} lectures...</> : <><Sparkles className="w-4 h-4" /> Generate {(materialTypes.find(t => t.id === selectedType)?.label || '').toLowerCase()}</>}
       </button>
       )}
 
@@ -127,7 +141,7 @@ export default function StudyToolbox({ classId, resolveLectureIds, sourceCount =
           {selectedType === 'flashcards' && result.material?.flashcards && (
             <FlashcardViewer flashcards={result.material.flashcards} />
           )}
-          {(selectedType === 'quiz' || selectedType === 'practice_test') && result.material?.questions && (
+          {selectedType === 'practice_test' && result.material?.questions && (
             <QuizViewer questions={result.material.questions} />
           )}
           {selectedType === 'summary_sheet' && result.material?.summary && (

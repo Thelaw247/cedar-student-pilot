@@ -47,11 +47,23 @@ test('the generation lives in one file, not two', () => {
   assert.equal((TOOLBOX.match(/invoke\('generateStudyMaterial'/g) || []).length, 1);
 });
 
-test('all four tools moved, and the tier gate moved with them', () => {
-  for (const id of ['flashcards', 'quiz', 'practice_test', 'summary_sheet']) {
+test('three things to build, and the tier gate lives with them', () => {
+  // "Quiz" was deleted, not moved. It and "Practice Test" were one tool twice:
+  // same prompt, same validator, same rows saved to the class — the server's
+  // only differing instruction was "generate 5" against "generate 8". It also
+  // collided with "Quiz me" on the shelf above, which runs questions at you
+  // now and saves nothing.
+  for (const id of ['flashcards', 'practice_test', 'summary_sheet']) {
     assert.match(TOOLBOX, new RegExp(`id: '${id}'`), `${id} did not come across`);
     assert.doesNotMatch(PANEL, new RegExp(`id: '${id}'`), `${id} is defined twice`);
   }
+  assert.doesNotMatch(TOOLBOX, /id: 'quiz'/, 'the five-question twin is back');
+  // And the surviving one says what makes it different from the runner.
+  assert.match(TOOLBOX, /label: 'Practice questions'/);
+  assert.match(TOOLBOX, /saved to this class/);
+  const SHELF = read('../../src/components/StudyShelf.jsx');
+  assert.match(SHELF, /title="Quiz me"/);
+  assert.doesNotMatch(SHELF, /title="Practice questions"/, 'the shelf must not grow a second maker');
   // The lock is part of the tool, not part of the page around it.
   assert.match(TOOLBOX, /useFeatureGate\('study_material'\)/);
   assert.doesNotMatch(PANEL, /useFeatureGate/);

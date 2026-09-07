@@ -3,7 +3,7 @@ import { onDataChange } from '@/lib/dataChanged';
 import { Link } from 'react-router-dom';
 import { useTodaySchedule } from '@/hooks/useTodaySchedule';
 import { fetchWithCache } from '@/hooks/useEntityData';
-import { Clock, MapPin, GraduationCap, CalendarPlus, FileText, AlertCircle } from 'lucide-react';
+import { Clock, MapPin, GraduationCap, FileText, AlertCircle } from 'lucide-react';
 import { classTint, classColor } from '@/lib/color';
 import { formatTime, todayString } from '@/lib/time';
 
@@ -22,21 +22,21 @@ import { formatTime, todayString } from '@/lib/time';
  * live ONLY in the Sidebar nav and the Study tab's own tool shelf. Focus
  * session left too (navigation teardown, phase 4): it opened a picker asking
  * which class, one screen from a Study nav item that does the job better and
- * shows the clock while a session is running. What's left below — Add a
- * class — has no other one-click entry point, so it earns its place here.
+ * shows the clock while a session is running.
+ *
+ * "Add a class" followed it, and with it the whole Quick actions block: the
+ * floating + button on Home opens the same door, along with Add Event and Add
+ * Exam. A quick action that duplicates the + is not quick, it is twice.
+ *
+ * What is left is a rail that only tells you things — what is on today, what
+ * is due soon, what was recorded — and links into them. Nothing on it is a
+ * second copy of a control that lives somewhere else.
  *
  * Credits deliberately do NOT appear here — the CreditMeter pill in the
  * Sidebar (under the profile) is the one credit surface on desktop, and it
  * names the plan. Two balances on one screen read as two sources of truth.
  */
 
-// "Focus session" used to head this list. It opened a picker asking which
-// class — on a rail that sits beside a Study nav item doing the same job
-// better, now that the clock lives there and shows itself while running.
-// Two controls, one intent, one screen apart.
-const QUICK_ACTIONS = [
-  { to: '/classes?add=1', icon: CalendarPlus, label: 'Add a class' },
-];
 
 export default function DesktopRail() {
   const { loaded, remaining, current } = useTodaySchedule();
@@ -196,27 +196,6 @@ export default function DesktopRail() {
           </div>
         </div>
       )}
-
-      {/* Quick actions — the most-used tools, zero page-hunting */}
-      <div>
-        <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">
-          Quick actions
-        </p>
-        {/* Two columns while there are two; one card in a two-column grid is
-            a half-width card beside a hole. */}
-        <div className={`grid gap-1.5 ${QUICK_ACTIONS.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
-          {QUICK_ACTIONS.map((q) => (
-            <Link
-              key={q.to}
-              to={q.to}
-              className="flex flex-col items-start gap-1.5 rounded-xl border border-border bg-card p-2.5 hover:border-primary/40 hover:bg-primary/[0.03] transition-colors duration-micro"
-            >
-              <q.icon className="w-4 h-4 text-primary" strokeWidth={1.75} />
-              <span className="text-[11px] font-medium text-foreground leading-tight">{q.label}</span>
-            </Link>
-          ))}
-        </div>
-      </div>
     </aside>
   );
 }

@@ -67,7 +67,16 @@ export function StudySessionProvider({ children }) {
   const [assignment, setAssignment] = useState(null); // for the sprint/exam flavour
   const [classId, setClassId] = useState(null);
   const [lectureIds, setLectureIds] = useState([]);
-  const [goalMinutes, setGoalMinutes] = useState(DEFAULT_GOAL_MINUTES);
+  const [goalMinutes, setGoalMinutesState] = useState(DEFAULT_GOAL_MINUTES);
+  // Whether the goal was decided by a booked session rather than defaulted or
+  // chosen. Only a session that was actually booked for a length gets to say
+  // "from your booked session" — and the moment the student changes it, it
+  // stops being the session's number and the label has to stop claiming it is.
+  const [goalFromSession, setGoalFromSession] = useState(false);
+  const setGoalMinutes = useCallback((m) => {
+    setGoalMinutesState(m);
+    setGoalFromSession(false);
+  }, []);
 
   // --- the clock ----------------------------------------------------------
   const [mode, setMode] = useState('pomodoro');
@@ -239,7 +248,12 @@ export function StudySessionProvider({ children }) {
     setAssignment(next.assignment || null);
     setClassId(next.classId || nextSession?.class_id || null);
     setLectureIds(Array.isArray(next.lectureIds) ? next.lectureIds : []);
-    setGoalMinutes(next.goalMinutes || goalMinutesFor(nextSession));
+    const goal = next.goalMinutes || goalMinutesFor(nextSession);
+    setGoalMinutesState(goal);
+    // Prefilled only when a session really carried a length. An ad-hoc sitting
+    // gets the same editable default it always had, with nothing pretending
+    // the number came from somewhere.
+    setGoalFromSession(Boolean(next.goalMinutes) || Number(nextSession?.duration_minutes) > 0);
     openedRef.current = Array.isArray(nextSession?.opened_lecture_ids) ? nextSession.opened_lecture_ids : [];
     setOpenedLectureIds(openedRef.current);
     return true;
@@ -322,7 +336,8 @@ export function StudySessionProvider({ children }) {
   const reset = useCallback(() => {
     setSession(null); setCls(null); setAssignment(null);
     setClassId(null); setLectureIds([]);
-    setGoalMinutes(DEFAULT_GOAL_MINUTES);
+    setGoalMinutesState(DEFAULT_GOAL_MINUTES);
+    setGoalFromSession(false);
     setPhase('idle'); setStudySeconds(0); setIntervalSecondsLeft(0);
     setPomodoroPhase('study'); setCycles(0);
     setAwaitingConfirm(false); awaitingConfirmRef.current = false;
@@ -331,6 +346,32 @@ export function StudySessionProvider({ children }) {
     setOpenedLectureIds([]); openedRef.current = [];
     usedInAppRef.current = false;
     studySecondsRef.current = 0; intervalLeftRef.current = 0;
+    setShowMusic(false);
+  }, []);
+
+  /**
+   * Throw this sitting away without recording it.
+   *
+   * Stop & save was the only way out, so a mistaken tap on Start became a row
+   * in Analytics — a two-minute "session" the student never sat, in the one
+   * place that is supposed to be a truthful record of what they did.
+   *
+   * It clears the clock and the results, and keeps WHAT is being studied: the
+   * session, the class, the lectures, the goal and the interval lengths. You
+   * cancelled a timer, not your plans. The lectures a tool already put in
+   * front of you stay recorded as opened, because they were.
+   */
+  const discard = useCallback(() => {
+    setPhase('idle');
+    setStudySeconds(0); studySecondsRef.current = 0;
+    setIntervalSecondsLeft(0); intervalLeftRef.current = 0;
+    setPomodoroPhase('study');
+    setCycles(0);
+    setAwaitingConfirm(false); awaitingConfirmRef.current = false;
+    setSavedRecordId(null);
+    setQuizResult(null);
+    setLecturesCovered(0);
+    setTotalLectures(0);
     setShowMusic(false);
   }, []);
 
@@ -433,20 +474,20 @@ export function StudySessionProvider({ children }) {
     session, sessionId, cls, assignment, classId, lectureIds, isProjectSession,
     // clock, minus the seconds
     mode, phase, running, pomodoroPhase, cycles, studyMinutes, breakMinutes,
-    awaitingConfirm, goalMinutes, ringColor, phaseLabel, saving,
+    awaitingConfirm, goalMinutes, goalFromSession, ringColor, phaseLabel, saving,
     // results
     savedRecordId, quizResult, lecturesCovered, totalLectures, openedLectureIds,
     // controls
-    adopt, start, pause, resume, stop, reset,
+    adopt, start, pause, resume, stop, reset, discard,
     setMode: changeMode, setStudyMinutes, setBreakMinutes, setGoalMinutes,
     takeBreak, keepGoing, markOpened, markInApp, recordQuiz,
     showMusic, setShowMusic,
   }), [
     session, sessionId, cls, assignment, classId, lectureIds, isProjectSession,
     mode, phase, running, pomodoroPhase, cycles, studyMinutes, breakMinutes,
-    awaitingConfirm, goalMinutes, ringColor, phaseLabel, saving,
+    awaitingConfirm, goalMinutes, goalFromSession, ringColor, phaseLabel, saving,
     savedRecordId, quizResult, lecturesCovered, totalLectures, openedLectureIds,
-    adopt, start, pause, resume, stop, reset, changeMode,
+    adopt, start, pause, resume, stop, reset, discard, changeMode, setGoalMinutes,
     takeBreak, keepGoing, markOpened, markInApp, recordQuiz, showMusic,
   ]);
 

@@ -108,6 +108,11 @@ export default function StudyPlanner() {
         // hand-edited URL or an old bookmark can, and adopting it would show
         // the lecture shelf for a session that has none.
         if (s.session_type === 'project') { navigate(sessionStudyPath(s), { replace: true }); return; }
+        // A session that is already finished is not the current sitting. The
+        // URL keeps its id after a save, so a reload would otherwise re-prime
+        // the clock against a completed row and label the goal "from your
+        // booked session" for something already done.
+        if (s.status === 'completed') return;
         const [c, a] = await Promise.all([
           s.class_id ? base44.entities.Class.get(s.class_id).catch(() => null) : null,
           s.assignment_id ? base44.entities.Assignment.get(s.assignment_id).catch(() => null) : null,
