@@ -33,9 +33,10 @@ export const STUDY_TABS = ['now', 'schedule'];
 /**
  * The old names, kept working.
  *
- * Links to `?tab=practice` are in the wild — on the lecture page, on the class
- * page, in the risk card on Home — and some of them are in a student's history
- * or a bookmark. They map rather than break.
+ * Nothing in the app writes `?tab=practice` any more — every door was
+ * repointed in phase 4. But the links are in the wild: in students' history,
+ * in bookmarks, in whatever they pasted to a friend. They map rather than
+ * break, and they cost one lookup to keep working.
  */
 const TAB_ALIASES = { practice: 'now', plan: 'schedule' };
 
@@ -49,7 +50,12 @@ function normalizeTab(raw) {
 export function readStudyScope(searchParams) {
   const get = (k) => (typeof searchParams?.get === 'function' ? searchParams.get(k) : null);
   return {
-    tab: normalizeTab(get('tab')) || 'schedule',
+    // 'now' by default: the page is called Study and its job is studying. It
+    // defaulted to the schedule while the tab was still called "Plan" and the
+    // tools lived elsewhere; opening a page named Study onto a list of dates
+    // is the same confusion the rename was for. Everything that means the
+    // schedule says so — ?tab=schedule, or the ?tab=plan alias.
+    tab: normalizeTab(get('tab')) || 'now',
     classId: get('classId') || '',
     lectureIds: (get('ids') || '').split(',').map((s) => s.trim()).filter(Boolean),
     assignmentId: get('assignmentId') || '',

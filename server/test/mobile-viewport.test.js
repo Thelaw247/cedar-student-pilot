@@ -60,7 +60,6 @@ test('every modal panel can scroll', () => {
   const files = [
     '../../src/components/AddEventModal.jsx',
     '../../src/components/AddExamOrStudyModal.jsx',
-    '../../src/components/AddStudySessionModal.jsx',
     '../../src/components/AssignmentEditModal.jsx',
     '../../src/components/AttendancePrompt.jsx',
     '../../src/components/RebookSessionModal.jsx',

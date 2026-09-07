@@ -149,9 +149,6 @@ const AuthenticatedApp = () => {
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/focus" element={<RedirectFocusToStudy />} />
         <Route path="/focus/:sessionId" element={<FocusMode />} />
-        {/* Study Tools merged into the Study tab (/planner); redirect old links. */}
-        <Route path="/study-tools" element={<Navigate to="/study" replace />} />
-        <Route path="/study-tools/:classId" element={<Navigate to="/study" replace />} />
         <Route path="/analytics" element={<Analytics />} />
         {/* Lecture review is the review runner launched from the Study tab. */}
         <Route path="/lecture-review" element={<LectureReview />} />

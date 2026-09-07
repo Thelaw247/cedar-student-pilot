@@ -29,9 +29,12 @@ export default function StudyPlanner() {
   // so switching tabs keeps it, refreshing keeps it, and a lecture page can
   // hand it over by linking. See src/lib/studyScope.js.
   //
-  // The tab values are the final ones ('now' / 'schedule'). The labels are
-  // renamed in the last phase, once the timer has moved too — until then
-  // "Practice" is still the honest word for a tab with no clock on it.
+  // The labels finally match the values. "Plan" held a review workflow that
+  // was not planning, and "Practice" is not what you call a tab with a clock
+  // on it and a handbook one tap away. Study now is where you study; Schedule
+  // is dates — and Study now comes first, and is what a bare /study opens on,
+  // because that is what the page is for. Every link that means the schedule
+  // says so explicitly (see readStudyScope).
   const [scope, setScope] = useStudyScope();
   const studySession = useStudySession();
   const tab = scope.tab;
@@ -213,7 +216,7 @@ export default function StudyPlanner() {
       <div className="flex items-center justify-between mb-4">
         <div>
           <h1 className="font-heading text-2xl sm:text-3xl font-bold">Study</h1>
-          <p className="text-muted-foreground text-sm mt-0.5">Practice to study now; Plan for what is due and when</p>
+          <p className="text-muted-foreground text-sm mt-0.5">Every tool, on the lectures you pick &mdash; and what is due, and when</p>
         </div>
         {tab === 'schedule' && (
           <button onClick={() => setShowAdd(true)}
@@ -233,7 +236,7 @@ export default function StudyPlanner() {
         <Segmented
           value={tab}
           onChange={setTab}
-          options={[{ value: 'schedule', label: 'Plan' }, { value: 'now', label: 'Practice' }]}
+          options={[{ value: 'now', label: 'Study now' }, { value: 'schedule', label: 'Schedule' }]}
         />
       </div>
 

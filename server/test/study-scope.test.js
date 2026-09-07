@@ -37,12 +37,14 @@ test('an empty selection means the whole class, and is not written as a key', ()
 });
 
 test('the links already in the wild keep working', () => {
-  // ?tab=practice is on the lecture page, the class page and the risk card on
-  // Home, and in students' history. It maps rather than breaks.
+  // Nothing writes ?tab=practice any more, but it is in students' history and
+  // in bookmarks. It maps rather than breaks.
   assert.equal(readStudyScope(p('tab=practice')).tab, 'now');
   assert.equal(readStudyScope(p('tab=plan')).tab, 'schedule');
-  assert.equal(readStudyScope(p('tab=nonsense')).tab, 'schedule', 'an unknown tab falls back, never throws');
-  assert.equal(readStudyScope(p('')).tab, 'schedule');
+  assert.equal(readStudyScope(p('tab=nonsense')).tab, 'now', 'an unknown tab falls back, never throws');
+  // A bare /study opens on the tools, not on a list of dates. The page is
+  // called Study; everything that means the schedule names it.
+  assert.equal(readStudyScope(p('')).tab, 'now');
   assert.deepEqual(STUDY_TABS, ['now', 'schedule']);
 });
 
