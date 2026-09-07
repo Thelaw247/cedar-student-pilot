@@ -23,16 +23,22 @@ const read = (p) => fs.readFileSync(new URL(p, import.meta.url), 'utf8');
 const REVIEW = read('../../src/pages/LectureReview.jsx');
 const SHELF = read('../../src/components/StudyShelf.jsx');
 const DETAIL = read('../../src/pages/LectureDetail.jsx');
+const QUIZ = read('../../src/components/InLectureQuiz.jsx');
 
 test('the review entry points land on material, not on a question', () => {
-  // The shelf says which kind it means. The lecture page does not yet — it is
-  // repointed in phase 4 — so the default has to be the one it always ran.
+  // The shelf says which kind it means.
   assert.match(SHELF, /navigate\(`\/lecture-review\?ids=\$\{lectureIds\.join\(','\)\}&mode=quiz`\)/);
   assert.match(SHELF, /navigate\('\/lecture-review\/today\?mode=quiz'\)/);
   assert.match(SHELF, /navigate\('\/lecture-review\/week\?mode=quiz'\)/);
-  assert.match(DETAIL, /to=\{`\/lecture-review\?ids=\$\{lectureId\}`\}/);
-  assert.match(REVIEW, /const mode = searchParams\.get\('mode'\) \|\| 'quiz'/,
-    'a link with no mode must land on something rather than on a fork');
+  // The lecture page's own "Review" button is gone (phase 4): it ran the same
+  // generator as Quick Quiz, one page load later. What is left there goes to
+  // the shelf with the lecture filled in.
+  assert.doesNotMatch(DETAIL, /\/lecture-review\?ids=/);
+  assert.match(DETAIL, /studyPath\(\{ tab: 'now', classId: lecture\?\.class_id \|\| '', lectureIds: \[lectureId\] \}\)/);
+  // A link that still says nothing — InLectureQuiz's "Review missed" — has to
+  // land on something rather than on a fork.
+  assert.match(QUIZ, /navigate\(`\/lecture-review\/lecture\/\$\{lecture\.id\}`\)/);
+  assert.match(REVIEW, /const mode = searchParams\.get\('mode'\) \|\| 'quiz'/);
 });
 
 test('nothing is generated or charged for a mode that is not in play', () => {

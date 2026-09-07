@@ -5,7 +5,7 @@ import { BookOpen, Coffee, Sparkles } from 'lucide-react';
 const SUGGESTIONS = [
   { icon: BookOpen, text: "Review yesterday's lecture", link: '/classes', color: 'text-blue-500' },
   { icon: Coffee, text: 'Take a 15-minute break', link: null, color: 'text-muted-foreground' },
-  { icon: Sparkles, text: 'Start a study session', link: '/focus', color: 'text-primary' },
+  { icon: Sparkles, text: 'Start a study session', link: '/study?tab=now', color: 'text-primary' },
 ];
 
 export default function EmptyTimeSuggestion({ gapStart, gapEnd, startMin, hourHeight, nowMin }) {

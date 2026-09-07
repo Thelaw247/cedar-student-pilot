@@ -103,7 +103,7 @@ export default function CommandPalette({ classes: classesProp = null, lectures: 
   const defaultActions = [
     { label: 'Start Recording', icon: Mic, run: () => { onStartRecording?.(); setOpen(false); } },
     { label: 'Go to Calendar', icon: Calendar, run: () => { navigate('/today'); setOpen(false); } },
-    { label: 'Study', icon: BookOpen, run: () => { navigate('/planner'); setOpen(false); } },
+    { label: 'Study', icon: BookOpen, run: () => { navigate('/study'); setOpen(false); } },
     { label: 'To-do', icon: ListChecks, run: () => { navigate('/todos'); setOpen(false); } },
     { label: 'Analytics', icon: Clock, run: () => { navigate('/analytics'); setOpen(false); } },
   ];

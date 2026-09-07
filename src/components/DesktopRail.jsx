@@ -3,7 +3,7 @@ import { onDataChange } from '@/lib/dataChanged';
 import { Link } from 'react-router-dom';
 import { useTodaySchedule } from '@/hooks/useTodaySchedule';
 import { fetchWithCache } from '@/hooks/useEntityData';
-import { Clock, MapPin, GraduationCap, Headphones, CalendarPlus, FileText, AlertCircle } from 'lucide-react';
+import { Clock, MapPin, GraduationCap, CalendarPlus, FileText, AlertCircle } from 'lucide-react';
 import { classTint, classColor } from '@/lib/color';
 import { formatTime, todayString } from '@/lib/time';
 
@@ -19,17 +19,22 @@ import { formatTime, todayString } from '@/lib/time';
  * the left — on a wide desktop both were visible at once, which read as
  * clutter rather than convenience (3 Sep 2026 audit). Recording lives ONLY
  * in ClassStatusBar now (mobile top bar + desktop Sidebar); Review and To-do
- * live ONLY in the Sidebar nav and the Study tab's own review picker. What's
- * left below — Focus session, Add a class — has no other one-click entry
- * point, so it earns its place here.
+ * live ONLY in the Sidebar nav and the Study tab's own tool shelf. Focus
+ * session left too (navigation teardown, phase 4): it opened a picker asking
+ * which class, one screen from a Study nav item that does the job better and
+ * shows the clock while a session is running. What's left below — Add a
+ * class — has no other one-click entry point, so it earns its place here.
  *
  * Credits deliberately do NOT appear here — the CreditMeter pill in the
  * Sidebar (under the profile) is the one credit surface on desktop, and it
  * names the plan. Two balances on one screen read as two sources of truth.
  */
 
+// "Focus session" used to head this list. It opened a picker asking which
+// class — on a rail that sits beside a Study nav item doing the same job
+// better, now that the clock lives there and shows itself while running.
+// Two controls, one intent, one screen apart.
 const QUICK_ACTIONS = [
-  { to: '/focus', icon: Headphones, label: 'Focus session' },
   { to: '/classes?add=1', icon: CalendarPlus, label: 'Add a class' },
 ];
 
@@ -141,7 +146,7 @@ export default function DesktopRail() {
               return (
                 <Link
                   key={a.id}
-                  to={a.class_id ? `/classes/${a.class_id}?tab=assignments&assignmentId=${a.id}` : '/planner'}
+                  to={a.class_id ? `/classes/${a.class_id}?tab=assignments&assignmentId=${a.id}` : '/study'}
                   className="flex items-center gap-2.5 rounded-lg p-2 transition-colors hover:bg-muted"
                 >
                   <span className="w-[3px] h-7 rounded-full flex-shrink-0" style={{ backgroundColor: classColor(cls?.color) }} />
@@ -197,7 +202,9 @@ export default function DesktopRail() {
         <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">
           Quick actions
         </p>
-        <div className="grid grid-cols-2 gap-1.5">
+        {/* Two columns while there are two; one card in a two-column grid is
+            a half-width card beside a hole. */}
+        <div className={`grid gap-1.5 ${QUICK_ACTIONS.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
           {QUICK_ACTIONS.map((q) => (
             <Link
               key={q.to}

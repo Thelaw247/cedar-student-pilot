@@ -84,6 +84,24 @@ export function studyPath(scope = {}) {
 }
 
 /**
+ * Where a booked session opens.
+ *
+ * Almost every session is the study page, carrying its id — the scope, the
+ * goal and the labels all come off the row. A project session is the one
+ * exception: it works through a roadmap step rather than a set of lectures,
+ * so it keeps its own screen.
+ *
+ * Written once because five callers make this decision — the planner's session
+ * row, the due-session notifier, Rebook's "Start now", and the redirects — and
+ * four of them used to send everything to /focus regardless.
+ */
+export function sessionStudyPath(session) {
+  if (!session?.id) return studyPath({ tab: 'now' });
+  if (session.session_type === 'project') return `/focus/${session.id}`;
+  return studyPath({ tab: 'now', sessionId: session.id });
+}
+
+/**
  * The scope, live, backed by the URL.
  *
  * `replace` on write, deliberately: a student changing which lectures they

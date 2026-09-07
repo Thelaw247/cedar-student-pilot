@@ -4,7 +4,7 @@ import CoverageChecklist from '@/components/CoverageChecklist';
 import GateNotice, { gateFromError } from '@/components/monetization/GateNotice';
 import { base44 } from '@/api/base44Client';
 import { onDataChange } from '@/lib/dataChanged';
-import { ChevronLeft, Plus, GraduationCap, Clock, MapPin, Mic, Loader2, Calendar, AlertCircle, Brain, Headphones, Pencil, AlertTriangle, Search, X, BookOpen, FolderPlus, Shield, Mail, Check, Archive, RotateCcw, CheckCircle2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, GraduationCap, Clock, MapPin, Mic, Loader2, Calendar, AlertCircle, Brain, Pencil, AlertTriangle, Search, X, BookOpen, FolderPlus, Shield, Mail, Check, Archive, RotateCcw, CheckCircle2 } from 'lucide-react';
 import EditClassModal from '@/components/EditClassModal';
 import ProjectAssignmentModal from '@/components/ProjectAssignmentModal';
 import AssignmentEditModal from '@/components/AssignmentEditModal';
@@ -22,6 +22,7 @@ import LectureScopePicker, { explicitScopeIds } from '@/components/LectureScopeP
 import { COVERAGE_SCOPE_LABEL } from '@/lib/assignmentScope';
 import { useFeatureGate } from '@/components/monetization/useFeatureGate';
 import { hasFeature } from '@/lib/tiers';
+import { studyPath } from '@/lib/studyScope';
 
 export default function ClassDetail() {
   const { classId } = useParams();
@@ -666,32 +667,25 @@ function StudyTab({ classId, cls, lectures, onUpdate }) {
 
   return (
     <div>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
-        <Link to={`/planner?tab=practice&classId=${classId}`}
-          className="rounded-xl border border-border bg-card p-4 hover:shadow-md transition-all group">
-          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mb-3">
-            <Brain className="w-5 h-5 text-primary" />
-          </div>
-          <h3 className="text-sm font-medium text-foreground">Practice</h3>
-          <p className="text-xs text-muted-foreground mt-0.5">Flashcards, quizzes, and practice tests for this class</p>
-        </Link>
-        <Link to={`/planner?tab=plan&classId=${classId}`}
-          className="rounded-xl border border-border bg-card p-4 hover:shadow-md transition-all group">
-          <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center mb-3">
-            <BookOpen className="w-5 h-5 text-emerald-600" />
-          </div>
-          <h3 className="text-sm font-medium text-foreground">Plan &amp; review</h3>
-          <p className="text-xs text-muted-foreground mt-0.5">Review lectures, set a test, and plan study sessions</p>
-        </Link>
-        <Link to="/focus"
-          className="rounded-xl border border-border bg-card p-4 hover:shadow-md transition-all group">
-          <div className="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center mb-3">
-            <Headphones className="w-5 h-5 text-amber-600" />
-          </div>
-          <h3 className="text-sm font-medium text-foreground">Focus session</h3>
-          <p className="text-xs text-muted-foreground mt-0.5">Classical music and a timer</p>
-        </Link>
-      </div>
+      {/* One door, with this class already picked.
+          There were three. "Practice" and "Plan & review" were the same page
+          under two names — and the classId the second one carried was read by
+          nothing, because the schedule tab lists every class. "Focus session"
+          opened a wizard that asked which class you wanted, on a page that was
+          already showing you one. */}
+      <Link to={studyPath({ tab: 'now', classId })}
+        className="flex items-center gap-3 rounded-xl border border-border bg-card p-4 mb-4 hover:border-primary/30 hover:shadow-2 transition-all duration-micro">
+        <span className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+          <Brain className="w-5 h-5 text-primary" />
+        </span>
+        <span className="flex-1 min-w-0">
+          <span className="block text-sm font-medium text-foreground">Study this class</span>
+          <span className="block text-xs text-muted-foreground mt-0.5">
+            Quiz, handbook, paper guide, flashcards and the timer &mdash; on {cls?.name || 'this class'}, or the lectures you pick
+          </span>
+        </span>
+        <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+      </Link>
 
       <div className="rounded-xl border border-dashed border-border p-5">
         <div className="flex items-start gap-3">

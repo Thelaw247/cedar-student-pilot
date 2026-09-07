@@ -54,7 +54,7 @@ export default function AssignmentDetectedNotice() {
             <p className="text-xs text-muted-foreground mt-0.5">
               "{a.title}" — due {new Date(`${a.due_date}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}. Study sessions are already booked for it.
             </p>
-            <Link to="/planner" onClick={() => dismiss(a.id)} className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline mt-1.5">
+            <Link to="/study?tab=schedule" onClick={() => dismiss(a.id)} className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline mt-1.5">
               View in Study <ChevronRight className="w-3 h-3" />
             </Link>
           </div>

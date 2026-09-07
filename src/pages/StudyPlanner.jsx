@@ -11,7 +11,7 @@ import CoverageChecklist from '@/components/CoverageChecklist';
 import { sessionTitle, sessionDescription } from '@/lib/sessionTitle';
 import { classColor } from '@/lib/color';
 import Segmented from '@/components/ui/Segmented';
-import { useStudyScope } from '@/lib/studyScope';
+import { useStudyScope, sessionStudyPath } from '@/lib/studyScope';
 import StudyTimer from '@/study/StudyTimer';
 import { useStudySession } from '@/study/StudySessionContext';
 
@@ -103,6 +103,11 @@ export default function StudyPlanner() {
       try {
         const s = await base44.entities.StudySession.get(scope.sessionId);
         if (cancelled || !s) return;
+        // A project session is not studied here — it has a roadmap step and a
+        // rubric, not lectures. Nothing should link it to this page, but a
+        // hand-edited URL or an old bookmark can, and adopting it would show
+        // the lecture shelf for a session that has none.
+        if (s.session_type === 'project') { navigate(sessionStudyPath(s), { replace: true }); return; }
         const [c, a] = await Promise.all([
           s.class_id ? base44.entities.Class.get(s.class_id).catch(() => null) : null,
           s.assignment_id ? base44.entities.Assignment.get(s.assignment_id).catch(() => null) : null,
@@ -413,7 +418,7 @@ export default function StudyPlanner() {
                             this session was for — a question the row itself
                             answers. It now brings the session here: scope
                             filled in, goal set to its booked length. */}
-                        <button type="button" onClick={() => setScope({ tab: 'now', sessionId: s.id })}
+                        <button type="button" onClick={() => navigate(sessionStudyPath(s))}
                           className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-border text-xs font-medium text-foreground hover:bg-primary/5 hover:border-primary/30 transition-colors">
                           <Headphones className="w-3.5 h-3.5" /> Study this
                         </button>

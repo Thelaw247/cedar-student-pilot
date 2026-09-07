@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
+import { sessionStudyPath } from '@/lib/studyScope';
 import { useNavigate } from 'react-router-dom';
 import { Headphones, RefreshCw, Loader2 } from 'lucide-react';
 import { getSetting } from '@/lib/settings';
@@ -65,7 +66,10 @@ export default function StudySessionNotifier() {
   const classMap = Object.fromEntries(classes.map(c => [c.id, c]));
 
   const handleStudyNow = () => {
-    navigate(`/focus/${pendingSession.id}`);
+    // The session goes with it: the study page fills the scope in from the
+    // row and sets the goal to the length it was booked for. A project
+    // session still keeps its own screen — sessionStudyPath knows which.
+    navigate(sessionStudyPath(pendingSession));
   };
 
   const handleRebook = async () => {

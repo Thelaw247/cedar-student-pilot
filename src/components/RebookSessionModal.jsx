@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
+import { sessionStudyPath } from '@/lib/studyScope';
 import GateNotice, { gateFromError } from '@/components/monetization/GateNotice';
 import { Sparkles, CalendarClock, Zap, X, Loader2, Check, Calendar } from 'lucide-react';
 
@@ -71,7 +72,7 @@ export default function RebookSessionModal({ session, className = '', onClose, o
       });
       onRebooked?.();
       onClose();
-      navigate(`/focus/${session.id}`);
+      navigate(sessionStudyPath(session));
     } catch (e) {
       setError(e?.message || 'Could not start session.');
       setManualLoading(false);

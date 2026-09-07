@@ -23,12 +23,13 @@ const severityColors = {
 // summaries); the planner handles scheduling, rescheduling, and review.
 const riskActions = {
   missed_lectures: { label: 'View classes', to: '/classes' },
-  low_engagement: { label: 'Plan a study session', to: '/planner?tab=plan' },
-  no_study_planned: { label: 'Generate study plan', to: '/planner?tab=plan' },
-  low_proficiency: { label: 'Review weak topics', to: '/planner?tab=practice' },
-  behind_schedule: { label: 'Reschedule my plan', to: '/planner?tab=plan' },
+  low_engagement: { label: 'Plan a study session', to: '/study?tab=schedule' },
+  no_study_planned: { label: 'Generate study plan', to: '/study?tab=schedule' },
+  // The one risk resolved by studying rather than by scheduling.
+  low_proficiency: { label: 'Review weak topics', to: '/study?tab=now' },
+  behind_schedule: { label: 'Reschedule my plan', to: '/study?tab=schedule' },
 };
-const fallbackAction = { label: 'Open study planner', to: '/planner' };
+const fallbackAction = { label: 'Open the study page', to: '/study' };
 
 export default function RiskIndicatorCard() {
   const navigate = useNavigate();
@@ -118,7 +119,7 @@ export default function RiskIndicatorCard() {
               </p>
               <p className="text-[11px] text-muted-foreground mt-0.5">{data.burnout_advice}</p>
               <button
-                onClick={() => navigate('/planner?tab=plan')}
+                onClick={() => navigate('/study?tab=schedule')}
                 className={`mt-2 inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-lg transition-colors ${data.burnout_level === 'high' ? 'text-rose-600 bg-rose-500/10 hover:bg-rose-500/20' : 'text-amber-600 bg-amber-500/10 hover:bg-amber-500/20'}`}
               >
                 Rebalance my plan <ChevronRight className="w-3 h-3" />

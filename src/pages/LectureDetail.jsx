@@ -5,7 +5,7 @@ import { onDataChange } from '@/lib/dataChanged';
 import { fetchWithCache } from '@/hooks/useEntityData';
 import { cacheGet, cacheSet, invalidateEntity } from '@/lib/cache';
 import { enqueueOperation } from '@/lib/syncQueue';
-import { ChevronLeft, FileText, Clock, AlertCircle, Loader2, BookOpen, ListChecks, Sparkles, Headphones, CloudOff, Zap, Trash2, AlertTriangle } from 'lucide-react';
+import { ChevronLeft, FileText, Clock, AlertCircle, Loader2, BookOpen, Sparkles, Brain, CloudOff, Zap, Trash2, AlertTriangle } from 'lucide-react';
 import TranscriptActions from '@/components/TranscriptActions';
 import LectureJumpNav from '@/components/lecture/LectureJumpNav';
 import TranscriptViewer, { TranscriptCleanup } from '@/components/lecture/TranscriptViewer';
@@ -17,6 +17,8 @@ import {
 } from '@/components/lecture/StudySections';
 import { enrichmentOf } from '@/components/lecture/lectureStudy';
 import InLectureQuiz from '@/components/InLectureQuiz';
+import HandbookReader from '@/components/HandbookReader';
+import { studyPath } from '@/lib/studyScope';
 import AutosaveIndicator from '@/components/AutosaveIndicator';
 import { useBalance } from '@/hooks/useBalance';
 import Widget from '@/components/ui/Widget';
@@ -42,6 +44,7 @@ export default function LectureDetail() {
   const noteTimerRef = useRef(null);
   const [noteStatus, setNoteStatus] = useState('idle');
   const [showQuiz, setShowQuiz] = useState(false);
+  const [showHandbook, setShowHandbook] = useState(false);
   // On-demand transcript cleanup — a paid pass, so it is never automatic.
   const [cleaning, setCleaning] = useState(false);
   const [cleanError, setCleanError] = useState(null);
@@ -57,6 +60,7 @@ export default function LectureDetail() {
   const { tier } = useBalance();
   const { openUpgrade } = useUpgrade();
   const quizGate = useFeatureGate('lecture_review');
+  const handbookGate = useFeatureGate('handbook');
   const cleanGate = useFeatureGate('clean_transcript');
   const [upsellDismissed, setUpsellDismissed] = useState(() => {
     try { return !!localStorage.getItem(`cedar-lec-upsell-${lectureId}`); } catch { return true; }
@@ -365,18 +369,27 @@ export default function LectureDetail() {
               </button>
             )
           )}
-          <Link to={`/lecture-review?ids=${lectureId}`}
+          {/* One door to the study page, with this lecture already picked.
+              There used to be three. "Review" ran the same generator as Quick
+              Quiz, one page load later; "Practice" and "Focus" landed on the
+              same screen, and Focus threw the lecture away on the way. Quick
+              Quiz survives because it is not a door at all — it opens the
+              material here, on this page, in five timed minutes. */}
+          <Link to={studyPath({ tab: 'now', classId: lecture?.class_id || '', lectureIds: [lectureId] })}
             className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border text-xs font-medium text-foreground hover:bg-primary/5 hover:border-primary/30 transition-colors">
-            <ListChecks className="w-3.5 h-3.5" /> Review
+            <Brain className="w-3.5 h-3.5" /> Study this lecture
           </Link>
-          <Link to={`/planner?tab=practice&classId=${lecture?.class_id || ''}&ids=${lectureId}`}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border text-xs font-medium text-foreground hover:bg-primary/5 hover:border-primary/30 transition-colors">
-            <BookOpen className="w-3.5 h-3.5" /> Practice
-          </Link>
-          <Link to={`/focus?lectureId=${lectureId}&classId=${lecture?.class_id || ''}`}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border text-xs font-medium text-foreground hover:bg-primary/5 hover:border-primary/30 transition-colors">
-            <Headphones className="w-3.5 h-3.5" /> Focus
-          </Link>
+          {handbookGate.allowed ? (
+            <button onClick={() => setShowHandbook(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border text-xs font-medium text-foreground hover:bg-primary/5 hover:border-primary/30 transition-colors">
+              <BookOpen className="w-3.5 h-3.5" /> Handbook
+            </button>
+          ) : (
+            <button onClick={handbookGate.lock} title={`The handbook ships with ${handbookGate.requiredTierName}`}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-muted text-muted-foreground text-xs font-medium hover:text-foreground transition-colors">
+              <Lock className="w-3.5 h-3.5" /> Handbook
+            </button>
+          )}
           <button onClick={() => setConfirmingDelete(true)} aria-label="Delete lecture"
             className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-destructive/30 text-destructive text-xs font-medium hover:bg-destructive/10 transition-colors">
             <Trash2 className="w-3.5 h-3.5" />
@@ -580,6 +593,14 @@ export default function LectureDetail() {
         </div>
       </Section>
       {/* In-lecture focus quiz */}
+      {showHandbook && lecture?.class_id && (
+        <HandbookReader
+          classId={lecture.class_id}
+          lectureIds={[lectureId]}
+          onClose={() => setShowHandbook(false)}
+        />
+      )}
+
       {showQuiz && lecture && (
         <InLectureQuiz
           lecture={lecture}
