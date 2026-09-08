@@ -4,6 +4,7 @@ import { fetchWithCache } from '@/hooks/useEntityData';
 import { GraduationCap, Check, X, Loader2, Clock } from 'lucide-react';
 import { getClassMeetingsForDate } from '@/lib/classSchedule';
 import { classTint, classColor } from '@/lib/color';
+import { useRecording } from '@/recording/RecordingContext';
 
 function formatDate(dateStr) {
   const d = new Date(dateStr + 'T00:00:00');
@@ -82,6 +83,12 @@ export default function AttendancePrompt() {
   const [index, setIndex] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [dismissed, setDismissed] = useState(false);
+  // A full-screen scrim at z-50 sits over the recording pill at z-40. On
+  // 8 Sep 2026 that is what buried an interrupted recording the app had
+  // already found and was offering to save: the one screen that could give
+  // the lecture back was underneath the one asking whether the student had
+  // been in the room. Attendance can wait a visit; audio cannot.
+  const { active: sessionActive } = useRecording();
 
   const loadPending = useCallback(async () => {
     try {
@@ -121,18 +128,13 @@ export default function AttendancePrompt() {
         confirmed_at: new Date().toISOString(),
       });
 
-      // If attended but didn't record, generate an AI-estimated summary
-      if (attended) {
-        try {
-          await base44.functions.invoke('generateMissedLectureSummary', {
-            class_id: current.classObj.id,
-            date: current.date,
-          });
-        } catch (e) {
-          console.error(e);
-        }
-      }
-
+      // Answering "yes" used to invoke generateMissedLectureSummary here, which
+      // wrote an AI-invented lecture into the class and charged 2 credits for
+      // it — from a yes/no question about attendance, with nothing on screen
+      // saying that would happen. A student who wants an estimate asks for one
+      // on the class page, where the confirmation says what it creates and the
+      // notes box lets them anchor it to what they remember. This records
+      // attendance and nothing else.
       setIndex(i => i + 1);
     } catch (e) {
       console.error(e);
@@ -144,7 +146,7 @@ export default function AttendancePrompt() {
     setDismissed(true);
   };
 
-  if (dismissed || !current) return null;
+  if (dismissed || sessionActive || !current) return null;
 
   const remaining = pending.length - index;
 
@@ -188,12 +190,13 @@ export default function AttendancePrompt() {
           </button>
         </div>
 
-        {remaining > 1 && (
-          <button onClick={handleDismissAll}
-            className="mt-3 text-xs text-muted-foreground hover:text-foreground transition-colors">
-            {remaining - 1} more pending — dismiss all
-          </button>
-        )}
+        {/* Always here. Gated on `remaining > 1`, a single pending session had
+            no third door: the student had to answer a question about a class
+            they might not remember, on a screen they did not ask for. */}
+        <button onClick={handleDismissAll}
+          className="mt-3 text-xs text-muted-foreground hover:text-foreground transition-colors">
+          {remaining > 1 ? `${remaining - 1} more pending — ask me later` : 'Ask me later'}
+        </button>
       </div>
     </div>
   );

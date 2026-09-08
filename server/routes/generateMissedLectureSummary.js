@@ -4,7 +4,20 @@ import { requireAuth } from '../middleware/requireAuth.js';
 import { invokeLLM, createLlmUsage, QUALITY_MODEL } from '../lib/llm.js';
 import { gateFeature, settleFeature } from '../lib/credits.js';
 
-// Direct port of base44/functions/generateMissedLectureSummary/entry.ts.
+// An AI-estimated stand-in for a lecture the student could not record.
+//
+// This is a real feature with a careful front door: the class page's
+// MissedLectureConfirmModal states plainly that it creates a lecture entry
+// that "doesn't reflect what was actually taught", takes optional notes so the
+// estimate is anchored to something the student actually remembers, and shows
+// the upgrade sheet when the plan does not include it.
+//
+// It also used to have a back door. AttendancePrompt called this the moment a
+// student answered "yes, I attended" — no confirmation, no explanation, no way
+// to decline — so on 8 Sep 2026 a lecture whose recording had been interrupted
+// by a dead phone was replaced by an invented one, on a class the student had
+// just confirmed they were in, for 2 credits. That caller is gone; this is
+// reached only when someone asks for it by name.
 
 const router = express.Router();
 
@@ -17,6 +30,24 @@ router.post('/', requireAuth, async (req, res) => {
     const { rows: clsRows } = await pool.query('select * from classes where id = $1 and user_id = $2', [class_id, userId]);
     const cls = clsRows[0];
     if (!cls) return res.status(404).json({ error: 'Class not found' });
+
+    // One lecture per class per day. Nothing stopped a second estimate landing
+    // beside a real recording for the same date, which is how a student ends up
+    // studying from a lecture nobody taught while the transcript of the one that
+    // happened sits next to it. Checked before the gate so a refusal is free.
+    const forDate = date || new Date().toISOString().split('T')[0];
+    const { rows: sameDay } = await pool.query(
+      'select id, is_ai_estimated from lectures where class_id = $1 and user_id = $2 and date = $3 limit 1',
+      [class_id, userId, forDate]);
+    if (sameDay[0]) {
+      return res.status(409).json({
+        error: 'lecture_exists',
+        lecture_id: sameDay[0].id,
+        message: sameDay[0].is_ai_estimated
+          ? 'This class already has an AI-estimated lecture for that date. Open it, or delete it first if you want a fresh estimate.'
+          : 'This class already has a recorded lecture for that date, so there is nothing to estimate.',
+      });
+    }
 
     const gate = await gateFeature(userId, 'missed_summary', res);
     if (!gate.ok) return;
@@ -60,7 +91,7 @@ IMPORTANT: This is an estimation based on course progression. Be clear that this
     const { rows: inserted } = await pool.query(
       `insert into lectures (class_id, date, is_missed, is_ai_estimated, status, ai_title, ai_summary, ai_concepts, ai_vocabulary, ai_action_items, actual_instructor, instructor_confirmed, user_id)
        values ($1, $2, true, true, 'complete', $3, $4, $5, $6, $7, 'AI', true, $8) returning id`,
-      [class_id, date || new Date().toISOString().split('T')[0], analysis.title, analysis.summary, analysis.concepts || [], analysis.vocabulary || [], analysis.action_items || [], userId]);
+      [class_id, forDate, analysis.title, analysis.summary, analysis.concepts || [], analysis.vocabulary || [], analysis.action_items || [], userId]);
     const lectureId = inserted[0].id;
 
     await settleFeature(gate, { feature: 'missed_summary', llmUsage, extra: { class_id, lecture_id: lectureId } });

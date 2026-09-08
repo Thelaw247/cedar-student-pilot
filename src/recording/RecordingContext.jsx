@@ -389,12 +389,42 @@ export function RecordingProvider({ children }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recording, paused]);
 
-  /** Begin a new session for a class. Consent is confirmed by the caller
-   *  (RecordModal's gate) before this runs — same order as before. */
+  /**
+   * Begin a new session for a class. Consent is confirmed by the caller
+   * (RecordModal's gate) before this runs — same order as before.
+   *
+   * Resolves to 'started', 'busy', 'recovery-pending' or 'mic-denied'.
+   *
+   * WHY THE STORE IS CHECKED HERE AND NOT ONLY IN THE MODAL.
+   *
+   * recordingStore holds ONE record per [userId, classId], and every 15-second
+   * flush is a put over whatever sits there. So beginning a second session for
+   * a class whose last recording never finished saving destroys that audio
+   * about fifteen seconds in — silently, while the new lecture looks fine.
+   *
+   * RecordModal does look for a recoverable recording and shows it instead of
+   * the start screen, but that lookup is async and the start screen is what
+   * renders until it resolves: on a phone opened in a hurry at the top of the
+   * next class, a fast tap gets in first. A guard in the modal is a courtesy;
+   * this one is the invariant, at the only place that can actually break it.
+   *
+   * The check sits AFTER getUserMedia, which looks backwards and is not.
+   * Safari grants the microphone against the user activation from the tap, and
+   * an awaited IndexedDB read before the call can spend that activation and
+   * leave the request refused — on a phone, which is where every recording in
+   * this app actually happens. So the stream is taken first and released
+   * immediately if the class turns out to be holding unsaved audio; the
+   * permission prompt is already answered by the second session anyway.
+   */
   const start = useCallback(async (classInfo) => {
-    if (recordingRef.current) return false; // one session at a time
+    if (recordingRef.current) return 'busy'; // one session at a time
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const stored = await getRecording(classInfo.id).catch(() => null);
+      if (stored) {
+        stream.getTracks().forEach((t) => { try { t.stop(); } catch { /* already ended */ } });
+        return 'recovery-pending';
+      }
       setCls({ id: classInfo.id, name: classInfo.name, color: classInfo.color });
       clsRef.current = { id: classInfo.id, name: classInfo.name, color: classInfo.color };
       streamRef.current = stream;
@@ -427,9 +457,9 @@ export function RecordingProvider({ children }) {
       startSegment();
       setRecording(true);
       setPaused(false);
-      return true;
+      return 'started';
     } catch (e) {
-      return false; // caller shows the microphone-permission message
+      return 'mic-denied'; // caller shows the microphone-permission message
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

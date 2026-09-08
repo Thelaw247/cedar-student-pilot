@@ -318,13 +318,23 @@ function RecordModal({ classId, cls, onClose }) {
   const begin = async () => {
     setMicError(false);
     setStarting(true);
-    const ok = await rec.start(classInfo);
+    const outcome = await rec.start(classInfo);
     setStarting(false);
-    if (ok) {
+    if (outcome === 'started') {
       onClose(); // hand off to the island — keep browsing while it records
-    } else {
-      setMicError(true);
+      return;
     }
+    if (outcome === 'recovery-pending') {
+      // The engine refused because this class still has audio that never
+      // finished saving — the lookup in the effect above had not resolved
+      // when the button was pressed. Show what it found instead of starting
+      // over it. If the second read comes back empty the refusal still stands,
+      // so say so rather than leaving a button that silently does nothing.
+      const found = await findRecoverableRecording(classId);
+      if (found) setRecovery(found); else setMicError(true);
+      return;
+    }
+    setMicError(true);
   };
 
   const recoverAndSave = () => {
@@ -465,7 +475,9 @@ function AssignmentTab({ assignments, lectures = [], coverage = [], classId, cls
     assignment: 'bg-blue-500/10 text-blue-600',
   };
 
-  const todayStr = new Date().toISOString().split('T')[0];
+  // Local, not UTC — toISOString rolls the date over at 18:00 here, so every
+  // evening an assignment due TODAY started rendering with a "Past due" badge.
+  const todayStr = new Date().toLocaleDateString('en-CA');
   const statusOf = (a) => a.status || 'active';
   const isPastDue = (a) => statusOf(a) === 'active' && a.due_date && a.due_date < todayStr;
 
@@ -727,14 +739,23 @@ function MissedLectureConfirmModal({ classId, onClose, onGenerated }) {
     try {
       await base44.functions.invoke('generateMissedLectureSummary', {
         class_id: classId,
-        date: new Date().toISOString().split('T')[0],
+        // Local, not UTC. toISOString rolls over at 18:00 here, so an estimate
+        // asked for on a Tuesday evening was filed against Wednesday — which
+        // also means it would slip past the server's one-per-day check for the
+        // day it was meant to cover.
+        date: new Date().toLocaleDateString('en-CA'),
         guidance_notes: notes.trim() || undefined,
       });
       onGenerated();
     } catch (e) {
       // An alert cannot hold an upgrade button, which is why this is inline now.
       const g = gateFromError(e);
-      if (g) setGate(g); else setError('Failed to generate missed lecture summary. Please try again.');
+      // The server refuses a second lecture for a date that already has one,
+      // and says which kind it is. "Please try again" would send the student
+      // back to press a button that is going to refuse again.
+      if (g) setGate(g);
+      else setError(e?.response?.data?.message
+        || 'Failed to generate missed lecture summary. Please try again.');
       setGenerating(false);
     }
   };
