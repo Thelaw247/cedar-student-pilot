@@ -43,6 +43,9 @@ router.post('/', requireAuth, async (req, res) => {
     }
 
     let scopeLabel = 'Full Class';
+    // Set when the assignment itself is what emptied the list, so the "there
+    // is nothing here" message below can say which of the two reasons it is.
+    let scopedToNothing = false;
     if (assignment_id) {
       const asgn = (await pool.query('select * from assignments where id = $1 and user_id = $2', [assignment_id, userId])).rows[0];
       if (asgn) {
@@ -58,6 +61,11 @@ router.post('/', requireAuth, async (req, res) => {
           [class_id, userId, asgn.due_date],
         )).rows;
         lectures = resolveAssignmentLectures(asgn, lectures, priors);
+        // coverage_scope 'none' — an assignment or project that covers no
+        // lectures, which is what most of them do. Telling that student to
+        // "record and process lectures first" blames them for a class that
+        // is fully recorded.
+        scopedToNothing = lectures.length === 0 && allForClass.length > 0;
       }
     }
 
@@ -71,7 +79,9 @@ router.post('/', requireAuth, async (req, res) => {
         table_of_contents: [], chapters: [], total_lectures: 0, lectures_in_scope: lectures.length, lectures_excluded: excludedCount,
         message: lectures.length > 0
           ? `${lectures.length} lecture${lectures.length === 1 ? '' : 's'} in this class have not been processed yet. Process them to build the handbook.`
-          : 'No lecture content available yet. Record and process lectures first.',
+          : scopedToNothing
+            ? `"${scopeLabel}" isn't set to cover any lectures, so there's nothing to build a handbook from. Open it and choose what it covers.`
+            : 'No lecture content available yet. Record and process lectures first.',
       });
     }
 

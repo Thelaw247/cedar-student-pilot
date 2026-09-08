@@ -1,10 +1,14 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
-import { X, Loader2, CalendarClock, Check, Trash2, AlertTriangle } from 'lucide-react';
+import { X, Loader2, CalendarClock, Check, Trash2, AlertTriangle, Lock } from 'lucide-react';
 import { useAutosave } from '@/hooks/useAutosave';
 import DeleteXButton from '@/components/DeleteXButton';
 import AutosaveIndicator from '@/components/AutosaveIndicator';
 import { defaultSessionTitle } from '@/lib/sessionTitle';
+import DeadlineCoverage, { coverageSummary } from '@/components/DeadlineCoverage';
+import { resolveAssignmentLectures, deadlineTypeLabel } from '@/lib/assignmentScope';
+import { useFeatureGate, LOCKED_BUTTON_CLASS } from '@/components/monetization/useFeatureGate';
+import { bookSessionsFor } from '@/lib/saveDeadline';
 
 /**
  * AssignmentEditModal — edit an assignment's title/due date, edit and delete
@@ -28,11 +32,32 @@ export default function AssignmentEditModal({ assignment, onClose, onUpdate }) {
   const [dueDate, setDueDate] = useState(assignment.due_date || '');
   const [rubric, setRubric] = useState(assignment.rubric || []);
   const [newRubricItem, setNewRubricItem] = useState('');
+  // What this deadline covers, editable after the fact — the only place it
+  // can be. An assignment that turns out to be about three lectures after
+  // all, or an exam whose scope the professor narrowed, had no way to say so
+  // once it was saved.
+  // 'cumulative', not the type's default: that is what resolveAssignmentLectures
+  // falls back to for a missing scope, and two different answers to the same
+  // absent value would show "No lectures" for a deadline the scheduler and the
+  // handbook are building from the whole term.
+  const [coverageScope, setCoverageScope] = useState(assignment.coverage_scope || 'cumulative');
+  const [coverageIds, setCoverageIds] = useState(assignment.lecture_ids || []);
+  const [showCoverage, setShowCoverage] = useState(false);
+  const [classLectures, setClassLectures] = useState([]);
+  const [classAssignments, setClassAssignments] = useState([]);
 
   const [sessions, setSessions] = useState([]);
   const [loadingSessions, setLoadingSessions] = useState(true);
   // Per-session local edit buffers, keyed by session id.
   const [edits, setEdits] = useState({});
+  // Booking sessions for a deadline that has none. This is the durable way
+  // in: a deadline added on a plan without study planning has no sessions and
+  // no way to get them, whether the upgrade came later, on another device, or
+  // never. Greyed rather than hidden when the plan does not include it, so
+  // the reason is on the control instead of behind it.
+  const scheduleGate = useFeatureGate('study_schedule');
+  const [planning, setPlanning] = useState(false);
+  const [planError, setPlanError] = useState(null);
   const [deletingAssignment, setDeletingAssignment] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleteError, setDeleteError] = useState('');
@@ -53,15 +78,24 @@ export default function AssignmentEditModal({ assignment, onClose, onUpdate }) {
         : 'idle';
 
   const isProject = assignment.type === 'project';
-  const typeLabel = isProject ? 'project' : assignment.type === 'exam' ? 'exam' : assignment.type === 'quiz' ? 'quiz' : 'assignment';
+  const typeLabel = deadlineTypeLabel(assignment.type);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const sess = await base44.entities.StudySession.filter({ assignment_id: assignment.id }, 'scheduled_date');
+        // The class's lectures and its other deadlines, for the coverage
+        // control: it previews what the scope resolves to, and 'since_last'
+        // measures from the previous exam or quiz.
+        const [sess, lecs, siblings] = await Promise.all([
+          base44.entities.StudySession.filter({ assignment_id: assignment.id }, 'scheduled_date'),
+          assignment.class_id ? base44.entities.Lecture.filter({ class_id: assignment.class_id }, 'date').catch(() => []) : Promise.resolve([]),
+          assignment.class_id ? base44.entities.Assignment.filter({ class_id: assignment.class_id }).catch(() => []) : Promise.resolve([]),
+        ]);
         if (!cancelled) {
           setSessions(sess);
+          setClassLectures(lecs);
+          setClassAssignments(siblings);
           const initial = {};
           sess.forEach((s, i) => {
             initial[s.id] = {
@@ -100,6 +134,15 @@ export default function AssignmentEditModal({ assignment, onClose, onUpdate }) {
     assignmentSaver.save(assignment.id, { due_date: value });
   };
 
+  const onCoverageChange = ({ scope, lectureIds }) => {
+    setCoverageScope(scope);
+    setCoverageIds(lectureIds);
+    dirtyRef.current = true;
+    // lecture_ids is only read for 'custom'; clearing it on the other scopes
+    // keeps a stale list from resurfacing if the student switches back.
+    assignmentSaver.save(assignment.id, { coverage_scope: scope, lecture_ids: scope === 'custom' ? lectureIds : [] });
+  };
+
   // ---- Rubric / grading criteria (autosaved) -------------------------------
   // Kept on the assignment itself (not a session) so it travels with it and
   // shows the same regardless of which study session the student opens.
@@ -119,6 +162,40 @@ export default function AssignmentEditModal({ assignment, onClose, onUpdate }) {
     setRubric(updated);
     dirtyRef.current = true;
     assignmentSaver.save(assignment.id, { rubric: updated });
+  };
+
+  const planSessions = async () => {
+    setPlanning(true);
+    setPlanError(null);
+    try {
+      const created = await bookSessionsFor(assignment.id);
+      // The scheduler books nothing for a deadline whose date has passed —
+      // there is no time left to spread work across. Without this the button
+      // spun, the empty state came back unchanged, and a credit was gone.
+      if (created === 0) {
+        setPlanError(dueDate && dueDate < new Date().toLocaleDateString('en-CA')
+          ? `This ${typeLabel} is already past its due date, so there is nothing left to plan.`
+          : 'No sessions could be placed before the due date. Try moving the date out, or add a session by hand.');
+        setPlanning(false);
+        return;
+      }
+      const fresh = await base44.entities.StudySession.filter({ assignment_id: assignment.id }, 'scheduled_date');
+      setSessions(fresh);
+      const seeded = {};
+      fresh.forEach((s, i) => {
+        seeded[s.id] = {
+          title: s.title || defaultSessionTitle(s, assignment, i),
+          scheduled_date: s.scheduled_date || '', scheduled_time: s.scheduled_time || '', notes: s.notes || '',
+        };
+      });
+      setEdits(seeded);
+      dirtyRef.current = true;
+    } catch (err) {
+      console.error(err);
+      setPlanError(err?.response?.data?.message || err?.response?.data?.error
+        || 'The sessions could not be booked. Try again in a moment.');
+    }
+    setPlanning(false);
   };
 
   // ---- Sessions (autosaved) -----------------------------------------------
@@ -202,6 +279,30 @@ export default function AssignmentEditModal({ assignment, onClose, onUpdate }) {
           </div>
         </div>
 
+        {/* What it covers — the same control the add forms use, so the
+            answer means the same thing here as it did when it was created. */}
+        <div className="mt-5 pt-4 border-t border-border">
+          {showCoverage ? (
+            <>
+              <DeadlineCoverage
+                type={assignment.type} lectures={classLectures} dueDate={dueDate}
+                scope={coverageScope} lectureIds={coverageIds}
+                priorAssignments={classAssignments} onChange={onCoverageChange}
+              />
+              <p className="text-[11px] text-muted-foreground mt-2">
+                This decides what new study sessions, handbooks and practice questions are built from.
+                Sessions already booked keep the lectures they were given.
+              </p>
+            </>
+          ) : (
+            <button type="button" onClick={() => setShowCoverage(true)}
+              className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg border border-border text-sm text-muted-foreground hover:bg-muted">
+              <span>Covers: {coverageSummary(coverageScope, assignment.type, resolveAssignmentLectures({ id: assignment.id, due_date: dueDate, coverage_scope: coverageScope, lecture_ids: coverageIds }, classLectures, classAssignments).length)}</span>
+              <span className="text-xs font-medium text-primary">Change</span>
+            </button>
+          )}
+        </div>
+
         {/* Rubric / guidelines — travels with the assignment, shown as a
             checklist inside any study session booked for it (Focus Mode). */}
         <div className="mt-5 pt-4 border-t border-border">
@@ -246,7 +347,18 @@ export default function AssignmentEditModal({ assignment, onClose, onUpdate }) {
           ) : sessions.length === 0 ? (
             <div className="rounded-lg border border-dashed border-border p-4 text-center">
               <CalendarClock className="w-5 h-5 text-muted-foreground mx-auto mb-1.5" strokeWidth={1.5} />
-              <p className="text-xs text-muted-foreground">No sessions scheduled for this {isProject ? 'project' : 'assignment'} yet.</p>
+              <p className="text-xs text-muted-foreground mb-3">No sessions scheduled for this {typeLabel} yet.</p>
+              {scheduleGate.allowed ? (
+                <button type="button" onClick={planSessions} disabled={planning}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 disabled:opacity-50">
+                  {planning ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Planning…</> : 'Plan study sessions'}
+                </button>
+              ) : (
+                <button type="button" onClick={scheduleGate.lock} className={LOCKED_BUTTON_CLASS}>
+                  <Lock className="w-3 h-3" strokeWidth={2.5} /> Plan study sessions — {scheduleGate.requiredTierName} and up
+                </button>
+              )}
+              {planError && <p className="text-xs text-destructive mt-2">{planError}</p>}
             </div>
           ) : (
             <div className="space-y-2">

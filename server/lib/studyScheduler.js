@@ -334,14 +334,18 @@ export function describeSession(assignmentTitle, lectures, fallbackIndex) {
 
 /**
  * Book the standard set of prep sessions for an assignment/exam/quiz/project
- * — the one place this happens now. Used by the generateStudySchedule route
- * (student explicitly asks for it) AND by processLectureRecording.js's
- * auto-detection pipeline (Phase 4, 3 Sep 2026): a lecture that explicitly
- * names a due-dated deliverable books its own sessions immediately, through
- * this exact function, so an auto-created assignment is scheduled no
- * differently than one the student typed in by hand. Inserts rows directly;
- * returns how many were created. A due date already in the past books
- * nothing — there's nothing sensible to prep for.
+ * — the one place this happens. Reached only through the generateStudySchedule
+ * route, which gates on the student's plan.
+ *
+ * It used to have a second caller: processLectureRecording's detection
+ * pipeline booked sessions for a deadline it heard in a lecture, immediately
+ * and free, while the same deadline typed in by hand booked nothing on
+ * Student. A detected deadline is a question now, and answering it goes
+ * through the same route as everything else, so there is one path and one
+ * plan check again.
+ *
+ * Inserts rows directly; returns how many were created. A due date already in
+ * the past books nothing — there's nothing sensible to prep for.
  */
 export async function bookAssignmentSessions({ userId, assignment }) {
   const today = dateStr(new Date());

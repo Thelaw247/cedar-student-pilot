@@ -88,8 +88,8 @@ test('cleanAnalysis covers every field the pipeline persists', () => {
   // If a new field is written to the lectures row it must pass through here
   // too, or the next degenerate generation lands in the database again.
   const route = fs.readFileSync(new URL('../routes/processLectureRecording.js', import.meta.url), 'utf8');
-  // Anchored on the UPDATE itself: `detectAndCreateAssignments(` also appears
-  // earlier as a function declaration, so an indexOf end marker slices backwards.
+  // Anchored on the UPDATE itself: an indexOf end marker would slice
+  // backwards past a helper declared earlier in the file.
   const at = route.indexOf('update lectures set ai_title=');
   assert.ok(at > -1, 'the analysis UPDATE moved');
   const persist = route.slice(at, at + 900);

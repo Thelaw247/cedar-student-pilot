@@ -15,7 +15,7 @@ import {
 import { MAX_RECORDING_BYTES, resolveRecordingStorageRef } from '../lib/r2.js';
 import { runEnrichment, syncLectureTodos } from '../lib/lectureEnrichment.js';
 import { loadLectureMaterials } from '../lib/lectureMaterials.js';
-import { scheduleAsap, addDaysStr, bookAssignmentSessions } from '../lib/studyScheduler.js';
+import { scheduleAsap, addDaysStr } from '../lib/studyScheduler.js';
 
 // One review session per lecture, booked the moment processing finishes (3
 // Sep 2026 rework, refactored 3 Sep 2026 onto the shared studyScheduler).
@@ -69,42 +69,74 @@ async function scheduleLectureReview({ userId, lectureId, classId, lectureDate, 
   );
 }
 
-// Explicit due-dated deliverables → real Assignment rows (Phase 4, 3 Sep
-// 2026). extractFromTranscript's due_dated_items is deliberately strict (a
-// vague "there's a project coming up" goes in exam_mentions, not here) —
-// this is the second, cheaper gate: skip anything already past, and never
-// create a duplicate of something that already exists (typed in by hand, or
-// mentioned again in a later lecture). Booking goes through
-// bookAssignmentSessions, the exact function generateStudySchedule.js's
-// route uses, so an auto-detected assignment is scheduled no differently
-// than one the student created themselves. Sets notified=false so
-// AssignmentDetectedNotice.jsx surfaces it once, on the Home page.
-async function detectAndCreateAssignments({ userId, classId, lectureId, dueDatedItems }) {
+// Explicit due-dated deliverables → a question on the lecture they came from.
+//
+// This used to create the assignment outright and immediately book a full set
+// of study sessions for it, free, on any plan. extractFromTranscript's
+// due_dated_items is strict (a vague "there's a project coming up" goes in
+// exam_mentions, not here), but strict is not the same as asked: a date that
+// moved, a title the model misheard, or a professor mentioning another
+// section's essay all landed on the calendar as real work that could only be
+// removed by deleting an assignment the student never made.
+//
+// It also made the same deadline behave two different ways. A student who
+// types in an assignment on Student gets no sessions — study_schedule is a
+// Scholar feature — while a detected one got a full set, so the manual case
+// read as broken. Nothing here books anything now; the student confirms
+// through the same form they would have used themselves
+// (src/components/DeadlineForm.jsx), which checks the plan like every other
+// deadline.
+//
+// Answered entries are kept and re-merged. Today that guard is belt and
+// braces: the caller only runs on a lecture with no ai_title, so detection
+// happens once per lecture and there is nothing yet to merge with. It is
+// eight lines, and it is what keeps a student's "no" a no on the day a
+// reprocess path does re-analyse a lecture (merging two recordings, a
+// re-transcribe) — the alternative is every dismissed card coming back.
+async function recordDetectedDeadlines({ userId, classId, lectureId, dueDatedItems }) {
   if (!classId) return; // assignments require a class_id — nothing to attach this to
   const validated = mergeDueDatedItems([dueDatedItems]);
-  if (validated.length === 0) return;
 
   const now = new Date();
   const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
+  const found = [];
   for (const item of validated) {
-    if (item.due_date < today) continue;
+    if (item.due_date < today) continue; // nothing to prepare for
 
+    // Already on the calendar — typed in by hand, confirmed from an earlier
+    // lecture, or mentioned twice. Asking again about something that exists
+    // is how a student ends up with two midterms.
     const existing = (await pool.query(
       'select id from assignments where user_id = $1 and class_id = $2 and due_date = $3 and lower(title) = lower($4) limit 1',
       [userId, classId, item.due_date, item.title],
     )).rows[0];
     if (existing) continue;
 
-    const created = (await pool.query(
-      `insert into assignments (user_id, class_id, title, due_date, type, status, source_lecture_id, auto_created, notified)
-       values ($1, $2, $3, $4, $5, 'active', $6, true, false)
-       returning *`,
-      [userId, classId, item.title, item.due_date, item.type, lectureId],
-    )).rows[0];
-
-    await bookAssignmentSessions({ userId, assignment: created });
+    found.push({ title: item.title, type: item.type, due_date: item.due_date, decision: null, assignment_id: null });
   }
+
+  const prior = (await pool.query(
+    'select detected_deadlines from lectures where id = $1 and user_id = $2', [lectureId, userId],
+  )).rows[0]?.detected_deadlines;
+  const answered = new Map(
+    (Array.isArray(prior) ? prior : [])
+      .filter((d) => d && d.decision)
+      .map((d) => [`${String(d.title || '').toLowerCase()}|${d.due_date}`, d]),
+  );
+
+  // Anything already answered keeps its answer; anything answered but no
+  // longer detected is kept anyway, because a 'dismissed' that disappears is
+  // a question that comes back.
+  const key = (d) => `${String(d.title || '').toLowerCase()}|${d.due_date}`;
+  const next = found.map((d) => answered.get(key(d)) || d);
+  for (const d of answered.values()) if (!next.some((n) => key(n) === key(d))) next.push(d);
+
+  if (next.length === 0 && (!Array.isArray(prior) || prior.length === 0)) return;
+  await pool.query(
+    'update lectures set detected_deadlines = $1 where id = $2 and user_id = $3',
+    [JSON.stringify(next), lectureId, userId],
+  );
 }
 
 // Direct port of base44/functions/processLectureRecording/entry.ts — the
@@ -526,7 +558,7 @@ async function runProcessingPipeline({ userId, lectureId, existing, cls, balance
       [analysis.title, analysis.summary, analysis.concepts || [], analysis.vocabulary || [], JSON.stringify(analysis.definitions || []), analysis.formulas || [], analysis.action_items || [], analysis.exam_mentions || [], lectureId]);
 
     try {
-      await detectAndCreateAssignments({ userId, classId: cls?.id, lectureId, dueDatedItems: analysis.due_dated_items });
+      await recordDetectedDeadlines({ userId, classId: cls?.id, lectureId, dueDatedItems: analysis.due_dated_items });
     } catch (e) {
       // Non-fatal — the lecture and its analysis are already saved; nothing
       // was detected that the student can't still add manually.

@@ -17,7 +17,7 @@ import DailyProgressRing from '@/components/DailyProgressRing';
 import FloatingActionButton from '@/components/FloatingActionButton';
 import AutoPrintPrompt from '@/components/AutoPrintPrompt';
 import AttendancePrompt from '@/components/AttendancePrompt';
-import AssignmentDetectedNotice from '@/components/AssignmentDetectedNotice';
+import DetectedDeadlines from '@/components/DetectedDeadlines';
 import WeeklyCalendar from '@/components/WeeklyCalendar';
 import AddEventModal from '@/components/AddEventModal';
 import { classesOnDate } from '@/lib/classSchedule';
@@ -243,7 +243,7 @@ export default function Home() {
 
           <AutoPrintPrompt />
           <AttendancePrompt />
-          <AssignmentDetectedNotice />
+          <DetectedDeadlines lectures={lectures} assignments={assignments} onChanged={() => loadData({ quiet: true })} />
 
           <DailyProgressRing
             classes={todayClasses}

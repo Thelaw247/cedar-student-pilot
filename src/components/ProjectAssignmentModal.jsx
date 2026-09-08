@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import GateNotice, { gateFromError } from '@/components/monetization/GateNotice';
 import { base44 } from '@/api/base44Client';
 import { Loader2, X, ArrowRight, ArrowLeft, Check, Sparkles, Clock, ListChecks } from 'lucide-react';
+import { defaultCoverageScope } from '@/lib/assignmentScope';
 
 export default function ProjectAssignmentModal({ classId, className, onClose }) {
   const [step, setStep] = useState('form'); // form → fields → roadmap → done
@@ -66,6 +67,12 @@ export default function ProjectAssignmentModal({ classId, className, onClose }) 
         description,
         project_metadata: fieldValues,
         roadmap,
+        // A project is a piece of work, not a claim about lectures. Left
+        // unset this inherited the column default ('cumulative'), which told
+        // the handbook and the scheduler that every project covered the whole
+        // term so far. It can be changed on the project itself
+        // (AssignmentEditModal) for the ones that really do.
+        coverage_scope: defaultCoverageScope('project'),
       });
 
       // Create project sessions from roadmap, distributed from today to due date

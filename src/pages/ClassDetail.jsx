@@ -11,16 +11,13 @@ import AssignmentEditModal from '@/components/AssignmentEditModal';
 import WeekGroupedLectures from '@/components/WeekGroupedLectures';
 import ExamPredictionCard from '@/components/ExamPredictionCard';
 import HandbookReader from '@/components/HandbookReader';
-import { getSetting } from '@/lib/settings';
 import { useRecording, findRecoverableRecording } from '@/recording/RecordingContext';
 import Segmented from '@/components/ui/Segmented';
 import { classTint, classColor } from '@/lib/color';
 import { useBalance } from '@/hooks/useBalance';
 import LockedFeature from '@/components/monetization/LockedFeature';
-import ScheduleSkippedNotice from '@/components/monetization/ScheduleSkippedNotice';
-import LectureScopePicker, { explicitScopeIds } from '@/components/LectureScopePicker';
-import { COVERAGE_SCOPE_LABEL } from '@/lib/assignmentScope';
-import { useFeatureGate } from '@/components/monetization/useFeatureGate';
+import DeadlineForm, { DeadlineModal } from '@/components/DeadlineForm';
+import DetectedDeadlines from '@/components/DetectedDeadlines';
 import { hasFeature } from '@/lib/tiers';
 import { studyPath } from '@/lib/studyScope';
 
@@ -599,6 +596,11 @@ function AssignmentTab({ assignments, lectures = [], coverage = [], classId, cls
 
   return (
     <div>
+      {/* Deadlines heard in this class's lectures, still waiting for a yes or
+          a no. They belong here as much as on the home screen: this is the
+          tab a student opens when they are thinking about what is due. */}
+      <DetectedDeadlines lectures={lectures} assignments={assignments} onChanged={onUpdate} />
+
       <div className="flex items-center justify-between mb-4">
         <p className="text-sm text-muted-foreground">{activeAssignments.length} assignment{activeAssignments.length !== 1 ? 's' : ''}</p>
         <div className="flex gap-2">
@@ -649,7 +651,7 @@ function AssignmentTab({ assignments, lectures = [], coverage = [], classId, cls
         </div>
       )}
 
-      {showAdd && <AddAssignmentModal classId={classId} onClose={() => { setShowAdd(false); onUpdate(); }} />}
+      {showAdd && <AddAssignmentModal classId={classId} lectures={lectures} assignments={assignments} onClose={() => { setShowAdd(false); onUpdate(); }} />}
       {showProject && <ProjectAssignmentModal classId={classId} className={cls?.name} onClose={() => { setShowProject(false); onUpdate(); }} />}
       {editAssignment && (
         <AssignmentEditModal
@@ -874,92 +876,15 @@ function HandbookTab({ cls, lectures }) {
   );
 }
 
-function AddAssignmentModal({ classId, onClose }) {
-  const [form, setForm] = useState({ title: '', due_date: '', type: 'assignment', coverage_scope: 'cumulative' });
-  // 'Specific lectures' has been a selectable option that did nothing since
-  // the column existed. It picks the lectures now, and they are stored on the
-  // assignment for the scope resolver to read back.
-  const [lectures, setLectures] = useState([]);
-  const [scopeIds, setScopeIds] = useState([]);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState(null);
-  // The deadline is free for everyone; planning the work around it ships with
-  // Scholar (the server re-enforces). Below that plan the modal used to skip
-  // the booking and close, so nothing was said and no sessions appeared.
-  const [scheduleSkipped, setScheduleSkipped] = useState(false);
-  const scheduleGate = useFeatureGate('study_schedule');
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setSaving(true);
-    setError(null);
-    try {
-      const assignment = await base44.entities.Assignment.create({
-        ...form,
-        class_id: classId,
-        lecture_ids: form.coverage_scope === 'custom' ? explicitScopeIds(scopeIds, lectures) : [],
-      });
-      if (!getSetting('autoGenerateSchedules')) { onClose(); return; }
-      if (!scheduleGate.allowed) { setScheduleSkipped(true); setSaving(false); return; }
-      await base44.functions.invoke('generateStudySchedule', { assignment_id: assignment.id });
-      onClose();
-    } catch (err) {
-      // The assignment may already be saved — say what happened rather than
-      // closing on a failure the student never sees.
-      console.error(err);
-      setError(err?.response?.data?.message || err?.response?.data?.error
-        || 'Saved, but the study sessions could not be booked. Try again from the assignment.');
-    }
-    setSaving(false);
-  };
-
+function AddAssignmentModal({ classId, lectures = [], assignments = [], onClose }) {
+  // The class is already known and its lectures and other deadlines are
+  // already loaded by this page, so nothing here is fetched a second time.
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/30 glass" onClick={onClose}>
-      <div className="bg-card w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl border border-border p-6 animate-fade-in max-h-[90dvh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-        {scheduleSkipped ? <ScheduleSkippedNotice typeLabel="assignment" onClose={onClose} /> : <>
-        <h3 className="font-heading text-lg font-semibold mb-4">Add Assignment</h3>
-        <form onSubmit={handleSubmit} className="space-y-3">
-          <input type="text" placeholder="Title (e.g. Midterm Exam)" value={form.title}
-            onChange={e => setForm({ ...form, title: e.target.value })}
-            className="w-full px-3 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40" autoFocus />
-          <input type="date" value={form.due_date}
-            onChange={e => setForm({ ...form, due_date: e.target.value })}
-            className="w-full px-3 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40" />
-          <select value={form.type} onChange={e => setForm({ ...form, type: e.target.value })}
-            className="w-full px-3 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40">
-            <option value="assignment">Assignment</option>
-            <option value="exam">Exam</option>
-            <option value="quiz">Quiz</option>
-            <option value="project">Project</option>
-          </select>
-          <select value={form.coverage_scope} onChange={async (e) => {
-            const next = e.target.value;
-            setForm({ ...form, coverage_scope: next });
-            if (next === 'custom' && lectures.length === 0) {
-              try { setLectures(await base44.entities.Lecture.filter({ class_id: classId }, 'date')); } catch { /* the picker just stays empty */ }
-            }
-          }}
-            className="w-full px-3 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40">
-            {Object.entries(COVERAGE_SCOPE_LABEL).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-          </select>
-          {form.coverage_scope === 'custom' && (
-            lectures.length > 0
-              ? <LectureScopePicker lectures={lectures} selectedIds={scopeIds} onChange={setScopeIds} />
-              : <p className="text-xs text-muted-foreground">No lectures recorded for this class yet — this will cover everything so far.</p>
-          )}
-          {error && <p className="text-xs text-destructive">{error}</p>}
-          <div className="flex gap-2 pt-2">
-            <button type="button" onClick={onClose} className="flex-1 px-4 py-2.5 rounded-lg border border-border text-sm font-medium text-muted-foreground hover:bg-muted">Cancel</button>
-            {/* The label says what this button will actually do. "Add & Plan
-                Study" on a plan that cannot plan is a promise the next screen
-                breaks. */}
-            <button type="submit" disabled={saving || !form.title || !form.due_date} className="flex-1 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium disabled:opacity-50 flex items-center justify-center gap-2">
-              {saving ? <><Loader2 className="w-4 h-4 animate-spin" /> Planning...</> : scheduleGate.allowed ? 'Add & Plan Study' : 'Add assignment'}
-            </button>
-          </div>
-        </form>
-        </>}
-      </div>
-    </div>
+    <DeadlineModal onClose={onClose}>
+      <DeadlineForm
+        classId={classId} lectures={lectures} priorAssignments={assignments}
+        initial={{ type: 'assignment' }} onCancel={onClose} onDone={onClose}
+      />
+    </DeadlineModal>
   );
 }

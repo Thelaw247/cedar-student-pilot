@@ -10,6 +10,7 @@ import CommandPalette from './CommandPalette';
 import ShortcutsHelp from './ShortcutsHelp';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import UpgradeProvider from './monetization/UpgradeContext';
+import PendingSchedules from './monetization/PendingSchedules';
 import { RecordingProvider } from '@/recording/RecordingContext';
 import RecordingIsland from '@/recording/RecordingIsland';
 import { StudySessionProvider } from '@/study/StudySessionContext';
@@ -68,6 +69,10 @@ export default function Layout() {
       {/* The floating AI chat button was withdrawn with the AI Assistant and
           its source purged in the conversion redesign (git history holds it). */}
       <StudySessionNotifier />
+      {/* Finishes the job a plan boundary interrupted: a deadline whose
+          sessions were skipped on a smaller plan is booked the moment the
+          new one lands, wherever in the app the student happens to be. */}
+      <PendingSchedules />
       <OfflineIndicator />
       <CommandPalette />
       <ShortcutsHelp open={showShortcuts} onClose={() => setShowShortcuts(false)} />

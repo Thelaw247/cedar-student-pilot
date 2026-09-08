@@ -1,6 +1,8 @@
 import React from 'react';
 import { CalendarClock, Lock } from 'lucide-react';
 import { useFeatureGate } from '@/components/monetization/useFeatureGate';
+import { tierOf } from '@/lib/tiers';
+import { rememberPendingSchedule } from '@/lib/pendingSchedule';
 
 /**
  * Shown after an exam or assignment is saved on a plan that does not include
@@ -15,9 +17,19 @@ import { useFeatureGate } from '@/components/monetization/useFeatureGate';
  * lecture, so the absence looked like a bug rather than a plan boundary.
  *
  * Two ways out and no dead end: see the plans, or carry on without sessions.
+ *
+ * "See plans" also remembers this deadline, so that upgrading actually
+ * finishes the job the student came here to do — PendingSchedules books it
+ * the moment the new plan lands. Without that, the upgrade went through and
+ * the exam they had just added still had nothing scheduled against it.
  */
-export default function ScheduleSkippedNotice({ typeLabel = 'assignment', onClose }) {
-  const { requiredTierName, lock } = useFeatureGate('study_schedule');
+export default function ScheduleSkippedNotice({ typeLabel = 'assignment', assignmentId = null, onClose }) {
+  const { requiredTierName, lock, tier } = useFeatureGate('study_schedule');
+
+  const seePlans = () => {
+    rememberPendingSchedule(assignmentId);
+    lock();
+  };
 
   return (
     <div>
@@ -37,10 +49,13 @@ export default function ScheduleSkippedNotice({ typeLabel = 'assignment', onClos
         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-[11px] font-semibold mb-2">
           <Lock className="w-3 h-3" strokeWidth={2.5} /> {requiredTierName} and up
         </span>
-        <p className="text-sm text-foreground font-medium">No study sessions were booked.</p>
+        <p className="text-sm text-foreground font-medium">
+          No study sessions were booked, because you&rsquo;re on {tierOf(tier).name}.
+        </p>
         <p className="text-xs text-muted-foreground mt-1">
           Planning the work backwards from a deadline — sessions spread one a day, around your classes
-          and your preferred study times — ships with {requiredTierName}.
+          and your preferred study times — ships with {requiredTierName}. Upgrade and this {typeLabel}&rsquo;s
+          sessions are booked straight away.
         </p>
       </div>
 
@@ -49,7 +64,7 @@ export default function ScheduleSkippedNotice({ typeLabel = 'assignment', onClos
           className="flex-1 py-3 rounded-xl border border-border text-sm font-medium text-muted-foreground hover:bg-muted transition-colors duration-micro">
           Not now
         </button>
-        <button type="button" onClick={lock}
+        <button type="button" onClick={seePlans}
           className="flex-1 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors duration-micro">
           See plans
         </button>

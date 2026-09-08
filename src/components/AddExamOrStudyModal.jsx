@@ -1,11 +1,7 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Loader2, X, FileText, BookOpen, ChevronLeft } from 'lucide-react';
-import { getSetting } from '@/lib/settings';
-import { useFeatureGate } from '@/components/monetization/useFeatureGate';
-import ScheduleSkippedNotice from '@/components/monetization/ScheduleSkippedNotice';
-import LectureScopePicker, { explicitScopeIds } from '@/components/LectureScopePicker';
-import { COVERAGE_SCOPE_LABEL } from '@/lib/assignmentScope';
+import DeadlineForm, { DeadlineModal } from '@/components/DeadlineForm';
 
 export default function AddExamOrStudyModal({ classes, onClose }) {
   const [mode, setMode] = useState(null);
@@ -50,109 +46,12 @@ export default function AddExamOrStudyModal({ classes, onClose }) {
 }
 
 function ExamForm({ classes, onBack, onClose }) {
-  const [form, setForm] = useState({ title: '', due_date: '', type: 'exam', class_id: '', coverage_scope: 'cumulative' });
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState(null);
-  // The deadline itself is free for everyone; the auto-generated AI study
-  // plan around it ships with Scholar (server re-enforces). Below that plan
-  // this used to skip the booking and close, so the exam appeared with no
-  // sessions and no explanation.
-  const [scheduleSkipped, setScheduleSkipped] = useState(false);
-  const scheduleGate = useFeatureGate('study_schedule');
-  // This form never showed a coverage control at all, so every exam in the
-  // database says 'cumulative' by default rather than by choice — and an exam
-  // that cannot say what it covers cannot have its sessions scoped to
-  // anything.
-  const [lectures, setLectures] = useState([]);
-  const [scopeIds, setScopeIds] = useState([]);
-
-  const loadLectures = async (classId) => {
-    if (!classId) { setLectures([]); return; }
-    try { setLectures(await base44.entities.Lecture.filter({ class_id: classId }, 'date')); }
-    catch { setLectures([]); }
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!form.title || !form.due_date || !form.class_id) return;
-    setSaving(true);
-    setError(null);
-    try {
-      const assignment = await base44.entities.Assignment.create({
-        ...form,
-        lecture_ids: form.coverage_scope === 'custom' ? explicitScopeIds(scopeIds, lectures) : [],
-      });
-      if (!getSetting('autoGenerateSchedules')) { onClose(); return; }
-      if (!scheduleGate.allowed) { setScheduleSkipped(true); setSaving(false); return; }
-      await base44.functions.invoke('generateStudySchedule', { assignment_id: assignment.id });
-      onClose();
-    } catch (err) {
-      console.error(err);
-      setError(err?.response?.data?.message || err?.response?.data?.error
-        || 'Saved, but the study sessions could not be booked. Try again from the exam.');
-    }
-    setSaving(false);
-  };
-
+  // No chevron beside the heading. The footer's "Back" already goes back, and
+  // this header carried one purely because the form it wrapped did too.
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/30 glass" onClick={onClose}>
-      <div className="bg-card w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl border border-border p-6 animate-fade-in max-h-[90dvh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-        {scheduleSkipped ? <ScheduleSkippedNotice typeLabel={form.type} onClose={onClose} /> : <>
-        <div className="flex items-center gap-3 mb-4">
-          <button onClick={onBack} className="text-muted-foreground hover:text-foreground"><ChevronLeft className="w-5 h-5" /></button>
-          <h3 className="font-heading text-lg font-semibold">Add Exam</h3>
-        </div>
-        <form onSubmit={handleSubmit} className="space-y-3">
-          <input type="text" placeholder="Title (e.g. Midterm Exam)" value={form.title}
-            onChange={e => setForm({ ...form, title: e.target.value })}
-            className="w-full px-3 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40" autoFocus />
-          <select value={form.class_id} onChange={(e) => {
-            setForm({ ...form, class_id: e.target.value });
-            setScopeIds([]);
-            if (form.coverage_scope === 'custom') loadLectures(e.target.value);
-          }}
-            className="w-full px-3 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40">
-            <option value="">Select a class...</option>
-            {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
-          <input type="date" value={form.due_date}
-            onChange={e => setForm({ ...form, due_date: e.target.value })}
-            className="w-full px-3 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40" />
-          <select value={form.type} onChange={e => setForm({ ...form, type: e.target.value })}
-            className="w-full px-3 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40">
-            <option value="exam">Exam</option>
-            <option value="quiz">Quiz</option>
-            <option value="assignment">Assignment</option>
-            <option value="project">Project</option>
-          </select>
-          <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1.5 block">What does it cover?</label>
-            <select value={form.coverage_scope} onChange={(e) => {
-              const next = e.target.value;
-              setForm({ ...form, coverage_scope: next });
-              if (next === 'custom') loadLectures(form.class_id);
-            }}
-              className="w-full px-3 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40">
-              {Object.entries(COVERAGE_SCOPE_LABEL).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-            </select>
-          </div>
-          {form.coverage_scope === 'custom' && (
-            lectures.length > 0
-              ? <LectureScopePicker lectures={lectures} selectedIds={scopeIds} onChange={setScopeIds} />
-              : <p className="text-xs text-muted-foreground">{form.class_id ? 'No lectures recorded for this class yet — this will cover everything so far.' : 'Pick a class first.'}</p>
-          )}
-          {error && <p className="text-xs text-destructive">{error}</p>}
-          <div className="flex gap-2 pt-2">
-            <button type="button" onClick={onBack} className="flex-1 px-4 py-2.5 rounded-lg border border-border text-sm font-medium text-muted-foreground hover:bg-muted">Back</button>
-            {/* The label says what this button will actually do. */}
-            <button type="submit" disabled={saving || !form.title || !form.due_date || !form.class_id} className="flex-1 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-2">
-              {saving ? <><Loader2 className="w-4 h-4 animate-spin" /> Planning...</> : scheduleGate.allowed ? 'Add & Plan' : 'Add exam'}
-            </button>
-          </div>
-        </form>
-        </>}
-      </div>
-    </div>
+    <DeadlineModal onClose={onClose}>
+      <DeadlineForm classes={classes} cancelLabel="Back" onCancel={onBack} onDone={onClose} />
+    </DeadlineModal>
   );
 }
 

@@ -5,12 +5,14 @@ import { createLlmUsage } from '../lib/llm.js';
 import { gateFeature, settleFeature } from '../lib/credits.js';
 import { bookAssignmentSessions } from '../lib/studyScheduler.js';
 
-// Booking study sessions for an assignment the student created directly (3
-// Sep 2026 rework, simplified further once bookAssignmentSessions became
-// the one shared "book the standard prep sessions" function — also used by
-// the lecture auto-detection pipeline in processLectureRecording.js, so an
-// assignment behaves identically whether a student typed it in or Praelecta
-// pulled it from a lecture). No LLM any more: see studyScheduler.js for why.
+// Booking study sessions for a deadline the student created. The one way in:
+// the lecture pipeline used to call bookAssignmentSessions directly for a
+// deadline it heard in a transcript, which meant a detected deadline got a
+// full set of sessions free while the same deadline typed in by hand got
+// none, because this route gates on study_schedule and that call did not.
+// Detected deadlines are questions now (processLectureRecording.js), and
+// answering one comes through here like everything else. No LLM: see
+// studyScheduler.js for why.
 
 const router = express.Router();
 
