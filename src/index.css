@@ -347,7 +347,21 @@ html.landing-active body {
    bugs at once (see server/test/landing-backdrop.test.js). */
 .landing-backdrop {
   position: fixed;
-  inset: 0;
+  /* NOT inset: 0. A fixed element's height resolves against the LAYOUT
+     viewport, which on iOS Safari is the SMALL viewport — the height with the
+     address bar and toolbar showing. So inset:0 stopped exactly where the
+     toolbar began, and the moment the student scrolled and the toolbar
+     retracted, the visual viewport grew taller than this element and the
+     waveform ran out before the bottom of the screen — the reported bug.
+     Pinning the height to the LARGE viewport instead makes it span the tallest
+     the screen ever gets, so it always reaches the bottom. 100vh is already the
+     large viewport for a fixed element on iOS and is the floor here; 100lvh
+     says the same thing explicitly on browsers that understand it. */
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100vh;
+  height: 100lvh;
   /* Above the canvas, below the page. NOT z-index: -1.
      A negative z-index only works while nothing between here and the root
      creates a stacking context, and it puts the layer on the wrong side of a

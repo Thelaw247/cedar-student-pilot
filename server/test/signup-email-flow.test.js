@@ -99,7 +99,7 @@ test('the code is the primary path on both the email and the screen', () => {
   assert.ok(card.indexOf('{{ .Token }}') < card.indexOf('{{ .ConfirmationURL }}'),
     'the link comes before the code in the email');
   const otp = REGISTER.slice(REGISTER.indexOf('if (showOtp)'));
-  assert.match(otp, /six-digit code to \$\{email\}/, 'the screen no longer says a code is coming');
+  assert.match(otp, /8-digit code to \$\{email\}/, 'the screen no longer says a code is coming');
   assert.match(otp, /Enter it below/);
 });
 

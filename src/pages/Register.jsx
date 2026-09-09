@@ -16,6 +16,12 @@ import { LEGAL_VERSION } from "@/lib/legal";
 import { useAuth } from "@/lib/AuthContext";
 
 const USE_SUPABASE = import.meta.env.VITE_BACKEND_MODE === "supabase";
+// MUST equal Supabase Auth → "Email OTP Length". The email the student receives
+// contains exactly this many digits; a shorter box silently truncates a pasted
+// code to its first N and every verification fails as "expired or invalid",
+// which is the bug a real signup hit — the code was never expiring, it was
+// arriving two digits short of what the box would accept. Change both together.
+const OTP_LENGTH = 8;
 const APPLE_AUTH_ENABLED = !USE_SUPABASE || import.meta.env.VITE_ENABLE_APPLE_AUTH === "true";
 const FACEBOOK_AUTH_ENABLED = !USE_SUPABASE || import.meta.env.VITE_ENABLE_FACEBOOK_AUTH === "true";
 const SOCIAL_AUTH_ENABLED = APPLE_AUTH_ENABLED || FACEBOOK_AUTH_ENABLED;
@@ -126,7 +132,7 @@ export default function Register() {
       await base44.auth.resendOtp(email);
       toast({
         title: "New code sent",
-        description: "Check your email for the new six-digit code.",
+        description: "Check your email for the new 8-digit code.",
       });
     } catch (err) {
       setError(err.message || "Failed to resend code");
@@ -148,7 +154,7 @@ export default function Register() {
       <AuthLayout
         icon={Mail}
         title="Check your email"
-        subtitle={`We sent a six-digit code to ${email}`}
+        subtitle={`We sent an 8-digit code to ${email}`}
       >
         {error && (
           <div className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
@@ -166,26 +172,21 @@ export default function Register() {
         )}
         <div className="flex justify-center mb-6">
           <InputOTP
-            maxLength={6}
+            maxLength={OTP_LENGTH}
             value={otpCode}
             onChange={setOtpCode}
             autoFocus
             autoComplete="one-time-code"
           >
             <InputOTPGroup>
-              <InputOTPSlot index={0} />
-              <InputOTPSlot index={1} />
-              <InputOTPSlot index={2} />
-              <InputOTPSlot index={3} />
-              <InputOTPSlot index={4} />
-              <InputOTPSlot index={5} />
+              {Array.from({ length: OTP_LENGTH }, (_, i) => <InputOTPSlot key={i} index={i} />)}
             </InputOTPGroup>
           </InputOTP>
         </div>
         <Button
           className="w-full h-12 font-medium"
           onClick={handleVerify}
-          disabled={loading || otpCode.length < 6}
+          disabled={loading || otpCode.length < OTP_LENGTH}
         >
           {loading ? (
             <>

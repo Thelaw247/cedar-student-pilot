@@ -1,5 +1,5 @@
+import React, { lazy, Suspense } from 'react';
 import { Toaster } from "@/components/ui/toaster"
-import { lazy, Suspense } from 'react';
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
 import { BrowserRouter as Router, Route, Routes, Navigate, useLocation } from 'react-router-dom';
@@ -8,6 +8,7 @@ import { AuthProvider } from '@/lib/AuthContext';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import ScrollToTop from './components/ScrollToTop';
 import Layout from '@/components/Layout';
+import ChunkReloadBoundary, { reloadOnceForChunkError } from '@/components/ChunkReloadBoundary';
 const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
 const Onboarding = lazy(() => import('./pages/Onboarding'));
@@ -102,6 +103,7 @@ const AuthenticatedApp = () => {
   // everything behind it (`if (isLoadingAuth || !authChecked) return fallback`),
   // so protected pages still show a spinner while auth is in flight.
   return (
+    <ChunkReloadBoundary>
     <Suspense fallback={<RouteFallback />}>
     <Routes>
       {/* Public — reachable without an account. */}
@@ -169,11 +171,30 @@ const AuthenticatedApp = () => {
       <Route path="*" element={<PageNotFound />} />
     </Routes>
     </Suspense>
+    </ChunkReloadBoundary>
   );
 };
 
 
 function App() {
+  // Vite fires this when a modulepreload for a lazy chunk fails — a prefetch
+  // hitting a filename the current deploy no longer serves. Catch it before the
+  // student clicks the route: reloadOnceForChunkError picks up the fresh
+  // index.html, and its own guard stops a reload loop. Registered once, at the
+  // top of the app, outside React's render path.
+  React.useEffect(() => {
+    // preventDefault ONLY when we actually reloaded. Vite re-throws the
+    // original error unless the default is prevented; if we suppress that throw
+    // WITHOUT reloading, the wrapped import resolves to `undefined`, React.lazy
+    // reads `undefined.default`, and that TypeError is a non-chunk error the
+    // boundary re-throws to a blank page — defeating the very fallback this
+    // exists for. So when the loop-guard refuses the reload (a repeat failure,
+    // or storage unavailable), let Vite throw: the boundary then catches a real
+    // chunk error and shows its manual "Reload" prompt.
+    const onPreloadError = (e) => { if (reloadOnceForChunkError()) e?.preventDefault?.(); };
+    window.addEventListener('vite:preloadError', onPreloadError);
+    return () => window.removeEventListener('vite:preloadError', onPreloadError);
+  }, []);
 
   return (
     <AuthProvider>

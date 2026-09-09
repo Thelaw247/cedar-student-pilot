@@ -58,7 +58,18 @@ test('the backdrop points at artwork that actually exists', () => {
 test('the backdrop is fixed, so the page scrolls over a held image', () => {
   assert.match(block('.landing-backdrop'), /position:\s*fixed/,
     'the waveform scrolls away with the content instead of staying put');
-  assert.match(block('.landing-backdrop'), /inset:\s*0/);
+});
+
+test('the backdrop spans the large viewport, so it reaches the bottom on iOS', () => {
+  // NOT inset:0 / height:100%. Those resolve against the layout (small)
+  // viewport on iOS Safari, so the waveform stopped where the toolbar began
+  // and a strip of bare floor showed at the bottom once the toolbar retracted.
+  // A large-viewport height always reaches the bottom of the screen.
+  const bd = block('.landing-backdrop');
+  assert.match(bd, /top:\s*0/);
+  assert.match(bd, /height:\s*100vh/, 'no large-viewport floor — the 100vh fallback is missing');
+  assert.match(bd, /height:\s*100lvh/, 'no lvh height — the exact large-viewport unit is missing');
+  assert.doesNotMatch(bd, /inset:\s*0/, 'inset:0 sizes the fixed backdrop to the small viewport again');
 });
 
 test('the backdrop sits OUTSIDE the overflow-hidden surface', () => {
