@@ -37,6 +37,11 @@ export const FEATURE_COSTS = {
   project_roadmap: 2,
   smart_rebook: 1,
   session_review: 1,
+  // Reading a professor's PDF is one Gemini OCR call (avg $0.018, up to $0.038)
+  // and was uncharged and ungated — the second-largest cost centre in the app
+  // after recording. 1 credit per PDF read; text/markdown make no model call
+  // and are never charged (routes/lectureMaterials.js decides per file).
+  material_extract: 1,
   timetable_import: 0, // onboarding — never gate the first thing a user does
 };
 
@@ -223,6 +228,7 @@ export const FEATURE_MIN_TIER = {
   smart_rebook: 'student',
   project_roadmap: 'student',
   clean_transcript: 'student',
+  material_extract: 'student',
   handbook: 'scholar',
   exam_prediction: 'scholar',
   study_schedule: 'scholar',
@@ -239,10 +245,17 @@ const TIER_GATE_MESSAGE = {
   scholar: 'This ships with Scholar — the everything-unlocked plan. Recording, summaries and flashcards keep working on your current plan.',
 };
 
-export async function gateFeature(userId, feature, res, extra = {}) {
-  const cost = FEATURE_COSTS[feature] ?? 0;
+/**
+ * The tier half of the gate, on its own.
+ *
+ * gateFeature layers the credit check on top of this. An endpoint that gates a
+ * feature which is FREE for the qualifying tier — e.g. reading a plain-text
+ * note among paid PDF reads — calls this directly, so it enforces the SAME
+ * minimum tier and returns the SAME machine-readable 402 the UpgradeSheet
+ * knows how to render, without demanding a credit for work that costs nothing.
+ */
+export async function requireTier(userId, feature, res, extra = {}) {
   const balance = await getBalance(userId);
-
   const userTier = balance.tier || 'free';
   if (!tierAllows(userTier, feature)) {
     const requiredTier = FEATURE_MIN_TIER[feature];
@@ -257,6 +270,14 @@ export async function gateFeature(userId, feature, res, extra = {}) {
     });
     return { ok: false };
   }
+  return { ok: true, balance };
+}
+
+export async function gateFeature(userId, feature, res, extra = {}) {
+  const cost = FEATURE_COSTS[feature] ?? 0;
+  const tier = await requireTier(userId, feature, res, extra);
+  if (!tier.ok) return { ok: false };
+  const balance = tier.balance;
 
   if (cost > 0 && availableCredits(balance) < cost) {
     await logUsage({ user_id: userId, feature, tier_at_time: balance.tier, success: false, refusal: 'credits', ...extra });

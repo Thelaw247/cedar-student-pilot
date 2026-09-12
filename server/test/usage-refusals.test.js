@@ -72,8 +72,14 @@ test('the dashboard separates paywall stops from faults', () => {
 test('the backfill classifies old rows the same way the code now does', () => {
   // The migration decides tier-vs-credits from the feature's minimum tier, so
   // it has to agree with FEATURE_MIN_TIER or history is mislabelled.
-  const studentFeatures = Object.entries(FEATURE_MIN_TIER).filter(([, t]) => t === 'student').map(([f]) => f);
-  const scholarFeatures = Object.entries(FEATURE_MIN_TIER).filter(([, t]) => t === 'scholar').map(([f]) => f);
+  // Features gated AFTER this backfill migration have no historical refusal
+  // rows for it to classify — any old success=false rows they have are genuine
+  // faults (e.g. a scanned PDF material_extract could not read), not paywall
+  // stops. Requiring them here would force an edit to an already-applied
+  // migration for no data reason.
+  const GATED_AFTER_BACKFILL = new Set(['material_extract']);
+  const studentFeatures = Object.entries(FEATURE_MIN_TIER).filter(([f, t]) => t === 'student' && !GATED_AFTER_BACKFILL.has(f)).map(([f]) => f);
+  const scholarFeatures = Object.entries(FEATURE_MIN_TIER).filter(([f, t]) => t === 'scholar' && !GATED_AFTER_BACKFILL.has(f)).map(([f]) => f);
   for (const f of studentFeatures) assert.ok(MIGRATION.includes(`'${f}'`), `${f} missing from the backfill`);
   for (const f of scholarFeatures) assert.ok(MIGRATION.includes(`'${f}'`), `${f} missing from the backfill`);
   // Additive and reversible in meaning: nothing is deleted, nothing overwritten.

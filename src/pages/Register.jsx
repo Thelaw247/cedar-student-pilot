@@ -17,10 +17,11 @@ import { useAuth } from "@/lib/AuthContext";
 
 const USE_SUPABASE = import.meta.env.VITE_BACKEND_MODE === "supabase";
 // MUST equal Supabase Auth → "Email OTP Length". The email the student receives
-// contains exactly this many digits; a shorter box silently truncates a pasted
-// code to its first N and every verification fails as "expired or invalid",
-// which is the bug a real signup hit — the code was never expiring, it was
-// arriving two digits short of what the box would accept. Change both together.
+// contains exactly this many digits; if this box is SHORTER than the setting it
+// silently truncates a pasted code to its first N and every verification fails
+// as "expired or invalid" — the code was never expiring, it arrived longer than
+// the box would accept. That was a real signup bug. Change both together, and
+// never let this constant exceed the Supabase setting.
 const OTP_LENGTH = 8;
 const APPLE_AUTH_ENABLED = !USE_SUPABASE || import.meta.env.VITE_ENABLE_APPLE_AUTH === "true";
 const FACEBOOK_AUTH_ENABLED = !USE_SUPABASE || import.meta.env.VITE_ENABLE_FACEBOOK_AUTH === "true";

@@ -153,6 +153,7 @@ export const FEATURES = {
   smart_rebook:     { label: 'Smart session rebooking', minTier: 'student' },
   project_roadmap:  { label: 'Project roadmaps', minTier: 'student' },
   clean_transcript: { label: 'Transcript cleanup', minTier: 'student' },
+  material_extract: { label: 'Read professor materials (PDF)', minTier: 'student' },
   // Scholar — the intelligence layer (everything unlocked)
   handbook:         { label: 'Class handbooks', minTier: 'scholar' },
   exam_prediction:  { label: 'Exam topic prediction', minTier: 'scholar' },

@@ -4,6 +4,7 @@ import { base44 } from '@/api/base44Client';
 import Widget from '@/components/ui/Widget';
 import { fetchWithCache } from '@/hooks/useEntityData';
 import { invalidateEntity } from '@/lib/cache';
+import GateNotice, { gateFromError } from '@/components/monetization/GateNotice';
 
 export const MATERIAL_ACCEPT = '.pdf,.txt,.md,application/pdf,text/plain,text/markdown';
 
@@ -24,6 +25,7 @@ export default function LectureMaterials({ lecture, onEnriched, onCountChange })
   const [error, setError] = useState(null);
   const [reanalyzing, setReanalyzing] = useState(false);
   const [notice, setNotice] = useState(null);
+  const [gate, setGate] = useState(null);
   const inputRef = useRef(null);
 
   const load = useCallback(async () => {
@@ -42,6 +44,7 @@ export default function LectureMaterials({ lecture, onEnriched, onCountChange })
   const uploadFiles = async (files) => {
     setError(null);
     setNotice(null);
+    setGate(null);
     for (const file of files) {
       setUploading(file.name);
       try {
@@ -49,7 +52,11 @@ export default function LectureMaterials({ lecture, onEnriched, onCountChange })
         invalidateEntity('LectureMaterial');
         await load();
       } catch (e) {
-        setError(e?.response?.data?.error || e?.message || `Could not upload ${file.name}`);
+        // A tier/credit refusal is a 402 the student can act on — show the
+        // upgrade card, not a red error string. Anything else is a real failure.
+        const g = gateFromError(e);
+        if (g) setGate(g);
+        else setError(e?.response?.data?.message || e?.message || `Could not upload ${file.name}`);
         break;
       }
     }
@@ -150,7 +157,7 @@ export default function LectureMaterials({ lecture, onEnriched, onCountChange })
                   className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90">
                   <Upload className="w-3.5 h-3.5" /> Attach slides, handouts or notes
                 </button>
-                <p className="text-[11px] text-muted-foreground mt-2">PDF, text or Markdown · up to 20 MB each · or drop files here</p>
+                <p className="text-[11px] text-muted-foreground mt-2">PDF, text or Markdown · 20 MB max · 1 credit per PDF · or drop here</p>
               </>
             )}
           </div>
@@ -167,6 +174,7 @@ export default function LectureMaterials({ lecture, onEnriched, onCountChange })
             {stale && !reanalyzing && <span className="text-[11px] text-muted-foreground">New material since the last analysis.</span>}
           </div>
         )}
+        {gate && <GateNotice gate={gate} source="materials" className="mt-3" />}
         {notice && <p className="text-[11px] text-emerald-600 mt-2">{notice}</p>}
         {error && <p className="text-[11px] text-destructive mt-2">{error}</p>}
       </div>
