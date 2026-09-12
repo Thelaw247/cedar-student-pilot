@@ -1,79 +1,112 @@
-# Base44 Project
+# Praelecta
 
-Use this repository to run and edit the app locally, then publish changes back through Base44.
+AI lecture-recording study companion — [praelecta.ca](https://praelecta.ca). Record a lecture and it comes back as a transcript, a plain-English summary, verified formulas and definitions, flashcards, an exam-coverage map, a study schedule, and review quizzes. Students show up to class; Praelecta does the rest.
 
-Any change pushed to the repo will also be reflected in the Base44 Builder.
+> Formerly built on Base44. The app has since been migrated to its own stack (React + Vite on Cloudflare, an Express API on Render, Supabase for data and auth). The legacy Base44 sources are kept under `base44/` for reference only and are not what runs in production.
 
-## Prerequisites
+## The app, stage by stage
 
-1. Clone the repository using the project's Git URL.
-2. Navigate to the project directory.
-3. Install dependencies: `npm install`.
-4. Install the Base44 CLI: `npm install -g base44@latest`.
+1. **Record** — one tap starts recording (after the student confirms they have permission). Runs up to six hours; a phone dying mid-lecture is recovered on next open.
+2. **Transcribe & summarize** — audio is transcribed (Groq, with a Deepgram fallback) and a Gemini pass produces the title, summary, key concepts, formulas and "this is on the exam" mentions.
+3. **Study page** — a second enrichment pass builds the structured page: concept cards with transcript anchors, formulas verified against the professor's own uploaded materials, worked examples and to-dos.
+4. **Exam-coverage map** — every lecture is mapped to what the exam will cover, so a student studies only what will be on it.
+5. **Study schedule & sessions** — give it the exam date and it books review sessions; smart rebooking keeps the plan alive when life happens.
+6. **Review** — AI reviews, quick quizzes and practice questions turn the material into recall.
 
-See the [Base44 CLI docs](https://docs.base44.com/developers/references/cli/get-started/overview) if you want to run Base44 commands directly.
+Screenshots of each stage are in [`docs/screenshots/`](docs/screenshots/).
 
-## Run Locally
+## Stack
 
-Run the full local development environment from the project root:
+| Layer | Technology | Hosted on |
+| --- | --- | --- |
+| Frontend | React 18 + Vite, Tailwind, Radix UI, React Router, TanStack Query | Cloudflare Worker (`wrangler.jsonc`) |
+| API | Node + Express (`server/`) | Render (`render.yaml`) |
+| Database & auth | Supabase — Postgres + GoTrue, row-level security | Supabase |
+| Object storage | Cloudflare R2 (recordings, professor materials) | Cloudflare |
+| Payments | Stripe (subscriptions + credit packs) | Stripe |
+| Transcription | Groq (primary) → Deepgram (fallback) | — |
+| AI | Google Gemini (analysis, enrichment, extraction) | — |
+| Transactional email | Resend | — |
+| Scheduled jobs | Render cron (monthly credits, study reminders, stuck-lecture reclaim) | Render |
+
+A recording becomes a study page through the pipeline documented in [`docs/LECTURE_INTELLIGENCE.md`](docs/LECTURE_INTELLIGENCE.md). The credit economy (what each AI action costs and why) is in [`docs/MONETIZATION_KIT.md`](docs/MONETIZATION_KIT.md); `shared/tiers.js` holds the display prices and `server/lib/credits.js` is the enforcing authority.
+
+## Repository layout
+
+```
+src/          React frontend (pages, components, hooks, lib)
+server/       Express API — routes/, lib/, jobs/ (crons), test/
+shared/       Code shared by web + API (tiers/pricing, helpers)
+supabase/     Postgres schema snapshot + migrations
+docs/         Design system, lecture-intelligence, monetization, runbooks
+desktop/      Desktop app packaging
+mobile/       Mobile app shell
+base44/       Legacy Base44 sources (reference only — not in the build)
+wrangler.jsonc, render.yaml   Cloudflare + Render deploy config
+```
+
+## Local development
+
+**Frontend**
 
 ```bash
-base44 dev
+npm install
+npm run dev          # Vite dev server
 ```
 
-`base44 dev` starts the local Base44 development backend and, when this app is configured for it, also starts the frontend dev server for you. Use the frontend URL printed by the command.
-
-For example, when the Base44 project config includes a `serveCommand`, `base44 dev` can launch the frontend too:
-
-```json5
-{
-  "site": {
-    "serveCommand": "npm run dev"
-  }
-}
-```
-
-In a Base44 project this lives in `base44/config.jsonc`.
-
-## Run Only The Frontend
-
-If you only want to work on the frontend against the hosted Base44 backend, run:
+Create `.env.local` in the project root with the client config:
 
 ```bash
-npm run dev
+VITE_BACKEND_MODE=supabase
+VITE_SUPABASE_URL=...            # your Supabase project URL
+VITE_SUPABASE_ANON_KEY=...       # Supabase anon/publishable key
+VITE_RENDER_API_URL=...          # base URL of the Express API
 ```
 
-Open the local URL printed by Vite.
-
-## Use The Hosted Backend
-
-For frontend-only development, create or update `.env.local` in the project root:
+**API**
 
 ```bash
-VITE_BASE44_APP_ID=your_app_id
-VITE_BASE44_APP_BASE_URL=https://your-app.base44.app
+cd server
+npm install
+npm start            # node index.js
 ```
 
-`VITE_BASE44_APP_ID` identifies the Base44 app.
+The API reads its config from the environment (never committed). The main ones:
 
-`VITE_BASE44_APP_BASE_URL` tells the Base44 Vite plugin where to send local `/api` requests. Point it at your deployed Base44 app URL when you want the local frontend to use the hosted backend.
+```
+DATABASE_URL           Postgres connection (Supabase)
+SUPABASE_URL, SUPABASE_ANON_KEY
+GROQ_API_KEY           transcription (primary)
+GEMINI_API_KEY         analysis / enrichment / extraction
+R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME
+STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET
+RESEND_API_KEY, EMAIL_FROM_ADDRESS
+ALLOWED_ORIGINS, APP_ORIGIN
+```
 
-When you use `base44 dev`, the command injects the local Base44 values for you, so `.env.local` is mainly needed for frontend-only workflows.
+See `.env.example` for the full list. Deepgram (transcription fallback) is configured server-side alongside the above.
 
-## Publish Your Changes
-
-After pushing your changes to git, open the Base44 dashboard and publish the app:
+## Testing
 
 ```bash
-base44 dashboard open
+cd server
+npm test             # node --test
 ```
 
-## Docs & Support
+The suite is the safety net for the credit economy, auth flows, scheduling and the recording pipeline (currently 567 tests).
 
-In-repo design docs: `docs/DESIGN_SYSTEM.md`, `docs/MONETIZATION_KIT.md`, `docs/MIGRATION_AUDIT.md`, `docs/CUTOVER_RUNBOOK.md`, and `docs/LECTURE_INTELLIGENCE.md` (how a recording becomes the study page: the enrichment pass, attached materials and verification, to-dos, review quizzes).
+## Deployment
 
-Documentation: [https://docs.base44.com/Integrations/Using-GitHub](https://docs.base44.com/Integrations/Using-GitHub)
+Pushing to `main` or `codex/security-and-api-hardening` deploys automatically:
 
-Base44 CLI command reference: [https://docs.base44.com/developers/references/cli/commands/introduction](https://docs.base44.com/developers/references/cli/commands/introduction)
+- **Frontend** — `.github/workflows/deploy-frontend.yml` builds the app and publishes the Cloudflare Worker.
+- **API + crons** — Render auto-deploys the services in `render.yaml` on each commit.
 
-Support: [https://app.base44.com/support](https://app.base44.com/support)
+CI (`.github/workflows/ci.yml`) runs lint, type-check and the test suite on pull requests.
+
+## Docs
+
+- [`docs/LECTURE_INTELLIGENCE.md`](docs/LECTURE_INTELLIGENCE.md) — how a recording becomes the study page.
+- [`docs/MONETIZATION_KIT.md`](docs/MONETIZATION_KIT.md) — tiers, credits and the paywall.
+- [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md) — UI tokens and components.
+- [`docs/MIGRATION_AUDIT.md`](docs/MIGRATION_AUDIT.md), [`docs/CUTOVER_RUNBOOK.md`](docs/CUTOVER_RUNBOOK.md) — the Base44 → current-stack migration.
