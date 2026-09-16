@@ -104,4 +104,34 @@ export function weekDates(date = new Date(), offsetWeeks = 0) {
   return out;
 }
 
+// Monday..Friday — the columns a week grid draws whether or not anything is
+// on them.
+const WEEKDAY_COUNT = 5;
+
+/**
+ * Which day columns a week grid draws, given the week's day labels (Mon..Sun)
+ * and, per label, whether anything is scheduled on it.
+ *
+ * Monday to Friday are always drawn. Saturday and Sunday join only when
+ * something is scheduled on them, and the result is always a contiguous run
+ * from Monday, so a quiet mid-week day never punches a hole.
+ *
+ * The grid used to trim empty days off BOTH ends, and that is how a student's
+ * calendar came to "have no Monday" (13 Sep 2026): he set the app up on the
+ * Sunday of Labour Day week, the week on screen had nothing on its holiday
+ * Monday, and the grid began on Tuesday. A block schedule with statutory
+ * holidays makes an empty Monday ordinary, and an empty Monday is still
+ * Monday.
+ *
+ * @param {string[]} days   Mon..Sun labels, in order
+ * @param {Record<string, unknown[]>} itemsByDay  label -> the items on that day
+ */
+export function visibleWeekColumns(days, itemsByDay) {
+  let last = Math.min(WEEKDAY_COUNT, days.length) - 1;
+  days.forEach((day, index) => {
+    if ((itemsByDay?.[day] || []).length > 0) last = Math.max(last, index);
+  });
+  return days.slice(0, last + 1);
+}
+
 export { toDateStr };

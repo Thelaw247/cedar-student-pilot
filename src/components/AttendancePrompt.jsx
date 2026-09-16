@@ -2,80 +2,18 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
 import { fetchWithCache } from '@/hooks/useEntityData';
 import { GraduationCap, Check, X, Loader2, Clock } from 'lucide-react';
-import { getClassMeetingsForDate } from '@/lib/classSchedule';
+// Which sessions may be asked about lives in src/lib/attendance.js, where it
+// is unit-tested. The rule that moved it there: a session is only askable if
+// it ended after the class was added — an imported timetable used to produce
+// a stack of questions about last week's classes before the Today page had
+// even been seen once.
+import { findPastUnconfirmedSessions } from '@/lib/attendance';
 import { classTint, classColor } from '@/lib/color';
 import { useRecording } from '@/recording/RecordingContext';
 
 function formatDate(dateStr) {
   const d = new Date(dateStr + 'T00:00:00');
   return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-}
-
-/**
- * Find recent past class session dates (up to 3 days back) where:
- * - The class was scheduled on that day
- * - The class end time has passed
- * Returns array of { classObj, date }
- */
-function findPastUnconfirmedSessions(classes, lectures, attendance) {
-  const now = new Date();
-  const results = [];
-
-  // Build lookup sets
-  const lectureKeys = new Set();
-  for (const l of lectures) {
-    if (l.class_id && l.date) {
-      lectureKeys.add(`${l.class_id}|${l.date}`);
-    }
-  }
-  const attendanceKeys = new Set();
-  for (const a of attendance) {
-    if (a.class_id && a.date) {
-      attendanceKeys.add(`${a.class_id}|${a.date}`);
-    }
-  }
-
-  // Check the last 3 days (including today if class time has passed)
-  for (let i = 1; i <= 3; i++) {
-    const checkDate = new Date(now);
-    checkDate.setDate(checkDate.getDate() - i);
-    const dateStr = `${checkDate.getFullYear()}-${String(checkDate.getMonth() + 1).padStart(2, '0')}-${String(checkDate.getDate()).padStart(2, '0')}`;
-
-    for (const cls of classes) {
-      const meetings = getClassMeetingsForDate(cls, dateStr);
-      if (meetings.length === 0) continue;
-
-      // For yesterday and earlier, the class has definitely ended
-      const key = `${cls.id}|${dateStr}`;
-      if (!lectureKeys.has(key) && !attendanceKeys.has(key)) {
-        results.push({ classObj: { ...cls, start_time: meetings[0].start_time || cls.start_time }, date: dateStr });
-      }
-    }
-  }
-
-  // Also check today if class end time has passed
-  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-  const nowMinutes = now.getHours() * 60 + now.getMinutes();
-
-  for (const cls of classes) {
-    const meetings = getClassMeetingsForDate(cls, todayStr);
-    if (meetings.length === 0) continue;
-
-    const latestEnd = meetings.map(m => m.end_time || cls.end_time || '').sort().at(-1);
-    if (latestEnd) {
-      const [h, m] = latestEnd.split(':').map(Number);
-      if (nowMinutes <= h * 60 + m) continue;
-    }
-
-    const key = `${cls.id}|${todayStr}`;
-    if (!lectureKeys.has(key) && !attendanceKeys.has(key)) {
-      results.push({ classObj: { ...cls, start_time: meetings[0].start_time || cls.start_time }, date: todayStr });
-    }
-  }
-
-  // Sort newest first
-  results.sort((a, b) => b.date.localeCompare(a.date));
-  return results;
 }
 
 export default function AttendancePrompt() {

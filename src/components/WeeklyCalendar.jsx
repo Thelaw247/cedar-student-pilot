@@ -1,7 +1,7 @@
 import React from 'react';
 import { Clock } from 'lucide-react';
 import { getClassMeetings, getClassMeetingsForDate, getMeetingRoom } from '@/lib/classSchedule';
-import { weekDates, expandEventsInRange, parseLocalDate } from '@/lib/eventSchedule';
+import { weekDates, expandEventsInRange, parseLocalDate, visibleWeekColumns } from '@/lib/eventSchedule';
 import { sessionTitle } from '@/lib/sessionTitle';
 import { classColor, classTint } from '@/lib/color';
 import { parseTimeToMinutes, formatTime as formatTimeShared } from '@/lib/time';
@@ -131,6 +131,7 @@ export default function WeeklyCalendar({
 
   // Collect every item, grouped by day label. Classes are day-of-week based
   // (same every week); study/events are placed by their concrete date.
+  /** @type {Record<string, any[]>} */
   const itemsByDay = {};
   for (const day of DAYS) {
     const items = [];
@@ -214,16 +215,13 @@ export default function WeeklyCalendar({
   const hours = [];
   for (let m = startMin; m <= endMin; m += 60) hours.push(m);
 
-  // Which day columns to render. Previously this dropped every empty day, which
-  // silently punched holes in the week: a week with nothing on Saturday but a
-  // church event on Sunday rendered Mon Tue Wed Thu Fri Sun, so Saturday simply
-  // vanished mid-week and the dates ran 17 18 19 20 21 23. Keep the compact
-  // behaviour of trimming empty days off each END, but never skip a day in the
-  // middle — render the contiguous span from the first active day to the last.
-  const activeIdx = DAYS.map((d, i) => (itemsByDay[d].length > 0 ? i : -1)).filter(i => i >= 0);
-  const displayDays = activeIdx.length > 0
-    ? DAYS.slice(Math.min(...activeIdx), Math.max(...activeIdx) + 1)
-    : DAYS.slice(0, 5);
+  // Which day columns to render. Two fixes live in visibleWeekColumns: never
+  // skip a day in the middle (a week with nothing on Saturday but a church
+  // event on Sunday once rendered Mon Tue Wed Thu Fri Sun, dates 17 18 19 20
+  // 21 23), and never trim Monday–Friday off the front either — an empty
+  // holiday Monday used to start the grid on Tuesday, and a student reported
+  // that his calendar had no Monday. Weekdays always; the weekend when used.
+  const displayDays = visibleWeekColumns(DAYS, itemsByDay);
 
   return (
     <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">

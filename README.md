@@ -93,7 +93,7 @@ cd server
 npm test             # node --test
 ```
 
-The suite is the safety net for the credit economy, auth flows, scheduling and the recording pipeline (currently 567 tests).
+The suite is the safety net for the credit economy, auth flows, scheduling and the recording pipeline (currently 580 tests).
 
 ## Deployment
 
