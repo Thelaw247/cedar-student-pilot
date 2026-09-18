@@ -28,9 +28,21 @@ export function detectDesktopOs() {
   return null;
 }
 
+/**
+ * The desktop shell's bridge (desktop/preload.cjs), or null in a browser tab.
+ * `platform` is Node's ('win32' | 'darwin' | 'linux'). The two functions exist
+ * from desktop 1.0.3 on; earlier shells expose only the markers, so callers
+ * check for them before offering a button that would do nothing.
+ * @returns {{ isDesktop: boolean, platform?: string, microphoneAccess?: () => Promise<string>, openMicrophoneSettings?: () => Promise<boolean> } | null}
+ */
+export function desktopBridge() {
+  if (typeof window === 'undefined') return null;
+  const bridge = /** @type {{ praelectaDesktop?: any }} */ (/** @type {unknown} */ (window)).praelectaDesktop;
+  return bridge && bridge.isDesktop ? bridge : null;
+}
+
 /** True when the page is already running inside the desktop app. */
 export function isRunningInDesktopApp() {
   if (typeof window === 'undefined') return false;
-  const bridge = /** @type {{ praelectaDesktop?: { isDesktop?: boolean } }} */ (/** @type {unknown} */ (window));
-  return Boolean(bridge.praelectaDesktop?.isDesktop) || /PraelectaDesktop\//.test(navigator.userAgent || '');
+  return Boolean(desktopBridge()) || /PraelectaDesktop\//.test(navigator.userAgent || '');
 }

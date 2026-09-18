@@ -7,7 +7,7 @@
 // remembers its size, microphone access handled once at the OS level,
 // external links going to the system browser, and no tab to lose mid-lecture.
 
-const { app, BrowserWindow, Menu, session, shell, systemPreferences } = require('electron');
+const { app, BrowserWindow, Menu, ipcMain, session, shell, systemPreferences } = require('electron');
 const fs = require('node:fs');
 const path = require('node:path');
 
@@ -162,6 +162,15 @@ function installPermissionHandlers() {
       const granted = await systemPreferences.askForMediaAccess('microphone');
       return callback(granted);
     }
+    if (permission === 'media' && process.platform === 'win32') {
+      // Windows has no prompt for a desktop app: the Settings switches
+      // ("Microphone access" and "Let desktop apps access your microphone")
+      // decide silently, and a blocked capture surfaces in the page as a
+      // device that will not start. Say so in the log, where a report can
+      // find it; the page asks the same question through the bridge below.
+      const status = microphoneAccessStatus();
+      if (status !== 'granted') console.warn(`[desktop] Windows reports microphone access "${status}" for this app`);
+    }
     callback(true);
   });
 
@@ -172,6 +181,44 @@ function installPermissionHandlers() {
 
 function safeOrigin(rawUrl) {
   try { return new URL(rawUrl).origin; } catch { return null; }
+}
+
+// ---- microphone bridge ----------------------------------------------------
+//
+// The record screen can ask the OS whether this app may use the microphone,
+// and open the page where that is decided. Windows and macOS have such a
+// switch; Linux does not. Both handlers answer only the app's own origin.
+
+function microphoneAccessStatus() {
+  if (process.platform !== 'win32' && process.platform !== 'darwin') return 'unknown';
+  try {
+    return systemPreferences.getMediaAccessStatus('microphone') || 'unknown';
+  } catch {
+    return 'unknown';
+  }
+}
+
+const MICROPHONE_SETTINGS_URL = {
+  win32: 'ms-settings:privacy-microphone',
+  darwin: 'x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone',
+};
+
+function fromAppOrigin(event) {
+  return safeOrigin(event?.senderFrame?.url || event?.sender?.getURL?.() || '') === APP_ORIGIN;
+}
+
+function installMicrophoneBridge() {
+  ipcMain.handle('praelecta:microphone-access', (event) => {
+    if (!fromAppOrigin(event)) return 'unknown';
+    return microphoneAccessStatus();
+  });
+  ipcMain.handle('praelecta:open-microphone-settings', async (event) => {
+    if (!fromAppOrigin(event)) return false;
+    const url = MICROPHONE_SETTINGS_URL[process.platform];
+    if (!url) return false;
+    await shell.openExternal(url);
+    return true;
+  });
 }
 
 // ---- menu ---------------------------------------------------------------
@@ -224,6 +271,7 @@ if (!app.requestSingleInstanceLock()) {
 
   app.whenReady().then(() => {
     installPermissionHandlers();
+    installMicrophoneBridge();
     installMenu();
     createWindow();
 

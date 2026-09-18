@@ -99,6 +99,17 @@ export function RecordingProvider({ children }) {
   // must not count these seconds: nothing is being captured.
   const [micSilent, setMicSilent] = useState(false);
   const micSilentRef = useRef(false);
+  // Why the last start() failed, as the browser reported it ({ name, message }),
+  // or null. start() used to swallow the DOMException and answer 'mic-denied'
+  // for every reason getUserMedia can reject; the modal then told a student
+  // whose microphone could not be STARTED (NotReadableError — on Windows,
+  // usually the OS-level switch for desktop apps) to "grant permission". The
+  // modal reads this to say the right thing; see lib/microphoneErrors.js.
+  const [startError, setStartError] = useState(null);
+  // Why the current recording ended without being asked, for the message and
+  // the console. The recorder's error event names it; a track that the OS
+  // ended names itself here first.
+  const stopReasonRef = useRef('');
   const [pendingLectureId, setPendingLectureId] = useState(null);
   const [liveNotes, setLiveNotes] = useState('');
   // Files the professor handed out, attached while recording (slides, the
@@ -271,18 +282,33 @@ export function RecordingProvider({ children }) {
     // stopCurrentSegment installs its own onstop for deliberate stops, so
     // reaching this handler means the recorder ended on its own.
     recorder.onstop = () => {
-      if (recordingRef.current && !rotatingRef.current) handleUnexpectedStop();
+      if (recordingRef.current && !rotatingRef.current) handleUnexpectedStop(stopReasonRef.current || 'the recorder ended on its own');
     };
-    recorder.onerror = () => {
-      if (recordingRef.current && !rotatingRef.current) handleUnexpectedStop();
+    recorder.onerror = (event) => {
+      // The error event carries the DOMException that ended the capture —
+      // "NotReadableError: Could not start audio source" is a different problem
+      // from a backgrounded tab, and until this was logged both read as
+      // "interrupted". Keep the first reason: onstop follows onerror.
+      const error = event?.error;
+      const reason = error ? `${error.name || 'Error'}${error.message ? `: ${error.message}` : ''}` : 'recorder error';
+      if (!stopReasonRef.current) stopReasonRef.current = reason;
+      if (recordingRef.current && !rotatingRef.current) handleUnexpectedStop(stopReasonRef.current);
     };
     recorder.start(15000);
     recorderRef.current = recorder;
   };
 
-  // The recording ended without us asking. Finalize what we have and say so.
-  const handleUnexpectedStop = () => {
-    setSaveError('Recording stopped — your phone or browser interrupted it. Everything up to that point is safe. Tap Save & process to keep it.');
+  // The recording ended without us asking. Finalize what we have and say so —
+  // and say WHY, in the message and in the console, so the next report of a
+  // recording that "just stops" arrives with the browser's own words in it.
+  const handleUnexpectedStop = (reason = '') => {
+    // onerror and onstop both arrive for one failure; the first one finalizes.
+    if (rotatingRef.current) return;
+    console.error('[recording] stopped without being asked:', reason || 'no reason reported', {
+      seconds: secondsRef.current, micSilent: micSilentRef.current,
+    });
+    const why = reason ? ` (${reason})` : '';
+    setSaveError(`Recording stopped — your phone or browser interrupted it${why}. Everything up to that point is safe. Tap Save & process to keep it.`);
     finalizeRecording({ interrupted: true });
   };
 
@@ -418,6 +444,8 @@ export function RecordingProvider({ children }) {
    */
   const start = useCallback(async (classInfo) => {
     if (recordingRef.current) return 'busy'; // one session at a time
+    setStartError(null);
+    stopReasonRef.current = '';
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const stored = await getRecording(classInfo.id).catch(() => null);
@@ -437,10 +465,18 @@ export function RecordingProvider({ children }) {
       const track = stream.getAudioTracks?.()[0];
       if (track) {
         const silent = (v) => { micSilentRef.current = v; setMicSilent(v); };
-        track.onmute = () => silent(true);
+        track.onmute = () => { console.warn('[recording] microphone track muted:', track.label); silent(true); };
         track.onunmute = () => silent(false);
-        track.onended = () => silent(true);
+        track.onended = () => {
+          // The browser ended the capture itself: the OS reclaimed the device,
+          // the input stopped delivering audio, the driver went away. The
+          // recorder's stop follows; this is the reason it will carry.
+          console.warn('[recording] microphone track ended:', track.label);
+          if (!stopReasonRef.current) stopReasonRef.current = 'the microphone stopped delivering audio';
+          silent(true);
+        };
         silent(track.muted || track.readyState === 'ended');
+        console.info('[recording] microphone:', track.label || '(unnamed device)', track.getSettings?.() || {});
       }
       setRecoveredBlob(null);
       recoveredBlobRef.current = null;
@@ -459,7 +495,12 @@ export function RecordingProvider({ children }) {
       setPaused(false);
       return 'started';
     } catch (e) {
-      return 'mic-denied'; // caller shows the microphone-permission message
+      // Keep the browser's own words. 'mic-denied' is the outcome every caller
+      // already handles; what they show for it now depends on this.
+      const failure = { name: e?.name || 'Error', message: e?.message || '' };
+      console.error('[recording] microphone request failed:', failure.name, failure.message);
+      setStartError(failure);
+      return 'mic-denied'; // caller shows the microphone message for startError
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -818,6 +859,7 @@ export function RecordingProvider({ children }) {
     saveError,
     saveFailure,
     micSilent,
+    startError,
     // "Process later" is only meaningful once the audio is durable server-side.
     canProcessLater: !!pendingLectureId && !recoveredBlob,
     liveNotes,

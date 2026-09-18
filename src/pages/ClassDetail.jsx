@@ -12,6 +12,8 @@ import WeekGroupedLectures from '@/components/WeekGroupedLectures';
 import ExamPredictionCard from '@/components/ExamPredictionCard';
 import HandbookReader from '@/components/HandbookReader';
 import { useRecording, findRecoverableRecording } from '@/recording/RecordingContext';
+import { classifyMicrophoneError, describeMicrophoneError } from '@/lib/microphoneErrors';
+import { desktopBridge } from '@/lib/desktopDownloads';
 import Segmented from '@/components/ui/Segmented';
 import { classTint, classColor } from '@/lib/color';
 import { useBalance } from '@/hooks/useBalance';
@@ -269,6 +271,12 @@ function RecordModal({ classId, cls, onClose }) {
   const [recovery, setRecovery] = useState(null);
   const [micError, setMicError] = useState(false);
   const [starting, setStarting] = useState(false);
+  // What the OS says about the microphone, from the desktop shell (1.0.3+):
+  // 'granted' | 'denied' | 'restricted' | 'not-determined' | 'unknown'. Only
+  // read inside the desktop app; a browser tab has its own permission prompt
+  // and nothing here to add to it.
+  const [osMicAccess, setOsMicAccess] = useState(null);
+  const desktop = desktopBridge();
 
   // Crash recovery: look for durably-persisted audio for this class.
   useEffect(() => {
@@ -279,6 +287,14 @@ function RecordModal({ classId, cls, onClose }) {
     })();
     return () => { cancelled = true; };
   }, [classId]);
+
+  useEffect(() => {
+    if (typeof desktop?.microphoneAccess !== 'function') return undefined;
+    let cancelled = false;
+    desktop.microphoneAccess().then((status) => { if (!cancelled) setOsMicAccess(status); }).catch(() => {});
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const confirmConsent = async () => {
     setSavingConsent(true);
@@ -356,6 +372,16 @@ function RecordModal({ classId, cls, onClose }) {
     const sec = s % 60;
     return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
   };
+
+  // The microphone failure, in the browser's own words. Every reason used to
+  // read "grant permission and try again", including the ones where the
+  // permission was already granted and the device simply could not start.
+  const micFailure = micError ? classifyMicrophoneError(rec.startError || {}) : null;
+  const micCopy = micFailure ? describeMicrophoneError(micFailure, { platform: desktop?.platform || null }) : null;
+  // Windows and macOS report the OS-level switch; when it is off, say so
+  // before the button is pressed rather than after the capture fails.
+  const osBlocksMic = osMicAccess === 'denied' || osMicAccess === 'restricted';
+  const canOpenMicSettings = typeof desktop?.openMicrophoneSettings === 'function';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 glass">
@@ -438,8 +464,28 @@ function RecordModal({ classId, cls, onClose }) {
             <h3 className="font-heading text-lg font-semibold mb-1">Record Lecture</h3>
             <p className="text-sm text-muted-foreground mb-2">Recording keeps running while you use the rest of the app — the pill at the bottom is your timer, pause, and notes.</p>
             <p className="text-xs text-muted-foreground mb-2">Long lectures are split into segments automatically behind the scenes — just keep recording for up to 6 hours in one session.</p>
-            {micError && (
-              <p className="text-xs text-destructive mb-2">Could not access the microphone. Please grant permission and try again.</p>
+            {osBlocksMic && !micError && (
+              <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 mb-3 text-left">
+                <p className="text-xs font-medium text-amber-700 dark:text-amber-500">Your computer is blocking the microphone for apps</p>
+                <p className="text-[11px] text-muted-foreground mt-1">{describeMicrophoneError({ kind: 'permission' }, { platform: desktop?.platform || null }).body}</p>
+                {canOpenMicSettings && (
+                  <button type="button" onClick={() => desktop.openMicrophoneSettings()}
+                    className="mt-2 text-xs font-medium text-primary hover:underline">Open microphone settings</button>
+                )}
+              </div>
+            )}
+            {micError && micCopy && (
+              <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 mb-3 text-left">
+                <p className="text-xs font-medium text-destructive">{micCopy.title}</p>
+                <p className="text-[11px] text-muted-foreground mt-1">{micCopy.body}</p>
+                {micFailure.detail && (
+                  <p className="text-[10px] font-mono text-muted-foreground mt-1.5 break-words">{micFailure.detail}</p>
+                )}
+                {canOpenMicSettings && (
+                  <button type="button" onClick={() => desktop.openMicrophoneSettings()}
+                    className="mt-2 text-xs font-medium text-primary hover:underline">Open microphone settings</button>
+                )}
+              </div>
             )}
             {cls?.recording_consent_date && (
               <p className="text-[11px] text-muted-foreground mb-6 inline-flex items-center gap-1">
