@@ -1,10 +1,13 @@
-import React, { useState, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useRef, useEffect } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import ResolvedAvatarImage from '@/components/ResolvedAvatarImage';
 import { getInitials, getAvatarColor } from '@/lib/avatar';
+import { matchParsedToExisting, unclaimedClasses } from '@/lib/courseIdentity';
+import { invalidateEntity } from '@/lib/cache';
+import { announceDataChange } from '@/lib/dataChanged';
 import { Upload, Loader2, Check, X, Plus, ChevronRight, Camera, AlertCircle } from 'lucide-react';
 
 const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
@@ -72,13 +75,22 @@ function scheduleCount(classes) {
 
 export default function SemesterSetup() {
   const { user, checkUserAuth } = useAuth();
+  const [searchParams] = useSearchParams();
+  // Re-import mode: /setup?semester=<id> updates that semester in place
+  // instead of creating a new one. The classes it already has are loaded so
+  // the parsed courses can be matched to them (see matchParsedToExisting);
+  // matched ones are updated by id, new ones added, unclaimed ones kept.
+  const updatingSemesterId = searchParams.get('semester') || null;
+  const [existingClasses, setExistingClasses] = useState([]);
+  const [existingLoaded, setExistingLoaded] = useState(!updatingSemesterId);
+  const [saved, setSaved] = useState(null); // the server's answer, for the success screen
   // Step 0 (name + optional photo) only shows for someone who has never set a
   // name — i.e. genuinely the first time through. Nothing else in the app
   // captures a name at signup (Register.jsx is email/password only), so this
   // is the only place it's ever asked. An existing user setting up a SECOND
   // semester already has a name and skips straight to step 1, unchanged from
-  // before this feature existed.
-  const [step, setStep] = useState(() => (user?.full_name ? 1 : 0));
+  // before this feature existed. Re-import always starts at step 1.
+  const [step, setStep] = useState(() => (user?.full_name || updatingSemesterId ? 1 : 0));
   const [welcomeName, setWelcomeName] = useState(user?.full_name || '');
   const [welcomeBusy, setWelcomeBusy] = useState(false);
   const [welcomeError, setWelcomeError] = useState(null);
@@ -91,6 +103,27 @@ export default function SemesterSetup() {
   const [semesterInfo, setSemesterInfo] = useState({ name: '', start_date: '', end_date: '' });
   const [error, setError] = useState('');
 
+  useEffect(() => {
+    if (!updatingSemesterId) return undefined;
+    let cancelled = false;
+    (async () => {
+      try {
+        const [semester, classes] = await Promise.all([
+          base44.entities.Semester.get(updatingSemesterId),
+          base44.entities.Class.filter({ semester_id: updatingSemesterId }),
+        ]);
+        if (cancelled) return;
+        setSemesterInfo({ name: semester.name || '', start_date: semester.start_date || '', end_date: semester.end_date || '' });
+        setExistingClasses(classes);
+      } catch (e) {
+        console.error(e);
+        if (!cancelled) setError('Could not load this semester. Go back to Classes and try again.');
+      }
+      if (!cancelled) setExistingLoaded(true);
+    })();
+    return () => { cancelled = true; };
+  }, [updatingSemesterId]);
+
   const handleFileChange = async (e) => {
     const f = e.target.files[0];
     if (!f) return;
@@ -102,7 +135,7 @@ export default function SemesterSetup() {
       setFileUrl(file_url);
       const response = await base44.functions.invoke('parseTimetableUpload', { file_url });
       const classes = response.data?.classes || [];
-      setParsedClasses(classes);
+      setParsedClasses(updatingSemesterId ? matchParsedToExisting(classes, existingClasses) : classes);
       const parsedRange = deriveSemesterRange(classes);
       setSemesterInfo(previous => ({
         ...previous,
@@ -140,16 +173,29 @@ export default function SemesterSetup() {
           }
         }
       }
-      await base44.functions.invoke('createSemesterImport', {
+      const response = await base44.functions.invoke('createSemesterImport', {
+        // Re-import: the semester to update, and per course the class it
+        // updates (matched above). A first import sends neither.
+        ...(updatingSemesterId ? { semester_id: updatingSemesterId } : {}),
         semester: semesterInfo,
-        classes: parsedClasses.map((cls) => ({
-          ...classPayload(cls, semesterInfo),
-          color: cls.color || '#3B82F6',
-        })),
+        classes: parsedClasses.map((cls) => {
+          const { id, ...payload } = classPayload(cls, semesterInfo);
+          return {
+            ...payload,
+            ...(updatingSemesterId && id ? { id } : {}),
+            color: cls.color || '#3B82F6',
+          };
+        }),
       });
+      setSaved(response?.data || null);
+      // Every page that reads the semester or its classes refreshes; the
+      // import used to rely on the next navigation to notice.
+      invalidateEntity('Semester');
+      invalidateEntity('Class');
+      announceDataChange(['Semester', 'Class']);
       setStep(3);
     } catch (e) {
-      setError(e.message || 'Failed to create semester. Please try again.');
+      setError(e?.response?.data?.error || e.message || 'Failed to create semester. Please try again.');
     }
     setParsing(false);
   };
@@ -197,8 +243,12 @@ export default function SemesterSetup() {
     const splitName = meeting.component ? `${source.name} — ${meeting.component}` : `${source.name} — Separate schedule`;
     const next = [...parsedClasses];
     next[classIndex] = { ...source, meetings: remaining };
+    // The split-off part is a new course. In a re-import the source may carry
+    // the id of an existing class; two entries with one id would both update
+    // the same row, the second overwriting the first.
+    const { id: _existingId, ...withoutId } = source;
     next.splice(classIndex + 1, 0, {
-      ...source, name: splitName, meetings: [meeting], source_entry_count: 1,
+      ...withoutId, name: splitName, meetings: [meeting], source_entry_count: 1,
     });
     setParsedClasses(next);
   };
@@ -312,11 +362,21 @@ export default function SemesterSetup() {
   if (step === 1) {
     return (
       <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 lg:py-10 animate-fade-in">
-        <Link to="/today" className="text-sm text-muted-foreground hover:text-foreground mb-6 inline-flex items-center gap-1">
+        <Link to={updatingSemesterId ? '/classes' : '/today'} className="text-sm text-muted-foreground hover:text-foreground mb-6 inline-flex items-center gap-1">
           <X className="w-4 h-4" /> Cancel
         </Link>
-        <h1 className="font-heading text-2xl sm:text-3xl font-bold mb-2">Set Up Your Semester</h1>
-        <p className="text-muted-foreground text-sm mb-8">Upload a screenshot or PDF of your university timetable. AI will extract your classes automatically.</p>
+        {updatingSemesterId ? (
+          <>
+            <h1 className="font-heading text-2xl sm:text-3xl font-bold mb-2">Update Your Schedule</h1>
+            <p className="text-muted-foreground text-sm mb-2">Upload the new timetable{semesterInfo.name ? ` for ${semesterInfo.name}` : ''}. Courses you already have are updated in place — your lectures, recordings and files stay exactly where they are.</p>
+            <p className="text-xs text-muted-foreground mb-8">{existingLoaded ? `${existingClasses.length} course${existingClasses.length === 1 ? '' : 's'} in this semester now. Nothing is deleted by an update.` : 'Loading your current courses…'}</p>
+          </>
+        ) : (
+          <>
+            <h1 className="font-heading text-2xl sm:text-3xl font-bold mb-2">Set Up Your Semester</h1>
+            <p className="text-muted-foreground text-sm mb-8">Upload a screenshot or PDF of your university timetable. AI will extract your classes automatically.</p>
+          </>
+        )}
 
         <label className="block">
           <div className="border-2 border-dashed border-border rounded-2xl p-10 text-center hover:border-primary/40 hover:bg-primary/5 transition-all cursor-pointer">
@@ -335,7 +395,7 @@ export default function SemesterSetup() {
                 <p className="text-xs text-muted-foreground mt-1">PNG, JPG, WEBP, or PDF</p>
               </>
             )}
-            <input type="file" accept="image/*,application/pdf" className="hidden" onChange={handleFileChange} disabled={parsing} />
+            <input type="file" accept="image/*,application/pdf" className="hidden" onChange={handleFileChange} disabled={parsing || !existingLoaded} />
           </div>
         </label>
 
@@ -359,13 +419,19 @@ export default function SemesterSetup() {
   }
 
   if (step === 2) {
+    const kept = updatingSemesterId ? unclaimedClasses(parsedClasses, existingClasses) : [];
+    const updatingCount = updatingSemesterId ? parsedClasses.filter((cls) => cls.id).length : 0;
     return (
       <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 lg:py-10 animate-fade-in">
-        <Link to="/setup" className="text-sm text-muted-foreground hover:text-foreground mb-6 inline-flex items-center gap-1">
+        <button type="button" onClick={() => setStep(1)} className="text-sm text-muted-foreground hover:text-foreground mb-6 inline-flex items-center gap-1">
           <X className="w-4 h-4" /> Back
-        </Link>
-        <h1 className="font-heading text-2xl sm:text-3xl font-bold mb-2">Review Your Classes</h1>
-        <p className="text-muted-foreground text-sm mb-6">Confirm the grouped courses and every schedule variation before creating the semester.</p>
+        </button>
+        <h1 className="font-heading text-2xl sm:text-3xl font-bold mb-2">{updatingSemesterId ? 'Review the Changes' : 'Review Your Classes'}</h1>
+        <p className="text-muted-foreground text-sm mb-6">
+          {updatingSemesterId
+            ? `${updatingCount} course${updatingCount === 1 ? '' : 's'} matched to what you already have and will be updated in place; ${parsedClasses.length - updatingCount} will be added. Nothing is removed.`
+            : 'Confirm the grouped courses and every schedule variation before creating the semester.'}
+        </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
           <input type="text" placeholder="Semester Name" value={semesterInfo.name}
@@ -390,6 +456,13 @@ export default function SemesterSetup() {
         <div className="space-y-4 mb-6">
           {parsedClasses.map((cls, i) => (
             <div key={i} className="rounded-xl border border-border bg-card p-4 space-y-3">
+              {updatingSemesterId && (
+                <p className="text-[10px] font-semibold uppercase tracking-wide">
+                  {cls.id
+                    ? <span className="text-emerald-600">Updates {existingClasses.find((c) => c.id === cls.id)?.course_code || existingClasses.find((c) => c.id === cls.id)?.name || 'an existing course'}</span>
+                    : <span className="text-primary">New course</span>}
+                </p>
+              )}
               <div className="flex items-center gap-2">
                 <input type="color" value={cls.color || '#3B82F6'} onChange={e => updateClass(i, 'color', e.target.value)}
                   className="w-8 h-8 rounded-lg cursor-pointer border border-border" />
@@ -493,12 +566,44 @@ export default function SemesterSetup() {
           </button>
         </div>
 
+        {/* Re-import: courses the upload did not mention stay exactly as they
+            are. Removing one is a deliberate act on the Classes page, where the
+            confirmation says what goes with it — never a side effect here. */}
+        {updatingSemesterId && kept.length > 0 && (
+          <div className="rounded-xl border border-border bg-muted/20 px-4 py-3 mb-6">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Not in this timetable — kept as they are</p>
+            <p className="text-sm text-foreground">{kept.map((c) => c.course_code ? `${c.course_code} · ${c.name}` : c.name).join(', ')}</p>
+            <p className="text-[11px] text-muted-foreground mt-1">To remove one, delete it from its class page afterwards.</p>
+          </div>
+        )}
+
         {error && <p className="text-sm text-destructive mb-4">{error}</p>}
 
         <button onClick={handleConfirm} disabled={parsing || !semesterInfo.name || !semesterInfo.start_date || !semesterInfo.end_date || parsedClasses.length === 0}
           className="w-full px-4 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-2">
-          {parsing ? <><Loader2 className="w-4 h-4 animate-spin" /> Creating Semester...</> : <><Check className="w-4 h-4" /> Confirm & Create Semester</>}
+          {parsing
+            ? <><Loader2 className="w-4 h-4 animate-spin" /> {updatingSemesterId ? 'Updating Schedule...' : 'Creating Semester...'}</>
+            : <><Check className="w-4 h-4" /> {updatingSemesterId ? 'Confirm & Update Schedule' : 'Confirm & Create Semester'}</>}
         </button>
+      </div>
+    );
+  }
+
+  if (updatingSemesterId) {
+    const updated = saved?.updated_count ?? 0;
+    const created = saved?.created_count ?? 0;
+    return (
+      <div className="max-w-lg mx-auto px-4 sm:px-6 py-6 lg:py-20 text-center animate-fade-in">
+        <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 flex items-center justify-center mx-auto mb-6">
+          <Check className="w-8 h-8 text-emerald-600" strokeWidth={2} />
+        </div>
+        <h1 className="font-heading text-2xl font-bold mb-2">Schedule Updated</h1>
+        <p className="text-muted-foreground text-sm mb-8">
+          {updated} course{updated === 1 ? '' : 's'} updated, {created} added. Everything recorded so far is still attached to its course.
+        </p>
+        <Link to="/classes" className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-xl font-medium text-sm hover:bg-primary/90">
+          Back to Classes <ChevronRight className="w-4 h-4" />
+        </Link>
       </div>
     );
   }

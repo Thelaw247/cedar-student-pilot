@@ -1,3 +1,10 @@
+import { courseIdentity, normalizeCourseCode } from '../../shared/courseIdentity.js';
+
+// Re-exported: the tests and the parser route read it from here, and the
+// definition itself now lives in shared/ so the re-import screen matches
+// courses the same way this consolidation merges them.
+export { normalizeCourseCode };
+
 const VALID_DAYS = new Set(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']);
 const DAY_ALIASES = new Map([
   ['sun', 'Sun'], ['sunday', 'Sun'], ['mon', 'Mon'], ['monday', 'Mon'],
@@ -33,18 +40,6 @@ function normalizeDay(value) {
   const raw = cleanString(value, 12);
   if (VALID_DAYS.has(raw)) return raw;
   return DAY_ALIASES.get(raw.toLowerCase()) || '';
-}
-
-export function normalizeCourseCode(value) {
-  return cleanString(value, 40).toUpperCase().replace(/[–—]/g, '-').replace(/\s*-\s*/g, '-').replace(/\s+/g, ' ');
-}
-
-function courseIdentity(entry) {
-  if (entry.course_code) return `code:${entry.course_code.replace(/[^A-Z0-9]/g, '')}`;
-  const normalizedName = entry.name.toLowerCase()
-    .replace(/\b(lecture|lect|lab|laboratory|tutorial|seminar|section|sec)\b\s*[a-z0-9-]*/gi, ' ')
-    .replace(/[^a-z0-9]+/g, ' ').trim();
-  return normalizedName ? `name:${normalizedName}` : '';
 }
 
 function dateDay(date) {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { Plus, Search, GraduationCap, Pencil, CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Search, GraduationCap, Pencil, CalendarDays, ChevronLeft, ChevronRight, Upload } from 'lucide-react';
 import Segmented from '@/components/ui/Segmented';
 import { weekDates } from '@/lib/eventSchedule';
 import { formatWeekRange } from '@/lib/time';
@@ -117,15 +117,26 @@ export default function Classes() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 lg:py-10 animate-fade-in">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-2">
         <div>
           <h1 className="font-heading text-2xl sm:text-3xl font-bold">Classes</h1>
-          <p className="text-muted-foreground text-sm mt-0.5">{classes.length} course{classes.length !== 1 ? 's' : ''} this semester</p>
+          <p className="text-muted-foreground text-sm mt-0.5">{classes.length} course{classes.length !== 1 ? 's' : ''} this semester{activeSemester?.name ? ` · ${activeSemester.name}` : ''}</p>
         </div>
         <button onClick={() => setShowAdd(true)} className="inline-flex items-center gap-1.5 bg-primary text-primary-foreground px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-primary/90">
           <Plus className="w-4 h-4" /> Add Class
         </button>
       </div>
+      {/* Schedule changed? Re-import updates this semester's courses in place
+          (lectures stay attached); older semesters are managed in Settings. */}
+      {activeSemester && (
+        <p className="text-xs text-muted-foreground mb-6 flex flex-wrap items-center gap-x-1.5">
+          <Link to={`/setup?semester=${encodeURIComponent(activeSemester.id)}`} className="inline-flex items-center gap-1 text-primary font-medium hover:underline">
+            <Upload className="w-3 h-3" /> Update from a new timetable
+          </Link>
+          <span className="text-muted-foreground/50">·</span>
+          <Link to="/settings" className="hover:text-foreground hover:underline">Manage semesters</Link>
+        </p>
+      )}
 
       {/* Weekly schedule grid — reference, not this page's question, so it
           collapses and remembers the choice (law 04). */}
@@ -188,7 +199,11 @@ export default function Classes() {
           <div className="rounded-xl border border-dashed border-border p-12 text-center">
             <GraduationCap className="w-8 h-8 text-muted-foreground mx-auto mb-3" strokeWidth={1.5} />
             <p className="text-sm text-muted-foreground">No classes yet. Add your first class or upload a timetable.</p>
-            <Link to="/setup" className="text-sm text-primary font-medium mt-2 inline-block hover:underline">Set up semester</Link>
+            {/* With a semester already there, a timetable goes INTO it; only a
+                student with no semester at all should be creating one. */}
+            <Link to={activeSemester ? `/setup?semester=${encodeURIComponent(activeSemester.id)}` : '/setup'} className="text-sm text-primary font-medium mt-2 inline-block hover:underline">
+              {activeSemester ? 'Upload a timetable' : 'Set up semester'}
+            </Link>
           </div>
         )
       ) : (
