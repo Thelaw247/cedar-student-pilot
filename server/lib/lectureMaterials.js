@@ -19,6 +19,11 @@ import { CHEAP_MODEL, recordGeminiUsage } from './llm.js';
 
 export const MAX_MATERIAL_BYTES = 20 * 1024 * 1024;
 export const MAX_MATERIALS_PER_LECTURE = 12;
+// Files attached to the class itself (lecture_id null): the syllabus, a
+// formula sheet, past exams, textbook chapters. More than a lecture's slides
+// because a course accumulates them; still bounded, because each is a
+// 20 MB object and a Gemini read.
+export const MAX_MATERIALS_PER_CLASS = 30;
 // How much extracted text a single material contributes to a prompt. Slides
 // for one lecture are a few thousand words; a whole textbook chapter PDF is
 // not what this is for, and the cap keeps the enrichment call bounded.

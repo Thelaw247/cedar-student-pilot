@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Paperclip, Upload, Download, Trash2, Loader2, FileText, ShieldCheck, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Paperclip, Upload, Download, Trash2, Loader2, FileText, ShieldCheck, RefreshCw, AlertTriangle, BookOpen } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import Widget from '@/components/ui/Widget';
 import { fetchWithCache } from '@/hooks/useEntityData';
@@ -9,16 +10,27 @@ import GateNotice, { gateFromError } from '@/components/monetization/GateNotice'
 export const MATERIAL_ACCEPT = '.pdf,.txt,.md,application/pdf,text/plain,text/markdown';
 
 /**
- * The professor's own files for this lecture — slides, handouts, the
- * formula sheet. Two jobs:
- *   1. keep them with the lecture, downloadable;
- *   2. feed their text to the analysis so formulas and definitions are
- *      checked against what the professor actually wrote, not what the
- *      microphone heard. After an upload, "Re-check against materials"
- *      re-runs the pass (free; the server only runs it when something is
- *      new), and the study page's Verified badges update.
+ * The professor's own files, in one of two scopes.
+ *
+ * Lecture scope (`lecture`): the slides, handouts and formula sheet for THIS
+ * lecture. Two jobs: keep them with the lecture, downloadable; and feed their
+ * text to the analysis so formulas and definitions are checked against what
+ * the professor actually wrote, not what the microphone heard. After an
+ * upload, "Re-check against materials" re-runs the pass (free; the server
+ * only runs it when something is new), and the study page's Verified badges
+ * update.
+ *
+ * Class scope (`cls`, with `lectures` for labels): every file of the course
+ * in one place — the ones attached to the class itself (syllabus, past
+ * exams, textbook chapters; uploaded here, with no lecture) and the ones
+ * attached to individual lectures, each labelled with its lecture and linked
+ * to it. A class file is what the practice-question generator can build
+ * from; it does not feed any one lecture's analysis, so there is no re-check
+ * here. Same component, same upload pipeline, same 1-credit PDF read.
  */
-export default function LectureMaterials({ lecture, onEnriched, onCountChange }) {
+export default function LectureMaterials({ lecture = null, cls = null, lectures = [], onEnriched = null, onCountChange = null }) {
+  const classScope = !lecture && !!cls;
+  const scopeId = classScope ? cls.id : lecture?.id;
   const [materials, setMaterials] = useState([]);
   const [loaded, setLoaded] = useState(false);
   const [uploading, setUploading] = useState(null); // file name in flight
@@ -30,11 +42,11 @@ export default function LectureMaterials({ lecture, onEnriched, onCountChange })
 
   const load = useCallback(async () => {
     try {
-      const rows = await fetchWithCache('LectureMaterial', 'filter', [{ lecture_id: lecture.id }]);
+      const rows = await fetchWithCache('LectureMaterial', 'filter', [classScope ? { class_id: scopeId } : { lecture_id: scopeId }]);
       setMaterials(Array.isArray(rows) ? rows : []);
     } catch { /* keep what is shown */ }
     setLoaded(true);
-  }, [lecture.id]);
+  }, [classScope, scopeId]);
 
   useEffect(() => { load(); }, [load]);
   useEffect(() => { onCountChange?.(materials.filter((m) => m.extraction_status === 'ready').length); }, [materials, onCountChange]);
@@ -48,7 +60,7 @@ export default function LectureMaterials({ lecture, onEnriched, onCountChange })
     for (const file of files) {
       setUploading(file.name);
       try {
-        await base44.materials.upload(lecture.id, file);
+        await base44.materials.upload(classScope ? { class_id: scopeId } : scopeId, file);
         invalidateEntity('LectureMaterial');
         await load();
       } catch (e) {
@@ -115,33 +127,56 @@ export default function LectureMaterials({ lecture, onEnriched, onCountChange })
   };
 
   const readyCount = materials.filter((m) => m.extraction_status === 'ready').length;
-  const enrichedAt = lecture.enriched_at ? new Date(lecture.enriched_at).getTime() : 0;
+  const enrichedAt = lecture?.enriched_at ? new Date(lecture.enriched_at).getTime() : 0;
   const newest = materials.reduce((max, m) => Math.max(max, new Date(m.updated_at || m.created_at).getTime()), 0);
-  const stale = readyCount > 0 && newest > enrichedAt && !!lecture.transcript;
+  const stale = !classScope && readyCount > 0 && newest > enrichedAt && !!lecture?.transcript;
+
+  // Class scope: the lecture a file belongs to, for its label and link.
+  const lectureById = new Map((lectures || []).map((l) => [l.id, l]));
+  const lectureLabel = (m) => {
+    if (!m.lecture_id) return null;
+    const l = lectureById.get(m.lecture_id);
+    return l ? (l.ai_title || `Lecture — ${l.date}`) : 'a lecture';
+  };
+
+  const meta = classScope
+    ? (materials.length
+      ? `${materials.length} file${materials.length === 1 ? '' : 's'} · ${readyCount} readable for practice questions`
+      : 'Syllabus, past exams, formula sheets — files for the whole course')
+    : (materials.length
+      ? `${materials.length} file${materials.length === 1 ? '' : 's'} · ${readyCount} used to verify this page`
+      : 'Attach slides or handouts to verify formulas and definitions');
 
   return (
-    <Widget id="sec-materials" icon={Paperclip} title="Professor's materials" collapsible storageKey="lec-materials"
-      meta={materials.length ? `${materials.length} file${materials.length === 1 ? '' : 's'} · ${readyCount} used to verify this page` : 'Attach slides or handouts to verify formulas and definitions'}
-      className="mb-4 scroll-mt-24" padded>
+    <Widget id={classScope ? 'sec-course-materials' : 'sec-materials'} icon={classScope ? BookOpen : Paperclip}
+      title={classScope ? 'Course materials' : "Professor's materials"} collapsible storageKey={classScope ? 'class-materials' : 'lec-materials'}
+      meta={meta} className="mb-4 scroll-mt-24" padded>
       <div className="pt-1">
         {materials.length > 0 && (
           <ul className="space-y-1.5 mb-3">
-            {materials.map((m) => (
-              <li key={m.id} className="flex items-center gap-3 rounded-lg border border-border px-3 py-2">
-                <FileText className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-foreground truncate">{m.file_name}</p>
-                  <p className="text-[11px] text-muted-foreground">
-                    {formatBytes(m.size_bytes)}{m.page_count ? ` · ${m.page_count} pages` : ''}
-                    {m.extraction_status === 'ready' && <span className="inline-flex items-center gap-1 ml-2 text-emerald-600"><ShieldCheck className="w-3 h-3" /> used for verification</span>}
-                    {m.extraction_status === 'failed' && <span className="inline-flex items-center gap-1 ml-2 text-amber-600"><AlertTriangle className="w-3 h-3" /> no readable text (scanned?) — kept for download only</span>}
-                    {m.extraction_status === 'unsupported' && <span className="ml-2 text-amber-600">kept for download only</span>}
-                  </p>
-                </div>
-                <button type="button" onClick={() => download(m)} aria-label={`Download ${m.file_name}`} className="text-muted-foreground hover:text-foreground"><Download className="w-4 h-4" /></button>
-                <button type="button" onClick={() => remove(m)} aria-label={`Delete ${m.file_name}`} className="text-muted-foreground hover:text-destructive"><Trash2 className="w-4 h-4" /></button>
-              </li>
-            ))}
+            {materials.map((m) => {
+              const from = classScope ? lectureLabel(m) : null;
+              return (
+                <li key={m.id} className="flex items-center gap-3 rounded-lg border border-border px-3 py-2">
+                  <FileText className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-foreground truncate">{m.file_name}</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      {formatBytes(m.size_bytes)}{m.page_count ? ` · ${m.page_count} pages` : ''}
+                      {from && m.lecture_id && (
+                        <> · from <Link to={`/lectures/${m.lecture_id}`} className="text-primary hover:underline">{from}</Link></>
+                      )}
+                      {m.extraction_status === 'ready' && !classScope && <span className="inline-flex items-center gap-1 ml-2 text-emerald-600"><ShieldCheck className="w-3 h-3" /> used for verification</span>}
+                      {m.extraction_status === 'ready' && classScope && <span className="inline-flex items-center gap-1 ml-2 text-emerald-600"><ShieldCheck className="w-3 h-3" /> readable</span>}
+                      {m.extraction_status === 'failed' && <span className="inline-flex items-center gap-1 ml-2 text-amber-600"><AlertTriangle className="w-3 h-3" /> no readable text (scanned?) — kept for download only</span>}
+                      {m.extraction_status === 'unsupported' && <span className="ml-2 text-amber-600">kept for download only</span>}
+                    </p>
+                  </div>
+                  <button type="button" onClick={() => download(m)} aria-label={`Download ${m.file_name}`} className="text-muted-foreground hover:text-foreground"><Download className="w-4 h-4" /></button>
+                  <button type="button" onClick={() => remove(m)} aria-label={`Delete ${m.file_name}`} className="text-muted-foreground hover:text-destructive"><Trash2 className="w-4 h-4" /></button>
+                </li>
+              );
+            })}
           </ul>
         )}
 
@@ -155,7 +190,7 @@ export default function LectureMaterials({ lecture, onEnriched, onCountChange })
               <>
                 <button type="button" onClick={() => inputRef.current?.click()}
                   className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90">
-                  <Upload className="w-3.5 h-3.5" /> Attach slides, handouts or notes
+                  <Upload className="w-3.5 h-3.5" /> {classScope ? 'Add a course file' : 'Attach slides, handouts or notes'}
                 </button>
                 <p className="text-[11px] text-muted-foreground mt-2">PDF, text or Markdown · 20 MB max · 1 credit per PDF · or drop here</p>
               </>
@@ -165,7 +200,7 @@ export default function LectureMaterials({ lecture, onEnriched, onCountChange })
           <p className="text-[11px] text-muted-foreground">Attachments are available on the new Praelecta stack.</p>
         )}
 
-        {loaded && lecture.transcript && readyCount > 0 && (
+        {!classScope && loaded && lecture?.transcript && readyCount > 0 && (
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <button type="button" onClick={reanalyze} disabled={reanalyzing}
               className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium border transition-colors disabled:opacity-50 ${stale ? 'border-primary/40 bg-primary/5 text-primary hover:bg-primary/10' : 'border-border text-muted-foreground hover:text-foreground hover:bg-muted'}`}>

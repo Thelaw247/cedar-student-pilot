@@ -495,7 +495,7 @@ export type Database = {
           extraction_status: string
           file_name: string
           id: string
-          lecture_id: string
+          lecture_id: string | null
           page_count: number | null
           size_bytes: number
           storage_ref: string
@@ -510,7 +510,7 @@ export type Database = {
           extraction_status?: string
           file_name: string
           id?: string
-          lecture_id: string
+          lecture_id?: string | null
           page_count?: number | null
           size_bytes: number
           storage_ref: string
@@ -525,7 +525,7 @@ export type Database = {
           extraction_status?: string
           file_name?: string
           id?: string
-          lecture_id?: string
+          lecture_id?: string | null
           page_count?: number | null
           size_bytes?: number
           storage_ref?: string

@@ -266,26 +266,33 @@ const files = {
 };
 
 /**
- * Professor-supplied materials for a lecture (PDF, text, Markdown). Upload
- * is presign → PUT → confirm like recordings; confirm also extracts the text
- * the enrichment pass verifies formulas against. Rows are read through
- * entities.LectureMaterial (RLS, select only); every write goes through here.
+ * Professor-supplied materials for a lecture or a class (PDF, text,
+ * Markdown). Upload is presign → PUT → confirm like recordings; confirm also
+ * extracts the text the enrichment pass verifies formulas against. Rows are
+ * read through entities.LectureMaterial (RLS, select only); every write goes
+ * through here.
+ *
+ * `target` is a lecture id (the original call shape, kept as is) or
+ * { lecture_id } / { class_id } — a class file is one attached to the course
+ * itself, with no lecture.
  */
 const materials = {
-  async upload(lectureId, file) {
+  async upload(target, file) {
     if (!(file instanceof Blob) || !file.size) throw new TypeError('A non-empty file is required');
     if (file.size > MAX_MATERIAL_BYTES) throw new RangeError('Materials must be 20 MB or smaller');
+    const scope = typeof target === 'string' ? { lecture_id: target } : { ...(target?.lecture_id ? { lecture_id: target.lecture_id } : {}), ...(target?.class_id && !target?.lecture_id ? { class_id: target.class_id } : {}) };
+    if (!scope.lecture_id && !scope.class_id) throw new TypeError('A lecture or class to attach the file to is required');
     const fileName = String(/** @type {any} */ (file).name || 'material');
     const contentType = file.type || (fileName.toLowerCase().endsWith('.md') ? 'text/markdown' : 'application/octet-stream');
     const prepared = await apiRequest('/lecture-materials/upload-url', {
       method: 'POST',
-      body: { lecture_id: lectureId, content_type: contentType, size_bytes: file.size, file_name: fileName },
+      body: { ...scope, content_type: contentType, size_bytes: file.size, file_name: fileName },
     });
     const uploaded = await fetch(prepared.data.upload_url, { method: 'PUT', headers: prepared.data.headers, body: file });
     if (!uploaded.ok) throw new Error(`Material upload failed (${uploaded.status})`);
     return (await apiRequest('/lecture-materials/confirm', {
       method: 'POST',
-      body: { lecture_id: lectureId, key: prepared.data.key, file_name: fileName, content_type: contentType },
+      body: { ...scope, key: prepared.data.key, file_name: fileName, content_type: contentType },
     })).data;
   },
   async getDownloadUrl(materialId) {

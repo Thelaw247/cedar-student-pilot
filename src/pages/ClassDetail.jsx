@@ -11,6 +11,7 @@ import AssignmentEditModal from '@/components/AssignmentEditModal';
 import WeekGroupedLectures from '@/components/WeekGroupedLectures';
 import ExamPredictionCard from '@/components/ExamPredictionCard';
 import HandbookReader from '@/components/HandbookReader';
+import LectureMaterials from '@/components/lecture/LectureMaterials';
 import { useRecording, findRecoverableRecording } from '@/recording/RecordingContext';
 import { classifyMicrophoneError, describeMicrophoneError } from '@/lib/microphoneErrors';
 import { desktopBridge } from '@/lib/desktopDownloads';
@@ -221,6 +222,12 @@ function LectureTab({ lectures, coverage, classId, cls, onUpdate, autoRecord, on
           )}
         </div>
       )}
+
+      {/* The professor's files for the whole course — syllabus, past exams,
+          formula sheets — plus every file attached to a lecture, in one
+          place. Same widget as the lecture page's materials, in class scope;
+          what the practice-question generator can build from. */}
+      <LectureMaterials cls={cls} lectures={lectures} />
 
       {lectures.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border p-12 text-center">
