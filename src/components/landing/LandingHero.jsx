@@ -1,6 +1,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Brain, CalendarClock, ChevronRight, Mic, Target } from 'lucide-react';
+import { TIERS } from '@/lib/tiers';
+import PaymentTrustLine from '@/components/landing/PaymentTrustLine';
 
 const coreFeatures = [
 {
@@ -43,7 +45,10 @@ export default function LandingHero() {
       <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[620px] bg-[radial-gradient(circle_at_50%_5%,rgba(46,102,255,0.13),transparent_42%)]" />
       <div className="mx-auto max-w-6xl">
         <div className="mx-auto max-w-4xl text-center">
-          <p className="text-sm font-semibold text-primary">For students who would rather not redo the whole course at exam time</p>
+          {/* The category is named before the hook: a student arriving from
+              a search for "AI lecture recorder" should not need the subhead
+              to confirm what this is. The h1 stays the line it was. */}
+          <p className="text-sm font-semibold text-primary">Lecture recording and study tool, for students who would rather not redo the whole course at exam time</p>
           <h1 className="mx-auto mt-3 max-w-4xl text-balance text-4xl font-bold leading-[1.02] tracking-[-0.05em] text-foreground sm:text-5xl lg:text-6xl">You showed up to the lecture. That should be the hard part.</h1>
           <p className="mx-auto mt-5 max-w-3xl text-balance text-base leading-7 text-muted-foreground sm:text-lg">Press record. By the time you are out of the room, the class is a transcript, a summary, flashcards and practice questions. When the exam gets announced, the study sessions book themselves around your calendar.</p>
           <p className="mx-auto mt-5 max-w-2xl text-lg font-bold tracking-[-0.02em] text-foreground sm:text-xl">
@@ -88,6 +93,12 @@ export default function LandingHero() {
             <ChevronRight className="h-4 w-4 text-muted-foreground" />
             <span className="rounded-lg bg-secondary px-3 py-2 text-foreground shadow-sm">Exam</span>
           </div>
+          {/* The one thing no competitor offers, said where a first-time
+              visitor reads it rather than buried in the pricing section. */}
+          <p className="mt-3 text-center text-xs font-medium text-muted-foreground sm:text-sm">
+            Bills by semester, not by month — <span className="text-foreground">no other study app does that</span>.{' '}
+            <Link to="/pricing" className="font-semibold text-primary hover:text-foreground">${TIERS.student.semester.toFixed(2)} for the whole term</Link>
+          </p>
         </div>
 
         <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
@@ -98,6 +109,12 @@ export default function LandingHero() {
             See how it works
           </a>
         </div>
+        <PaymentTrustLine className="mt-4" />
+        {/* Scope, stated: who this is not for, so nobody signs up expecting
+            an essay writer and leaves disappointed. */}
+        <p className="mx-auto mt-3 max-w-2xl text-center text-xs leading-5 text-muted-foreground">
+          Not for you if you want an app to write your assignments: Praelecta only ever touches your lectures.
+        </p>
 
         {/* An honest "coming soon" marker, not a download link — there is
             nothing to tap yet, so it is a static badge rather than a dead

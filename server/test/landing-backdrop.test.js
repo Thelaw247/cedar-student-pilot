@@ -18,7 +18,11 @@ import fs from 'node:fs';
  */
 
 const CSS = fs.readFileSync(new URL('../../src/index.css', import.meta.url), 'utf8');
-const LANDING = fs.readFileSync(new URL('../../src/pages/Landing.jsx', import.meta.url), 'utf8');
+// The backdrop and surface moved from pages/Landing.jsx into
+// components/landing/MarketingShell.jsx on 18 Sep 2026, when the pricing,
+// about and changelog pages started sharing the homepage's frame. Same
+// markup, same rules; the file it lives in is not the point.
+const LANDING = fs.readFileSync(new URL('../../src/components/landing/MarketingShell.jsx', import.meta.url), 'utf8');
 
 // Declarations only. Comments are stripped because these rules are heavily
 // commented — with the very property names the negative assertions look for,
@@ -103,7 +107,7 @@ test('the dark floor is on the canvas, not only on an element', () => {
   assert.match(CSS, /html\.landing-active[\s\S]{0,80}background-color:\s*hsl\(/,
     'nothing paints the canvas dark, so the overscroll region stays light-theme white');
   assert.match(LANDING, /classList\.add\('landing-active'\)/,
-    'Landing.jsx never puts the class on, so the canvas rule can never apply');
+    'MarketingShell.jsx never puts the class on, so the canvas rule can never apply');
   assert.match(LANDING, /classList\.remove\('landing-active'\)/,
     'the class is never removed, so every page after this one inherits a dark canvas');
 });

@@ -201,6 +201,11 @@ const functions = {
   async invoke(name, args = {}) {
     return apiRequest(functionPath(name), { method: 'POST', body: args });
   },
+  /** A plain GET of an API path -> { data }. For the few reads that are not
+   *  function calls, such as the public counts the landing page shows. */
+  async get(path) {
+    return apiRequest(path, { method: 'GET' });
+  },
 };
 
 function readAsDataUrl(file) {

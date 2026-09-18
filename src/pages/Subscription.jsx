@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { startCheckout as beginCheckout } from '@/lib/checkout';
-import { TIERS, TIER_ORDER, CREDIT_PACKS, CREDITS_PER_LECTURE, PLAN_FEATURES, planHas } from '@/lib/tiers';
+import { TIERS, TIER_ORDER, CREDIT_PACKS, CREDITS_PER_LECTURE, PLAN_FEATURES, planHas, semesterSaving, maxSemesterSavingPercent } from '@/lib/tiers';
 import { SUPPORT_EMAIL } from '@/lib/legal';
 import { Check, Loader2, ArrowLeft, Zap, Sparkles, AlertCircle } from 'lucide-react';
 
@@ -50,27 +50,15 @@ export default function Subscription() {
   };
 
   /** Semester plans bill every 4 months. Show the real monthly-equivalent and
-   *  the actual saving rather than an invented discount. */
-  const savingFor = (tier) => {
-    if (!tier.monthly || !tier.semester) return null;
-    const fourMonthsMonthly = tier.monthly * 4;
-    const saved = fourMonthsMonthly - tier.semester;
-    if (saved <= 0) return null;
-    return {
-      saved: saved.toFixed(2),
-      percent: Math.round((saved / fourMonthsMonthly) * 100),
-      perMonth: (tier.semester / 4).toFixed(2),
-    };
-  };
+   *  the actual saving rather than an invented discount. The maths lives in
+   *  lib/tiers (semesterSaving) so the public pricing page shows the same
+   *  figure as this one. */
+  const savingFor = semesterSaving;
 
-  /** The badge on the Semester toggle. The saving differs per tier (Student
-   *  25%, Scholar 19%, Unlimited 17%), so a flat "Save 25%" overstated the
-   *  discount on two of three plans. Derive the real best case instead — if a
-   *  price ever changes, the badge follows it automatically. */
-  const maxSavingPercent = Math.max(
-    0,
-    ...TIER_ORDER.map((id) => savingFor(TIERS[id])?.percent || 0),
-  );
+  /** The badge on the Semester toggle. The saving differs per tier, so a flat
+   *  "Save 25%" overstated the discount on two of three plans. Derive the real
+   *  best case instead — if a price ever changes, the badge follows it. */
+  const maxSavingPercent = maxSemesterSavingPercent();
 
   if (loading) {
     return (

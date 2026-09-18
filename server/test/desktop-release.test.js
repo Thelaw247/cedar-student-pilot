@@ -104,5 +104,8 @@ test('an unsigned macOS build is still ad-hoc signed so Apple silicon will launc
 
 test('the landing page shows the download section and links it from the footer', () => {
   assert.match(landing, /<LandingDownloads \/>/);
-  assert.match(landing, /href="#download"/);
+  // The footer is shared by every public page, so its anchor is written as
+  // /#download: a scroll on the homepage, the homepage itself from anywhere else.
+  const footer = read('../../src/components/landing/LandingFooter.jsx');
+  assert.match(footer, /href="\/#download"/);
 });

@@ -47,6 +47,7 @@ import createSemesterImportRouter from './routes/createSemesterImport.js';
 import enrichLectureRouter from './routes/enrichLecture.js';
 import lectureMaterialsRouter from './routes/lectureMaterials.js';
 import recordStudyCoverageRouter from './routes/recordStudyCoverage.js';
+import publicStatsRouter from './routes/publicStats.js';
 
 export const app = express();
 const PORT = process.env.PORT || 3000;
@@ -105,6 +106,8 @@ app.use('/create-semester-import', createSemesterImportRouter);
 app.use('/enrich-lecture', enrichLectureRouter);
 app.use('/lecture-materials', lectureMaterialsRouter);
 app.use('/record-study-coverage', recordStudyCoverageRouter);
+// Aggregate counts for the landing page. Public by design; see the route.
+app.use('/public', publicStatsRouter);
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', service: SERVICE_NAME, timestamp: new Date().toISOString() });

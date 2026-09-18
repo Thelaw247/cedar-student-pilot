@@ -23,7 +23,7 @@ const PAINS = [
   {
     icon: Layers,
     quote: '“It’s week 10 and I’m fourteen lectures behind.”',
-    answer: 'Every recorded lecture is already flashcards, practice questions and exam-topic predictions. Catching up means studying, not rebuilding fourteen weeks of notes.',
+    answer: 'Every recorded lecture is already flashcards, practice questions and exam-topic predictions. Catching up means studying, not rebuilding fourteen weeks of notes. Being behind is a to-do list now, not a disaster.',
   },
 ];
 

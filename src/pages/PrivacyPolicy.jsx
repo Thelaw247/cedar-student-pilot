@@ -48,12 +48,23 @@ export default function PrivacyPolicy() {
         </p>
       </Section>
 
-      <Section icon={Server} title="How your data is used">
+      <Section icon={Server} title="How your data is used, and by whom">
         <p>
           Your content is used to power the features you see: transcribing recordings, generating summaries and study
-          material, tracking coverage, and planning study sessions. To do this, recording audio and transcript text are
-          processed by third-party AI services (for transcription and summarization) solely to produce your results.
-          Your data is <span className="font-medium text-foreground">not</span> sold, and it is not used to advertise to you.
+          material, tracking coverage, and planning study sessions. To do this, your recording audio and transcript text
+          are processed by these named providers, solely to produce your results:
+        </p>
+        <ul className="list-disc pl-5 space-y-1.5 mt-2">
+          <li><span className="font-medium text-foreground">Groq</span> transcribes your recordings (speech to text). Groq does not retain audio from these requests by default, and its terms do not permit it to use your audio to train models.</li>
+          <li><span className="font-medium text-foreground">Deepgram</span> transcribes a recording only when Groq is unavailable. Every request is sent opted out of Deepgram’s model-improvement program, so the audio is kept only for as long as the request takes and is not used for training.</li>
+          <li><span className="font-medium text-foreground">Google Gemini</span> (the paid Gemini API) reads transcripts and the PDFs you attach to write summaries, concepts, flashcards, questions and study plans. Google does not use these prompts or responses to improve its products; it may log them for a limited period solely to detect abuse.</li>
+        </ul>
+        <p className="mt-2">
+          Your audio and files are stored in your account’s private storage on Cloudflare R2, your account data on Supabase
+          (Postgres), and the app runs on Cloudflare and Render. Stripe handles payments (we never see your card number) and
+          Resend delivers our emails. Each of these processes only what its job needs. Your data is{' '}
+          <span className="font-medium text-foreground">not</span> sold, it is not used to advertise to you, and we do not
+          use your recordings to train anything.
         </p>
       </Section>
 

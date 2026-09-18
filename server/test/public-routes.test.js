@@ -19,7 +19,10 @@ import fs from 'node:fs';
  */
 
 const APP = fs.readFileSync(new URL('../../src/App.jsx', import.meta.url), 'utf8');
-const PUBLIC_ROUTES = ['/privacy', '/terms'];
+// /pricing, /about and /changelog joined the two legal pages on 18 Sep 2026:
+// the public site beyond the homepage, linked from the nav and footer and
+// listed in the sitemap, so the same guarantees apply.
+const PUBLIC_ROUTES = ['/privacy', '/terms', '/pricing', '/about', '/changelog'];
 
 test('every public legal route is declared', () => {
   for (const path of PUBLIC_ROUTES) {
@@ -48,10 +51,12 @@ test('each public legal route has a page component that exists', () => {
   }
 });
 
-test('the landing footer links to both, since that is where visitors look', () => {
-  const landing = fs.readFileSync(new URL('../../src/pages/Landing.jsx', import.meta.url), 'utf8');
+test('the landing footer links to every public page, since that is where visitors look', () => {
+  // The footer moved into components/landing/LandingFooter.jsx when the
+  // public site grew beyond the homepage; every public page renders it.
+  const footer = fs.readFileSync(new URL('../../src/components/landing/LandingFooter.jsx', import.meta.url), 'utf8');
   for (const path of PUBLIC_ROUTES) {
-    assert.ok(landing.includes(`to="${path}"`), `the landing footer has no link to ${path}`);
+    assert.ok(footer.includes(`to="${path}"`), `the landing footer has no link to ${path}`);
   }
 });
 

@@ -19,7 +19,11 @@
          the safe-area insets the bottom nav and recording island already
          use actually resolve on a notched phone. -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <title>Praelecta — You show up, we'll do the rest</title>
+    <!-- The title names the category first ("lecture recording", "study tool")
+         because that is what a student types into a search box; the tagline
+         stays in the hero. Kept under 60 characters. src/pages/Landing.jsx sets
+         the same string at runtime (LANDING_TITLE) - keep the two equal. -->
+    <title>Praelecta — AI Lecture Recording &amp; Study Tool for Students</title>
     <!-- Static fallback for crawlers/scrapers that don't execute JS. Landing.jsx
          overrides this via useEffect for browsers that do (keeps per-page control),
          but the SPA shell needs a real description in the initial HTML too, or a
@@ -102,6 +106,98 @@
         "highPrice": "24.99",
         "offerCount": "4"
       }
+    }
+    </script>
+    <!-- Organization: who is behind the product, for "what is Praelecta"
+         queries. Add the founder's LinkedIn / X URLs to sameAs once they exist
+         (shared/founder.js holds the same record for the pages). -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "Praelecta",
+      "url": "https://praelecta.ca/",
+      "logo": "https://praelecta.ca/android-chrome-512x512.png",
+      "email": "help@praelecta.ca",
+      "foundingDate": "2026",
+      "founder": { "@type": "Person", "name": "De Wet Luus" },
+      "address": { "@type": "PostalAddress", "addressLocality": "Saskatoon", "addressRegion": "SK", "addressCountry": "CA" },
+      "contactPoint": { "@type": "ContactPoint", "email": "help@praelecta.ca", "contactType": "customer support", "availableLanguage": "en" }
+    }
+    </script>
+    <!-- FAQPage: the same questions the homepage FAQ shows, generated from
+         shared/faq.js (server/test/public-site.test.js holds the two equal;
+         regenerate this block when that file changes). -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Is recording lectures allowed?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "It depends on your university and your professor: some allow it, some want to be asked first, some don't. Praelecta asks you to confirm you have permission before your first recording in each class, and it never starts a recording on its own."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What happens to my audio?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "It goes into your account's private storage and is transcribed by Groq (Deepgram as a backup); Google's Gemini then writes the summary, concepts and questions. Those providers process it only to return your results and, under their terms, don't use it to train their models. Nobody else can see it, we never sell it, and it's deleted when you delete the lecture, the class, or your account."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Will I run out of credits mid-semester?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "You always see your balance and what an action costs before you spend it, so it's never a surprise. A one-hour lecture is 10 credits. Student gives you 200 a month (about 20 lectures), Scholar 450, Unlimited 1000. If you need more, a credit pack tops you up without changing your plan, and packs never expire."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can I cancel anytime?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. One tap in Settings, no chat with support. You keep what you paid for until the end of the period, everything you made stays in your account, and your price never goes up while you're subscribed."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does Praelecta write my essays?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. It only works with your lectures: the recording, the transcript and what your professor actually said. It doesn't write assignments, and there's nowhere in the app to ask it to."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What if my professor talks too fast?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Record it and replay any part with the transcript right beside it. The summary and key concepts are ready a few minutes after class ends, so you can listen in class instead of racing to write."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does it work on iPhone or Mac?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Praelecta runs in the browser on any phone or laptop, iPhone and Mac included: sign in at praelecta.ca. There's a desktop app for Windows and Linux today; the Mac app and the iPhone app are on the way."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How much does it cost?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Two full lectures are free, no card needed. After that, Student is $7.99 a month or $24.99 for the whole semester, one bill that matches your term. Scholar is $12.99 a month or $39.99 a semester, Unlimited $24.99 or $79.99. The full comparison is on the pricing page."
+          }
+        }
+      ]
     }
     </script>
   </head>

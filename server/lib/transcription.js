@@ -70,6 +70,12 @@ export async function transcribeViaDeepgram(buffer, apiKey) {
     smart_format: 'true',   // punctuation, paragraphs, numbers as digits
     paragraphs: 'true',
     detect_language: 'true',
+    // Deepgram's Model Improvement Partnership is opt-OUT: without this, a
+    // student's lecture audio is retained and used to train Deepgram's
+    // models. With it, Deepgram keeps the audio only for as long as the
+    // request takes. The privacy policy names Deepgram and promises exactly
+    // this, so the parameter is load-bearing — do not drop it.
+    mip_opt_out: 'true',
   });
   const res = await fetch(`${DEEPGRAM_ENDPOINT}?${params}`, {
     method: 'POST',

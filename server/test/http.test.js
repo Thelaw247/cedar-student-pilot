@@ -48,6 +48,17 @@ test('unknown browser origins are rejected', async () => {
   assert.deepEqual(await response.json(), { error: 'Origin not allowed' });
 });
 
+test('the public counts answer without a session — and never as a 401', async () => {
+  // The landing page reads this signed out. With no database in the test
+  // process the query fails, which must surface as "unavailable", not as a
+  // demand to sign in, and never as a crash.
+  const response = await fetch(`${baseUrl}/public/stats`);
+  assert.notEqual(response.status, 401);
+  assert.ok([200, 503].includes(response.status), `unexpected status ${response.status}`);
+  const body = await response.json();
+  assert.ok(body && typeof body === 'object');
+});
+
 test('unknown routes return JSON 404', async () => {
   const response = await fetch(`${baseUrl}/does-not-exist`);
   assert.equal(response.status, 404);

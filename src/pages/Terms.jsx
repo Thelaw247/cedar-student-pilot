@@ -1,5 +1,5 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import {
   ChevronLeft, FileText, UserCheck, Mic, CreditCard, RefreshCw,
   ShieldCheck, Sparkles, Ban, Server, AlertTriangle, Scale, Mail,
@@ -26,6 +26,15 @@ const money = (n) => `$${n.toFixed(2)}`;
 const paidTiers = TIER_ORDER.filter((id) => id !== 'free').map((id) => TIERS[id]);
 
 export default function Terms() {
+  // The landing page links straight to #refunds. This page is loaded lazily,
+  // so the router's own hash scroll can fire before the section exists; scroll
+  // again once it is on the page.
+  const { hash } = useLocation();
+  useEffect(() => {
+    if (!hash) return;
+    document.getElementById(hash.slice(1))?.scrollIntoView({ behavior: 'smooth' });
+  }, [hash]);
+
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 lg:py-10 animate-fade-in">
       <Link to="/settings" className="text-sm text-muted-foreground hover:text-foreground mb-4 inline-flex items-center gap-1">
@@ -142,7 +151,7 @@ export default function Terms() {
         </p>
       </Section>
 
-      <Section icon={RefreshCw} title="Renewal, cancellation and refunds">
+      <Section id="refunds" icon={RefreshCw} title="Renewal, cancellation and refunds">
         <p>
           Plans renew automatically until you cancel — monthly plans every month, semester plans every four months.
           The renewal price is the price you signed up at. We’ll email you before anything changes.
@@ -266,9 +275,9 @@ export default function Terms() {
   );
 }
 
-function Section({ icon: Icon, title, children }) {
+function Section({ id = undefined, icon: Icon, title, children }) {
   return (
-    <div className="rounded-xl border border-border bg-card p-5 mb-4">
+    <div id={id} className="rounded-xl border border-border bg-card p-5 mb-4 scroll-mt-6">
       <div className="flex items-center gap-2 mb-3">
         <Icon className="w-4 h-4 text-primary" strokeWidth={2} />
         <h2 className="text-sm font-semibold">{title}</h2>

@@ -1,0 +1,26 @@
+# Praelecta
+
+> AI lecture recording and study tool for university students. Record the lecture; by the time you are out of the room it is a transcript, a summary, flashcards and practice questions. Tick which lectures a test covers, and the study sessions book themselves around your calendar. Made in Canada, priced in CAD, billed by the semester.
+
+Praelecta is built for undergraduate students in content-heavy courses (engineering, sciences, math) who would rather not redo the whole course at exam time. It is a web app (praelecta.ca) with desktop apps for Windows and Linux; a Mac app and an iPhone app are on the way.
+
+What it does:
+- Records a lecture (up to six hours) after the student confirms they have permission, then transcribes it (Groq; Deepgram as a fallback) and writes the summary, key concepts, formulas, definitions, worked examples, exam mentions and to-dos (Google Gemini).
+- Attaches the professor's files (slides, syllabus, formula sheets, past exams) to a lecture or a course; formulas are verified against them, and practice material can be built from them.
+- Lets the student tick which lectures a test covers, so flashcards, practice questions, quizzes and class handbooks stay inside that slice.
+- Books study sessions between now and the exam around the student's classes and work shifts, rebooks missed ones, and runs a focus timer with an end-of-session review.
+- Imports a class timetable from a photo or PDF to set up the semester.
+
+Pricing (CAD): two full lectures free with no card. Student $7.99/month or $24.99/semester (200 credits a month, about 20 recorded lectures); Scholar $12.99/month or $39.99/semester (450 credits); Unlimited $24.99/month or $79.99/semester (1000 credits). A one-hour lecture costs 10 credits. Credit packs (100 for $6.99, 250 for $14.99, 500 for $27.99) never expire. Cancel in one tap; the price you sign up at never rises while you stay subscribed.
+
+Commitments: a recording never cuts out mid-lecture; every limit is visible before you hit it; cancelling is one tap; the app helps with lectures, never with writing assignments. Recordings are private to the student's account and are deleted when they delete them.
+
+## Pages
+- [Homepage](https://praelecta.ca/): what it does, with the actual product screens
+- [Pricing](https://praelecta.ca/pricing): every plan, credit cost and pack
+- [About](https://praelecta.ca/about): who builds it
+- [What's new](https://praelecta.ca/changelog): dated product updates
+- [Privacy policy](https://praelecta.ca/privacy): what is stored, and which providers process it
+- [Terms of service](https://praelecta.ca/terms)
+
+Contact: help@praelecta.ca

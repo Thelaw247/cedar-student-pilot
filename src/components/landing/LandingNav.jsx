@@ -3,14 +3,25 @@ import { Link } from 'react-router-dom';
 import { Menu, X } from 'lucide-react';
 import { BRAND_MARK_URL } from '@/lib/brand';
 
+// Anchors are written as /#section rather than #section so the same nav works
+// from /pricing, /about and /changelog: on the homepage the browser treats a
+// same-path hash as a scroll, anywhere else it opens the homepage there.
+// Pricing is its own page since 18 Sep 2026 — the full table, not the teaser.
 const links = [
-  { label: 'Recording', href: '#recording' },
-  { label: 'Test coverage', href: '#test-coverage' },
-  { label: 'Study schedule', href: '#study-schedule' },
-  { label: 'Study tools', href: '#study-system' },
-  { label: 'Pricing', href: '#pricing' },
-  { label: 'Desktop', href: '#download' },
+  { label: 'Recording', href: '/#recording' },
+  { label: 'Test coverage', href: '/#test-coverage' },
+  { label: 'Study schedule', href: '/#study-schedule' },
+  { label: 'Study tools', href: '/#study-system' },
+  { label: 'Pricing', to: '/pricing' },
+  { label: 'FAQ', href: '/#faq' },
+  { label: 'Desktop', href: '/#download' },
 ];
+
+function NavLink({ link, className, onClick = undefined }) {
+  return link.to
+    ? <Link to={link.to} onClick={onClick} className={className}>{link.label}</Link>
+    : <a href={link.href} onClick={onClick} className={className}>{link.label}</a>;
+}
 
 export default function LandingNav() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -26,7 +37,7 @@ export default function LandingNav() {
 
           <div className="hidden items-center gap-6 md:flex">
             {links.map((link) => (
-              <a key={link.href} href={link.href} className="text-sm font-medium text-muted-foreground hover:text-foreground">{link.label}</a>
+              <NavLink key={link.label} link={link} className="text-sm font-medium text-muted-foreground hover:text-foreground" />
             ))}
           </div>
 
@@ -42,7 +53,7 @@ export default function LandingNav() {
         {menuOpen && (
           <div className="border-t border-border py-3 md:hidden">
             {links.map((link) => (
-              <a key={link.href} href={link.href} onClick={() => setMenuOpen(false)} className="block rounded-lg px-3 py-2.5 text-sm font-medium text-foreground/80 hover:bg-muted">{link.label}</a>
+              <NavLink key={link.label} link={link} onClick={() => setMenuOpen(false)} className="block rounded-lg px-3 py-2.5 text-sm font-medium text-foreground/80 hover:bg-muted" />
             ))}
             <Link to="/login" onClick={() => setMenuOpen(false)} className="block rounded-lg px-3 py-2.5 text-sm font-medium text-foreground/80 hover:bg-muted sm:hidden">Sign in</Link>
           </div>

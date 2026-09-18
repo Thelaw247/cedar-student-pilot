@@ -91,6 +91,28 @@ export const TIERS = {
 
 export const TIER_ORDER = ['free', 'student', 'scholar', 'unlimited'];
 
+/**
+ * What a semester plan saves against four months of the monthly price —
+ * the real figure, derived, never a typed "Save 25%" that overstates two of
+ * the three plans (Student 21%, Scholar 23%, Unlimited 19% at today’s
+ * prices). Null for a tier with no paid semester price.
+ */
+export function semesterSaving(tier) {
+  if (!tier?.monthly || !tier?.semester) return null;
+  const fourMonthsMonthly = tier.monthly * 4;
+  const saved = fourMonthsMonthly - tier.semester;
+  if (saved <= 0) return null;
+  return {
+    saved: saved.toFixed(2),
+    percent: Math.floor((saved / fourMonthsMonthly) * 100),
+    perMonth: (tier.semester / 4).toFixed(2),
+  };
+}
+
+/** The best semester saving across the paid tiers, for a "save up to" badge. */
+export const maxSemesterSavingPercent = () =>
+  Math.max(0, ...TIER_ORDER.map((id) => semesterSaving(TIERS[id])?.percent || 0));
+
 /** One-off credit packs — for topping up mid-period without changing plan.
  *
  *  DELIBERATELY dearer per credit than every subscription tier ($0.056-$0.070

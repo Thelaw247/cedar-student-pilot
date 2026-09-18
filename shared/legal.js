@@ -11,7 +11,7 @@
  * consent cannot drift apart.
  */
 
-export const LEGAL_VERSION = '2026-08-31';
+export const LEGAL_VERSION = '2026-09-18';
 
 /**
  * The address a user can actually reach a person at.
@@ -27,4 +27,4 @@ export const SUPPORT_EMAIL = 'help@praelecta.ca';
 export const SUPPORT_MAILTO = `mailto:${SUPPORT_EMAIL}`;
 
 export const TERMS_EFFECTIVE_DATE = 'August 31, 2026';
-export const PRIVACY_EFFECTIVE_DATE = 'August 2, 2026';
+export const PRIVACY_EFFECTIVE_DATE = 'September 18, 2026';

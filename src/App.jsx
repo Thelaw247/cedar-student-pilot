@@ -32,6 +32,9 @@ const CheckoutSuccess = lazy(() => import('./pages/CheckoutSuccess'));
 const OwnerAnalytics = lazy(() => import('./pages/OwnerAnalytics'));
 const Subscription = lazy(() => import('./pages/Subscription'));
 const Landing = lazy(() => import('./pages/Landing'));
+const Pricing = lazy(() => import('./pages/Pricing'));
+const About = lazy(() => import('./pages/About'));
+const Changelog = lazy(() => import('./pages/Changelog'));
 const Todos = lazy(() => import('./pages/Todos'));
 
 const RouteFallback = () => (
@@ -124,6 +127,10 @@ const AuthenticatedApp = () => {
           200, so nothing would look broken while being entirely broken. */}
       <Route path="/privacy" element={<PrivacyPolicy />} />
       <Route path="/terms" element={<Terms />} />
+      {/* The public site beyond the homepage: reachable signed out, indexed. */}
+      <Route path="/pricing" element={<Pricing />} />
+      <Route path="/about" element={<About />} />
+      <Route path="/changelog" element={<Changelog />} />
 
       {/* Everything below requires a signed-in user. */}
       <Route element={<ProtectedRoute unauthenticatedElement={<RedirectToLogin />} />}>
