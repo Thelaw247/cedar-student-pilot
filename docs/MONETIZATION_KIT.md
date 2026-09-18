@@ -62,8 +62,10 @@ The ladder (research: gate added value, never the hook):
   concepts, flashcards, timetable import, planner/calendar/focus/analytics.
   2 full lectures (20 lifetime credits).
 - STUDENT — the everyday study kit: lecture reviews & quick quizzes,
-  practice generation, session reviews, missed-lecture catch-up, smart
-  rebooking, project roadmaps, transcript cleanup.
+  practice generation (from lectures, the professor's files, or both — one
+  credit either way; a PDF is charged once, when it is read at upload),
+  session reviews, missed-lecture catch-up, smart rebooking, project
+  roadmaps, transcript cleanup.
 - SCHOLAR — everything unlocked: + handbooks, exam topic prediction, AI
   study schedules. The recommended tier everywhere.
 - UNLIMITED — Scholar with volume.

@@ -3,6 +3,7 @@ import { base44 } from '@/api/base44Client';
 import FlashcardViewer from '@/components/FlashcardViewer';
 import QuizViewer from '@/components/QuizViewer';
 import LectureScopePicker, { resolveScopeIds, explicitScopeIds } from '@/components/LectureScopePicker';
+import MaterialScopePicker, { readableMaterials, resolveMaterialIds } from '@/components/MaterialScopePicker';
 import StudyToolbox from '@/components/StudyToolbox';
 import StudyShelf from '@/components/StudyShelf';
 import { useStudySession } from '@/study/StudySessionContext';
@@ -25,13 +26,21 @@ import { useStudySession } from '@/study/StudySessionContext';
  *     shelf so "today's lectures" can grey itself out when there are none.
  *     Optional, and deliberately not fetched here: an unknown window leaves
  *     the tile live, which is exactly how it behaved before.
+ *
+ * The professor's files (the class's materials — syllabus, past exams,
+ * formula sheets, slides) are a second source for the makers below, chosen
+ * per run under the lecture picker. They are the makers' only: the review
+ * runners on the shelf take lectures, so the file choice stays here and is
+ * not part of the scope reported to the URL.
  */
 export default function PracticePanel({ initialClassId = '', initialLectureIds = null, onScopeChange = null, allLectures = null }) {
   const studySession = useStudySession();
   const [classes, setClasses] = useState([]);
   const [selectedClass, setSelectedClass] = useState(initialClassId || '');
   const [lectures, setLectures] = useState([]);
+  const [materials, setMaterials] = useState([]);
   const [scopeIds, setScopeIds] = useState(initialLectureIds && initialLectureIds.length ? initialLectureIds : []);
+  const [materialIds, setMaterialIds] = useState([]);
   const [existingFlashcards, setExistingFlashcards] = useState([]);
   const [existingQuestions, setExistingQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -48,6 +57,7 @@ export default function PracticePanel({ initialClassId = '', initialLectureIds =
         if (targetId) {
           const lecs = await base44.entities.Lecture.filter({ class_id: targetId }, 'date');
           setLectures(lecs);
+          setMaterials(await base44.entities.LectureMaterial.filter({ class_id: targetId }));
           const fc = await base44.entities.Flashcard.filter({ class_id: targetId });
           setExistingFlashcards(fc);
           const pq = await base44.entities.PracticeQuestion.filter({ class_id: targetId });
@@ -63,10 +73,12 @@ export default function PracticePanel({ initialClassId = '', initialLectureIds =
   const loadClassData = async (id) => {
     setSelectedClass(id);
     setScopeIds([]); // reset scope to whole class when switching class
+    setMaterialIds([]); // and the file choice to none: another class, other files
     if (onScopeChange) onScopeChange({ classId: id, lectureIds: [] });
     if (id) {
       const lecs = await base44.entities.Lecture.filter({ class_id: id }, 'date');
       setLectures(lecs);
+      setMaterials(await base44.entities.LectureMaterial.filter({ class_id: id }));
       const fc = await base44.entities.Flashcard.filter({ class_id: id });
       setExistingFlashcards(fc);
       const pq = await base44.entities.PracticeQuestion.filter({ class_id: id });
@@ -78,6 +90,10 @@ export default function PracticePanel({ initialClassId = '', initialLectureIds =
   // generates, so a picker the student is still changing cannot be read
   // stale. null means "not a usable selection yet" and the toolbox says so.
   const scopeForGeneration = () => resolveScopeIds(scopeIds, lectures);
+  // Same moment, same reason, for the files: only ids that are still readable
+  // files of this class are sent.
+  const filesForGeneration = () => resolveMaterialIds(materialIds, materials);
+  const readableFiles = readableMaterials(materials);
 
   // The same selection, written out. The review runner is handed lecture ids
   // in a URL and has no "whole class" shorthand to expand — an empty ?ids=
@@ -147,10 +163,30 @@ export default function PracticePanel({ initialClassId = '', initialLectureIds =
 
       {/* Build something that stays — saved to the class, below. */}
       <h2 className="font-heading text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-3">Make study material</h2>
+
+      {/* The professor's files, if the class has any the model could read.
+          Chosen per run, none by default: a syllabus folded into every set
+          of flashcards unasked would be a surprise, and a run that names no
+          files is the request it always was. */}
+      {selectedClass && readableFiles.length > 0 && (
+        <div className="mb-6">
+          <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Also read the professor's files?</label>
+          <MaterialScopePicker
+            materials={materials}
+            lectures={lectures}
+            selectedIds={materialIds}
+            onChange={setMaterialIds}
+          />
+          <p className="text-[11px] text-muted-foreground mt-1.5">Same one credit with or without files. Add more on the class page.</p>
+        </div>
+      )}
+
       <StudyToolbox
         classId={selectedClass}
         resolveLectureIds={scopeForGeneration}
+        resolveMaterialIds={filesForGeneration}
         sourceCount={reviewLectureIds.length}
+        fileCount={filesForGeneration().length}
         scopeKey={selectedClass}
         onGenerated={onGenerated}
       />

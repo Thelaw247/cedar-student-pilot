@@ -4,10 +4,24 @@ import { requireAuth } from '../middleware/requireAuth.js';
 import { invokeLLM, createLlmUsage } from '../lib/llm.js';
 import { gateFeature, settleFeature, logUsage } from '../lib/credits.js';
 import { usableFlashcards } from '../lib/flashcards.js';
-import { normalizeQuizQuestions, QUIZ_QUESTION_SCHEMA, QUIZ_FORMAT_RULES } from '../lib/quizQuestions.js';
+import { normalizeQuizQuestions, QUIZ_QUESTION_SCHEMA } from '../lib/quizQuestions.js';
+import { materialsForPrompt } from '../lib/lectureEnrichment.js';
+import { MAX_MATERIALS_PER_CLASS } from '../lib/lectureMaterials.js';
+import { buildStudyMaterialPrompt, STUDY_MATERIALS_CHARS } from '../lib/studyMaterial.js';
 
 // Direct port of base44/functions/generateStudyMaterial/entry.ts, with the
-// question path rebuilt on 4 Sep 2026.
+// question path rebuilt on 4 Sep 2026 and the professor's files added as a
+// second source on 18 Sep 2026.
+//
+// Sources. Lectures as before: `lecture_ids` names a subset, a range names
+// a run, nothing names the whole class. `material_ids` (new, optional) names
+// files of this class — course-level or attached to a lecture — whose
+// extracted text is read alongside; a file that is not this student's, or
+// not this class's, is simply not found. `no_lectures: true` (new, optional)
+// builds from the files alone. A request that sends neither is handled
+// exactly as it always was, down to the prompt (lib/studyMaterial.js), and
+// the price is the same one credit either way: a PDF was charged when it
+// was read at upload, and is not charged again for being used.
 //
 // Quiz and Practice Test in the Study > Practice tab had never once
 // succeeded — usage_events held zero study_material rows of any kind, for
@@ -27,13 +41,17 @@ import { normalizeQuizQuestions, QUIZ_QUESTION_SCHEMA, QUIZ_FORMAT_RULES } from 
 
 const router = express.Router();
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 router.post('/', requireAuth, async (req, res) => {
   try {
     const userId = req.user.id;
-    const { class_id, material_type, lecture_range_start, lecture_range_end, lecture_ids } = req.body || {};
+    const { class_id, material_type, lecture_range_start, lecture_range_end, lecture_ids, material_ids, no_lectures } = req.body || {};
     if (!class_id || !material_type) return res.status(400).json({ error: 'class_id and material_type are required' });
 
-    let { rows: lectures } = await pool.query('select * from lectures where class_id = $1 and user_id = $2 order by date', [class_id, userId]);
+    let lectures = no_lectures === true
+      ? []
+      : (await pool.query('select * from lectures where class_id = $1 and user_id = $2 order by date', [class_id, userId])).rows;
 
     if (Array.isArray(lecture_ids) && lecture_ids.length > 0) {
       const idSet = new Set(lecture_ids);
@@ -51,7 +69,33 @@ router.post('/', requireAuth, async (req, res) => {
       .map((l) => `Lecture ${l.date} - ${l.ai_title || 'Untitled'}:\n${l.ai_summary || (l.transcript || '').substring(0, 1000)}`)
       .join('\n\n---\n\n');
 
-    if (!lectureContent) return res.status(400).json({ error: 'No lecture content available to generate study material' });
+    // The professor's files, if any were chosen. Only this student's rows of
+    // this class can match, so an id from another class or another account
+    // is not refused — it is not there. A malformed id is dropped before the
+    // cast rather than becoming a 500.
+    const materialsRequested = Array.isArray(material_ids) && material_ids.length > 0;
+    let materials = [];
+    if (materialsRequested) {
+      const ids = [...new Set(material_ids.filter((id) => typeof id === 'string' && UUID.test(id)))].slice(0, MAX_MATERIALS_PER_CLASS);
+      const { rows } = ids.length
+        ? await pool.query(
+          `select id, file_name, extraction_status, extracted_text from lecture_materials
+             where id = any($1::uuid[]) and class_id = $2 and user_id = $3 order by created_at`,
+          [ids, class_id, userId])
+        : { rows: [] };
+      // Shortest first, so a one-page formula sheet is never crowded out of
+      // the budget by a textbook chapter uploaded before it.
+      rows.sort((a, b) => (a.extracted_text?.length || 0) - (b.extracted_text?.length || 0));
+      materials = materialsForPrompt(rows, STUDY_MATERIALS_CHARS);
+    }
+
+    if (!lectureContent && materials.length === 0) {
+      return res.status(400).json({
+        error: materialsRequested
+          ? 'None of the chosen files has readable text, and there is no lecture content to build from'
+          : 'No lecture content available to generate study material',
+      });
+    }
 
     const gate = await gateFeature(userId, 'study_material', res);
     if (!gate.ok) return;
@@ -59,20 +103,7 @@ router.post('/', requireAuth, async (req, res) => {
 
     const material = await invokeLLM({
       usage: llmUsage,
-      prompt: `You are an AI study material generator. Based on the following university lecture content, generate study material of type "${material_type}".
-
-Lecture content:
-${lectureContent.substring(0, 12000)}
-
-Generate ${material_type} based on this content:
-- If "flashcards": Generate 10 flashcards with front (question/term) and back (answer/definition)
-- If "quiz": Generate 5 questions
-- If "practice_test": Generate 8 questions covering the full range of the material
-- If "summary_sheet": Generate a comprehensive study summary with key points, organized by topic
-
-${material_type === 'quiz' || material_type === 'practice_test' ? QUIZ_FORMAT_RULES : ''}
-
-Return the appropriate JSON structure.`,
+      prompt: buildStudyMaterialPrompt({ material_type, lectureContent, materials }),
       response_json_schema: {
         type: 'object',
         properties: {
@@ -125,7 +156,14 @@ Return the appropriate JSON structure.`,
     }
 
     await settleFeature(gate, { feature: 'study_material', llmUsage, extra: { class_id } });
-    res.json({ material_type, generated: true, material });
+    // Which files were actually read (a chosen file with no readable text is
+    // not), so the client can say what the material was built from. Present
+    // only when files were asked for: a request that never mentioned files
+    // gets the response it always got.
+    res.json({
+      material_type, generated: true, material,
+      ...(materialsRequested ? { materials_used: materials.map((m) => ({ id: m.id, file_name: m.file_name })) } : {}),
+    });
   } catch (error) {
     // Loudly. This route failed silently for two weeks: no console line, no
     // usage_events row (the throw lands between gateFeature and

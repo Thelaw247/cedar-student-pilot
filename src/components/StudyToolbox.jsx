@@ -27,7 +27,15 @@ import GateNotice, { gateFromError } from '@/components/monetization/GateNotice'
  *   resolveLectureIds  () => string[] | null. [] means the whole class (what
  *                      generateStudyMaterial reads as "no subset"); null means
  *                      the caller's selection is not usable yet.
+ *   resolveMaterialIds () => string[]. The professor's files to read alongside
+ *                      the lectures (the class's readable materials, chosen by
+ *                      the student). [] means none, which is also what a caller
+ *                      that never offers files gets: the request then carries
+ *                      no material_ids at all and is exactly what it was
+ *                      before files existed. Files with no lectures is a valid
+ *                      scope — a past exam is enough to build questions from.
  *   sourceCount        how many lectures are in scope, for the button label
+ *   fileCount          how many files are in scope, for the button label
  *   scopeKey           changes when the result stops belonging to what is on
  *                      screen — switching class, opening a different session.
  *                      Clears the result without remounting, which would also
@@ -37,6 +45,14 @@ import GateNotice, { gateFromError } from '@/components/monetization/GateNotice'
  *                      refresh its saved lists; a focus session uses it to
  *                      record which lectures were opened.
  */
+
+/** "3 lectures", "2 files", "3 lectures and 2 files" — for the button while it runs. */
+export function describeSources(lectureCount, fileCount) {
+  const parts = [];
+  if (lectureCount > 0 || fileCount === 0) parts.push(`${lectureCount} lecture${lectureCount === 1 ? '' : 's'}`);
+  if (fileCount > 0) parts.push(`${fileCount} file${fileCount === 1 ? '' : 's'}`);
+  return parts.join(' and ');
+}
 
 /**
  * Three things to build, not four.
@@ -57,7 +73,7 @@ const materialTypes = [
   { id: 'summary_sheet', label: 'Summary sheet', icon: FileText, description: 'The whole scope written up, topic by topic' },
 ];
 
-export default function StudyToolbox({ classId, resolveLectureIds, sourceCount = 0, scopeKey = null, onGenerated = null }) {
+export default function StudyToolbox({ classId, resolveLectureIds, resolveMaterialIds = null, sourceCount = 0, fileCount = 0, scopeKey = null, onGenerated = null }) {
   const { allowed: practiceAllowed, requiredTierName: practiceTierName, lock: practiceLock } = useFeatureGate('study_material');
   const [selectedType, setSelectedType] = useState('flashcards');
   const [generating, setGenerating] = useState(false);
@@ -69,14 +85,19 @@ export default function StudyToolbox({ classId, resolveLectureIds, sourceCount =
   const generate = async () => {
     if (!classId) return;
     const ids = resolveLectureIds ? resolveLectureIds() : [];
-    if (ids === null) { setResult({ error: 'Select at least one lecture (or choose Select all).' }); return; }
+    const materialIds = resolveMaterialIds ? resolveMaterialIds() : [];
+    if (ids === null && materialIds.length === 0) { setResult({ error: 'Select at least one lecture or course file (or choose Select all).' }); return; }
     setGenerating(true);
     setResult(null);
     try {
       const response = await base44.functions.invoke('generateStudyMaterial', {
         class_id: classId,
         material_type: selectedType,
-        lecture_ids: ids, // [] = whole class; otherwise the chosen subset
+        lecture_ids: ids || [], // [] = whole class; otherwise the chosen subset
+        // Files are named only when chosen, so a run without them is the
+        // request it always was. With files and no lectures, say so: [] above
+        // would read as the whole class.
+        ...(materialIds.length ? { material_ids: materialIds, ...(ids === null ? { no_lectures: true } : {}) } : {}),
       });
       setResult(response.data);
       // Material a student is now looking at, built from these lectures: by
@@ -127,7 +148,7 @@ export default function StudyToolbox({ classId, resolveLectureIds, sourceCount =
       ) : (
       <button type="button" onClick={generate} disabled={generating || !classId}
         className="w-full py-3 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-2 mb-6">
-        {generating ? <><Loader2 className="w-4 h-4 animate-spin" /> Generating from {sourceCount} lectures...</> : <><Sparkles className="w-4 h-4" /> Generate {(materialTypes.find(t => t.id === selectedType)?.label || '').toLowerCase()}</>}
+        {generating ? <><Loader2 className="w-4 h-4 animate-spin" /> Generating from {describeSources(sourceCount, fileCount)}...</> : <><Sparkles className="w-4 h-4" /> Generate {(materialTypes.find(t => t.id === selectedType)?.label || '').toLowerCase()}</>}
       </button>
       )}
 
@@ -138,6 +159,11 @@ export default function StudyToolbox({ classId, resolveLectureIds, sourceCount =
             <Sparkles className="w-4 h-4 text-primary" />
             <h2 className="font-heading text-sm font-semibold uppercase tracking-wide text-muted-foreground">Just Generated</h2>
           </div>
+          {/* The server names the files it actually read: one chosen without
+              readable text is left out, and the student should see that. */}
+          {Array.isArray(result.materials_used) && result.materials_used.length > 0 && (
+            <p className="text-xs text-muted-foreground mb-3">Built with {result.materials_used.map((m) => m.file_name).join(', ')}</p>
+          )}
           {selectedType === 'flashcards' && result.material?.flashcards && (
             <FlashcardViewer flashcards={result.material.flashcards} />
           )}

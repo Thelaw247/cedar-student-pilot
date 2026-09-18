@@ -74,7 +74,10 @@ test('the caller owns the scope, and is asked for it at the moment of generating
   // A value prop would be read stale while the student is still changing the
   // picker. A function is asked when it matters.
   assert.match(TOOLBOX, /const ids = resolveLectureIds \? resolveLectureIds\(\) : \[\]/);
-  assert.match(TOOLBOX, /if \(ids === null\) \{ setResult\(\{ error:/, 'an unusable selection must still say so');
+  // Since 18 Sep the professor's files are a second source, asked for at the
+  // same moment; a selection with neither lectures nor files is the one that
+  // is unusable, and it must still say so.
+  assert.match(TOOLBOX, /if \(ids === null && materialIds\.length === 0\) \{ setResult\(\{ error:/, 'an unusable selection must still say so');
   // The study page resolves it from the one picker at the top.
   assert.match(PANEL, /const scopeForGeneration = \(\) => resolveScopeIds\(scopeIds, lectures\)/);
 });

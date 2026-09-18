@@ -321,10 +321,15 @@ export function normalizeEnrichment(raw, { transcript = '', materials = [] } = {
   };
 }
 
-/** Materials rows → the prompt shape, respecting the size cap. */
-export function materialsForPrompt(rows) {
+/**
+ * Materials rows → the prompt shape, respecting the size cap.
+ *
+ * `budget` is the total characters of extracted text allowed across all
+ * rows. The enrichment pass takes the default; the study-material generator
+ * passes a smaller one, since it runs on the cheap chain for one credit.
+ */
+export function materialsForPrompt(rows, budget = MAX_MATERIALS_CHARS) {
   const out = [];
-  let budget = MAX_MATERIALS_CHARS;
   for (const row of rows || []) {
     if (row.extraction_status !== 'ready' || !row.extracted_text) continue;
     const text = String(row.extracted_text).slice(0, budget);
