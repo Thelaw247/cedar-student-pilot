@@ -111,9 +111,14 @@ function makeEntity(tableName, entityName) {
       return data;
     },
     async delete(id) {
-      if (entityName === 'Lecture' || entityName === 'Class') {
-        await apiRequest(`/data/${entityName.toLowerCase()}s/${encodeURIComponent(id)}`, { method: 'DELETE' });
-        return true;
+      // Anything with recordings or files under it goes through the API, which
+      // deletes the R2 objects before the row and lets the cascade take the
+      // rest. A direct delete here would cascade the rows and strand every
+      // object in storage. The semester route answers with what it removed
+      // (and which semester became active); the others answer 204.
+      if (entityName === 'Lecture' || entityName === 'Class' || entityName === 'Semester') {
+        const { data } = await apiRequest(`/data/${entityName.toLowerCase()}s/${encodeURIComponent(id)}`, { method: 'DELETE' });
+        return data || true;
       }
       const { error } = await supabase.from(tableName).delete().eq('id', id);
       if (error) throw error;

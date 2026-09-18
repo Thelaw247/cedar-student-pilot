@@ -93,6 +93,7 @@ test('every user-data and provider route fails closed without authorization', as
     ['DELETE', '/files'],
     ['DELETE', '/data/lectures/00000000-0000-0000-0000-000000000000'],
     ['DELETE', '/data/classes/00000000-0000-0000-0000-000000000000'],
+    ['DELETE', '/data/semesters/00000000-0000-0000-0000-000000000000'],
     ['POST', '/create-semester-import'],
   ];
 

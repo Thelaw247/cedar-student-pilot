@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { Sun, Moon, Bell, Sparkles, Clock, Palette, Check, AlertCircle, GraduationCap, BookOpen, Shield, User, Zap, LineChart, ArrowRight, LifeBuoy, Mail } from 'lucide-react';
+import { Sun, Moon, Bell, Sparkles, Clock, Palette, Check, AlertCircle, GraduationCap, BookOpen, Shield, User, Zap, LineChart, ArrowRight, LifeBuoy, Mail, CalendarRange } from 'lucide-react';
 import { getSetting, setSetting } from '@/lib/settings';
 import ProfileSettings from '@/components/ProfileSettings';
 import DeleteAccountSection from '@/components/DeleteAccountSection';
@@ -10,6 +10,7 @@ import ReviewScheduleSection from '@/components/ReviewScheduleSection';
 import LearningModeToggle from '@/components/LearningModeToggle';
 import ConceptDecaySettings from '@/components/ConceptDecaySettings';
 import DataExportSection from '@/components/DataExportSection';
+import SemestersSection from '@/components/SemestersSection';
 import Widget from '@/components/ui/Widget';
 import { SUPPORT_EMAIL, SUPPORT_MAILTO } from '@/lib/legal';
 
@@ -104,6 +105,12 @@ export default function Settings() {
 
       <SettingsSection icon={GraduationCap} title="Study & Review Times">
         <ReviewScheduleSection />
+      </SettingsSection>
+
+      {/* Every semester, the active one marked, and the one way to delete one
+          (through the API, so recordings and files leave storage too). */}
+      <SettingsSection icon={CalendarRange} title="Semesters">
+        <SemestersSection />
       </SettingsSection>
 
       <SettingsSection icon={BookOpen} title="Learning Mode">
