@@ -14,6 +14,14 @@ import { DESKTOP_RELEASES_URL } from '@/lib/desktopDownloads';
  */
 export const CHANGELOG = [
   {
+    date: '2026-09-21',
+    title: 'Staying signed in',
+    items: [
+      'Opening Praelecta while you are signed in no longer asks you to sign in again. The desktop app opens straight on Today, and Sign in on the homepage takes you to your lectures when you are already in.',
+      'If the connection drops just as Praelecta opens, a recording waiting to be recovered or uploaded is kept instead of cleared.',
+    ],
+  },
+  {
     date: '2026-09-18',
     title: 'Practice material from the professor’s own files',
     items: [

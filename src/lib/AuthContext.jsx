@@ -158,6 +158,12 @@ export const AuthProvider = ({ children }) => {
       setCachedUserId(currentUser.id);
       userIdRef.current = currentUser.id;
       setIsAuthenticated(true);
+      // A check that succeeds retires the "sign in" verdict an earlier one
+      // left behind: a signed-out tab that then signs in from another tab
+      // (supabase-js broadcasts the session) was otherwise still sent to
+      // /login by ProtectedRoute, and /login would not let it through either.
+      // Other error types come from the app-settings check; not ours to clear.
+      setAuthError((current) => (current?.type === 'auth_required' ? null : current));
       setIsLoadingAuth(false);
       authCheckedRef.current = true;
       setAuthChecked(true);

@@ -19,6 +19,6 @@ export const FOUNDER = {
   line: 'Engineering student at the University of Saskatchewan',
   location: 'Saskatoon, Canada',
   photo: '/founder.jpg',
-  linkedin: '',
+  linkedin: 'https://www.linkedin.com/in/dewetluus',
   email: SUPPORT_EMAIL,
 };

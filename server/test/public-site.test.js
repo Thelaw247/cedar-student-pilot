@@ -59,6 +59,9 @@ test('the served HTML carries SoftwareApplication, Organization and FAQPage sche
   assert.match(org.logo, /^https:\/\/praelecta\.ca\//);
   assert.ok(fs.existsSync(new URL(`../../public/${org.logo.slice('https://praelecta.ca/'.length)}`, import.meta.url)), 'the Organization logo is not a file in public/');
   assert.equal(org.founder.name, FOUNDER.name);
+  // The founder's LinkedIn: one address, on the pages and in the schema.
+  assert.match(FOUNDER.linkedin, /^https:\/\/www\.linkedin\.com\/in\/[A-Za-z0-9-]+$/);
+  assert.equal(org.founder.sameAs, FOUNDER.linkedin);
   assert.equal(org.address.addressCountry, 'CA');
 });
 

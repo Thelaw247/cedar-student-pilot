@@ -109,8 +109,9 @@
     }
     </script>
     <!-- Organization: who is behind the product, for "what is Praelecta"
-         queries. Add the founder's LinkedIn / X URLs to sameAs once they exist
-         (shared/founder.js holds the same record for the pages). -->
+         queries. The founder's LinkedIn is the same address shared/founder.js
+         holds for the pages (a test keeps them equal); add the company's own
+         profiles (Instagram, X) to an Organization-level sameAs as they exist. -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -120,7 +121,7 @@
       "logo": "https://praelecta.ca/android-chrome-512x512.png",
       "email": "help@praelecta.ca",
       "foundingDate": "2026",
-      "founder": { "@type": "Person", "name": "De Wet Luus" },
+      "founder": { "@type": "Person", "name": "De Wet Luus", "sameAs": "https://www.linkedin.com/in/dewetluus" },
       "address": { "@type": "PostalAddress", "addressLocality": "Saskatoon", "addressRegion": "SK", "addressCountry": "CA" },
       "contactPoint": { "@type": "ContactPoint", "email": "help@praelecta.ca", "contactType": "customer support", "availableLanguage": "en" }
     }

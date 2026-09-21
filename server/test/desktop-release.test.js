@@ -42,14 +42,34 @@ test('the release workflow uploads those same files and publishes them as the la
   assert.match(workflow, /sha256sum \* > SHA256SUMS\.txt/, 'publish checksums so a flagged download can be verified');
 });
 
-test('macOS is configured but not shipped until someone can test a Mac build', () => {
-  // The dmg built cleanly at desktop-v1.0.2 and was pulled because nobody has a
-  // Mac to open it on. Shipping an installer no one has launched is worse than
-  // shipping none. The build config stays so re-enabling is one matrix entry.
+test('the Mac app is built for Apple silicon and Intel and uploaded under fixed names', () => {
+  // Shipped from desktop-v1.0.4. It was pulled at 1.0.2 because nobody had a
+  // Mac to open it on; the launch step below is what stands in for that.
+  assert.equal(pkg.build.mac.artifactName, 'Praelecta-mac-${arch}.${ext}');
+  assert.equal(pkg.build.dmg.artifactName, 'Praelecta-mac-${arch}.${ext}');
+  assert.deepEqual(pkg.build.mac.target.map((t) => t.target), ['dmg']);
+  assert.deepEqual(pkg.build.mac.target[0].arch, ['arm64', 'x64']);
   const matrix = workflow.slice(workflow.indexOf('include:'), workflow.indexOf('defaults:'));
-  assert.doesNotMatch(matrix, /macos-latest/, 'the macOS job is back in the matrix — was the dmg actually tested?');
-  assert.doesNotMatch(downloads, /Praelecta-mac/, 'the landing page offers a Mac build that no release contains');
-  assert.ok(pkg.build.mac, 'keep the mac build config so turning it back on is one line');
+  assert.match(matrix, /- os: macos-latest\s+name: macOS/);
+  for (const file of ['Praelecta-mac-arm64.dmg', 'Praelecta-mac-x64.dmg']) {
+    assert.match(matrix, new RegExp(`desktop/release/${file.replace('.', '\\.')}`), `${file} not uploaded by the workflow`);
+  }
+});
+
+test('the macOS job launches the app it built before anything is released', () => {
+  const start = workflow.indexOf('- name: Launch the Mac app');
+  assert.ok(start > -1, 'the Mac app would ship without anyone having opened it');
+  const step = workflow.slice(start, workflow.indexOf('- uses: actions/upload-artifact@v4'));
+  assert.ok(start < workflow.indexOf('- uses: actions/upload-artifact@v4'), 'the launch has to gate the upload');
+  assert.match(step, /if: runner\.os == 'macOS'/);
+  // Apple silicon kills an app whose signature does not verify, and without
+  // the usage string macOS kills it on the first getUserMedia.
+  assert.match(step, /codesign --verify --deep --strict/);
+  assert.match(step, /plutil -extract NSMicrophoneUsageDescription raw/);
+  // Started, and got as far as loading the site in its window.
+  assert.match(step, /--remote-debugging-port=\d+/);
+  assert.match(step, /https:\/\/praelecta\\\.ca/);
+  assert.match(step, /exited during launch"; cat launch\.log; exit 1/);
 });
 
 test('signing variables are only exported when the certificate secrets exist', () => {
@@ -76,9 +96,9 @@ test('the desktop shell is locked down and keeps sign-in and Stripe in-window', 
   for (const host of ['accounts\\.google\\.com', 'appleid\\.apple\\.com', 'checkout\\.stripe\\.com', 'supabase\\.co']) {
     assert.ok(main.includes(host), `${host} would open in the system browser and never redirect back`);
   }
-  // Kept ready for when the mac build is re-enabled: without the usage string
-  // macOS kills the app on getUserMedia, and without the entitlement the
-  // hardened runtime denies the microphone silently.
+  // Without the usage string macOS kills the app on getUserMedia, and without
+  // the entitlement a Developer ID build (hardened runtime) denies the
+  // microphone silently.
   assert.ok(pkg.build.mac.extendInfo.NSMicrophoneUsageDescription.length > 20);
   assert.match(read('../../desktop/build/entitlements.mac.plist'), /com\.apple\.security\.device\.audio-input/);
 });

@@ -9,6 +9,7 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 import ScrollToTop from './components/ScrollToTop';
 import Layout from '@/components/Layout';
 import ChunkReloadBoundary, { reloadOnceForChunkError } from '@/components/ChunkReloadBoundary';
+import { isRunningInDesktopApp } from '@/lib/desktopDownloads';
 const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
 const Onboarding = lazy(() => import('./pages/Onboarding'));
@@ -110,7 +111,12 @@ const AuthenticatedApp = () => {
     <Suspense fallback={<RouteFallback />}>
     <Routes>
       {/* Public — reachable without an account. */}
-      <Route path="/" element={<Landing />} />
+      {/* The homepage is for someone deciding whether to download; the desktop
+          app has been downloaded. It opens on praelecta.ca/, where a student who
+          was still signed in met the homepage's "Sign in" link on every launch
+          and signed in again. Its home is Today: ProtectedRoute shows it to a
+          signed-in window and sends a signed-out one to /login and back. */}
+      <Route path="/" element={isRunningInDesktopApp() ? <Navigate to="/today" replace /> : <Landing />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       {/* Where email links land. Public, because a route whose job is to sign

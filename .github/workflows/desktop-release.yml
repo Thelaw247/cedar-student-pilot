@@ -4,12 +4,14 @@
 #
 #   https://github.com/Thelaw247/cedar-student-pilot/releases/latest/download/Praelecta-Setup.exe
 #   .../releases/latest/download/Praelecta-win.zip
+#   .../releases/latest/download/Praelecta-mac-arm64.dmg   (Apple silicon)
+#   .../releases/latest/download/Praelecta-mac-x64.dmg     (Intel)
 #   .../releases/latest/download/Praelecta-linux.AppImage
 #   .../releases/latest/download/Praelecta-linux.deb
 #
-# macOS is configured in desktop/package.json but deliberately NOT built here:
-# nobody can test a .dmg yet, and shipping an installer no one has opened is
-# worse than shipping none. Re-add the macos-latest matrix entry to turn it on.
+# macOS shipped from desktop-v1.0.4. Nobody on the team has a Mac, so the
+# macOS job opens what it built before anything is released (see "Launch the
+# Mac app"): a build that will not start never reaches the download page.
 #
 # To ship a version: tag the commit `desktop-vX.Y.Z` and push the tag. The
 # X.Y.Z becomes the app version. A manual run (workflow_dispatch) builds the
@@ -24,6 +26,10 @@
 # it is the missing signature they object to, not the contents. Praelecta-win.zip
 # is the escape hatch until a certificate exists: same app, no installer stub,
 # far less likely to be quarantined. Add WIN_CSC_LINK and re-run the tag to sign.
+# The Mac app is ad-hoc signed without a Developer ID (desktop/after-pack.cjs),
+# so macOS blocks the first open until the student clicks "Open Anyway" in
+# System Settings > Privacy & Security; the download section says so. A
+# Developer ID certificate plus the three APPLE_* secrets removes that step.
 name: Desktop release
 
 on:
@@ -48,6 +54,11 @@ jobs:
             pattern: |
               desktop/release/Praelecta-Setup.exe
               desktop/release/Praelecta-win.zip
+          - os: macos-latest
+            name: macOS
+            pattern: |
+              desktop/release/Praelecta-mac-arm64.dmg
+              desktop/release/Praelecta-mac-x64.dmg
           - os: ubuntu-latest
             name: Linux
             pattern: |
@@ -112,6 +123,45 @@ jobs:
 
       - name: List output
         run: ls -la release
+
+      # Nobody on the team has a Mac, so this is the Mac app's first launch:
+      # both builds must pass codesign (Apple silicon kills an app whose
+      # signature does not hold up), and the one native to this runner must
+      # start and load praelecta.ca in its window. A crash on start, a file
+      # missing from the package or a broken signature fails the release here
+      # instead of on a student's laptop. The runner's own build is not
+      # quarantined, so Gatekeeper's first-open prompt is the one thing this
+      # cannot show; the download section tells students how to get past it.
+      - name: Launch the Mac app
+        if: runner.os == 'macOS'
+        run: |
+          shopt -s nullglob
+          apps=(release/mac*/Praelecta.app)
+          [ "${#apps[@]}" -eq 2 ] || { echo "Expected two Mac builds, found: ${apps[*]}"; exit 1; }
+          native=''
+          for app in "${apps[@]}"; do
+            codesign --verify --deep --strict --verbose=2 "$app"
+            archs=$(lipo -archs "$app/Contents/MacOS/Praelecta")
+            echo "$app: $archs, macOS $(plutil -extract LSMinimumSystemVersion raw "$app/Contents/Info.plist") or later"
+            plutil -extract NSMicrophoneUsageDescription raw "$app/Contents/Info.plist" > /dev/null
+            if [ "$archs" = "$(uname -m)" ]; then native=$app; fi
+          done
+          [ -n "$native" ] || { echo "No build matches this runner ($(uname -m))"; exit 1; }
+          "$native/Contents/MacOS/Praelecta" --remote-debugging-port=9333 --use-mock-keychain > launch.log 2>&1 &
+          pid=$!
+          for second in $(seq 1 90); do
+            targets=$(curl -fsS http://127.0.0.1:9333/json/list 2>/dev/null || true)
+            if grep -Eq '"url": ?"https://praelecta\.ca' <<< "$targets"; then
+              echo "$native loaded praelecta.ca after ${second}s"
+              kill "$pid" || true
+              exit 0
+            fi
+            if ! kill -0 "$pid" 2>/dev/null; then
+              echo "$native exited during launch"; cat launch.log; exit 1
+            fi
+            sleep 1
+          done
+          echo "$native did not load praelecta.ca within 90s"; cat launch.log; kill "$pid"; exit 1
 
       - uses: actions/upload-artifact@v4
         with:

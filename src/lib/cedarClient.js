@@ -1,3 +1,4 @@
+import { isAuthRetryableFetchError } from '@supabase/supabase-js';
 import { supabase } from './supabaseClient.js';
 import { functionPath } from './functionPath.js';
 import { announceDataChange } from './dataChanged.js';
@@ -333,8 +334,14 @@ const integrations = {
 
 const auth = {
   async me() {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (!user) {
+      // Supabase unreachable (offline, a 5xx) is no verdict on the session, so
+      // it must not come back as a 401: AuthContext reads a 401 as "signed
+      // out" and clears the offline data on this device with it, the
+      // crash-recovery audio of a lecture still waiting to upload included.
+      // The session stays stored, and supabase-js retries it.
+      if (isAuthRetryableFetchError(userError)) throw userError;
       /** @type {Error & {status?: number}} */
       const error = new Error('Unauthorized');
       error.status = 401;

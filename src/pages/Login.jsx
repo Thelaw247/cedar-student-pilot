@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,7 @@ import AuthLayout from "@/components/AuthLayout";
 import AppleIcon from "@/components/AppleIcon";
 import FacebookIcon from "@/components/FacebookIcon";
 import { safeReturnTo } from "@/lib/authReturnTo";
+import { useAuth } from "@/lib/AuthContext";
 
 const USE_SUPABASE = import.meta.env.VITE_BACKEND_MODE === "supabase";
 const APPLE_AUTH_ENABLED = !USE_SUPABASE || import.meta.env.VITE_ENABLE_APPLE_AUTH === "true";
@@ -16,10 +17,16 @@ const FACEBOOK_AUTH_ENABLED = !USE_SUPABASE || import.meta.env.VITE_ENABLE_FACEB
 const SOCIAL_AUTH_ENABLED = APPLE_AUTH_ENABLED || FACEBOOK_AUTH_ENABLED;
 
 export default function Login() {
+  const { isAuthenticated, isLoadingAuth, authChecked, authError } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  // Read once, from the URL this page opened on. The redirect below can
+  // re-render after the address bar already shows where it is going (the old
+  // page stays on screen while the next one loads); reading the URL then
+  // would find no returnTo and send the visitor to /today instead.
+  const [destination] = useState(safeReturnTo);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -30,13 +37,28 @@ export default function Login() {
       // Return the user to whatever they were trying to reach before being
       // sent here. safeReturnTo() rejects off-origin and token-poisoning
       // values, so this is never a raw redirect target.
+      //
+      // `loading` stays set on success: the page is on its way out, and the
+      // signed-in check below must not start a navigation of its own
+      // alongside this one.
       window.location.href = safeReturnTo();
     } catch (err) {
       setError(err.message || "Invalid email or password");
-    } finally {
       setLoading(false);
     }
   };
+
+  // Already signed in: go where they were headed instead of asking for the
+  // password again. The session outlives the tab and the desktop app, so a
+  // signed-in student reaches this page from the homepage's "Sign in" link or
+  // a bookmark, and every password typed here only minted a second session.
+  // The condition is exactly the one under which ProtectedRoute renders its
+  // page, so the two can never send a visitor back and forth. Until auth
+  // resolves the form renders as usual: this page has to stay usable when
+  // the auth check hangs (see the note above <Routes> in App.jsx).
+  if (!loading && authChecked && !isLoadingAuth && !authError && isAuthenticated) {
+    return <Navigate to={destination} replace />;
+  }
 
   const handleApple = () => {
     base44.auth.loginWithProvider("apple", safeReturnTo());
