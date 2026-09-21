@@ -2,7 +2,7 @@
 
 > AI lecture recording and study tool for university students. Record the lecture; by the time you are out of the room it is a transcript, a summary, flashcards and practice questions. Tick which lectures a test covers, and the study sessions book themselves around your calendar. Made in Canada, priced in CAD, billed by the semester.
 
-Praelecta is built for undergraduate students in content-heavy courses (engineering, sciences, math) who would rather not redo the whole course at exam time. It is a web app (praelecta.ca) with desktop apps for Windows and Linux; a Mac app and an iPhone app are on the way.
+Praelecta is built for undergraduate students in content-heavy courses (engineering, sciences, math) who would rather not redo the whole course at exam time. It is a web app (praelecta.ca) with desktop apps for Mac, Windows and Linux; an iPhone app is on the way.
 
 What it does:
 - Records a lecture (up to six hours) after the student confirms they have permission, then transcribes it (Groq; Deepgram as a fallback) and writes the summary, key concepts, formulas, definitions, worked examples, exam mentions and to-dos (Google Gemini).

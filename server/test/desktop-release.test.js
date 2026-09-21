@@ -16,12 +16,13 @@ const downloads = read('../../src/lib/desktopDownloads.js');
 const landing = read('../../src/pages/Landing.jsx');
 const main = read('../../desktop/main.cjs');
 
-const EXPECTED = ['Praelecta-Setup.exe', 'Praelecta-win.zip', 'Praelecta-linux.AppImage', 'Praelecta-linux.deb'];
+const EXPECTED = ['Praelecta-Setup.exe', 'Praelecta-win.zip', 'Praelecta-mac-arm64.dmg', 'Praelecta-mac-x64.dmg', 'Praelecta-linux.AppImage', 'Praelecta-linux.deb'];
 
 test('electron-builder produces exactly the fixed installer names the site links to', () => {
   assert.equal(pkg.build.nsis.artifactName, 'Praelecta-Setup.${ext}');
   assert.equal(pkg.build.win.artifactName, 'Praelecta-win.${ext}');
   assert.equal(pkg.build.linux.artifactName, 'Praelecta-linux.${ext}');
+  assert.equal(pkg.build.mac.artifactName, 'Praelecta-mac-${arch}.${ext}');
   // The zip is the antivirus escape hatch: an unsigned NSIS stub is what gets
   // quarantined, and a plain archive of the same app usually is not. Losing it
   // leaves a blocked student with nothing to fall back to.
@@ -128,4 +129,21 @@ test('the landing page shows the download section and links it from the footer',
   // /#download: a scroll on the homepage, the homepage itself from anywhere else.
   const footer = read('../../src/components/landing/LandingFooter.jsx');
   assert.match(footer, /href="\/#download"/);
+});
+
+test('a Mac visitor is offered the Apple silicon build first, and an iPad is not offered a Mac app', async () => {
+  const { DESKTOP_DOWNLOADS, detectDesktopOs } = await import('../../src/lib/desktopDownloads.js');
+  const macs = DESKTOP_DOWNLOADS.filter((d) => d.id.startsWith('mac'));
+  // The download section puts the first entry matching the visitor's OS on
+  // the big button; most Macs a student owns are Apple silicon.
+  assert.deepEqual(macs.map((d) => d.file), ['Praelecta-mac-arm64.dmg', 'Praelecta-mac-x64.dmg']);
+  const as = (nav) => {
+    const saved = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
+    Object.defineProperty(globalThis, 'navigator', { value: nav, configurable: true });
+    try { return detectDesktopOs(); } finally { if (saved) Object.defineProperty(globalThis, 'navigator', saved); }
+  };
+  const safariOnMac = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Safari/605.1.15';
+  assert.equal(as({ userAgent: safariOnMac, platform: 'MacIntel', maxTouchPoints: 0 }), 'mac');
+  assert.equal(as({ userAgent: safariOnMac, platform: 'MacIntel', maxTouchPoints: 5 }), null, 'an iPad would be handed a .dmg');
+  assert.equal(as({ userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)', platform: 'Win32', maxTouchPoints: 10 }), 'windows');
 });

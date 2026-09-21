@@ -15,8 +15,9 @@ import { DESKTOP_RELEASES_URL } from '@/lib/desktopDownloads';
 export const CHANGELOG = [
   {
     date: '2026-09-21',
-    title: 'Staying signed in',
+    title: 'The Mac app, and staying signed in',
     items: [
+      'Praelecta for Mac, for Apple silicon and Intel Macs, in the download section on the homepage (desktop app 1.0.4). The first time you open it, macOS asks you to allow it under System Settings, Privacy & Security.',
       'Opening Praelecta while you are signed in no longer asks you to sign in again. The desktop app opens straight on Today, and Sign in on the homepage takes you to your lectures when you are already in.',
       'If the connection drops just as Praelecta opens, a recording waiting to be recovered or uploaded is kept instead of cleared.',
     ],

@@ -49,7 +49,7 @@ export const FAQ = [
   {
     id: 'devices',
     question: 'Does it work on iPhone or Mac?',
-    answer: `Praelecta runs in the browser on any phone or laptop, iPhone and Mac included: sign in at praelecta.ca. There's a desktop app for Windows and Linux today; the Mac app and the iPhone app are on the way.`,
+    answer: `Yes. Praelecta runs in the browser on any phone or laptop, iPhone included: sign in at praelecta.ca. There's also a desktop app for Mac, Windows and Linux, and an iPhone app is on the way.`,
   },
   {
     id: 'price',
