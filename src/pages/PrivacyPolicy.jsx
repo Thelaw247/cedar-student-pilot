@@ -66,6 +66,12 @@ export default function PrivacyPolicy() {
           <span className="font-medium text-foreground">not</span> sold, it is not used to advertise to you, and we do not
           use your recordings to train anything.
         </p>
+        <p className="mt-2">
+          <span className="font-medium text-foreground">HeyCatch</span> is the product analytics behind the app. It
+          records which pages you open, what you click (including the label on the thing you clicked) and which plan you
+          are on, against your account id, email and name, so the parts of Praelecta that confuse people can be found and
+          fixed. Your recordings, transcripts and uploaded files are never sent to it.
+        </p>
       </Section>
 
       <Section icon={Trash2} title="Your controls">

@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { analytics } from "@heycatch/sdk";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -107,6 +108,11 @@ export default function Register() {
       if (result?.access_token) {
         base44.auth.setToken(result.access_token);
       }
+      // The account exists and is confirmed at this line and nowhere else, so
+      // this is the one signup event autocapture cannot work out on its own.
+      const confirmedUserId = result?.user?.id;
+      if (confirmedUserId) analytics.setIdentity(confirmedUserId, { email });
+      analytics.trackEvent('signup_completed');
       // A brand-new account lands on first-run onboarding (goal → promise →
       // plan, MON-04 §2); an explicit ?returnTo= still wins so deep links and
       // the OAuth consent flow keep working. Login is unchanged — onboarding

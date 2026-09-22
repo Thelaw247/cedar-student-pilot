@@ -1,4 +1,5 @@
 import React, { createContext, useState, useContext, useEffect, useCallback, useRef } from 'react';
+import { analytics } from '@heycatch/sdk';
 import { base44 } from '@/api/base44Client';
 import { getAppPublicSettings, hasAppToken } from '@/lib/base44PublicSettings';
 import { clearLegacyUserStorage, clearOtherUserStorage, clearUserStorage, getCachedUserId, setCachedUserId } from '@/lib/currentUser';
@@ -157,6 +158,14 @@ export const AuthProvider = ({ children }) => {
       setUser(currentUser);
       setCachedUserId(currentUser.id);
       userIdRef.current = currentUser.id;
+      // Who this is, for the product analytics (heycatch.ai/agents.md). Only
+      // the properties HeyCatch recognises; the plan is set from the server
+      // when a subscription starts, which is where it is known for certain.
+      analytics.setIdentity(
+        currentUser.id,
+        { email: currentUser.email, name: currentUser.full_name },
+        { signup_date: currentUser.created_at },
+      );
       setIsAuthenticated(true);
       // A check that succeeds retires the "sign in" verdict an earlier one
       // left behind: a signed-out tab that then signs in from another tab
@@ -203,6 +212,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = useCallback(async (shouldRedirect = true) => {
     await clearOfflineData();
+    analytics.resetIdentity();
     setUser(null);
     setIsAuthenticated(false);
     setCachedUserId(null);

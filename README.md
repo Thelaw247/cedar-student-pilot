@@ -27,6 +27,7 @@ Screenshots of each stage are in [`docs/screenshots/`](docs/screenshots/).
 | Transcription | Groq (primary) → Deepgram (fallback) | — |
 | AI | Google Gemini (analysis, enrichment, extraction) | — |
 | Transactional email | Resend | — |
+| Product analytics | HeyCatch (`@heycatch/sdk`) | — |
 | Scheduled jobs | Render cron (monthly credits, study reminders, stuck-lecture reclaim) | Render |
 
 A recording becomes a study page through the pipeline documented in [`docs/LECTURE_INTELLIGENCE.md`](docs/LECTURE_INTELLIGENCE.md). The credit economy (what each AI action costs and why) is in [`docs/MONETIZATION_KIT.md`](docs/MONETIZATION_KIT.md); `shared/tiers.js` holds the display prices and `server/lib/credits.js` is the enforcing authority.

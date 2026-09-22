@@ -213,7 +213,7 @@ test('testimonials and recognition render nothing until there is something true 
 // ------------------------------------------------------------------- privacy
 
 test('the privacy policy names every processor, and the code makes the Deepgram line true', () => {
-  for (const name of ['Groq', 'Deepgram', 'Google Gemini', 'Cloudflare R2', 'Supabase', 'Stripe', 'Resend']) {
+  for (const name of ['Groq', 'Deepgram', 'Google Gemini', 'Cloudflare R2', 'Supabase', 'Stripe', 'Resend', 'HeyCatch']) {
     assert.ok(PRIVACY.includes(name), `the privacy policy does not name ${name}`);
   }
   assert.doesNotMatch(PRIVACY, /third-party AI services/, 'the unnamed "third-party AI services" line is back');
@@ -221,8 +221,8 @@ test('the privacy policy names every processor, and the code makes the Deepgram 
   // opt-out, so the request must carry it.
   assert.match(TRANSCRIPTION, /mip_opt_out: 'true'/);
   // A changed document is a new consent version, dated today.
-  assert.equal(PRIVACY_EFFECTIVE_DATE, 'September 18, 2026');
-  assert.equal(LEGAL_VERSION, '2026-09-18');
+  assert.equal(PRIVACY_EFFECTIVE_DATE, 'September 22, 2026');
+  assert.equal(LEGAL_VERSION, '2026-09-22');
 });
 
 // -------------------------------------------------------------- crawl surface

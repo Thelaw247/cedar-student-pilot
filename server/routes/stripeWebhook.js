@@ -6,6 +6,7 @@ import {
   userIdForSubscription,
 } from '../lib/stripe.js';
 import { checkoutEntitlement, expectedStripeMode } from '../lib/stripePrices.js';
+import { analytics } from '../lib/analytics.js';
 
 // Direct port of base44/functions/stripeWebhook/entry.ts. Route logic,
 // event-type handling, and metadata contract are unchanged — only the
@@ -63,10 +64,21 @@ router.post('/', async (req, res) => {
         if (!userId) throw new Error('Paid Praelecta checkout is missing user metadata');
         const entitlement = checkoutEntitlement(session);
 
+        // The analytics event follows the grant and only when the grant
+        // actually applied: Stripe retries a webhook it did not hear back
+        // from, and `already` is how a replay announces itself. Money first,
+        // then the event — a slow analytics call can never hold up a credit.
         if (entitlement.kind === 'subscription') {
-          await grantSubscriptionInitial(userId, entitlement.tier, entitlement.period, session.id, session.id, eventId, session.subscription || '');
+          const granted = await grantSubscriptionInitial(userId, entitlement.tier, entitlement.period, session.id, session.id, eventId, session.subscription || '');
+          if (!granted?.already) {
+            await analytics.setIdentity(userId, { plan: entitlement.tier });
+            await analytics.trackEvent('subscription_started', { plan: entitlement.tier, period: entitlement.period }, { userId });
+          }
         } else {
-          await grantPack(userId, entitlement.credits, session.id, session.id, eventId);
+          const granted = await grantPack(userId, entitlement.credits, session.id, session.id, eventId);
+          if (!granted?.already) {
+            await analytics.trackEvent('credit_pack_purchased', { credits: entitlement.credits }, { userId });
+          }
         }
         break;
       }
