@@ -122,3 +122,25 @@ test('every user-data and provider route fails closed without authorization', as
     `routes did not fail closed: ${JSON.stringify(results)}`,
   );
 });
+
+test('a preflight carrying the analytics session headers is allowed', async () => {
+  // The browser SDK attaches X-POSTHOG-SESSION-ID (and the window id) to every
+  // request bound for this API, because main.jsx lists it in tracingHosts.
+  // Allow-Headers here is a fixed list, not a reflection of what was asked
+  // for, so a header missing from it fails the preflight — and with it every
+  // API call the app makes from the browser.
+  const response = await fetch(`${baseUrl}/public/stats`, {
+    method: 'OPTIONS',
+    headers: {
+      Origin: 'https://staging.cedar.example',
+      'Access-Control-Request-Method': 'GET',
+      'Access-Control-Request-Headers': 'authorization, x-posthog-session-id',
+    },
+  });
+  assert.equal(response.status, 204);
+  const allowed = (response.headers.get('access-control-allow-headers') || '')
+    .split(',').map((header) => header.trim().toLowerCase());
+  for (const header of ['authorization', 'content-type', 'stripe-signature', 'x-posthog-session-id', 'x-posthog-window-id']) {
+    assert.ok(allowed.includes(header), `${header} is not allowed: ${allowed.join(', ')}`);
+  }
+});
