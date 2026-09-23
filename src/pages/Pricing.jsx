@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, Package } from 'lucide-react';
 import { TIERS, CREDIT_PACKS, semesterSaving } from '@/lib/tiers';
 import { FAQ } from '@/lib/faq';
+import { PUBLIC_PAGES } from '@/lib/publicPages';
 import MarketingShell from '@/components/landing/MarketingShell';
 import PricingTiers from '@/components/landing/PricingTiers';
 import CreditsExplainer from '@/components/landing/CreditsExplainer';
@@ -27,9 +28,7 @@ export default function Pricing() {
   const savings = ['student', 'scholar', 'unlimited'].map((id) => ({ tier: TIERS[id], saving: semesterSaving(TIERS[id]) }));
 
   return (
-    <MarketingShell
-      title="Pricing — Praelecta"
-      description={`Two lectures free, no card. Student from ${money(TIERS.student.monthly)} a month or ${money(TIERS.student.semester)} a semester. Every plan, every credit cost and every pack, on one page.`}>
+    <MarketingShell {...PUBLIC_PAGES['/pricing']}>
       <section className="px-4 pb-16 pt-28 sm:px-6 sm:pt-32">
         <div className="mx-auto max-w-6xl">
           <div className="mx-auto max-w-3xl text-center">

@@ -2,6 +2,7 @@ import base44 from "@base44/vite-plugin"
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 import { fileURLToPath, URL } from 'node:url'
+import publicPageHeads from './scripts/publicPageHeads.mjs'
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => ({
@@ -33,5 +34,8 @@ export default defineConfig(({ mode }) => ({
       visualEditAgent: true,
     })]),
     react(),
+    // dist/pricing.html, dist/about.html, …: index.html with that page's own
+    // title, description and canonical, for crawlers that do not run the app.
+    publicPageHeads(),
   ],
 }));

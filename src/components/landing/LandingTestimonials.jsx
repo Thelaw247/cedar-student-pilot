@@ -6,17 +6,23 @@ import { Quote } from 'lucide-react';
  *
  * Empty on purpose until the first students have said something on the
  * record: the section renders NOTHING while the list is empty, so nobody
- * sees a hole and nothing here is invented. Fill it from real permission —
- * a first name, university and course, a photo, and the outcome in their
- * own words. Example shape (the audit's own suggestion):
+ * sees a hole and nothing here is invented. The 22 Sep 2026 audit (D3.2,
+ * the one failing sub-criterion) asks for three to five of them, collected
+ * from the first paying students: a one-line quote, first name, course and
+ * university, and a small photo, in a three-column grid headed "What
+ * students say". Fill it only from real permission, in this shape:
  *
- *   { name: 'Sarah', detail: '2nd year, PHYS 117, UofT',
+ *   { name: 'Sarah', course: 'PHYS 117', school: 'University of Saskatchewan',
  *     photo: '/testimonials/sarah.jpg',
  *     quote: 'I caught up on 8 lectures in a weekend and pulled a B+ on the midterm.' }
  *
- * `photo` is optional; without it the card shows the initial.
+ * `photo` is optional; without it the card shows the initial. Sits between
+ * "Sound familiar?" and the pricing section (Landing.jsx).
  */
 export const TESTIMONIALS = [];
+
+/** "Sarah, PHYS 117, University of Saskatchewan" — the audit's own format. */
+export const testimonialCaption = (t) => [t.name, t.course, t.school].filter(Boolean).join(', ');
 
 export default function LandingTestimonials({ testimonials = TESTIMONIALS }) {
   if (!testimonials.length) return null;
@@ -24,12 +30,12 @@ export default function LandingTestimonials({ testimonials = TESTIMONIALS }) {
     <section id="students" className="px-4 py-20 sm:px-6 lg:py-24">
       <div className="mx-auto max-w-6xl">
         <div className="mx-auto max-w-3xl text-center">
-          <p className="text-sm font-semibold text-primary">From students using it this term</p>
-          <h2 className="mt-2 text-3xl font-bold tracking-[-0.04em] text-foreground sm:text-4xl">What it did for their courses</h2>
+          <p className="text-sm font-semibold text-primary">What students say</p>
+          <h2 className="mt-2 text-3xl font-bold tracking-[-0.04em] text-foreground sm:text-4xl">In their words, about their courses</h2>
         </div>
         <div className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {testimonials.map((t) => (
-            <figure key={`${t.name}-${t.detail}`} className="flex flex-col rounded-[26px] border border-border bg-card p-6 shadow-[0_18px_55px_-35px_rgba(0,0,0,0.6)]">
+            <figure key={testimonialCaption(t)} className="flex flex-col rounded-[26px] border border-border bg-card p-6 shadow-[0_18px_55px_-35px_rgba(0,0,0,0.6)]">
               <Quote className="h-5 w-5 text-primary" aria-hidden="true" />
               <blockquote className="mt-4 flex-1 text-base leading-7 text-foreground">{t.quote}</blockquote>
               <figcaption className="mt-5 flex items-center gap-3">
@@ -38,7 +44,7 @@ export default function LandingTestimonials({ testimonials = TESTIMONIALS }) {
                   : <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">{t.name.slice(0, 1)}</span>}
                 <span>
                   <span className="block text-sm font-semibold text-foreground">{t.name}</span>
-                  <span className="block text-xs text-muted-foreground">{t.detail}</span>
+                  <span className="block text-xs text-muted-foreground">{[t.course, t.school].filter(Boolean).join(', ')}</span>
                 </span>
               </figcaption>
             </figure>

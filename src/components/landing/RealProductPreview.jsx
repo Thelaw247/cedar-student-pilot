@@ -69,6 +69,11 @@ export default function RealProductPreview() {
             <p className="mt-5 max-w-xl text-base leading-7 text-muted-foreground">
               We spread the studying across the days before the test, work around the classes, shifts and deadlines already on your calendar, and drop each session into a real gap. The night-before cram stops being the plan, and you did not have to open a calendar to make it happen.
             </p>
+            {/* The outcome, stated: the relief a student is actually after
+                when they open a study app in week 10. */}
+            <p className="mt-4 max-w-xl text-base font-semibold leading-7 text-foreground">
+              What you get is the feeling of being caught up before you are: fourteen lectures behind becomes four sessions with dates, and the exam stops sitting in your stomach.
+            </p>
 
             <div className="mt-7 rounded-2xl border border-primary/25 bg-card p-5">
               <p className="text-xs font-bold uppercase tracking-[0.12em] text-primary">Why spread out, not crammed</p>

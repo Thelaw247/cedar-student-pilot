@@ -2,12 +2,15 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronLeft, Shield, Lock, Database, Trash2, Mail, Server } from 'lucide-react';
 import { PRIVACY_EFFECTIVE_DATE, SUPPORT_EMAIL, SUPPORT_MAILTO } from '@/lib/legal';
+import { PUBLIC_PAGES } from '@/lib/publicPages';
+import { usePublicPageMeta } from '@/hooks/usePublicPageMeta';
 
 // Shown to users, and shared with lib/legal.js so the recorded consent
 // version and the date on this page cannot drift apart.
 const EFFECTIVE_DATE = PRIVACY_EFFECTIVE_DATE;
 
 export default function PrivacyPolicy() {
+  usePublicPageMeta(PUBLIC_PAGES['/privacy']);
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 lg:py-10 animate-fade-in">
       <Link to="/settings" className="text-sm text-muted-foreground hover:text-foreground mb-4 inline-flex items-center gap-1">

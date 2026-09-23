@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import LandingNav from '@/components/landing/LandingNav';
 import LandingFooter from '@/components/landing/LandingFooter';
+import { usePublicPageMeta } from '@/hooks/usePublicPageMeta';
 
 /**
  * The public site's frame: dark floor, the owner's waveform behind
@@ -9,7 +10,8 @@ import LandingFooter from '@/components/landing/LandingFooter';
  * one site rather than a homepage and three app screens.
  *
  * `title` and `description` are written to the document while the page is
- * mounted and restored when it unmounts, so the app's own pages keep theirs.
+ * mounted and restored when it unmounts (usePublicPageMeta), so the app's
+ * own pages keep theirs.
  */
 export default function MarketingShell({ title, description, children }) {
   // The dark floor goes on the canvas for as long as a public page is mounted.
@@ -24,28 +26,7 @@ export default function MarketingShell({ title, description, children }) {
     return () => document.documentElement.classList.remove('landing-active');
   }, []);
 
-  useEffect(() => {
-    const previousTitle = document.title;
-    if (title) document.title = title;
-
-    let meta = document.querySelector('meta[name="description"]');
-    const previousDescription = meta?.getAttribute('content') || null;
-    if (description) {
-      if (!meta) {
-        meta = document.createElement('meta');
-        meta.setAttribute('name', 'description');
-        document.head.appendChild(meta);
-      }
-      meta.setAttribute('content', description);
-    }
-
-    return () => {
-      document.title = previousTitle;
-      if (!description) return;
-      if (previousDescription === null) meta?.remove();
-      else meta?.setAttribute('content', previousDescription);
-    };
-  }, [title, description]);
+  usePublicPageMeta({ title, description });
 
   // No bg-background on the wrapper below, deliberately. This element is
   // positioned, so an opaque background on it paints in the positioned-element

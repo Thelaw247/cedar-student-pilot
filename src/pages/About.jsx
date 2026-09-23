@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, Linkedin, Mail, MapPin } from 'lucide-react';
 import MarketingShell from '@/components/landing/MarketingShell';
 import { FOUNDER } from '@/lib/founder';
+import { PUBLIC_PAGES } from '@/lib/publicPages';
 
 /**
  * /about — the person behind Praelecta.
@@ -30,9 +31,7 @@ function FounderPhoto() {
 
 export default function About() {
   return (
-    <MarketingShell
-      title="About — Praelecta"
-      description={`Praelecta is built by ${FOUNDER.name}, an engineering student in Saskatoon, for students who would rather not redo the whole course at exam time.`}>
+    <MarketingShell {...PUBLIC_PAGES['/about']}>
       <section className="px-4 pb-20 pt-28 sm:px-6 sm:pt-32">
         <div className="mx-auto max-w-3xl">
           <p className="text-sm font-semibold text-primary">About</p>

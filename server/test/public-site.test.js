@@ -6,6 +6,7 @@ import { FOUNDER } from '../../shared/founder.js';
 import { TIERS, TIER_ORDER, CREDIT_PACKS, semesterSaving, maxSemesterSavingPercent } from '../../shared/tiers.js';
 import { LEGAL_VERSION, PRIVACY_EFFECTIVE_DATE } from '../../shared/legal.js';
 import { proofLine } from '../../shared/proof.js';
+import { LANDING_TITLE, PUBLIC_PAGES, PUBLIC_PATHS } from '../../shared/publicPages.js';
 import { publicStats, resetPublicStatsCache } from '../routes/publicStats.js';
 
 /**
@@ -44,8 +45,11 @@ test('the title names the category, and the runtime title is the same string', (
   assert.match(title, /Lecture Recording/i);
   assert.match(title, /Study Tool/i);
   assert.ok(title.length <= 60, `title is ${title.length} characters; search results cut it at about 60`);
-  const runtime = LANDING.match(/export const LANDING_TITLE = '([^']+)'/)[1];
-  assert.equal(runtime, title, 'Landing.jsx would overwrite the served title with a different one');
+  assert.equal(LANDING_TITLE, title, 'the homepage would overwrite the served title with a different one');
+  assert.match(LANDING, /import \{ LANDING_TITLE, LANDING_DESCRIPTION \} from '@\/lib\/publicPages'/, 'Landing.jsx must read the shared title');
+  assert.equal(PUBLIC_PAGES['/'].title, title);
+  const served = MARKUP.match(/<meta name="description" content="([^"]+)"/)[1];
+  assert.equal(PUBLIC_PAGES['/'].description, served, 'the homepage would overwrite the served description with a different one');
   // The description already carried the category terms; it stays.
   assert.match(MARKUP, /<meta name="description" content="Record your lecture/);
 });
@@ -84,7 +88,9 @@ test('the FAQ schema in index.html is exactly the FAQ the page renders', () => {
 // ------------------------------------------------------------------ the hero
 
 test('the hero names the category before the hook and foregrounds semester billing', () => {
-  assert.match(HERO, /Lecture recording and study tool, for students who would rather not redo the whole course at exam time/);
+  // The eyebrow is the audit's own line (22 Sep, FIT + D1.1): category, ICP,
+  // and the semester-billing differentiator, all in the first five seconds.
+  assert.match(HERO, /Lecture recording and study tool for students\. Bills by semester, not by month — no other study app does that\./);
   assert.match(HERO, /You showed up to the lecture\. That should be the hard part\./, 'the h1 is the brief’s line; it stays');
   assert.match(HERO, /Bills by semester, not by month/);
   assert.match(HERO, /no other study app does that/);
@@ -192,19 +198,27 @@ test('public stats are cached, so the landing page never becomes a query per vis
   resetPublicStatsCache();
 });
 
-test('testimonials and recognition render nothing until there is something true to show', () => {
+test('testimonials, recognition and the avatar grid render nothing until there is something true to show', () => {
   const t = read('../../src/components/landing/LandingTestimonials.jsx');
   const r = read('../../src/components/landing/LandingRecognition.jsx');
+  const p = read('../../src/components/landing/LandingProof.jsx');
   assert.match(t, /export const TESTIMONIALS = \[\];/, 'no invented testimonials');
   assert.match(t, /if \(!testimonials\.length\) return null;/);
+  // The audit's own heading and caption format, ready for the real quotes.
+  assert.match(t, /What students say/);
+  assert.match(t, /\[t\.name, t\.course, t\.school\]/);
   assert.match(r, /export const RECOGNITION = \[\];/, 'no invented badges');
   assert.match(r, /if \(!items\.length\) return null;/);
+  assert.match(p, /export const PROOF_AVATARS = \[\];/, 'no students shown without their say-so');
+  assert.match(p, /if \(!avatars\.length\) return null;/);
   assert.match(LANDING, /<LandingTestimonials \/>/);
-  assert.match(LANDING, /<LandingRecognition \/>/);
-  // Both sit after the "four things we will never do" section and before the downloads.
+  // The badge slot sits directly under the hero, where the audit asked for it.
+  assert.ok(LANDING.indexOf('<LandingRecognition />') > LANDING.indexOf('<LandingHero />'));
+  assert.ok(LANDING.indexOf('<LandingRecognition />') < LANDING.indexOf('<RecordingFeature />'));
+  // The testimonial wall sits after "Sound familiar?" and before the pricing section.
   const why = LANDING.indexOf('<LandingWhyStudents />');
   const down = LANDING.indexOf('<LandingDownloads />');
-  for (const tag of ['<LandingRecognition />', '<LandingTestimonials />']) {
+  for (const tag of ['<LandingTestimonials />']) {
     const at = LANDING.indexOf(tag);
     assert.ok(why < at && at < down, `${tag} is not between the trust section and the downloads`);
   }
@@ -229,7 +243,9 @@ test('the privacy policy names every processor, and the code makes the Deepgram 
 
 test('the sitemap lists every public page and only public pages, each with a route', () => {
   const urls = [...SITEMAP.matchAll(/<loc>https:\/\/praelecta\.ca(\/[^<]*)<\/loc>/g)].map((m) => m[1]);
-  assert.deepEqual(urls.sort(), ['/', '/about', '/changelog', '/pricing', '/privacy', '/terms'].sort());
+  // The sitemap and lib/publicPages.js are the same list: a page with a
+  // served <head> of its own is a page a crawler is told about, and vice versa.
+  assert.deepEqual([...urls].sort(), [...PUBLIC_PATHS].sort());
   const robots = read('../../public/robots.txt');
   for (const path of urls) {
     assert.ok(path === '/' || APP.includes(`path="${path}"`), `${path} is in the sitemap but has no route`);

@@ -12,27 +12,29 @@ import LandingDownloads from '@/components/landing/LandingDownloads';
 import LandingEnd from '@/components/landing/LandingEnd';
 import LandingFaq from '@/components/landing/LandingFaq';
 import LandingFinalCta from '@/components/landing/LandingFinalCta';
+import { LANDING_TITLE, LANDING_DESCRIPTION } from '@/lib/publicPages';
 
 /**
  * The homepage. The title names the category first — "lecture recording",
  * "study tool" — because that is what a student types into a search box;
  * the tagline stays in the hero, where it belongs. The description is what
- * the search snippet shows, so it says what happens, not how it feels.
+ * the search snippet shows, so it says what happens, not how it feels. Both
+ * strings live in lib/publicPages.js with every other public page's.
  */
-export const LANDING_TITLE = 'Praelecta — AI Lecture Recording & Study Tool for Students';
-export const LANDING_DESCRIPTION = 'Record the lecture, tick what is on the test, and let the study sessions book themselves. Praelecta turns class into a transcript, flashcards, practice questions and a study plan. Two lectures free.';
+export { LANDING_TITLE, LANDING_DESCRIPTION };
 
 export default function Landing() {
   return (
     <MarketingShell title={LANDING_TITLE} description={LANDING_DESCRIPTION}>
       <LandingHero />
+      {/* Third-party badges, under the hero's buttons; nothing until earned. */}
+      <LandingRecognition />
       <RecordingFeature />
       <StudyToolProof />
       <StudyScheduleProof />
       <StudySystemFeature />
       <LandingWhyStudents />
-      {/* Both render nothing until there is something true to show. */}
-      <LandingRecognition />
+      {/* Nothing until there is something true to show. */}
       <LandingTestimonials />
       <LandingDownloads />
       <LandingEnd />

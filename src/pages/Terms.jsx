@@ -5,7 +5,9 @@ import {
   ShieldCheck, Sparkles, Ban, Server, AlertTriangle, Scale, Mail,
 } from 'lucide-react';
 import { TIERS, TIER_ORDER, CREDIT_PACKS, CREDIT_COSTS } from '@/lib/tiers';
-import { TERMS_EFFECTIVE_DATE, SUPPORT_EMAIL, SUPPORT_MAILTO } from '@/lib/legal';
+import { TERMS_EFFECTIVE_DATE, SUPPORT_EMAIL, SUPPORT_MAILTO, MONEY_BACK_DAYS, moneyBackGuarantee } from '@/lib/legal';
+import { PUBLIC_PAGES } from '@/lib/publicPages';
+import { usePublicPageMeta } from '@/hooks/usePublicPageMeta';
 
 // Shown to users, and shared with lib/legal.js so the recorded consent
 // version and the date on this page cannot drift apart.
@@ -26,6 +28,7 @@ const money = (n) => `$${n.toFixed(2)}`;
 const paidTiers = TIER_ORDER.filter((id) => id !== 'free').map((id) => TIERS[id]);
 
 export default function Terms() {
+  usePublicPageMeta(PUBLIC_PAGES['/terms']);
   // The landing page links straight to #refunds. This page is loaded lazily,
   // so the router's own hash scroll can fire before the section exists; scroll
   // again once it is on the page.
@@ -167,6 +170,15 @@ export default function Terms() {
           limits the refund and cancellation rights you have under Canadian consumer protection law, which apply
           whatever this page says.
         </p>
+        {/* Rendered only once a guarantee exists (lib/legal.js); the sentence
+            is the one under the primary button, so the two cannot differ. */}
+        {moneyBackGuarantee() && (
+          <p>
+            <span className="font-medium text-foreground">Money back:</span> {moneyBackGuarantee()} Email{' '}
+            <a href={SUPPORT_MAILTO} className="text-primary hover:underline">{SUPPORT_EMAIL}</a> within {MONEY_BACK_DAYS} days
+            of your first payment and the whole payment comes back, whatever you used.
+          </p>
+        )}
       </Section>
 
       <Section icon={ShieldCheck} title="The grandfather promise">

@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { BRAND_MARK_URL } from '@/lib/brand';
 import { FOUNDER } from '@/lib/founder';
+import { COMPETITORS } from '@/lib/competitors';
 
 /**
  * The footer of every public page: the mark, the person behind the product,
@@ -43,6 +44,14 @@ export default function LandingFooter() {
           <Link to="/terms" className="hover:text-foreground">Terms</Link>
           <Link to="/login" className="hover:text-foreground">Sign in</Link>
         </div>
+      </div>
+      {/* The comparison pages, under their own heading: a student weighing
+          two apps should find the honest table from any page. */}
+      <div className="mx-auto mt-5 flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 text-xs font-medium text-muted-foreground">
+        <span className="font-bold uppercase tracking-[0.12em] text-muted-foreground/80">Compare</span>
+        {COMPETITORS.map((c) => (
+          <Link key={c.slug} to={`/vs/${c.slug}`} className="hover:text-foreground">Praelecta vs {c.name}</Link>
+        ))}
       </div>
     </footer>
   );

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import MarketingShell from '@/components/landing/MarketingShell';
 import { DESKTOP_RELEASES_URL } from '@/lib/desktopDownloads';
+import { PUBLIC_PAGES } from '@/lib/publicPages';
 
 /**
  * /changelog — what shipped, with dates.
@@ -13,6 +14,14 @@ import { DESKTOP_RELEASES_URL } from '@/lib/desktopDownloads';
  * something a student can notice ships; leave out refactors and CI.
  */
 export const CHANGELOG = [
+  {
+    date: '2026-09-23',
+    title: 'Praelecta next to the other study apps',
+    items: [
+      'Three comparison pages — Praelecta vs Lemora, vs Scholarly and vs Studr — with what each one records, builds, schedules and charges, taken from their own sites on a stated date, and an honest "when to pick them" list on every page.',
+      'The homepage says up front that Praelecta bills by the semester, and the study-schedule section says what that is for: being caught up before you are.',
+    ],
+  },
   {
     date: '2026-09-21',
     title: 'The Mac app, and staying signed in',
@@ -102,9 +111,7 @@ const longDate = (iso) => new Date(`${iso}T12:00:00Z`).toLocaleDateString('en-CA
 
 export default function Changelog() {
   return (
-    <MarketingShell
-      title="What’s new — Praelecta"
-      description="Everything that shipped in Praelecta, with dates: new study tools, fixes, and the desktop apps.">
+    <MarketingShell {...PUBLIC_PAGES['/changelog']}>
       <section className="px-4 pb-20 pt-28 sm:px-6 sm:pt-32">
         <div className="mx-auto max-w-3xl">
           <p className="text-sm font-semibold text-primary">What&rsquo;s new</p>

@@ -57,6 +57,9 @@ export default function StudyToolProof() {
             <p className="mt-5 max-w-xl text-base leading-7 text-muted-foreground">
               Tick the lectures your prof said are covered. That is the whole setup. Every flashcard, practice question and review we build from then on stays inside that slice, so you never lose a Tuesday night to a chapter that is not being tested. No pasting notes into another app and explaining the class all over again.
             </p>
+            <p className="mt-4 max-w-xl text-base font-semibold leading-7 text-foreground">
+              You walk into the test knowing there is nothing on it you have not seen.
+            </p>
 
             <div className="mt-7 rounded-2xl border border-primary/25 bg-primary/10 p-5">
               <p className="text-xs font-bold uppercase tracking-[0.12em] text-primary">What you get from one tick</p>

@@ -36,6 +36,7 @@ const Landing = lazy(() => import('./pages/Landing'));
 const Pricing = lazy(() => import('./pages/Pricing'));
 const About = lazy(() => import('./pages/About'));
 const Changelog = lazy(() => import('./pages/Changelog'));
+const Compare = lazy(() => import('./pages/Compare'));
 const Todos = lazy(() => import('./pages/Todos'));
 
 const RouteFallback = () => (
@@ -137,6 +138,11 @@ const AuthenticatedApp = () => {
       <Route path="/pricing" element={<Pricing />} />
       <Route path="/about" element={<About />} />
       <Route path="/changelog" element={<Changelog />} />
+      {/* One comparison page per competitor, each route written out so the
+          sitemap test can see it (lib/competitors.js holds the facts). */}
+      <Route path="/vs/lemora" element={<Compare competitor="lemora" />} />
+      <Route path="/vs/scholarly" element={<Compare competitor="scholarly" />} />
+      <Route path="/vs/studr" element={<Compare competitor="studr" />} />
 
       {/* Everything below requires a signed-in user. */}
       <Route element={<ProtectedRoute unauthenticatedElement={<RedirectToLogin />} />}>

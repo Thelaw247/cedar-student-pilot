@@ -45,10 +45,12 @@ export default function LandingHero() {
       <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[620px] bg-[radial-gradient(circle_at_50%_5%,rgba(46,102,255,0.13),transparent_42%)]" />
       <div className="mx-auto max-w-6xl">
         <div className="mx-auto max-w-4xl text-center">
-          {/* The category is named before the hook: a student arriving from
-              a search for "AI lecture recorder" should not need the subhead
-              to confirm what this is. The h1 stays the line it was. */}
-          <p className="text-sm font-semibold text-primary">Lecture recording and study tool, for students who would rather not redo the whole course at exam time</p>
+          {/* The category is named before the hook, and so is the one thing
+              no other study app does: a student arriving from a search for
+              "AI lecture recorder" should not need the subhead to confirm
+              what this is, and should know within five seconds that it bills
+              by the term. The h1 stays the line it was. */}
+          <p className="text-sm font-semibold text-primary">Lecture recording and study tool for students. Bills by semester, not by month — no other study app does that.</p>
           <h1 className="mx-auto mt-3 max-w-4xl text-balance text-4xl font-bold leading-[1.02] tracking-[-0.05em] text-foreground sm:text-5xl lg:text-6xl">You showed up to the lecture. That should be the hard part.</h1>
           <p className="mx-auto mt-5 max-w-3xl text-balance text-base leading-7 text-muted-foreground sm:text-lg">Press record. By the time you are out of the room, the class is a transcript, a summary, flashcards and practice questions. When the exam gets announced, the study sessions book themselves around your calendar.</p>
           <p className="mx-auto mt-5 max-w-2xl text-lg font-bold tracking-[-0.02em] text-foreground sm:text-xl">
@@ -93,11 +95,11 @@ export default function LandingHero() {
             <ChevronRight className="h-4 w-4 text-muted-foreground" />
             <span className="rounded-lg bg-secondary px-3 py-2 text-foreground shadow-sm">Exam</span>
           </div>
-          {/* The one thing no competitor offers, said where a first-time
-              visitor reads it rather than buried in the pricing section. */}
+          {/* The semester price, one click from the flow it pays for. The
+              claim itself ("no other study app does that") is in the eyebrow. */}
           <p className="mt-3 text-center text-xs font-medium text-muted-foreground sm:text-sm">
-            Bills by semester, not by month — <span className="text-foreground">no other study app does that</span>.{' '}
-            <Link to="/pricing" className="font-semibold text-primary hover:text-foreground">${TIERS.student.semester.toFixed(2)} for the whole term</Link>
+            The whole term for one payment:{' '}
+            <Link to="/pricing" className="font-semibold text-primary hover:text-foreground">${TIERS.student.semester.toFixed(2)} on Student</Link>
           </p>
         </div>
 
