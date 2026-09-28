@@ -1,7 +1,61 @@
 import React, { useEffect, useState } from 'react';
-import { Users } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Clock3, CreditCard, LogOut, Mic, Users } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { proofLine } from '@/lib/proof';
+import { TIERS } from '@/lib/tiers';
+import { FOUNDER } from '@/lib/founder';
+
+/**
+ * The fact strip under the hero buttons (28 Sep 2026 audit, change 1).
+ *
+ * Both competitors open with a number a visitor can believe before reading a
+ * word — "3,000,000+ students", "4.8★ on 300k+ reviews". Praelecta has no
+ * such number yet, and will not invent one; what it has are four facts a
+ * student can check against the product in five minutes. The hours come
+ * from the recorder's ceiling (MAX_TOTAL_SECONDS in recording/
+ * RecordingContext.jsx, held equal by a test), the prices from tiers.js.
+ */
+export const PROOF_FACTS = [
+  { icon: Clock3, text: 'Records up to 6 hours' },
+  { icon: Mic, text: 'Two full lectures free, no card' },
+  { icon: CreditCard, text: `$${TIERS.student.semester.toFixed(2)} CAD for the whole semester` },
+  { icon: LogOut, text: 'Cancel in one tap' },
+];
+
+export function ProofFacts({ className = '' }) {
+  return (
+    <ul className={`flex flex-wrap items-center justify-center gap-x-2 gap-y-2 ${className}`} aria-label="Four things you can check">
+      {PROOF_FACTS.map((f) => (
+        <li key={f.text} className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card/70 px-3 py-1.5 text-xs font-semibold text-foreground/85">
+          <f.icon className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
+          {f.text}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/**
+ * The person, in the hero (change 2). Neither competitor shows one; a
+ * first-year at the University of Saskatchewan is a proof neither can copy.
+ * The photo is FOUNDER.photo when the file exists and the initials until it
+ * does, the same fallback the About page uses — never a broken image.
+ */
+export function FounderLine({ className = '' }) {
+  const [missing, setMissing] = useState(false);
+  return (
+    <Link to="/about" className={`group inline-flex items-center gap-3 rounded-full border border-border bg-card/70 py-1.5 pl-1.5 pr-4 text-left transition-colors hover:bg-card ${className}`}>
+      {missing || !FOUNDER.photo
+        ? <span className="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-primary/15 text-[11px] font-bold text-primary" aria-hidden="true">{FOUNDER.initials}</span>
+        : <img src={FOUNDER.photo} alt="" onError={() => setMissing(true)} className="h-8 w-8 flex-none rounded-full object-cover" />}
+      <span className="text-xs leading-4 text-muted-foreground">
+        Built by <span className="font-semibold text-foreground">{FOUNDER.name}</span>, a first-year engineering student at the University of Saskatchewan, because he couldn&rsquo;t listen and take notes at the same time.
+        <span className="ml-1 font-semibold text-primary group-hover:text-foreground">About →</span>
+      </span>
+    </Link>
+  );
+}
 
 /**
  * Proof that real people use this, in real numbers.

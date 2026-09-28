@@ -1,5 +1,23 @@
 import React from 'react';
-import { AlertCircle, BookOpen, FileText, Lightbulb, Mic, Pause, ShieldCheck, Tag } from 'lucide-react';
+import { AlertCircle, BookOpen, FileSearch, FileText, Lightbulb, Mic, Pause, ShieldCheck, Tag } from 'lucide-react';
+import { TIERS } from '@/lib/tiers';
+import SectionCta from '@/components/landing/SectionCta';
+
+/**
+ * The accuracy promise (28 Sep 2026 audit, change 7). The second-loudest
+ * complaint in the competitors' reviews is output that is not faithful to
+ * the source — invented detail, cut-off notes, "please add a source-only
+ * mode". Every line here is a thing the product does: the transcript is
+ * kept beside the summary, professor materials are read and formulas
+ * checked against them (a Student-plan feature, said so), exam mentions are
+ * flagged, and nothing is fetched from outside the lecture.
+ */
+const ACCURACY = [
+  { icon: FileText, text: 'The transcript stays beside every summary, so any line can be checked against what your prof actually said.' },
+  { icon: FileSearch, text: `Attach the prof’s slides and the formulas are checked against them (${TIERS.student.name} plan).` },
+  { icon: AlertCircle, text: 'Every “this is on the midterm” moment is flagged, with the words that were said.' },
+  { icon: ShieldCheck, text: 'Nothing is pulled in from outside your class. No web search, no textbook it guessed at.' },
+];
 
 function OutputRow({ icon: Icon, title, children, tone = 'blue' }) {
   const toneClass = tone === 'amber' ? 'bg-amber-50 text-amber-400' : 'bg-primary/10 text-primary';
@@ -14,7 +32,13 @@ function OutputRow({ icon: Icon, title, children, tone = 'blue' }) {
   );
 }
 
-export default function RecordingFeature() {
+/**
+ * `compact` is the homepage form (28 Sep 2026 audit, change 4): the headline,
+ * one paragraph under thirty words, the mock, the accuracy promise and a
+ * button. The full form — the three-line rundown and the longer paragraph —
+ * is the /lecture-recorder page.
+ */
+export default function RecordingFeature({ compact = false }) {
   return (
     <section id="recording" className="px-4 py-20 sm:px-6 lg:py-28">
       <div className="mx-auto max-w-6xl">
@@ -30,14 +54,22 @@ export default function RecordingFeature() {
             <h2 className="mt-5 text-4xl font-bold leading-[1.04] tracking-[-0.05em] text-foreground sm:text-5xl">
               Put the pen down. You are allowed to just listen.
             </h2>
-            <p className="mt-5 max-w-xl text-base leading-7 text-muted-foreground">
-              Hit record when class starts. When it ends, the lecture is filed under the course with a transcript, a plain-English summary, the formulas, and every moment your prof said &ldquo;this is on the midterm.&rdquo; No audio file to dig through later. No typing up notes at 11pm.
-            </p>
-            <div className="mt-7 space-y-3 text-sm text-foreground/80">
-              <div className="flex gap-3"><ShieldCheck className="mt-0.5 h-5 w-5 flex-none text-primary" /><span>You confirm you have permission to record first. One tap, then you are recording.</span></div>
-              <div className="flex gap-3"><FileText className="mt-0.5 h-5 w-5 flex-none text-primary" /><span>Recordings run up to six hours without stopping, so a double lecture or a full lab is fine.</span></div>
-              <div className="flex gap-3"><BookOpen className="mt-0.5 h-5 w-5 flex-none text-primary" /><span>That one recording feeds everything after it: the class handbook, the flashcards, the practice questions, the reviews.</span></div>
-            </div>
+            {compact ? (
+              <p className="mt-5 max-w-xl text-base leading-7 text-muted-foreground">
+                Hit record when class starts. When it ends, the lecture is filed under the course: transcript, plain-English summary, the formulas, and every moment your prof said &ldquo;this is on the midterm.&rdquo;
+              </p>
+            ) : (
+              <>
+                <p className="mt-5 max-w-xl text-base leading-7 text-muted-foreground">
+                  Hit record when class starts. When it ends, the lecture is filed under the course with a transcript, a plain-English summary, the formulas, and every moment your prof said &ldquo;this is on the midterm.&rdquo; No audio file to dig through later. No typing up notes at 11pm.
+                </p>
+                <div className="mt-7 space-y-3 text-sm text-foreground/80">
+                  <div className="flex gap-3"><ShieldCheck className="mt-0.5 h-5 w-5 flex-none text-primary" /><span>You confirm you have permission to record first. One tap, then you are recording.</span></div>
+                  <div className="flex gap-3"><FileText className="mt-0.5 h-5 w-5 flex-none text-primary" /><span>Recordings run up to six hours without stopping, so a double lecture or a full lab is fine.</span></div>
+                  <div className="flex gap-3"><BookOpen className="mt-0.5 h-5 w-5 flex-none text-primary" /><span>That one recording feeds everything after it: the class handbook, the flashcards, the practice questions, the reviews.</span></div>
+                </div>
+              </>
+            )}
           </div>
 
           <div className="grid gap-4 md:grid-cols-[0.78fr_1.22fr]">
@@ -100,6 +132,21 @@ export default function RecordingFeature() {
             </div>
           </div>
         </div>
+
+        <div id="accuracy" className="mt-14 rounded-[26px] border border-border bg-muted p-7 sm:p-9">
+          <p className="text-xs font-bold uppercase tracking-[0.14em] text-primary">What the prof said, not what a model guessed</p>
+          <h3 className="mt-2 text-2xl font-bold tracking-[-0.035em] text-foreground sm:text-3xl">The notes come from the lecture, not from the internet.</h3>
+          <div className="mt-6 grid gap-x-8 gap-y-4 sm:grid-cols-2">
+            {ACCURACY.map((a) => (
+              <div key={a.text} className="flex items-start gap-3">
+                <div className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl bg-secondary text-primary"><a.icon className="h-4 w-4" aria-hidden="true" /></div>
+                <p className="text-sm leading-6 text-muted-foreground">{a.text}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <SectionCta className="mt-10" label="Record your first lecture free" />
       </div>
     </section>
   );

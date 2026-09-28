@@ -36,6 +36,36 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://praelecta.ca/vs/studley</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://praelecta.ca/vs/turbo</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://praelecta.ca/lecture-recorder</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://praelecta.ca/test-coverage</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://praelecta.ca/study-schedule</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://praelecta.ca/study-system</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://praelecta.ca/privacy</loc>
     <changefreq>monthly</changefreq>
     <priority>0.3</priority>

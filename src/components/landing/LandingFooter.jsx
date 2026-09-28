@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { BRAND_MARK_URL } from '@/lib/brand';
 import { FOUNDER } from '@/lib/founder';
 import { COMPETITORS } from '@/lib/competitors';
+import { FEATURES } from '@/lib/features';
 
 /**
  * The footer of every public page: the mark, the person behind the product,
@@ -31,10 +32,11 @@ export default function LandingFooter() {
           </div>
         </div>
         <div className="flex flex-wrap gap-x-5 gap-y-2 text-xs font-medium text-muted-foreground">
-          <a href="/#recording" className="hover:text-foreground">Recording</a>
-          <a href="/#test-coverage" className="hover:text-foreground">Test coverage</a>
-          <a href="/#study-schedule" className="hover:text-foreground">Study schedule</a>
-          <a href="/#study-system" className="hover:text-foreground">Study tools</a>
+          {/* The feature pages (lib/features.js), not the homepage anchors:
+              from any page, the long form of each feature is one click away. */}
+          {FEATURES.map((f) => (
+            <Link key={f.slug} to={f.path} className="hover:text-foreground">{f.label}</Link>
+          ))}
           <Link to="/pricing" className="hover:text-foreground">Pricing</Link>
           <a href="/#faq" className="hover:text-foreground">FAQ</a>
           <a href="/#download" className="hover:text-foreground">Desktop app</a>

@@ -3,39 +3,41 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, Brain, CalendarClock, ChevronRight, Mic, Target } from 'lucide-react';
 import { TIERS } from '@/lib/tiers';
 import PaymentTrustLine from '@/components/landing/PaymentTrustLine';
+import { FounderLine, ProofFacts } from '@/components/landing/LandingProof';
 
+/**
+ * The four feature cards, one line each (28 Sep 2026 audit, change 4). The
+ * second line each card used to carry now opens the feature page, which is
+ * where the long form of every section lives; the card's job is the promise.
+ */
 const coreFeatures = [
 {
   number: '01',
   icon: Mic,
   label: 'Lecture recording',
   title: 'Record it. Stop panicking about what you missed.',
-  body: 'The whole lecture, saved with the class. Transcript, summary, formulas and every "this will be on the test" moment, ready before you get home.',
-  href: '#recording'
+  to: '/lecture-recorder'
 },
 {
   number: '02',
   icon: Target,
   label: 'Exact test coverage',
   title: 'Only study what is actually on the test.',
-  body: 'Tick the lectures your prof said count. Every flashcard and practice question stays inside that slice, so an off-syllabus chapter never eats your evening.',
-  href: '#test-coverage'
+  to: '/test-coverage'
 },
 {
   number: '03',
   icon: CalendarClock,
   label: 'Study scheduling',
   title: 'The study plan books itself.',
-  body: 'Give us the exam date. We spread the sessions across the days before it, around your shifts and classes, so it is never one 2am cram.',
-  href: '#study-schedule'
+  to: '/study-schedule'
 },
 {
   number: '04',
   icon: Brain,
   label: 'Study system',
   title: 'Sit down and just start.',
-  body: 'Open the session and the flashcards, quiz, timer and end-of-session review are already there. No deciding what to do first, no setup.',
-  href: '#study-system'
+  to: '/study-system'
 }];
 
 
@@ -52,19 +54,36 @@ export default function LandingHero() {
               by the term. The h1 stays the line it was. */}
           <p className="text-sm font-semibold text-primary">Lecture recording and study tool for students. Bills by semester, not by month — no other study app does that.</p>
           <h1 className="mx-auto mt-3 max-w-4xl text-balance text-4xl font-bold leading-[1.02] tracking-[-0.05em] text-foreground sm:text-5xl lg:text-6xl">You showed up to the lecture. That should be the hard part.</h1>
-          <p className="mx-auto mt-5 max-w-3xl text-balance text-base leading-7 text-muted-foreground sm:text-lg">Press record. By the time you are out of the room, the class is a transcript, a summary, flashcards and practice questions. When the exam gets announced, the study sessions book themselves around your calendar.</p>
+          {/* Twenty-five words, down from forty-seven (28 Sep audit): what
+              happens, then what happens next. The rest is on the page. */}
+          <p className="mx-auto mt-5 max-w-3xl text-balance text-base leading-7 text-muted-foreground sm:text-lg">Press record. Leave with the transcript, a summary, flashcards and practice questions. When the exam is announced, the study sessions book themselves around your calendar.</p>
           <p className="mx-auto mt-5 max-w-2xl text-lg font-bold tracking-[-0.02em] text-foreground sm:text-xl">
-            Two free lectures to see it work on your own class. No card needed.
+            Two full lectures free. No card, nothing expires.
           </p>
+        </div>
+
+        <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+          <Link to="/register" className="auth-cta inline-flex w-full items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold text-primary-foreground sm:w-auto">
+            Start free <ArrowRight className="h-4 w-4" />
+          </Link>
+          <a href="#recording" className="inline-flex w-full items-center justify-center rounded-xl border border-border bg-card px-5 py-3 text-sm font-semibold text-foreground/85 transition-colors hover:bg-muted sm:w-auto">
+            See how it works
+          </a>
+        </div>
+        <PaymentTrustLine className="mt-4" />
+        {/* The proof a visitor can check, where the competitors put a user
+            count: four facts, then the person (28 Sep audit, changes 1 and 2). */}
+        <ProofFacts className="mt-6" />
+        <div className="mt-4 flex justify-center px-2">
+          <FounderLine className="max-w-2xl" />
         </div>
 
         <div className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {coreFeatures.map((feature) =>
-          <a
+          <Link
             key={feature.number}
-            href={feature.href}
+            to={feature.to}
             className="group relative overflow-hidden rounded-[26px] border border-border bg-card p-6 shadow-[0_18px_55px_-35px_rgba(0,0,0,0.6)] transition-all hover:-translate-y-1 hover:border-primary/30 hover:shadow-[0_24px_65px_-32px_rgba(0,0,0,0.7)] sm:p-7">
-            
               <div className="flex items-start justify-between gap-4">
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                   <feature.icon className="h-6 w-6" />
@@ -73,11 +92,10 @@ export default function LandingHero() {
               </div>
               <p className="mt-6 text-[11px] font-bold uppercase tracking-[0.14em] text-primary">{feature.label}</p>
               <h2 className="mt-2 text-2xl font-bold tracking-[-0.035em] text-foreground">{feature.title}</h2>
-              <p className="mt-3 text-sm leading-6 text-muted-foreground">{feature.body}</p>
-              <span className="mt-6 inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground transition-colors group-hover:text-primary">
-                See it in Praelecta <ChevronRight className="h-3.5 w-3.5" />
+              <span className="mt-5 inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground transition-colors group-hover:text-primary">
+                How it works <ChevronRight className="h-3.5 w-3.5" />
               </span>
-            </a>
+            </Link>
           )}
         </div>
 
@@ -103,25 +121,16 @@ export default function LandingHero() {
           </p>
         </div>
 
-        <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-          <Link to="/register" className="auth-cta inline-flex w-full items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold text-primary-foreground sm:w-auto">
-            Start free <ArrowRight className="h-4 w-4" />
-          </Link>
-          <a href="#recording" className="inline-flex w-full items-center justify-center rounded-xl border border-border bg-card px-5 py-3 text-sm font-semibold text-foreground/85 transition-colors hover:bg-muted sm:w-auto">
-            See how it works
-          </a>
-        </div>
-        <PaymentTrustLine className="mt-4" />
         {/* Scope, stated: who this is not for, so nobody signs up expecting
             an essay writer and leaves disappointed. */}
-        <p className="mx-auto mt-3 max-w-2xl text-center text-xs leading-5 text-muted-foreground">
+        <p className="mx-auto mt-5 max-w-2xl text-center text-xs leading-5 text-muted-foreground">
           Not for you if you want an app to write your assignments: Praelecta only ever touches your lectures.
         </p>
 
         {/* An honest "coming soon" marker, not a download link — there is
             nothing to tap yet, so it is a static badge rather than a dead
             button. Removed / turned into a real link once the iOS app ships. */}
-        <div className="mt-6 flex justify-center">
+        <div className="mt-4 flex justify-center">
           <span className="inline-flex items-center gap-2 rounded-full border border-border bg-card/70 px-4 py-1.5 text-xs font-medium text-muted-foreground">
             <svg viewBox="0 0 384 512" aria-hidden="true" className="h-3.5 w-3.5 fill-current text-foreground/70">
               <path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/>

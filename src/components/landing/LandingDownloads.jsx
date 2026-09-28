@@ -1,6 +1,19 @@
 import React from 'react';
-import { Download, Laptop, Mic, RefreshCw, ShieldQuestion } from 'lucide-react';
+import { Download, Globe, Laptop, Mic, RefreshCw, ShieldQuestion, Smartphone } from 'lucide-react';
 import { DESKTOP_DOWNLOADS, DESKTOP_RELEASES_URL, detectDesktopOs, isRunningInDesktopApp } from '@/lib/desktopDownloads';
+
+/**
+ * Where it runs, as a strip a visitor can read in one glance (28 Sep 2026
+ * audit, change 10). Both competitors list Web · iOS · Android; this is the
+ * true version of that line for Praelecta today — the browser on any phone,
+ * the desktop apps, and the iPhone app still on the way — so nobody has to
+ * find the answer in the FAQ.
+ */
+export const DEVICES = [
+  { icon: Globe, label: 'Web', note: 'any phone or laptop' },
+  { icon: Smartphone, label: 'iPhone and Android', note: 'in the browser today' },
+  { icon: Laptop, label: 'Windows, Mac and Linux', note: 'desktop apps' },
+];
 
 const perks = [
   { icon: Mic, title: 'Record from your laptop', body: 'Lecture halls with a laptop on the desk, online classes, a recorded Zoom: press record on the machine you are already using.' },
@@ -16,6 +29,16 @@ export default function LandingDownloads() {
   return (
     <section id="download" className="px-4 py-20 sm:px-6 lg:py-24">
       <div className="mx-auto max-w-6xl">
+        <ul className="mb-10 flex flex-wrap items-center justify-center gap-2" aria-label="Where Praelecta runs">
+          {DEVICES.map((d) => (
+            <li key={d.label} className="inline-flex items-center gap-2 rounded-full border border-border bg-card/70 px-3.5 py-2 text-xs font-semibold text-foreground/85">
+              <d.icon className="h-4 w-4 text-primary" aria-hidden="true" />
+              {d.label}
+              <span className="font-medium text-muted-foreground">· {d.note}</span>
+            </li>
+          ))}
+          <li className="inline-flex items-center gap-2 rounded-full border border-dashed border-border px-3.5 py-2 text-xs font-medium text-muted-foreground">iPhone app on the way</li>
+        </ul>
         <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
           <div>
             <p className="text-sm font-semibold text-primary">Desktop app</p>

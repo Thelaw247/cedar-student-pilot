@@ -37,6 +37,7 @@ const Pricing = lazy(() => import('./pages/Pricing'));
 const About = lazy(() => import('./pages/About'));
 const Changelog = lazy(() => import('./pages/Changelog'));
 const Compare = lazy(() => import('./pages/Compare'));
+const Feature = lazy(() => import('./pages/Feature'));
 const Todos = lazy(() => import('./pages/Todos'));
 
 const RouteFallback = () => (
@@ -143,6 +144,14 @@ const AuthenticatedApp = () => {
       <Route path="/vs/lemora" element={<Compare competitor="lemora" />} />
       <Route path="/vs/scholarly" element={<Compare competitor="scholarly" />} />
       <Route path="/vs/studr" element={<Compare competitor="studr" />} />
+      <Route path="/vs/studley" element={<Compare competitor="studley" />} />
+      <Route path="/vs/turbo" element={<Compare competitor="turbo" />} />
+      {/* One page per feature, the long form of each homepage section
+          (lib/features.js holds the copy); written out for the same reason. */}
+      <Route path="/lecture-recorder" element={<Feature slug="lecture-recorder" />} />
+      <Route path="/test-coverage" element={<Feature slug="test-coverage" />} />
+      <Route path="/study-schedule" element={<Feature slug="study-schedule" />} />
+      <Route path="/study-system" element={<Feature slug="study-system" />} />
 
       {/* Everything below requires a signed-in user. */}
       <Route element={<ProtectedRoute unauthenticatedElement={<RedirectToLogin />} />}>

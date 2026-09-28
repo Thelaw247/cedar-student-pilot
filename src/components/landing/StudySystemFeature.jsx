@@ -1,4 +1,5 @@
 import React from 'react';
+import SectionCta from '@/components/landing/SectionCta';
 import {
   BarChart3,
   BookOpen,
@@ -66,7 +67,12 @@ const projectSteps = [
   'Running behind? We look for open gaps before the deadline and book the extra time there.',
 ];
 
-export default function StudySystemFeature() {
+/**
+ * `compact` is the homepage form (28 Sep 2026 audit, change 4): headline, a
+ * paragraph under thirty words, the guided-session card, a button. The tool
+ * grid, the project roadmap and the research note are on /study-system.
+ */
+export default function StudySystemFeature({ compact = false }) {
   return (
     <section id="study-system" className="px-4 py-20 sm:px-6 lg:py-28">
       <div className="mx-auto max-w-6xl">
@@ -83,10 +89,17 @@ export default function StudySystemFeature() {
             <h2 className="mt-5 text-4xl font-bold leading-[1.04] tracking-[-0.05em] text-foreground sm:text-5xl">
               Never sit down to study and wonder where to start.
             </h2>
-            <p className="mt-5 max-w-xl text-base leading-7 text-muted-foreground">
-              &ldquo;Study for the midterm&rdquo; is vague enough to put off for a week. So we break it into a session with a job: you pick the goal, we narrow the material, you pick how you want to work, and the flashcards, quiz, timer and end-of-session review are already waiting when you open it.
-            </p>
+            {compact ? (
+              <p className="mt-5 max-w-xl text-base leading-7 text-muted-foreground">
+                &ldquo;Study for the midterm&rdquo; is vague enough to put off for a week. A session has a job, and the flashcards, quiz, timer and review are already waiting.
+              </p>
+            ) : (
+              <p className="mt-5 max-w-xl text-base leading-7 text-muted-foreground">
+                &ldquo;Study for the midterm&rdquo; is vague enough to put off for a week. So we break it into a session with a job: you pick the goal, we narrow the material, you pick how you want to work, and the flashcards, quiz, timer and end-of-session review are already waiting when you open it.
+              </p>
+            )}
 
+            {!compact && (
             <div className="mt-7 rounded-2xl border border-primary/25 bg-primary/10 p-5">
               <p className="text-xs font-bold uppercase tracking-[0.12em] text-primary">Built on what actually works</p>
               <p className="mt-2 text-sm leading-6 text-muted-foreground">
@@ -97,6 +110,7 @@ export default function StudySystemFeature() {
                 <a href="https://pubmed.ncbi.nlm.nih.gov/16507066/" target="_blank" rel="noreferrer" className="text-primary hover:text-primary">Retrieval-practice research</a>
               </div>
             </div>
+            )}
           </div>
 
           <div className="space-y-6">
@@ -133,6 +147,7 @@ export default function StudySystemFeature() {
           </div>
         </div>
 
+        {!compact && (
         <div className="mt-10 grid gap-6 lg:grid-cols-2 lg:items-stretch">
           <div className="h-full rounded-[28px] border border-border bg-card p-5 sm:p-7">
             <div className="max-w-2xl">
@@ -251,6 +266,8 @@ export default function StudySystemFeature() {
               </div>
           </div>
         </div>
+        )}
+        <SectionCta className="mt-10" label="Start free" />
       </div>
     </section>
   );

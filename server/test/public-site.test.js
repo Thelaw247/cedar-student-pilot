@@ -213,15 +213,11 @@ test('testimonials, recognition and the avatar grid render nothing until there i
   assert.match(p, /if \(!avatars\.length\) return null;/);
   assert.match(LANDING, /<LandingTestimonials \/>/);
   // The badge slot sits directly under the hero, where the audit asked for it.
-  assert.ok(LANDING.indexOf('<LandingRecognition />') > LANDING.indexOf('<LandingHero />'));
-  assert.ok(LANDING.indexOf('<LandingRecognition />') < LANDING.indexOf('<RecordingFeature />'));
+  const at = (tag) => { const i = LANDING.indexOf(tag); assert.ok(i >= 0, `${tag} is not on the homepage`); return i; };
+  assert.ok(at('<LandingRecognition />') > at('<LandingHero />'));
+  assert.ok(at('<LandingRecognition />') < at('<RecordingFeature compact />'));
   // The testimonial wall sits after "Sound familiar?" and before the pricing section.
-  const why = LANDING.indexOf('<LandingWhyStudents />');
-  const down = LANDING.indexOf('<LandingDownloads />');
-  for (const tag of ['<LandingTestimonials />']) {
-    const at = LANDING.indexOf(tag);
-    assert.ok(why < at && at < down, `${tag} is not between the trust section and the downloads`);
-  }
+  assert.ok(at('<LandingWhyStudents />') < at('<LandingTestimonials />') && at('<LandingTestimonials />') < at('<LandingDownloads />'), 'the testimonials are not between the trust section and the downloads');
 });
 
 // ------------------------------------------------------------------- privacy

@@ -40,7 +40,9 @@ research behind every choice is in the printed series document DSN-03
    `prefers-reduced-transparency` fallbacks) is for the header, tab bar and
    sheets only — at most three glass surfaces a screen, never stacked, never
    on content cards. `.glass` remains the historical backdrop-blur helper
-   for dimmed modal overlays.
+   for dimmed modal overlays. The public site's header (LandingNav) is a
+   floating `.glass-chrome` pill with a soft fade behind it — the page
+   scrolls under it — and is the one glass surface on those pages.
 
 ## Token inventory
 

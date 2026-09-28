@@ -32,7 +32,7 @@ const LLMS = read('../../public/llms.txt');
 const VITE = read('../../vite.config.js');
 
 test('there is a routed, listed, linked comparison page for each competitor', () => {
-  assert.equal(COMPETITORS.length, 3);
+  assert.equal(COMPETITORS.length, 5, 'Lemora, Scholarly, Studr from the 22 Sep audit; Studley AI and Turbo AI from the 28 Sep one');
   for (const c of COMPETITORS) {
     const path = `/vs/${c.slug}`;
     assert.ok(APP.includes(`path="${path}" element={<Compare competitor="${c.slug}" />}`), `${path} has no route`);

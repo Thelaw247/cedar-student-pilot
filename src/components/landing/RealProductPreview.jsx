@@ -2,6 +2,7 @@ import React from 'react';
 import { CalendarClock, CheckCircle2, Clock3, GraduationCap } from 'lucide-react';
 import WeeklyCalendar from '@/components/WeeklyCalendar';
 import { weekDates } from '@/lib/eventSchedule';
+import SectionCta from '@/components/landing/SectionCta';
 
 const classes = [
   {
@@ -37,7 +38,12 @@ function prettyDate(dateString) {
   return new Date(`${dateString}T00:00:00`).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 }
 
-export default function RealProductPreview() {
+/**
+ * `compact` is the homepage form (28 Sep 2026 audit, change 4): headline, a
+ * paragraph under thirty words, the outcome line, the calendar, a button.
+ * The research note and the three how-it-places cards are on /study-schedule.
+ */
+export default function RealProductPreview({ compact = false }) {
   const dates = weekDates(new Date(), 1);
   const examDate = dates[4];
   const sessions = [
@@ -66,30 +72,40 @@ export default function RealProductPreview() {
             <h2 className="mt-5 text-4xl font-bold leading-[1.04] tracking-[-0.05em] text-foreground sm:text-5xl">
               Give us the exam date. We will find the time to study for it.
             </h2>
-            <p className="mt-5 max-w-xl text-base leading-7 text-muted-foreground">
-              We spread the studying across the days before the test, work around the classes, shifts and deadlines already on your calendar, and drop each session into a real gap. The night-before cram stops being the plan, and you did not have to open a calendar to make it happen.
-            </p>
+            {compact ? (
+              <p className="mt-5 max-w-xl text-base leading-7 text-muted-foreground">
+                The sessions are spread across the days before the test and dropped into real gaps around your classes, shifts and deadlines. The night-before cram stops being the plan.
+              </p>
+            ) : (
+              <p className="mt-5 max-w-xl text-base leading-7 text-muted-foreground">
+                We spread the studying across the days before the test, work around the classes, shifts and deadlines already on your calendar, and drop each session into a real gap. The night-before cram stops being the plan, and you did not have to open a calendar to make it happen.
+              </p>
+            )}
             {/* The outcome, stated: the relief a student is actually after
                 when they open a study app in week 10. */}
             <p className="mt-4 max-w-xl text-base font-semibold leading-7 text-foreground">
               What you get is the feeling of being caught up before you are: fourteen lectures behind becomes four sessions with dates, and the exam stops sitting in your stomach.
             </p>
 
-            <div className="mt-7 rounded-2xl border border-primary/25 bg-card p-5">
-              <p className="text-xs font-bold uppercase tracking-[0.12em] text-primary">Why spread out, not crammed</p>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                Studying in a few separate sittings beats one long one for actually remembering it, and that finding has held up across decades of research. It is the rule we follow when we place your sessions.
-              </p>
-              <a href="https://pubmed.ncbi.nlm.nih.gov/16719566/" target="_blank" rel="noreferrer" className="mt-3 inline-flex text-xs font-semibold text-primary hover:text-primary">
-                Research basis: Cepeda et al., Psychological Bulletin (2006)
-              </a>
-            </div>
+            {!compact && (
+              <>
+                <div className="mt-7 rounded-2xl border border-primary/25 bg-card p-5">
+                  <p className="text-xs font-bold uppercase tracking-[0.12em] text-primary">Why spread out, not crammed</p>
+                  <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                    Studying in a few separate sittings beats one long one for actually remembering it, and that finding has held up across decades of research. It is the rule we follow when we place your sessions.
+                  </p>
+                  <a href="https://pubmed.ncbi.nlm.nih.gov/16719566/" target="_blank" rel="noreferrer" className="mt-3 inline-flex text-xs font-semibold text-primary hover:text-primary">
+                    Research basis: Cepeda et al., Psychological Bulletin (2006)
+                  </a>
+                </div>
 
-            <div className="mt-5 grid gap-3 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
-              <div className="rounded-xl border border-border bg-card p-4"><CalendarClock className="h-4 w-4 text-primary" /><p className="mt-3 text-sm font-semibold text-foreground">Split across days</p><p className="mt-1 text-xs leading-5 text-muted-foreground">A few short sessions in the days before, not one long night.</p></div>
-              <div className="rounded-xl border border-border bg-card p-4"><GraduationCap className="h-4 w-4 text-primary" /><p className="mt-3 text-sm font-semibold text-foreground">Works around your life</p><p className="mt-1 text-xs leading-5 text-muted-foreground">Your classes, work shifts and existing plans count as busy. We book around them.</p></div>
-              <div className="rounded-xl border border-border bg-card p-4"><Clock3 className="h-4 w-4 text-primary" /><p className="mt-3 text-sm font-semibold text-foreground">A light review the night before</p><p className="mt-1 text-xs leading-5 text-muted-foreground">Exams and quizzes get a shorter final pass right before the date, so it is fresh.</p></div>
-            </div>
+                <div className="mt-5 grid gap-3 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
+                  <div className="rounded-xl border border-border bg-card p-4"><CalendarClock className="h-4 w-4 text-primary" /><p className="mt-3 text-sm font-semibold text-foreground">Split across days</p><p className="mt-1 text-xs leading-5 text-muted-foreground">A few short sessions in the days before, not one long night.</p></div>
+                  <div className="rounded-xl border border-border bg-card p-4"><GraduationCap className="h-4 w-4 text-primary" /><p className="mt-3 text-sm font-semibold text-foreground">Works around your life</p><p className="mt-1 text-xs leading-5 text-muted-foreground">Your classes, work shifts and existing plans count as busy. We book around them.</p></div>
+                  <div className="rounded-xl border border-border bg-card p-4"><Clock3 className="h-4 w-4 text-primary" /><p className="mt-3 text-sm font-semibold text-foreground">A light review the night before</p><p className="mt-1 text-xs leading-5 text-muted-foreground">Exams and quizzes get a shorter final pass right before the date, so it is fresh.</p></div>
+                </div>
+              </>
+            )}
           </div>
 
           <div className="overflow-hidden rounded-[28px] border border-border bg-card shadow-[0_24px_70px_-38px_rgba(0,0,0,0.55)]">
@@ -123,6 +139,7 @@ export default function RealProductPreview() {
             </div>
           </div>
         </div>
+        <SectionCta className="mt-10" label="Start free" note="Two full lectures free, no card. Study schedules are on the Scholar plan." />
       </div>
     </section>
   );

@@ -15,6 +15,16 @@ import { PUBLIC_PAGES } from '@/lib/publicPages';
  */
 export const CHANGELOG = [
   {
+    date: '2026-09-28',
+    title: 'A shorter homepage, with things you can check',
+    items: [
+      'The homepage says each thing once: four facts under the first button (six-hour recordings, two full lectures free, the semester price, one-tap cancelling), the person who built it, what the free tier actually includes, and the promise that the notes come from the lecture, not the internet.',
+      'Four feature pages — Lecture recorder, Test coverage, Study schedule and Study system — carry the long version of each section, with the questions that belong to it.',
+      'Two more comparison pages, Praelecta vs Studley AI and vs Turbo AI, and an at-a-glance table on the homepage against both.',
+      'The header is a floating glass bar the page scrolls under.',
+    ],
+  },
+  {
     date: '2026-09-23',
     title: 'Praelecta next to the other study apps',
     items: [

@@ -1,7 +1,8 @@
 import { TIERS, CREDIT_COSTS } from './tiers.js';
 
 /**
- * The three comparison pages (/vs/lemora, /vs/scholarly, /vs/studr).
+ * The comparison pages (/vs/lemora, /vs/scholarly, /vs/studr, /vs/studley,
+ * /vs/turbo) and the short "at a glance" table on the homepage.
  *
  * Every line in a competitor's column is a fact read from that company's own
  * website or app-store listing on the date in `checkedOn`, and the pages it
@@ -37,6 +38,35 @@ export const PRAELECTA_FACTS = {
   privacy: 'Recordings are private to your account and never used to train anything. The providers that touch them (Groq, Deepgram, Google Gemini) are named in the privacy policy, with what each is allowed to do.',
   scope: 'Lectures only. Praelecta does not write essays or assignments.',
 };
+
+/**
+ * The homepage's at-a-glance table (28 Sep 2026 audit, change 11): one line
+ * per cell, the same facts as the long columns below, against the two apps
+ * a student is most likely to have seen first. `PRAELECTA_GLANCE` reads
+ * tiers.js like everything else; each competitor carries its own `glance`.
+ */
+export const PRAELECTA_GLANCE = {
+  billing: `${money(TIERS.student.semester)} CAD for the semester, or ${money(TIERS.student.monthly)} a month`,
+  freeTier: 'Two full lectures, no card, nothing expires',
+  examScoping: 'Yes — tick the lectures the prof said count',
+  scheduling: 'Yes, around classes and shifts (Scholar plan)',
+  recording: 'Up to six hours',
+  scope: 'Never — lectures only',
+  cancel: 'One tap in Settings',
+};
+
+export const GLANCE_ROWS = [
+  { id: 'billing', label: 'Billing' },
+  { id: 'freeTier', label: 'Free tier' },
+  { id: 'examScoping', label: 'Knows what is on the exam' },
+  { id: 'scheduling', label: 'Books the study sessions' },
+  { id: 'recording', label: 'Recording length' },
+  { id: 'scope', label: 'Assignments' },
+  { id: 'cancel', label: 'Cancelling' },
+];
+
+/** The competitors on the homepage table, in column order. */
+export const GLANCE_COMPETITORS = ['studley', 'turbo'];
 
 export const COMPARISON_ROWS = [
   { id: 'recording', label: 'Records the lecture live' },
@@ -176,6 +206,105 @@ export const COMPETITORS = [
       'https://studr.app/privacy/',
       'https://apps.apple.com/us/app/studr-ai-notetaker/id6752513673',
       'https://play.google.com/store/apps/details?id=com.studr.notes',
+    ],
+  },
+  {
+    slug: 'studley',
+    name: 'Studley AI',
+    url: 'https://www.studley.ai/',
+    tagline: 'Learn Faster... Like, a Lot Faster',
+    summary: 'Studley AI turns lecture slides, notes, PDFs, recordings and YouTube videos into flashcards, quizzes, written tests, a tutor chat and audio podcasts — one study set per upload — on the web, iOS and Android, and sells itself against private tutors.',
+    checkedOn: '2026-09-28',
+    facts: {
+      recording: 'Uploads of "lecture recordings" are accepted alongside PDFs, notes and YouTube videos ("Upload or Paste Content"). Recording live in class, and a maximum recording length, are not stated on their site.',
+      afterClass: 'One "study set" per upload: AI notes and summaries, flashcards, quizzes, written tests, fill-in-the-blanks, a 24/7 tutor chat and an audio podcast. A verbatim transcript view is not stated.',
+      practice: 'Yes: "Instant Flashcards", "Smart Quizzes" with explanations for wrong answers, "Written Tests" with feedback, and progress tracking from "unfamiliar" to "mastered".',
+      examScoping: 'Not stated. Each upload is its own study set; a paying user on the App Store asks to add the lecture slides to a recording’s set and cannot.',
+      scheduling: 'Not stated on their site. No calendar and no booked study sessions.',
+      platforms: 'Web app, iOS, Android and tablet ("Study anytime, anywhere"). 1M+ installs on Google Play.',
+      freeTier: '"The Free plan allows you to make one study set to show you the value of Studley." App Store reviews describe the paywall after that first set.',
+      price: 'On their site: "$3.74/week (billed monthly) or $1.88/week (billed annually)". In the App Store: weekly $7.99–8.99 USD, monthly $13.99–14.99 USD, yearly $97.99 USD.',
+      billing: 'Weekly, monthly or yearly, auto-renewing. "All fees are non-refundable unless explicitly stated otherwise or required by law." A "Manage Subscription" link in the footer; no cancellation terms stated.',
+      privacy: 'The privacy policy (last updated December 31, 2024) does not say whether uploads are used to train AI models and does not name the AI providers that process them; it references PIPEDA where relevant.',
+      scope: 'Yes: "Homework Help & Assignment Support", "Smart Paper Grading: Get detailed feedback based on your rubric", and an Essay Grader in the features menu.',
+    },
+    glance: {
+      billing: '$14.99 USD a month or $97.99 a year in the App Store; "$1.88/week" on the site',
+      freeTier: 'One study set',
+      examScoping: 'No',
+      scheduling: 'No',
+      recording: 'Not stated',
+      scope: 'Essay Grader, Homework Help',
+      cancel: '"Manage Subscription" page; fees non-refundable',
+    },
+    whenPraelecta: [
+      'You record whole lectures for a whole term and want them filed under the course, not one study set per upload.',
+      'You want to know what the test covers and study only that, with the sessions booked around your week.',
+      'You want the price in Canadian dollars, by the semester, printed on the page — not a weekly figure charged yearly.',
+      'You want to know, before you upload, which companies process your audio and that it is never used for training.',
+    ],
+    whenThem: [
+      'You want an iOS or Android app today; Praelecta on a phone runs in the browser.',
+      'You study from PDFs, slides and YouTube videos more than from live lectures, and you want a podcast version.',
+      'You want written-answer tests graded against a rubric, or an essay grader.',
+      'You want a tutor chat that stands in for a human tutor.',
+    ],
+    sources: [
+      'https://www.studley.ai/',
+      'https://www.studley.ai/privacy',
+      'https://www.studley.ai/terms',
+      'https://apps.apple.com/us/app/studley-ai-study-tutor/id6744783834',
+      'https://play.google.com/store/apps/details?id=ai.studley.app&hl=en_US',
+    ],
+  },
+  {
+    slug: 'turbo',
+    name: 'Turbo AI',
+    url: 'https://www.turbo.ai/',
+    tagline: 'The fastest way to learn anything.',
+    summary: 'Turbo AI (formerly TurboLearn) turns lectures, PDFs, YouTube videos and notes into editable notes, flashcards, quizzes and podcasts, with pre-made AP study guides and shared docs, on the web, iOS and Android.',
+    checkedOn: '2026-09-28',
+    facts: {
+      recording: 'Yes: "Turbo AI listens to your lectures and takes perfect notes" — "Record & Transcribe Instantly" with "key points, timestamps, and highlights". A maximum recording length is not stated on their site.',
+      afterClass: 'Editable notes in a Google Docs-style editor, a transcript, a chat that "indexes and deeply comprehends your notes", flashcards, quizzes and a podcast of the material, in folders that sync across devices.',
+      practice: 'Yes: "Practice until it clicks. Endless questions until you lock in understanding" — multiple-choice, fill-in-the-blank and written questions, plus flashcards.',
+      examScoping: 'Not stated. Notes and activities are made per upload; nothing on their site ties material to the lectures an exam covers.',
+      scheduling: 'Not stated on their site. No calendar and no booked study sessions.',
+      platforms: 'Web, iOS and Android ("Stay synced. Learn on the go across our website and mobile app"). 1M+ installs on Google Play.',
+      freeTier: '"A generous free tier that includes note generation, flashcards, and quizzes"; the limits are not stated on the site. Reviewers report one or two free uploads before the paywall.',
+      price: 'No prices on their site. In the App Store: $9.99 USD a week, $14.99–19.99 USD a month, $19.99–119.99 USD a year, and a "50% Off Forever Monthly" offer at $7.49 USD.',
+      billing: 'Monthly or annual, auto-renewing; cancel in account settings at least 24 hours before the term ends. "All fees are non-refundable and non-creditable, including for partial periods, except where required by law."',
+      privacy: '"We may use your Personal Information to further develop our artificial intelligence and improve our Service." Content is processed by external providers, "currently OpenAI®, Grok®, Anthropic®, and Modal Labs". Based in Frisco, Texas.',
+      scope: 'Notes and activities from any file, plus "Your Collaborative AI Teammate" that makes "comments, suggestions and rewrites" as you write. Assignments are not excluded.',
+    },
+    glance: {
+      billing: '$14.99–19.99 USD a month, up to $119.99 a year in the App Store; no prices on the site',
+      freeTier: 'Limits not stated; reviewers report two uploads, then a paywall',
+      examScoping: 'No',
+      scheduling: 'No',
+      recording: 'Not stated',
+      scope: 'Notes and activities from any file',
+      cancel: 'Account settings, 24 hours before renewal; fees non-refundable',
+    },
+    whenPraelecta: [
+      'You want the exam handled, not only the notes: tick what the test covers and have the study sessions booked around your classes and shifts.',
+      'You want to pay once for the term, in Canadian dollars, and see the price before you sign up.',
+      'You want your recordings kept out of anyone’s model training, with the providers named.',
+      'You want a study app that will not touch your assignments, so there is nothing to explain to an integrity office.',
+    ],
+    whenThem: [
+      'You want an iOS or Android app today.',
+      'You want editable notes you can share and co-edit with classmates, or pre-made AP study guides.',
+      'You study from PDFs, YouTube videos and slides as much as from live lectures, and you want a podcast version.',
+      'You want an app with hundreds of thousands of public reviews to read before you decide.',
+    ],
+    sources: [
+      'https://www.turbo.ai/',
+      'https://www.turbo.ai/ai-note-taker',
+      'https://www.turbo.ai/privacy-policy',
+      'https://www.turbo.ai/terms-of-service',
+      'https://apps.apple.com/us/app/turbo-ai-notetaker/id6502794561',
+      'https://play.google.com/store/apps/details?id=ai.turbolearn&hl=en_US',
     ],
   },
 ];

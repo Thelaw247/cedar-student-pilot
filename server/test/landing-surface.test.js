@@ -77,10 +77,14 @@ test('no full-bleed decoration box clips its contents to a rectangle', () => {
 });
 
 test('the fixed nav keeps its background — this is not a band to strip', () => {
+  // Since 28 Sep 2026 the background is the floating pill's, not the header
+  // strip's: .glass-chrome paints the translucent card colour with the blur
+  // (and an opaque fallback), so the links never sit bare over scrolling
+  // content, and the strip around the pill stays transparent on purpose.
   const nav = FILES.find(([n]) => n === 'LandingNav.jsx')[1];
   const header = nav.match(/<header\b[^>]*?className="([^"]*)"/s);
   assert.ok(header, 'the landing header is gone');
-  assert.match(header[1], /\bbg-background\/\d+\b/,
-    'the fixed nav lost its background; links would sit unreadable over scrolling content');
-  assert.match(header[1], /backdrop-blur/);
+  assert.doesNotMatch(header[1], /\bbg-/, 'the strip around the glass pill must stay transparent');
+  assert.match(nav, /<nav\b[^>]*className=\{`glass-chrome /s,
+    'the fixed nav lost its glass surface; links would sit unreadable over scrolling content');
 });

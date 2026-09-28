@@ -327,6 +327,13 @@ html.landing-active body {
   background-color: hsl(222 33% 8%);
 }
 
+/* The header floats over the page (LandingNav, 28 Sep 2026), so a section
+   reached by its anchor — /#recording, /#faq — would otherwise scroll its
+   heading up underneath the pill. Room for the pill and its top margin. */
+html.landing-active {
+  scroll-padding-top: 5.5rem;
+}
+
 /* The waveform is held still and the page scrolls over it.
 
    Getting both halves of that has one trap. `background-attachment: fixed` is

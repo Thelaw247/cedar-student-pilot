@@ -60,6 +60,32 @@ export const PUBLIC_PAGES = {
     title: 'Praelecta vs Studr — Praelecta',
     description: 'Studr turns one upload into a study set with spaced repetition; Praelecta records the whole term and schedules the studying. Side by side, with prices.',
   },
+  '/vs/studley': {
+    title: 'Praelecta vs Studley AI — Praelecta',
+    description: 'Studley AI turns one upload into a study set with a tutor chat; Praelecta records the whole term, scopes the exam and books the studying. Compared, with prices.',
+  },
+  '/vs/turbo': {
+    title: 'Praelecta vs Turbo AI — Praelecta',
+    description: 'Turbo AI makes editable notes and activities from any file; Praelecta records the lecture, knows what the test covers and schedules the sessions. Compared, with prices.',
+  },
+  // The feature pages (28 Sep 2026 audit): the long form of each homepage
+  // section, on the URL a search for that feature should land on.
+  '/lecture-recorder': {
+    title: 'AI lecture recorder for university classes — Praelecta',
+    description: 'Record a lecture of up to six hours and leave with the transcript, a plain-English summary, the formulas and every "this is on the exam" moment, filed under the course.',
+  },
+  '/test-coverage': {
+    title: 'Study only what is on the test — Praelecta',
+    description: 'Tick the lectures your prof said the midterm covers. Flashcards, practice questions and reviews stay inside that slice, so nothing on the test is new to you.',
+  },
+  '/study-schedule': {
+    title: 'AI study schedule around your classes and shifts — Praelecta',
+    description: 'Give Praelecta the exam date and the study sessions are booked into real gaps around your classes, work shifts and deadlines, spread across the days before.',
+  },
+  '/study-system': {
+    title: 'Study tools built from your lectures — Praelecta',
+    description: 'Flashcards, quizzes, practice tests, summary sheets, a class handbook and focus sessions, all made from the lectures you recorded, none of it rebuilt by hand.',
+  },
 };
 
 /** Paths in the order the sitemap lists them. */

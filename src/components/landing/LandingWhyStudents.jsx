@@ -1,5 +1,6 @@
 import React from 'react';
 import { Mic, PenLine, Layers, ShieldCheck, Eye, LogOut, BookOpenCheck } from 'lucide-react';
+import SectionCta from '@/components/landing/SectionCta';
 
 /**
  * Two research-backed bands (ICP-01 §2, CMP-02 §5).
@@ -8,6 +9,10 @@ import { Mic, PenLine, Layers, ShieldCheck, Eye, LogOut, BookOpenCheck } from 'l
  * trigger vocabulary; the trust band states the commitments that are the
  * category's one-star reviews inverted — no competitor named, every line a
  * policy Praelecta actually enforces in code.
+ *
+ * Since the 28 Sep 2026 audit this section sits directly under the hero
+ * (change 8): the competitors' reviews say the fear of a trap is what stops
+ * a student signing up, so the promises come before the product tour.
  */
 const PAINS = [
   {
@@ -79,6 +84,7 @@ export default function LandingWhyStudents() {
               </div>
             ))}
           </div>
+          <SectionCta className="mt-8" label="Start free" note="Two full lectures, no card." />
         </div>
       </div>
     </section>

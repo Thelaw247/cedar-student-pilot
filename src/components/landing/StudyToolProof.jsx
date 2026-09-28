@@ -3,6 +3,7 @@ import { ArrowRight, Brain, CheckCircle2, Target } from 'lucide-react';
 import LectureScopePicker from '@/components/LectureScopePicker';
 import FlashcardViewer from '@/components/FlashcardViewer';
 import QuizViewer from '@/components/QuizViewer';
+import SectionCta from '@/components/landing/SectionCta';
 
 const lectures = [
   { id: 'l6', ai_title: 'Force vectors and components', date: '2026-09-14' },
@@ -34,7 +35,12 @@ const questions = [
   },
 ];
 
-export default function StudyToolProof() {
+/**
+ * `compact` is the homepage form (28 Sep 2026 audit, change 4): headline,
+ * one short paragraph, the outcome line, the mock, a button. The full form,
+ * with the "what you get from one tick" list, is the /test-coverage page.
+ */
+export default function StudyToolProof({ compact = false }) {
   const [selectedIds, setSelectedIds] = useState(['l6', 'l7', 'l8', 'l9', 'l10', 'l11']);
   const [tab, setTab] = useState('scope');
   const selectedCount = selectedIds.length === 0 ? lectures.length : selectedIds.filter((id) => id !== '__none__').length;
@@ -54,21 +60,29 @@ export default function StudyToolProof() {
             <h2 className="mt-5 text-4xl font-bold leading-[1.04] tracking-[-0.05em] text-foreground sm:text-5xl">
               Only study what is actually going to be on it.
             </h2>
-            <p className="mt-5 max-w-xl text-base leading-7 text-muted-foreground">
-              Tick the lectures your prof said are covered. That is the whole setup. Every flashcard, practice question and review we build from then on stays inside that slice, so you never lose a Tuesday night to a chapter that is not being tested. No pasting notes into another app and explaining the class all over again.
-            </p>
+            {compact ? (
+              <p className="mt-5 max-w-xl text-base leading-7 text-muted-foreground">
+                Tick the lectures your prof said count. Every flashcard, practice question and review stays inside that slice, so an off-syllabus chapter never eats your evening.
+              </p>
+            ) : (
+              <p className="mt-5 max-w-xl text-base leading-7 text-muted-foreground">
+                Tick the lectures your prof said are covered. That is the whole setup. Every flashcard, practice question and review we build from then on stays inside that slice, so you never lose a Tuesday night to a chapter that is not being tested. No pasting notes into another app and explaining the class all over again.
+              </p>
+            )}
             <p className="mt-4 max-w-xl text-base font-semibold leading-7 text-foreground">
               You walk into the test knowing there is nothing on it you have not seen.
             </p>
 
-            <div className="mt-7 rounded-2xl border border-primary/25 bg-primary/10 p-5">
-              <p className="text-xs font-bold uppercase tracking-[0.12em] text-primary">What you get from one tick</p>
-              <div className="mt-4 space-y-3 text-sm text-foreground/80">
-                <div className="flex gap-3"><CheckCircle2 className="mt-0.5 h-4 w-4 flex-none text-primary" /><span>Flashcards come only from the lectures you ticked.</span></div>
-                <div className="flex gap-3"><CheckCircle2 className="mt-0.5 h-4 w-4 flex-none text-primary" /><span>Practice questions and reviews stay inside that same scope.</span></div>
-                <div className="flex gap-3"><CheckCircle2 className="mt-0.5 h-4 w-4 flex-none text-primary" /><span>The class handbook opens straight to that part of the course.</span></div>
+            {!compact && (
+              <div className="mt-7 rounded-2xl border border-primary/25 bg-primary/10 p-5">
+                <p className="text-xs font-bold uppercase tracking-[0.12em] text-primary">What you get from one tick</p>
+                <div className="mt-4 space-y-3 text-sm text-foreground/80">
+                  <div className="flex gap-3"><CheckCircle2 className="mt-0.5 h-4 w-4 flex-none text-primary" /><span>Flashcards come only from the lectures you ticked.</span></div>
+                  <div className="flex gap-3"><CheckCircle2 className="mt-0.5 h-4 w-4 flex-none text-primary" /><span>Practice questions and reviews stay inside that same scope.</span></div>
+                  <div className="flex gap-3"><CheckCircle2 className="mt-0.5 h-4 w-4 flex-none text-primary" /><span>The class handbook opens straight to that part of the course.</span></div>
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           <div className="overflow-hidden rounded-[28px] border border-border bg-card shadow-[0_24px_70px_-38px_rgba(0,0,0,0.55)]">
@@ -125,6 +139,7 @@ export default function StudyToolProof() {
             </div>
           </div>
         </div>
+        <SectionCta className="mt-10" label="Try it on this week’s lecture" />
       </div>
     </section>
   );
