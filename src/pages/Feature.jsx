@@ -12,12 +12,11 @@ import { PUBLIC_PAGES } from '@/lib/publicPages';
 
 /**
  * /lecture-recorder, /test-coverage, /study-schedule, /study-system — the
- * long form of each homepage section, on its own page (28 Sep 2026 audit,
- * change 9). The homepage renders the same section components in `compact`
- * form; here they render in full, under a short intro, with the FAQ entries
- * that belong to the feature and the same closing call to action. One
- * component, four routes (App.jsx), written out so the sitemap test can see
- * each one; the copy is lib/features.js.
+ * long form of each feature, on its own page. The homepage shows each one
+ * as a step or a tile; here the full section renders under a short intro,
+ * with the FAQ entries that belong to the feature and the same closing call
+ * to action. One component, four routes (App.jsx), written out so the
+ * sitemap test can see each one; the copy is lib/features.js.
  */
 const SECTIONS = {
   'recording': RecordingFeature,

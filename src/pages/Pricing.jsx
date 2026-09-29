@@ -9,6 +9,8 @@ import PricingTiers from '@/components/landing/PricingTiers';
 import CreditsExplainer from '@/components/landing/CreditsExplainer';
 import PaymentTrustLine from '@/components/landing/PaymentTrustLine';
 import LandingProof from '@/components/landing/LandingProof';
+import LandingWhyStudents from '@/components/landing/LandingWhyStudents';
+import LandingCompare from '@/components/landing/LandingCompare';
 
 /**
  * /pricing — the whole offer on one public page.
@@ -20,6 +22,9 @@ import LandingProof from '@/components/landing/LandingProof';
  * their credits, the feature comparison row for row, the credit packs, the
  * real semester saving per tier, and the credit model in plain words. Every
  * figure is read from lib/tiers.js, the same record the checkout charges.
+ * Under the plans: the four promises (LandingWhyStudents) and the glance
+ * table against the monthly apps (LandingCompare) — the trust and the
+ * comparison a student wants at the moment of paying, kept off the homepage.
  */
 const money = (n) => `$${n.toFixed(2)}`;
 const BILLING_FAQ = ['price', 'credits', 'cancel', 'allowed'];
@@ -76,7 +81,17 @@ export default function Pricing() {
             </div>
           </div>
 
-          <div className="mx-auto mt-14 max-w-3xl">
+          <div className="mt-14">
+            <LandingWhyStudents />
+          </div>
+        </div>
+      </section>
+
+      <LandingCompare />
+
+      <section className="px-4 pb-16 sm:px-6">
+        <div className="mx-auto max-w-6xl">
+          <div className="mx-auto max-w-3xl">
             <h2 className="text-center text-2xl font-bold tracking-[-0.03em] text-foreground">The billing questions, answered</h2>
             <div className="mt-6 divide-y divide-border overflow-hidden rounded-[26px] border border-border bg-card">
               {BILLING_FAQ.map((id) => FAQ.find((f) => f.id === id)).filter(Boolean).map((item) => (

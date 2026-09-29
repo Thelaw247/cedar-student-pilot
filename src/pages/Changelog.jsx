@@ -15,6 +15,15 @@ import { PUBLIC_PAGES } from '@/lib/publicPages';
  */
 export const CHANGELOG = [
   {
+    date: '2026-09-29',
+    title: 'A homepage you can read in a minute',
+    items: [
+      'The homepage is seven short sections: what Praelecta does, with the saved lecture beside it; four facts you can check; how it works in three steps, on the real screens; one tile per feature; where it runs; the questions students ask; and the button.',
+      'The four promises and the at-a-glance comparison are on the pricing page now, next to the plans they belong with.',
+      'The header is four links. The feature pages are in the footer and in the feature grid.',
+    ],
+  },
+  {
     date: '2026-09-28',
     title: 'A shorter homepage, with things you can check',
     items: [

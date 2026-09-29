@@ -7,10 +7,8 @@ import { TIERS } from '@/lib/tiers';
 import { FOUNDER } from '@/lib/founder';
 
 /**
- * The fact strip under the hero buttons (28 Sep 2026 audit, change 1).
- *
- * Both competitors open with a number a visitor can believe before reading a
- * word — "3,000,000+ students", "4.8★ on 300k+ reviews". Praelecta has no
+ * The fact strip directly under the hero: the slot a study app usually
+ * fills with a user count or a wall of university logos. Praelecta has no
  * such number yet, and will not invent one; what it has are four facts a
  * student can check against the product in five minutes. The hours come
  * from the recorder's ceiling (MAX_TOTAL_SECONDS in recording/
@@ -25,10 +23,10 @@ export const PROOF_FACTS = [
 
 export function ProofFacts({ className = '' }) {
   return (
-    <ul className={`flex flex-wrap items-center justify-center gap-x-2 gap-y-2 ${className}`} aria-label="Four things you can check">
+    <ul className={`grid grid-cols-2 gap-px overflow-hidden rounded-[22px] border border-border bg-border lg:grid-cols-4 ${className}`} aria-label="Four things you can check">
       {PROOF_FACTS.map((f) => (
-        <li key={f.text} className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card/70 px-3 py-1.5 text-xs font-semibold text-foreground/85">
-          <f.icon className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
+        <li key={f.text} className="flex items-center justify-center gap-2.5 bg-card/80 px-4 py-4 text-center text-sm font-semibold text-foreground/85">
+          <f.icon className="h-4 w-4 flex-none text-primary" aria-hidden="true" />
           {f.text}
         </li>
       ))}
@@ -36,11 +34,24 @@ export function ProofFacts({ className = '' }) {
   );
 }
 
+/** The strip as a homepage section, between the hero and How it works. */
+export function LandingFacts() {
+  return (
+    <section id="facts" className="px-4 pb-8 sm:px-6">
+      <div className="mx-auto max-w-6xl">
+        <ProofFacts />
+      </div>
+    </section>
+  );
+}
+
 /**
- * The person, in the hero (change 2). Neither competitor shows one; a
- * first-year at the University of Saskatchewan is a proof neither can copy.
- * The photo is FOUNDER.photo when the file exists and the initials until it
- * does, the same fallback the About page uses — never a broken image.
+ * The person, at the final call to action. A first-year at the University of
+ * Saskatchewan is a proof no other study app can copy, and the last line
+ * before the footer is where a visitor who has read the page wants to know
+ * who made it. The photo is FOUNDER.photo when the file exists and the
+ * initials until it does, the same fallback the About page uses — never a
+ * broken image.
  */
 export function FounderLine({ className = '' }) {
   const [missing, setMissing] = useState(false);

@@ -36,15 +36,81 @@ const questions = [
 ];
 
 /**
- * `compact` is the homepage form (28 Sep 2026 audit, change 4): headline,
- * one short paragraph, the outcome line, the mock, a button. The full form,
- * with the "what you get from one tick" list, is the /test-coverage page.
+ * The tick-the-lectures mock: the real LectureScopePicker, FlashcardViewer
+ * and QuizViewer on sample data. In full it has the three tabs (choose
+ * lectures, flashcards, practice); `compact` is the scope picker alone, the
+ * one interaction the homepage's How it works shows.
  */
-export default function StudyToolProof({ compact = false }) {
+export function CoverageMock({ compact = false, className = '' }) {
   const [selectedIds, setSelectedIds] = useState(['l6', 'l7', 'l8', 'l9', 'l10', 'l11']);
   const [tab, setTab] = useState('scope');
   const selectedCount = selectedIds.length === 0 ? lectures.length : selectedIds.filter((id) => id !== '__none__').length;
 
+  return (
+    <div className={`overflow-hidden rounded-[28px] border border-border bg-card shadow-[0_24px_70px_-38px_rgba(0,0,0,0.55)] ${className}`}>
+      <div className="flex flex-col gap-3 border-b border-border bg-muted p-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-[0.13em] text-muted-foreground/80">Actual Praelecta component · sample data</p>
+          <p className="mt-1 text-sm font-semibold text-foreground">PHYS 117 Midterm</p>
+        </div>
+        <div className="inline-flex items-center gap-2 rounded-xl bg-secondary px-3 py-2 text-xs font-semibold text-primary shadow-sm">
+          <Target className="h-4 w-4" /> {selectedCount} lectures selected
+        </div>
+      </div>
+
+      {!compact && (
+        <div className="flex flex-wrap gap-1 border-b border-border bg-card p-2">
+          {[
+            ['scope', '1. Choose lectures'],
+            ['flashcards', '2. Flashcards'],
+            ['practice', '3. Practice questions'],
+          ].map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setTab(id)}
+              className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${tab === id ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <div className="bg-background p-4 sm:p-7">
+        {tab === 'scope' && (
+          <div className="mx-auto max-w-xl">
+            <h3 className="font-heading text-xl font-bold text-foreground">What&rsquo;s on this midterm?</h3>
+            <p className="mb-5 mt-1 text-sm text-muted-foreground">Tick the lectures your prof said count.</p>
+            <LectureScopePicker lectures={lectures} selectedIds={selectedIds} onChange={setSelectedIds} />
+            {!compact && (
+              <button type="button" onClick={() => setTab('flashcards')} className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-medium text-primary-foreground hover:bg-primary/90">
+                Use these lectures <ArrowRight className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+        )}
+        {tab === 'flashcards' && (
+          <div className="mx-auto max-w-xl">
+            <div className="mb-4 flex items-center gap-2"><Brain className="h-4 w-4 text-primary" /><p className="text-sm font-semibold text-foreground">Flashcards from the selected coverage</p></div>
+            <FlashcardViewer flashcards={flashcards} />
+          </div>
+        )}
+        {tab === 'practice' && (
+          <div className="mx-auto max-w-xl">
+            <div className="mb-4 flex items-center gap-2"><Brain className="h-4 w-4 text-primary" /><p className="text-sm font-semibold text-foreground">Practice from the selected coverage</p></div>
+            <QuizViewer questions={questions} />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The test-coverage section, in full: the /test-coverage page.
+ */
+export default function StudyToolProof() {
   return (
     <section id="test-coverage" className="px-4 py-20 sm:px-6 lg:py-28">
       <div className="mx-auto max-w-6xl">
@@ -60,84 +126,24 @@ export default function StudyToolProof({ compact = false }) {
             <h2 className="mt-5 text-4xl font-bold leading-[1.04] tracking-[-0.05em] text-foreground sm:text-5xl">
               Only study what is actually going to be on it.
             </h2>
-            {compact ? (
-              <p className="mt-5 max-w-xl text-base leading-7 text-muted-foreground">
-                Tick the lectures your prof said count. Every flashcard, practice question and review stays inside that slice, so an off-syllabus chapter never eats your evening.
-              </p>
-            ) : (
-              <p className="mt-5 max-w-xl text-base leading-7 text-muted-foreground">
-                Tick the lectures your prof said are covered. That is the whole setup. Every flashcard, practice question and review we build from then on stays inside that slice, so you never lose a Tuesday night to a chapter that is not being tested. No pasting notes into another app and explaining the class all over again.
-              </p>
-            )}
+            <p className="mt-5 max-w-xl text-base leading-7 text-muted-foreground">
+              Tick the lectures your prof said are covered. That is the whole setup. Every flashcard, practice question and review we build from then on stays inside that slice, so you never lose a Tuesday night to a chapter that is not being tested. No pasting notes into another app and explaining the class all over again.
+            </p>
             <p className="mt-4 max-w-xl text-base font-semibold leading-7 text-foreground">
               You walk into the test knowing there is nothing on it you have not seen.
             </p>
 
-            {!compact && (
-              <div className="mt-7 rounded-2xl border border-primary/25 bg-primary/10 p-5">
-                <p className="text-xs font-bold uppercase tracking-[0.12em] text-primary">What you get from one tick</p>
-                <div className="mt-4 space-y-3 text-sm text-foreground/80">
-                  <div className="flex gap-3"><CheckCircle2 className="mt-0.5 h-4 w-4 flex-none text-primary" /><span>Flashcards come only from the lectures you ticked.</span></div>
-                  <div className="flex gap-3"><CheckCircle2 className="mt-0.5 h-4 w-4 flex-none text-primary" /><span>Practice questions and reviews stay inside that same scope.</span></div>
-                  <div className="flex gap-3"><CheckCircle2 className="mt-0.5 h-4 w-4 flex-none text-primary" /><span>The class handbook opens straight to that part of the course.</span></div>
-                </div>
+            <div className="mt-7 rounded-2xl border border-primary/25 bg-primary/10 p-5">
+              <p className="text-xs font-bold uppercase tracking-[0.12em] text-primary">What you get from one tick</p>
+              <div className="mt-4 space-y-3 text-sm text-foreground/80">
+                <div className="flex gap-3"><CheckCircle2 className="mt-0.5 h-4 w-4 flex-none text-primary" /><span>Flashcards come only from the lectures you ticked.</span></div>
+                <div className="flex gap-3"><CheckCircle2 className="mt-0.5 h-4 w-4 flex-none text-primary" /><span>Practice questions and reviews stay inside that same scope.</span></div>
+                <div className="flex gap-3"><CheckCircle2 className="mt-0.5 h-4 w-4 flex-none text-primary" /><span>The class handbook opens straight to that part of the course.</span></div>
               </div>
-            )}
+            </div>
           </div>
 
-          <div className="overflow-hidden rounded-[28px] border border-border bg-card shadow-[0_24px_70px_-38px_rgba(0,0,0,0.55)]">
-            <div className="flex flex-col gap-3 border-b border-border bg-muted p-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.13em] text-muted-foreground/80">Actual Praelecta component · sample data</p>
-                <p className="mt-1 text-sm font-semibold text-foreground">PHYS 117 Midterm</p>
-              </div>
-              <div className="inline-flex items-center gap-2 rounded-xl bg-secondary px-3 py-2 text-xs font-semibold text-primary shadow-sm">
-                <Target className="h-4 w-4" /> {selectedCount} lectures selected
-              </div>
-            </div>
-
-            <div className="flex flex-wrap gap-1 border-b border-border bg-card p-2">
-              {[
-                ['scope', '1. Choose lectures'],
-                ['flashcards', '2. Flashcards'],
-                ['practice', '3. Practice questions'],
-              ].map(([id, label]) => (
-                <button
-                  key={id}
-                  type="button"
-                  onClick={() => setTab(id)}
-                  className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${tab === id ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-
-            <div className="bg-background p-4 sm:p-7">
-              {tab === 'scope' && (
-                <div className="mx-auto max-w-xl">
-                  <h3 className="font-heading text-xl font-bold text-foreground">What&rsquo;s on this midterm?</h3>
-                  <p className="mb-5 mt-1 text-sm text-muted-foreground">Tick the lectures your prof said count.</p>
-                  <LectureScopePicker lectures={lectures} selectedIds={selectedIds} onChange={setSelectedIds} />
-                  <button type="button" onClick={() => setTab('flashcards')} className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-medium text-primary-foreground hover:bg-primary/90">
-                    Use these lectures <ArrowRight className="h-4 w-4" />
-                  </button>
-                </div>
-              )}
-              {tab === 'flashcards' && (
-                <div className="mx-auto max-w-xl">
-                  <div className="mb-4 flex items-center gap-2"><Brain className="h-4 w-4 text-primary" /><p className="text-sm font-semibold text-foreground">Flashcards from the selected coverage</p></div>
-                  <FlashcardViewer flashcards={flashcards} />
-                </div>
-              )}
-              {tab === 'practice' && (
-                <div className="mx-auto max-w-xl">
-                  <div className="mb-4 flex items-center gap-2"><Brain className="h-4 w-4 text-primary" /><p className="text-sm font-semibold text-foreground">Practice from the selected coverage</p></div>
-                  <QuizViewer questions={questions} />
-                </div>
-              )}
-            </div>
-          </div>
+          <CoverageMock />
         </div>
         <SectionCta className="mt-10" label="Try it on this week’s lecture" />
       </div>

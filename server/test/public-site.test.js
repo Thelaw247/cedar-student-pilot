@@ -25,7 +25,7 @@ const read = (p) => fs.readFileSync(new URL(p, import.meta.url), 'utf8');
 const HTML = read('../../index.html');
 const MARKUP = HTML.replace(/<!--[\s\S]*?-->/g, '');
 const HERO = read('../../src/components/landing/LandingHero.jsx');
-const END = read('../../src/components/landing/LandingEnd.jsx');
+const PRICING_PAGE = read('../../src/pages/Pricing.jsx');
 const TIERS_JSX = read('../../src/components/landing/PricingTiers.jsx');
 const FOOTER = read('../../src/components/landing/LandingFooter.jsx');
 const NAV = read('../../src/components/landing/LandingNav.jsx');
@@ -81,24 +81,26 @@ test('the FAQ schema in index.html is exactly the FAQ the page renders', () => {
   assert.match(faqSection, /id="faq"/);
   assert.match(faqSection, /<details/, 'answers must be in the DOM without JavaScript');
   assert.match(LANDING, /<LandingFaq \/>/);
-  // Between the pricing section and the final call to action.
-  assert.ok(LANDING.indexOf('<LandingEnd />') < LANDING.indexOf('<LandingFaq />') && LANDING.indexOf('<LandingFaq />') < LANDING.indexOf('<LandingFinalCta />'));
+  // After the feature grid and before the final call to action: the last
+  // objection is answered right before the last button.
+  assert.ok(LANDING.indexOf('<LandingFeatures />') < LANDING.indexOf('<LandingFaq />') && LANDING.indexOf('<LandingFaq />') < LANDING.indexOf('<LandingFinalCta />'));
 });
 
 // ------------------------------------------------------------------ the hero
 
-test('the hero names the category before the hook and foregrounds semester billing', () => {
-  // The eyebrow is the audit's own line (22 Sep, FIT + D1.1): category, ICP,
-  // and the semester-billing differentiator, all in the first five seconds.
-  assert.match(HERO, /Lecture recording and study tool for students\. Bills by semester, not by month — no other study app does that\./);
-  assert.match(HERO, /You showed up to the lecture\. That should be the hard part\./, 'the h1 is the brief’s line; it stays');
-  assert.match(HERO, /Bills by semester, not by month/);
-  assert.match(HERO, /no other study app does that/);
-  assert.match(HERO, /to="\/pricing"/);
-  // Scope, stated: who it is not for.
-  assert.match(HERO, /Not for you if you want an app to write your assignments/);
-  // Payment trust under the primary button.
-  assert.match(HERO, /<PaymentTrustLine/);
+test('the hero is the headline and one sentence, and the billing facts sit under the last button', () => {
+  // The h1 is the brief's line; the category is in the one sentence under
+  // it and in the served <title>. The semester price is the fact strip's
+  // third fact (landing-audit.test.js) and the pricing page's whole point.
+  assert.match(HERO, /You showed up to the lecture\./, 'the h1 is the brief’s line; it stays');
+  assert.match(HERO, /records the lecture/);
+  assert.match(HERO, /Two full lectures free\. No card, nothing expires\./);
+  // Scope, stated: who it is not for — in the FAQ, where the question is asked.
+  assert.ok(FAQ.some((f) => f.id === 'essays'));
+  // Payment trust under the button a visitor presses having read the page.
+  const finalCta = read('../../src/components/landing/LandingFinalCta.jsx');
+  assert.match(finalCta, /<PaymentTrustLine/);
+  assert.match(PRICING_PAGE, /<PaymentTrustLine/);
   const trust = read('../../src/components/landing/PaymentTrustLine.jsx');
   assert.match(trust, /Stripe/);
   assert.match(trust, /Cancel anytime/);
@@ -110,16 +112,16 @@ test('the hero names the category before the hook and foregrounds semester billi
 // --------------------------------------------------------------- pricing
 
 test('the pricing surface shows every tier with a price, a default, the real saving and the credit model', () => {
-  assert.match(END, /<PricingTiers compact \/>/);
-  assert.match(END, /<CreditsExplainer/);
-  assert.match(END, /<PaymentTrustLine/);
-  assert.match(END, /<LandingProof/, 'the proof line sits above the prices');
+  assert.match(PRICING_PAGE, /<PricingTiers \/>/);
+  assert.match(PRICING_PAGE, /<CreditsExplainer/);
+  assert.match(PRICING_PAGE, /<PaymentTrustLine/);
+  assert.match(PRICING_PAGE, /<LandingProof/, 'the proof line sits above the prices');
   assert.match(TIERS_JSX, /export const RECOMMENDED_TIER = 'student'/);
   assert.match(TIERS_JSX, /Most popular/);
   assert.match(TIERS_JSX, /TIER_ORDER\.map/, 'every tier, not a hand-picked subset');
   assert.match(TIERS_JSX, /save \{saving\.percent\}%/, 'the semester saving is shown as a percentage, derived');
   // No typed prices anywhere on the public pricing surfaces.
-  for (const [name, src] of [['LandingEnd', END], ['PricingTiers', TIERS_JSX], ['Pricing page', read('../../src/pages/Pricing.jsx')], ['CreditsExplainer', read('../../src/components/landing/CreditsExplainer.jsx')]]) {
+  for (const [name, src] of [['PricingTiers', TIERS_JSX], ['Pricing page', PRICING_PAGE], ['CreditsExplainer', read('../../src/components/landing/CreditsExplainer.jsx')]]) {
     const literal = src.replace(/\$\{[^}]*\}/g, '').match(/\$\d+\.\d\d/);
     assert.equal(literal, null, `${name} hardcodes the price ${literal?.[0]}`);
   }
@@ -212,12 +214,12 @@ test('testimonials, recognition and the avatar grid render nothing until there i
   assert.match(p, /export const PROOF_AVATARS = \[\];/, 'no students shown without their say-so');
   assert.match(p, /if \(!avatars\.length\) return null;/);
   assert.match(LANDING, /<LandingTestimonials \/>/);
-  // The badge slot sits directly under the hero, where the audit asked for it.
+  // The badge slot sits directly under the hero.
   const at = (tag) => { const i = LANDING.indexOf(tag); assert.ok(i >= 0, `${tag} is not on the homepage`); return i; };
   assert.ok(at('<LandingRecognition />') > at('<LandingHero />'));
-  assert.ok(at('<LandingRecognition />') < at('<RecordingFeature compact />'));
-  // The testimonial wall sits after "Sound familiar?" and before the pricing section.
-  assert.ok(at('<LandingWhyStudents />') < at('<LandingTestimonials />') && at('<LandingTestimonials />') < at('<LandingDownloads />'), 'the testimonials are not between the trust section and the downloads');
+  assert.ok(at('<LandingRecognition />') < at('<LandingFacts />'));
+  // The testimonial wall sits after the product and before the FAQ.
+  assert.ok(at('<LandingDownloads />') < at('<LandingTestimonials />') && at('<LandingTestimonials />') < at('<LandingFaq />'), 'the testimonials are not between the product and the FAQ');
 });
 
 // ------------------------------------------------------------------- privacy

@@ -35,12 +35,12 @@ test('the recording island clears the nav on notched phones', () => {
   // The island is the one floating control left, and it is the one guarded.
 });
 
-test('the landing hero carries an honest App Store coming-soon badge, not a dead link', () => {
-  const hero = read('../../src/components/landing/LandingHero.jsx');
-  assert.match(hero, /coming to the App Store/i);
+test('the device strip carries an honest App Store coming-soon badge, not a dead link', () => {
+  const strip = read('../../src/components/landing/LandingDownloads.jsx');
+  assert.match(strip, /coming to the App Store/i);
   // The badge is a static <span> pill with an Apple glyph and no link, because
   // there is nothing to tap until the app ships.
-  const badge = hero.match(/<span[^>]*rounded-full[\s\S]*?<\/span>/);
+  const badge = strip.match(/<span[^>]*rounded-full[\s\S]*?<\/span>/);
   assert.ok(badge, 'a rounded-full span pill exists');
   assert.match(badge[0], /coming to the App Store/i, 'the pill holds the coming-soon text');
   assert.match(badge[0], /<svg/, 'the pill shows the Apple mark');

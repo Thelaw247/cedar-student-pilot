@@ -4,13 +4,13 @@ import { TIERS } from '@/lib/tiers';
 import SectionCta from '@/components/landing/SectionCta';
 
 /**
- * The accuracy promise (28 Sep 2026 audit, change 7). The second-loudest
- * complaint in the competitors' reviews is output that is not faithful to
- * the source — invented detail, cut-off notes, "please add a source-only
- * mode". Every line here is a thing the product does: the transcript is
- * kept beside the summary, professor materials are read and formulas
- * checked against them (a Student-plan feature, said so), exam mentions are
- * flagged, and nothing is fetched from outside the lecture.
+ * The accuracy promise. The second-loudest complaint in study-app reviews is
+ * output that is not faithful to the source — invented detail, cut-off
+ * notes, "please add a source-only mode". Every line here is a thing the
+ * product does: the transcript is kept beside the summary, professor
+ * materials are read and formulas checked against them (a Student-plan
+ * feature, said so), exam mentions are flagged, and nothing is fetched from
+ * outside the lecture.
  */
 const ACCURACY = [
   { icon: FileText, text: 'The transcript stays beside every summary, so any line can be checked against what your prof actually said.' },
@@ -33,12 +33,90 @@ function OutputRow({ icon: Icon, title, children, tone = 'blue' }) {
 }
 
 /**
- * `compact` is the homepage form (28 Sep 2026 audit, change 4): the headline,
- * one paragraph under thirty words, the mock, the accuracy promise and a
- * button. The full form — the three-line rundown and the longer paragraph —
- * is the /lecture-recorder page.
+ * The recording screen, as a card: what a student sees thirty-eight minutes
+ * into a lecture. Built from the same fields as the real screen, with sample
+ * data. Used in this section's full form and as the first step of the
+ * homepage's How it works.
  */
-export default function RecordingFeature({ compact = false }) {
+export function RecorderCard({ className = '' }) {
+  return (
+    <div className={`rounded-[26px] border border-border bg-card p-5 shadow-[0_22px_60px_-38px_rgba(0,0,0,0.65)] ${className}`}>
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/80">PHYS 117</p>
+          <p className="mt-1 text-sm font-bold text-foreground">Record Lecture</p>
+        </div>
+        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-1 text-[9px] font-semibold text-emerald-400"><ShieldCheck className="h-3 w-3" /> Permission confirmed</span>
+      </div>
+
+      <div className="mt-7 text-center">
+        <div className="relative mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-rose-50">
+          <span className="absolute inset-0 rounded-full border border-rose-500/30" />
+          <Mic className="h-9 w-9 text-rose-400" />
+        </div>
+        <p className="mt-5 text-3xl font-bold tabular-nums tracking-[-0.04em] text-foreground">38:17</p>
+        <p className="mt-1 text-xs font-medium text-rose-400">Recording in progress</p>
+      </div>
+
+      <div className="mt-6 grid grid-cols-2 gap-2">
+        <div className="flex items-center justify-center gap-1.5 rounded-xl border border-border py-2.5 text-xs font-semibold text-foreground/80"><Pause className="h-3.5 w-3.5" /> Pause</div>
+        <div className="rounded-xl bg-rose-600 py-2.5 text-center text-xs font-semibold text-white">Stop</div>
+      </div>
+      <div className="mt-4 rounded-xl border border-border bg-muted p-3">
+        <p className="text-[10px] font-semibold text-muted-foreground">Your notes &amp; cues</p>
+        <p className="mt-2 text-[11px] leading-5 text-muted-foreground">Prof emphasized equilibrium equations and said free-body diagrams will be on the midterm.</p>
+      </div>
+      <p className="mt-3 text-center text-[10px] text-muted-foreground/80">Based on Praelecta&rsquo;s current recording screen</p>
+    </div>
+  );
+}
+
+/**
+ * What the lecture becomes: the saved-lecture card, structured from the same
+ * fields as the lecture detail screen. `bare` drops the card's own border
+ * and shadow so it can sit inside another frame (the homepage hero puts it
+ * in a window).
+ */
+export function LectureResultCard({ bare = false, className = '' }) {
+  const frame = bare ? 'p-5 sm:p-6' : 'rounded-[26px] border border-border bg-card p-5 shadow-[0_22px_60px_-38px_rgba(0,0,0,0.65)] sm:p-6';
+  return (
+    <div className={`${frame} ${className}`}>
+      <div className="border-b border-border pb-4">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-primary">Saved lecture</p>
+        <h3 className="mt-1 text-xl font-bold tracking-[-0.035em] text-foreground">Equilibrium &amp; free-body diagrams</h3>
+        <p className="mt-1 text-xs text-muted-foreground">PHYS 117 · 38 min</p>
+      </div>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <OutputRow icon={FileText} title="Summary">
+          Resolve forces into components, draw a complete free-body diagram, then apply ΣF = 0 and ΣM = 0.
+        </OutputRow>
+        <OutputRow icon={Lightbulb} title="Key concepts">
+          <div className="flex flex-wrap gap-1.5"><span className="rounded-md bg-primary/10 px-2 py-1 text-primary">Equilibrium</span><span className="rounded-md bg-primary/10 px-2 py-1 text-primary">FBDs</span><span className="rounded-md bg-primary/10 px-2 py-1 text-primary">Moments</span></div>
+        </OutputRow>
+        <OutputRow icon={Tag} title="Formulas">
+          <div className="space-y-1 font-mono text-[11px]"><p>ΣFₓ = 0</p><p>ΣFᵧ = 0</p><p>ΣM = 0</p></div>
+        </OutputRow>
+        <OutputRow icon={AlertCircle} title="Exam mention" tone="amber">
+          Free-body diagrams and equilibrium equations were specifically flagged for the midterm.
+        </OutputRow>
+      </div>
+
+      <div className="mt-3 rounded-xl border border-border bg-muted p-4">
+        <p className="text-xs font-semibold text-foreground/85">Transcript</p>
+        <p className="mt-2 line-clamp-4 text-[11px] leading-5 text-muted-foreground">“The first thing I want you to do on every equilibrium problem is isolate the body. Draw the forces you actually know are acting on it before you write a single equation…”</p>
+      </div>
+      <p className="mt-3 text-center text-[10px] text-muted-foreground/80">Structured from the same fields shown on Praelecta&rsquo;s lecture detail screen</p>
+    </div>
+  );
+}
+
+/**
+ * The lecture-recording section, in full: the /lecture-recorder page. The
+ * homepage no longer renders it — its How it works shows the recorder card
+ * and its feature grid links here.
+ */
+export default function RecordingFeature() {
   return (
     <section id="recording" className="px-4 py-20 sm:px-6 lg:py-28">
       <div className="mx-auto max-w-6xl">
@@ -54,82 +132,19 @@ export default function RecordingFeature({ compact = false }) {
             <h2 className="mt-5 text-4xl font-bold leading-[1.04] tracking-[-0.05em] text-foreground sm:text-5xl">
               Put the pen down. You are allowed to just listen.
             </h2>
-            {compact ? (
-              <p className="mt-5 max-w-xl text-base leading-7 text-muted-foreground">
-                Hit record when class starts. When it ends, the lecture is filed under the course: transcript, plain-English summary, the formulas, and every moment your prof said &ldquo;this is on the midterm.&rdquo;
-              </p>
-            ) : (
-              <>
-                <p className="mt-5 max-w-xl text-base leading-7 text-muted-foreground">
-                  Hit record when class starts. When it ends, the lecture is filed under the course with a transcript, a plain-English summary, the formulas, and every moment your prof said &ldquo;this is on the midterm.&rdquo; No audio file to dig through later. No typing up notes at 11pm.
-                </p>
-                <div className="mt-7 space-y-3 text-sm text-foreground/80">
-                  <div className="flex gap-3"><ShieldCheck className="mt-0.5 h-5 w-5 flex-none text-primary" /><span>You confirm you have permission to record first. One tap, then you are recording.</span></div>
-                  <div className="flex gap-3"><FileText className="mt-0.5 h-5 w-5 flex-none text-primary" /><span>Recordings run up to six hours without stopping, so a double lecture or a full lab is fine.</span></div>
-                  <div className="flex gap-3"><BookOpen className="mt-0.5 h-5 w-5 flex-none text-primary" /><span>That one recording feeds everything after it: the class handbook, the flashcards, the practice questions, the reviews.</span></div>
-                </div>
-              </>
-            )}
+            <p className="mt-5 max-w-xl text-base leading-7 text-muted-foreground">
+              Hit record when class starts. When it ends, the lecture is filed under the course with a transcript, a plain-English summary, the formulas, and every moment your prof said &ldquo;this is on the midterm.&rdquo; No audio file to dig through later. No typing up notes at 11pm.
+            </p>
+            <div className="mt-7 space-y-3 text-sm text-foreground/80">
+              <div className="flex gap-3"><ShieldCheck className="mt-0.5 h-5 w-5 flex-none text-primary" /><span>You confirm you have permission to record first. One tap, then you are recording.</span></div>
+              <div className="flex gap-3"><FileText className="mt-0.5 h-5 w-5 flex-none text-primary" /><span>Recordings run up to six hours without stopping, so a double lecture or a full lab is fine.</span></div>
+              <div className="flex gap-3"><BookOpen className="mt-0.5 h-5 w-5 flex-none text-primary" /><span>That one recording feeds everything after it: the class handbook, the flashcards, the practice questions, the reviews.</span></div>
+            </div>
           </div>
 
           <div className="grid gap-4 md:grid-cols-[0.78fr_1.22fr]">
-            <div className="rounded-[26px] border border-border bg-card p-5 shadow-[0_22px_60px_-38px_rgba(0,0,0,0.65)]">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/80">PHYS 117</p>
-                  <p className="mt-1 text-sm font-bold text-foreground">Record Lecture</p>
-                </div>
-                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-1 text-[9px] font-semibold text-emerald-400"><ShieldCheck className="h-3 w-3" /> Permission confirmed</span>
-              </div>
-
-              <div className="mt-7 text-center">
-                <div className="relative mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-rose-50">
-                  <span className="absolute inset-0 rounded-full border border-rose-500/30" />
-                  <Mic className="h-9 w-9 text-rose-400" />
-                </div>
-                <p className="mt-5 text-3xl font-bold tabular-nums tracking-[-0.04em] text-foreground">38:17</p>
-                <p className="mt-1 text-xs font-medium text-rose-400">Recording in progress</p>
-              </div>
-
-              <div className="mt-6 grid grid-cols-2 gap-2">
-                <div className="flex items-center justify-center gap-1.5 rounded-xl border border-border py-2.5 text-xs font-semibold text-foreground/80"><Pause className="h-3.5 w-3.5" /> Pause</div>
-                <div className="rounded-xl bg-rose-600 py-2.5 text-center text-xs font-semibold text-white">Stop</div>
-              </div>
-              <div className="mt-4 rounded-xl border border-border bg-muted p-3">
-                <p className="text-[10px] font-semibold text-muted-foreground">Your notes &amp; cues</p>
-                <p className="mt-2 text-[11px] leading-5 text-muted-foreground">Prof emphasized equilibrium equations and said free-body diagrams will be on the midterm.</p>
-              </div>
-              <p className="mt-3 text-center text-[10px] text-muted-foreground/80">Based on Praelecta&rsquo;s current recording screen</p>
-            </div>
-
-            <div className="rounded-[26px] border border-border bg-card p-5 shadow-[0_22px_60px_-38px_rgba(0,0,0,0.65)] sm:p-6">
-              <div className="border-b border-border pb-4">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-primary">Saved lecture</p>
-                <h3 className="mt-1 text-xl font-bold tracking-[-0.035em] text-foreground">Equilibrium &amp; free-body diagrams</h3>
-                <p className="mt-1 text-xs text-muted-foreground">PHYS 117 · 38 min</p>
-              </div>
-
-              <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                <OutputRow icon={FileText} title="Summary">
-                  Resolve forces into components, draw a complete free-body diagram, then apply ΣF = 0 and ΣM = 0.
-                </OutputRow>
-                <OutputRow icon={Lightbulb} title="Key concepts">
-                  <div className="flex flex-wrap gap-1.5"><span className="rounded-md bg-primary/10 px-2 py-1 text-primary">Equilibrium</span><span className="rounded-md bg-primary/10 px-2 py-1 text-primary">FBDs</span><span className="rounded-md bg-primary/10 px-2 py-1 text-primary">Moments</span></div>
-                </OutputRow>
-                <OutputRow icon={Tag} title="Formulas">
-                  <div className="space-y-1 font-mono text-[11px]"><p>ΣFₓ = 0</p><p>ΣFᵧ = 0</p><p>ΣM = 0</p></div>
-                </OutputRow>
-                <OutputRow icon={AlertCircle} title="Exam mention" tone="amber">
-                  Free-body diagrams and equilibrium equations were specifically flagged for the midterm.
-                </OutputRow>
-              </div>
-
-              <div className="mt-3 rounded-xl border border-border bg-muted p-4">
-                <p className="text-xs font-semibold text-foreground/85">Transcript</p>
-                <p className="mt-2 line-clamp-4 text-[11px] leading-5 text-muted-foreground">“The first thing I want you to do on every equilibrium problem is isolate the body. Draw the forces you actually know are acting on it before you write a single equation…”</p>
-              </div>
-              <p className="mt-3 text-center text-[10px] text-muted-foreground/80">Structured from the same fields shown on Praelecta&rsquo;s lecture detail screen</p>
-            </div>
+            <RecorderCard />
+            <LectureResultCard />
           </div>
         </div>
 

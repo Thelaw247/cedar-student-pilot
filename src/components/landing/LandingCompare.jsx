@@ -3,13 +3,12 @@ import { Link } from 'react-router-dom';
 import { GLANCE_COMPETITORS, GLANCE_ROWS, PRAELECTA_GLANCE, competitorBySlug } from '@/lib/competitors';
 
 /**
- * Praelecta against the monthly apps, at a glance (28 Sep 2026 audit,
- * change 11). Studley's homepage has a comparison table against "traditional
- * methods"; this is the honest version — the two study apps a student has
- * most likely seen first, on the things the reviews say they decide on, one
- * line per cell, with the date the columns were read and a link to the full
- * page for each. The facts are lib/competitors.js, the same table the /vs
- * pages read; Praelecta's column is built from tiers.js.
+ * Praelecta against the monthly apps, at a glance, on the pricing page: the
+ * two study apps a student has most likely seen first, on the things the
+ * reviews say they decide on, one line per cell, with the date the columns
+ * were read and a link to the full page for each. The facts are
+ * lib/competitors.js, the same table the /vs pages read; Praelecta's column
+ * is built from tiers.js.
  */
 const longDate = (iso) => new Date(`${iso}T12:00:00Z`).toLocaleDateString('en-CA', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' });
 
@@ -19,7 +18,7 @@ export default function LandingCompare() {
   const checkedOn = them.map((c) => c.checkedOn).sort().at(-1);
 
   return (
-    <section id="compare" className="px-4 py-20 sm:px-6 lg:py-24">
+    <section id="compare" className="px-4 pb-20 pt-4 sm:px-6">
       <div className="mx-auto max-w-6xl">
         <div className="mx-auto max-w-3xl text-center">
           <p className="text-sm font-semibold text-primary">Next to the monthly apps</p>

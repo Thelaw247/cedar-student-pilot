@@ -3,18 +3,17 @@ import { Link } from 'react-router-dom';
 import { Menu, X } from 'lucide-react';
 import { BRAND_MARK_URL } from '@/lib/brand';
 
-// Anchors are written as /#section rather than #section so the same nav works
-// from /pricing, /about and /changelog: on the homepage the browser treats a
-// same-path hash as a scroll, anywhere else it opens the homepage there.
-// Pricing is its own page since 18 Sep 2026 — the full table, not the teaser.
+// Four links. Anchors are written as /#section rather than #section so the
+// same nav works from /pricing, /about and /changelog: on the homepage the
+// browser treats a same-path hash as a scroll, anywhere else it opens the
+// homepage there. The feature pages are reached from the homepage's feature
+// grid and the footer, not from here — a nav of nine links is a menu, not a
+// header. Pricing is its own page — the full table, not the teaser.
 const links = [
-  { label: 'Recording', href: '/#recording' },
-  { label: 'Test coverage', href: '/#test-coverage' },
-  { label: 'Study schedule', href: '/#study-schedule' },
-  { label: 'Study tools', href: '/#study-system' },
+  { label: 'How it works', href: '/#how-it-works' },
+  { label: 'Features', href: '/#features' },
   { label: 'Pricing', to: '/pricing' },
   { label: 'FAQ', href: '/#faq' },
-  { label: 'Desktop', href: '/#download' },
 ];
 
 function NavLink({ link, className, onClick = undefined }) {
