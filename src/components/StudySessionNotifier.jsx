@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { sessionStudyPath } from '@/lib/studyScope';
 import { useNavigate } from 'react-router-dom';
-import { Headphones, RefreshCw, Loader2 } from 'lucide-react';
+import { Headphones, RefreshCw, Loader2, AlertTriangle } from 'lucide-react';
 import { getSetting } from '@/lib/settings';
+import { gateFromError } from '@/components/monetization/GateNotice';
 
 export default function StudySessionNotifier() {
   const [pendingSession, setPendingSession] = useState(null);
@@ -75,12 +76,22 @@ export default function StudySessionNotifier() {
   const handleRebook = async () => {
     setRebooking(true);
     try {
+      // The function returns { data, status }; the rebooked slot is in data.
+      // Reading the envelope put "Invalid Date" on the confirmation.
       const result = await base44.functions.invoke('rebookStudySession', {
         session_id: pendingSession.id,
       });
-      setRebookResult(result);
+      setRebookResult(result?.data || result);
     } catch (e) {
-      setRebookResult({ error: 'Failed to rebook. Try again later.' });
+      // Say why: a plan gate, no credits, no open slot in the next two weeks,
+      // or the server's own words — "Try again later" told the student
+      // nothing they could act on.
+      const gate = gateFromError(e);
+      const status = e?.response?.status;
+      const message = gate?.message
+        || (status === 409 ? 'There is no open slot in the next two weeks. Free a gap on your calendar, or move the session by hand.' : null)
+        || e?.response?.data?.message || e?.response?.data?.error || e?.message || 'The session could not be moved.';
+      setRebookResult({ error: message });
     }
     setRebooking(false);
   };
@@ -100,12 +111,12 @@ export default function StudySessionNotifier() {
       <div className="bg-card rounded-2xl border border-border p-6 max-w-sm w-full animate-fade-in">
         {rebookResult ? (
           <>
-            <div className="w-14 h-14 rounded-full bg-emerald-500/10 flex items-center justify-center mx-auto mb-4">
-              <RefreshCw className="w-7 h-7 text-emerald-600" />
+            <div className={`w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4 ${rebookResult.error ? 'bg-amber-500/10' : 'bg-emerald-500/10'}`}>
+              {rebookResult.error ? <AlertTriangle className="w-7 h-7 text-amber-500" /> : <RefreshCw className="w-7 h-7 text-emerald-600" />}
             </div>
-            <h3 className="font-heading text-lg font-semibold text-center mb-2">Session Rebooked</h3>
+            <h3 className="font-heading text-lg font-semibold text-center mb-2">{rebookResult.error ? 'Not rebooked' : 'Session Rebooked'}</h3>
             {rebookResult.error ? (
-              <p className="text-sm text-destructive text-center mb-4">{rebookResult.error}</p>
+              <p className="text-sm text-muted-foreground text-center mb-4">{rebookResult.error}</p>
             ) : (
               <>
                 <p className="text-sm text-muted-foreground text-center mb-1">

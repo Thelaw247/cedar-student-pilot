@@ -3,6 +3,23 @@ import { supabase } from './supabaseClient.js';
 import { functionPath } from './functionPath.js';
 import { announceDataChange } from './dataChanged.js';
 
+/**
+ * Who is signed in, from the session the client already holds.
+ *
+ * Every write used to call supabase.auth.getUser(), which is a round trip to
+ * the auth server to re-validate the token — one extra request, on a phone
+ * connection, before a single row could be inserted. The session is enough
+ * for the user id: the insert itself carries the token, and the row-level
+ * policy on the server is what actually decides. An expired session is
+ * refreshed by getSession(); none at all is the one case that stays an error.
+ */
+async function sessionUser() {
+  const { data: { session } } = await supabase.auth.getSession();
+  const user = session?.user;
+  if (!user) throw new Error('Not signed in');
+  return user;
+}
+
 // Compatibility layer replacing @base44/sdk. Not a 1:1 reimplementation of
 // Base44's client — a deliberately similar-enough shape (entities.X.filter/
 // get/create/update/delete/list/bulkCreate, functions.invoke, auth.me/
@@ -91,16 +108,14 @@ function makeEntity(tableName, entityName) {
       // RLS's WITH CHECK requires auth.uid() = user_id on every insert —
       // Base44 stamped this automatically, so callers here rarely set it
       // explicitly either. Fill it in from the current session if missing.
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not signed in');
+      const user = await sessionUser();
       const payload = { ...fields, user_id: user.id };
       const { data, error } = await supabase.from(tableName).insert(payload).select().single();
       if (error) throw error;
       return data;
     },
     async bulkCreate(rows) {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not signed in');
+      const user = await sessionUser();
       const payload = rows.map((r) => ({ ...r, user_id: user.id }));
       const { data, error } = await supabase.from(tableName).insert(payload).select();
       if (error) throw error;

@@ -112,11 +112,11 @@ export default function DetectedDeadlines({ lectures = [], assignments = [], onC
               </p>
               <div className="flex items-center gap-2 mt-2">
                 <button type="button" onClick={() => setAdding(entry)}
-                  className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90">
+                  className="min-h-[40px] px-4 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90">
                   Add it
                 </button>
                 <button type="button" onClick={() => dismiss(entry)}
-                  className="px-3 py-1.5 rounded-lg border border-border text-xs font-medium text-muted-foreground hover:bg-muted">
+                  className="min-h-[40px] px-4 py-2 rounded-lg border border-border text-xs font-medium text-muted-foreground hover:bg-muted">
                   No thanks
                 </button>
               </div>

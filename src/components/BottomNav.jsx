@@ -18,8 +18,12 @@ import { NavStudyDot } from '@/study/NavStudyClock';
  * was removed. Reinstate it here if a non-primary nav item is ever added back.
  */
 export default function BottomNav() {
+  // z-40, not z-50: the bottom sheets opened from Today (add event, add exam,
+  // rebook) are fixed at z-50 earlier in the page, and at an equal z-index
+  // the later element wins — this bar drew over their bottom button rows, so
+  // "Add event" and "Cancel" tapped the nav instead.
   return (
-    <nav className="lg:hidden fixed bottom-0 inset-x-0 z-50 bg-card/80 glass border-t border-border">
+    <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-card/80 glass border-t border-border">
       <div className="flex items-center justify-around px-2 py-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
         {PRIMARY_NAV_ITEMS.map((item) => (
           <NavLink

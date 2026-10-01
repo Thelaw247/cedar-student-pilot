@@ -34,10 +34,13 @@ export function useQuickRecord() {
       return;
     }
     setStartingId(cls.id);
-    const ok = await rec.start({ id: cls.id, name: cls.name, color: cls.color });
+    const outcome = await rec.start({ id: cls.id, name: cls.name, color: cls.color });
     setStartingId(null);
-    if (!ok) {
-      // Mic refused/unavailable — the modal carries the permission message.
+    // start() answers with a word, never a boolean: 'started', 'busy',
+    // 'recovery-pending' or 'mic-denied'. Anything but 'started' needs the
+    // class page's modal — a refused microphone, a recording waiting to be
+    // recovered — and used to leave the student on Today with nothing shown.
+    if (outcome !== 'started') {
       navigate(`/classes/${cls.id}?record=1`);
     }
   }, [rec, navigate]);

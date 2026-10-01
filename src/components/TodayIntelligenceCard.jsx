@@ -76,7 +76,7 @@ export default function TodayIntelligenceCard({
               </div>
               <button onClick={() => { dismissToday('examweek'); setExamWeekDismissed(true); }}
                 aria-label="Dismiss"
-                className="text-muted-foreground hover:text-foreground flex-shrink-0 p-1 -m-1">
+                className="text-muted-foreground hover:text-foreground flex-shrink-0 p-3 -m-3">
                 <X className="w-3.5 h-3.5" />
               </button>
             </div>
@@ -92,12 +92,12 @@ export default function TodayIntelligenceCard({
                 </p>
               </div>
               <button onClick={() => setRebookSession(behindSessions[0])}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-600 text-white text-xs font-medium hover:bg-rose-700 flex-shrink-0">
+                className="inline-flex min-h-[40px] items-center gap-1.5 px-4 py-2 rounded-lg bg-rose-600 text-white text-xs font-medium hover:bg-rose-700 flex-shrink-0">
                 <CalendarClock className="w-3 h-3" /> Rebook
               </button>
               <button onClick={() => { dismissToday('behind'); setBehindDismissed(true); }}
                 aria-label="Dismiss"
-                className="text-muted-foreground hover:text-foreground flex-shrink-0 p-1 -m-1">
+                className="text-muted-foreground hover:text-foreground flex-shrink-0 p-3 -m-3">
                 <X className="w-3.5 h-3.5" />
               </button>
             </div>

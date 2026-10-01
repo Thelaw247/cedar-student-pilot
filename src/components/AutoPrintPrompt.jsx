@@ -80,6 +80,7 @@ ${htmlParts.map((h, i) => `<div class="${i > 0 ? 'lecture-divider' : ''}">${h}</
       const printWin = window.open('', '_blank');
       if (!printWin) {
         alert('Please allow pop-ups to print transcripts.');
+        setPrinting(false);
         return;
       }
       printWin.document.write(combinedHtml);

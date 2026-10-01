@@ -4,6 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { saveRecording, getRecording, clearRecording, listRecoverableRecordings } from '@/lib/recordingStore';
 import { getCachedUserId } from '@/lib/currentUser';
 import { LECTURE_COMPLETE, LECTURE_PENDING } from '@/lib/lectureStatus';
+import { localDay } from '@/lib/localDay';
 import { useUpgrade } from '@/components/monetization/UpgradeContext';
 
 /**
@@ -298,9 +299,38 @@ export function RecordingProvider({ children }) {
     recorderRef.current = recorder;
   };
 
+  // Every failure the island can act on goes through here, so the message
+  // and its classification never drift apart. Three failures used to set
+  // only the string: the island reads the classified half, so they showed as
+  // "Recording complete" with a Save & Process button, and the save then
+  // failed with no audio to send.
+  const failSave = (error) => {
+    const e = error instanceof Error ? error : new Error(String(error?.message || error || 'Unknown error'));
+    const classified = classifySaveError(e);
+    const copy = describeSaveError(classified);
+    setSaveFailure({ ...classified, ...copy });
+    setSaveError(classified.message || copy.body);
+    return classified;
+  };
+
+  // A segment that could not be uploaded is kept, on this device and in the
+  // ref the save path reads, so "Try again" re-uploads it instead of saving a
+  // recording with a hole in it (or nothing at all). Same mechanism as crash
+  // recovery, which is what it is: a part that never made it to the server.
+  const keepSegmentForRetry = async (blob, { seconds, parts }) => {
+    if (!blob || blob.size === 0) return;
+    recoveredBlobRef.current = blob;
+    setRecoveredBlob(blob);
+    try {
+      await saveRecording(clsRef.current?.id, blob, { seconds, timestamp: Date.now(), parts, lectureId: pendingLectureIdRef.current });
+    } catch (e) { /* the in-memory copy still carries the retry */ }
+  };
+
   // The recording ended without us asking. Finalize what we have and say so —
   // and say WHY, in the message and in the console, so the next report of a
   // recording that "just stops" arrives with the browser's own words in it.
+  // This is a notice on a recording that is otherwise fine, not a failed
+  // save: saveError carries it and the island shows it above Save & Process.
   const handleUnexpectedStop = (reason = '') => {
     // onerror and onstop both arrive for one failure; the first one finalizes.
     if (rotatingRef.current) return;
@@ -308,7 +338,7 @@ export function RecordingProvider({ children }) {
       seconds: secondsRef.current, micSilent: micSilentRef.current,
     });
     const why = reason ? ` (${reason})` : '';
-    setSaveError(`Recording stopped — your phone or browser interrupted it${why}. Everything up to that point is safe. Tap Save & process to keep it.`);
+    setSaveError(`Recording stopped — your phone or browser interrupted it${why}. Everything up to that point is safe. Tap Save & Process to keep it.`);
     finalizeRecording({ interrupted: true });
   };
 
@@ -333,8 +363,10 @@ export function RecordingProvider({ children }) {
   const rotateSegment = async () => {
     if (rotatingRef.current || !recordingRef.current) return;
     rotatingRef.current = true;
+    let failedBlob = null;
     try {
       const blob = await stopCurrentSegment();
+      failedBlob = blob;
       startSegment(); // never wait on the upload
       const ref = await uploadSegmentWithRetry(blob);
       uploadedPartsRef.current = [...uploadedPartsRef.current, ref];
@@ -348,11 +380,13 @@ export function RecordingProvider({ children }) {
       });
     } catch (e) {
       // Segment could not be saved after retries — stop rather than risk
-      // losing more audio. The blob is preserved locally for a manual retry.
+      // losing more audio, and keep the segment itself so Try again sends it.
       try { recorderRef.current?.stop(); } catch (err) { /* already stopped */ }
+      streamRef.current?.getTracks().forEach((t) => t.stop());
       setRecording(false);
       setPaused(false);
-      setSaveError('A recording segment could not be uploaded. Check your connection, then try saving again — your audio is safe on this device.');
+      await keepSegmentForRetry(failedBlob, { seconds: secondsRef.current, parts: uploadedPartsRef.current });
+      failSave(new Error(`A recording segment could not be uploaded (${e?.message || 'no reason given'}). It is safe on this device — check your connection and try again.`));
       setReadyToSave(true);
     } finally {
       rotatingRef.current = false;
@@ -368,8 +402,10 @@ export function RecordingProvider({ children }) {
     setPaused(false);
     if (hitAbsoluteLimit) setRecordingLimitReached(true);
     setUploadingSegment(true);
+    let lastBlob = null;
     try {
       const blob = await stopCurrentSegment();
+      lastBlob = blob;
       streamRef.current?.getTracks().forEach((t) => t.stop());
       if (blob.size > 0) {
         const ref = await uploadSegmentWithRetry(blob);
@@ -385,7 +421,8 @@ export function RecordingProvider({ children }) {
       });
       setReadyToSave(true);
     } catch (e) {
-      setSaveError('Could not finish uploading the last part of this recording. Your audio is safe on this device — try saving again.');
+      await keepSegmentForRetry(lastBlob, { seconds: secondsRef.current, parts: uploadedPartsRef.current });
+      failSave(new Error(`Could not finish uploading the last part of this recording (${e?.message || 'no reason given'}). Your audio is safe on this device — try again.`));
       setReadyToSave(true);
     }
     setUploadingSegment(false);
@@ -598,9 +635,16 @@ export function RecordingProvider({ children }) {
     return () => { cancelled = true; };
   }, [recoverSession]);
 
+  // One save at a time. The island hides its buttons while `processing` is
+  // true, but a second tap can land in the same frame as the first, and a
+  // failure that returns instantly used to flip the island back fast enough
+  // to take the next tap of a rapid series — each one a new request.
+  const savingRef = useRef(false);
+
   const saveAndProcess = useCallback(async () => {
     const activeCls = clsRef.current;
-    if (!activeCls) return;
+    if (!activeCls || savingRef.current) return;
+    savingRef.current = true;
     setProcessing(true);
     setSaveError('');
     setSaveFailure(null);
@@ -656,6 +700,7 @@ export function RecordingProvider({ children }) {
             setRecoveredBlob(null);
             setPendingLectureId(null);
             pendingLectureIdRef.current = null;
+            savingRef.current = false;
             setProcessing(false);
             setReadyToSave(false);
             setReviewLectureId(lectureId);
@@ -668,7 +713,10 @@ export function RecordingProvider({ children }) {
       }
 
       if (!lectureId) {
-        const today = new Date().toISOString().split('T')[0];
+        // The student's own date, not UTC's: a lecture saved after 18:00 in
+        // Saskatoon used to land on tomorrow, and the attendance prompt then
+        // asked whether they had attended the class they had just recorded.
+        const today = localDay();
         const lecture = await base44.entities.Lecture.create({
           class_id: activeCls.id,
           date: today,
@@ -731,6 +779,7 @@ export function RecordingProvider({ children }) {
       pendingLectureIdRef.current = null;
       stagedMaterialsRef.current = [];
       setStagedMaterials([]);
+      savingRef.current = false;
       setProcessing(false);
       setReadyToSave(false);
       setReviewLectureId(lectureId);
@@ -740,12 +789,10 @@ export function RecordingProvider({ children }) {
     } catch (e) {
       // Keep the durable copy, uploaded parts, and pending lecture id so a
       // retry never re-uploads or double-creates.
-      const classified = classifySaveError(e);
-      const copy = describeSaveError(classified);
+      const classified = failSave(e);
       if (classified.kind === 'out_of_credits') openUpgrade({ source: 'out-of-credits' });
-      setSaveFailure({ ...classified, ...copy });
-      setSaveError(classified.message || copy.body);
     }
+    savingRef.current = false;
     setProcessing(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingLectureId, liveNotes, openUpgrade]);
@@ -870,6 +917,8 @@ export function RecordingProvider({ children }) {
     recordingLimitReached,
     recoveredBlob,
     recoveredOnBoot,
+    // For the island's "still failing?" line: the id a support reply needs.
+    pendingLectureId,
     start,
     togglePause,
     stop,

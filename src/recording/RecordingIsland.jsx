@@ -3,6 +3,7 @@ import { Pause, Play, Square, Loader2, FileText, AlertTriangle, ChevronDown, Pen
 import { useRecording } from '@/recording/RecordingContext';
 import { MATERIAL_ACCEPT } from '@/components/lecture/LectureMaterials';
 import { formatClock } from '@/lib/time';
+import { SUPPORT_EMAIL, SUPPORT_MAILTO } from '@/lib/legal';
 
 /**
  * "Attach the prof's slides" inside the island. Files wait in memory and
@@ -55,6 +56,14 @@ export default function RecordingIsland() {
   const rec = useRecording();
   const [open, setOpen] = useState(false);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
+  // How many saves have failed in a row on this recording. After two, the
+  // island stops pretending the next tap will be different and says where
+  // to turn instead — "Try again" was tapped twelve times in one session.
+  const [failedTries, setFailedTries] = useState(0);
+  useEffect(() => {
+    if (rec.saveFailure) setFailedTries((n) => n + 1);
+    else if (!rec.readyToSave) setFailedTries(0);
+  }, [rec.saveFailure, rec.readyToSave]);
 
   // Post-processing (3 Sep 2026 rework): a review session is now booked
   // automatically on the server the moment processing finishes (same day as
@@ -107,19 +116,31 @@ export default function RecordingIsland() {
     // A failure that will not clear by retrying now (provider rate limit,
     // credits, size cap) leads with "Process later" when the audio is already
     // durable server-side; "Try again" stays available but stops being the
-    // default so a student is not steered into burning the quota twice.
+    // default so a student is not steered into burning the quota twice. An
+    // empty recording has no retry at all: Discard is the only honest button.
+    const nothingToSave = failure?.kind === 'empty';
     const retryIsSensible = !failure || failure.retryNow;
-    const primaryClass = 'flex-[2] py-2.5 rounded-xl bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-colors';
-    const secondaryClass = 'flex-1 py-2.5 rounded-xl border border-white/20 text-xs font-medium text-white/70 hover:bg-white/10 transition-colors';
+    const stuck = failure && failedTries >= 2;
+    // 44px tall: the row sits where a thumb lands on a phone.
+    const primaryClass = 'flex-[2] min-h-[44px] py-2.5 rounded-xl bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-colors disabled:opacity-60';
+    const secondaryClass = 'flex-1 min-h-[44px] py-2.5 rounded-xl border border-white/20 text-xs font-medium text-white/70 hover:bg-white/10 transition-colors disabled:opacity-60';
     return (
       <div className={shell} style={surface}>
         <div className="px-4 py-3.5">
           {failure ? (
-            <div className="flex items-start gap-2.5 mb-3">
+            <div className="flex items-start gap-2.5 mb-3" role="alert">
               <AlertTriangle className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
               <div className="min-w-0">
                 <p className="text-sm font-semibold">{failure.title}</p>
                 <p className="text-[11px] text-white/60 mt-0.5">{failure.body}</p>
+                {stuck && (
+                  <p className="text-[11px] text-white/60 mt-1.5">
+                    Still failing after {failedTries} tries. Your audio stays safe on this device
+                    {rec.canProcessLater ? ' — leave it with Process later and come back,' : ','} or email{' '}
+                    <a href={`${SUPPORT_MAILTO}?subject=${encodeURIComponent('Recording will not save')}${rec.pendingLectureId ? `&body=${encodeURIComponent(`Lecture id: ${rec.pendingLectureId}`)}` : ''}`} className="underline text-white/80 hover:text-white">{SUPPORT_EMAIL}</a>
+                    {rec.pendingLectureId ? ` with the code ${rec.pendingLectureId.slice(0, 8)}` : ''}.
+                  </p>
+                )}
               </div>
             </div>
           ) : (
@@ -144,6 +165,14 @@ export default function RecordingIsland() {
               The audio is safe on this device. Save it to finish.
             </p>
           )}
+          {/* An interruption the browser reported mid-recording (a sleeping
+              phone, another app taking the mic). The recording is fine to
+              save; the student should know where it stopped and why. */}
+          {!failure && !rec.recoveredOnBoot && rec.saveError && (
+            <p className="text-[11px] text-amber-400/90 mb-3 flex items-start gap-1.5">
+              <AlertTriangle className="w-3 h-3 flex-shrink-0 mt-0.5" /> {rec.saveError}
+            </p>
+          )}
           {rec.recordingLimitReached && (
             <p className="text-[11px] text-amber-400/90 mb-3">The 6-hour limit was reached. Save this recording, then start a new one if class is continuing.</p>
           )}
@@ -166,7 +195,7 @@ export default function RecordingIsland() {
             </div>
           ) : (
             <div className="flex gap-2">
-              <button type="button" onClick={() => setConfirmDiscard(true)} className={secondaryClass}>
+              <button type="button" onClick={() => setConfirmDiscard(true)} className={nothingToSave ? primaryClass : secondaryClass}>
                 Discard
               </button>
               {failure && rec.canProcessLater && (
@@ -175,10 +204,12 @@ export default function RecordingIsland() {
                   Process later
                 </button>
               )}
-              <button type="button" onClick={rec.saveAndProcess}
-                className={retryIsSensible || !rec.canProcessLater ? primaryClass : secondaryClass}>
-                {failure ? 'Try again' : 'Save & Process'}
-              </button>
+              {!nothingToSave && (
+                <button type="button" onClick={rec.saveAndProcess} disabled={rec.processing}
+                  className={retryIsSensible || !rec.canProcessLater ? primaryClass : secondaryClass}>
+                  {failure ? 'Try again' : 'Save & Process'}
+                </button>
+              )}
             </div>
           )}
         </div>

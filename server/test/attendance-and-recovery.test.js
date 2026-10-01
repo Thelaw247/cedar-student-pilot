@@ -39,7 +39,7 @@ test('answering an attendance question generates nothing and spends nothing', ()
     'the attendance prompt calls a backend function again');
   // It still records the answer — removing the fabrication must not remove
   // the feature.
-  assert.match(PROMPT, /ClassAttendance\.create\(\{/);
+  assert.match(PROMPT, /ClassAttendance\.create\(row\)/);
   assert.match(PROMPT, /attended,/);
 });
 

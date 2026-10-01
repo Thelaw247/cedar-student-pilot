@@ -92,13 +92,13 @@ export default function RiskIndicatorCard() {
                 <p className="text-[11px] text-muted-foreground mt-0.5">{risk.description}</p>
                 <button
                   onClick={() => navigate(action.to)}
-                  className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-current/10 hover:bg-current/20 transition-colors"
+                  className="mt-2 inline-flex min-h-[40px] items-center gap-1 text-[11px] font-semibold px-3 py-2 rounded-lg bg-current/10 hover:bg-current/20 transition-colors"
                 >
                   {action.label} <ChevronRight className="w-3 h-3" />
                 </button>
               </div>
               <button onClick={() => dismiss(key)} aria-label="Dismiss"
-                className="text-current opacity-60 hover:opacity-100 flex-shrink-0 p-1 -m-1">
+                className="text-current opacity-60 hover:opacity-100 flex-shrink-0 p-3 -m-3">
                 <X className="w-3.5 h-3.5" />
               </button>
             </div>
@@ -120,13 +120,13 @@ export default function RiskIndicatorCard() {
               <p className="text-[11px] text-muted-foreground mt-0.5">{data.burnout_advice}</p>
               <button
                 onClick={() => navigate('/study?tab=schedule')}
-                className={`mt-2 inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-lg transition-colors ${data.burnout_level === 'high' ? 'text-rose-600 bg-rose-500/10 hover:bg-rose-500/20' : 'text-amber-600 bg-amber-500/10 hover:bg-amber-500/20'}`}
+                className={`mt-2 inline-flex min-h-[40px] items-center gap-1 text-[11px] font-semibold px-3 py-2 rounded-lg transition-colors ${data.burnout_level === 'high' ? 'text-rose-600 bg-rose-500/10 hover:bg-rose-500/20' : 'text-amber-600 bg-amber-500/10 hover:bg-amber-500/20'}`}
               >
                 Rebalance my plan <ChevronRight className="w-3 h-3" />
               </button>
             </div>
             <button onClick={() => dismiss(burnoutKey)} aria-label="Dismiss"
-              className={`flex-shrink-0 p-1 -m-1 opacity-60 hover:opacity-100 ${data.burnout_level === 'high' ? 'text-rose-600' : 'text-amber-600'}`}>
+              className={`flex-shrink-0 p-3 -m-3 opacity-60 hover:opacity-100 ${data.burnout_level === 'high' ? 'text-rose-600' : 'text-amber-600'}`}>
               <X className="w-3.5 h-3.5" />
             </button>
           </div>

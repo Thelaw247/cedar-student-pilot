@@ -15,6 +15,7 @@ export const SAVE_ERROR = {
   RATE_LIMITED: 'rate_limited',   // provider quota; audio is safe, wait
   OUT_OF_CREDITS: 'out_of_credits',
   TOO_LARGE: 'too_large',         // over the 24 MB / 6 h caps; will never succeed
+  EMPTY: 'empty',                 // nothing was captured; retrying cannot help
   NETWORK: 'network',             // never reached the server; retry is sensible
   UNKNOWN: 'unknown',
 };
@@ -43,7 +44,21 @@ export function classifySaveError(error) {
     return { kind: SAVE_ERROR.TOO_LARGE, retryNow: false, message: text };
   }
 
-  if (/failed to fetch|network|load failed|timed? ?out|econnreset/.test(lower) || status === 0) {
+  // Nothing to send. "Try again" would fail identically every time — and
+  // did, twelve taps in a row in one session — so this is its own kind and
+  // the island leads with Discard.
+  if (/recording is empty|no audio was captured/.test(lower)) {
+    return { kind: SAVE_ERROR.EMPTY, retryNow: false, message: text };
+  }
+
+  // Only the browser's own words for a request that never reached the
+  // server count as a network failure: "Failed to fetch" (Chrome), "Load
+  // failed" (Safari), "NetworkError when attempting to fetch resource"
+  // (Firefox), or a status of 0. A server-side timeout, a provider that was
+  // overloaded, or the lecture's own failure reason from polling all carry a
+  // sentence worth showing — classifying those as "check your connection"
+  // hid the real reason behind the wrong advice.
+  if (/failed to fetch|load failed|networkerror|network request failed|econnreset|err_internet_disconnected/.test(lower) || (status === 0 && !text)) {
     return { kind: SAVE_ERROR.NETWORK, retryNow: true, message: text };
   }
 
@@ -67,6 +82,11 @@ export function describeSaveError(classified) {
       return {
         title: "This recording can't be processed",
         body: classified.message || 'It is over the size limit. Trying again will not change that.',
+      };
+    case SAVE_ERROR.EMPTY:
+      return {
+        title: 'There is nothing to save',
+        body: 'No audio was captured in this recording, so there is nothing to process. Discard it and record again — check that the microphone is allowed and not muted.',
       };
     case SAVE_ERROR.NETWORK:
       return {
