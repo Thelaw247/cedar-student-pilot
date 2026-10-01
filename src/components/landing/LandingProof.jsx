@@ -37,7 +37,7 @@ export function ProofFacts({ className = '' }) {
 /** The strip as a homepage section, between the hero and How it works. */
 export function LandingFacts() {
   return (
-    <section id="facts" className="px-4 pb-8 sm:px-6">
+    <section id="facts" className="px-4 pb-4 sm:px-6">
       <div className="mx-auto max-w-6xl">
         <ProofFacts />
       </div>

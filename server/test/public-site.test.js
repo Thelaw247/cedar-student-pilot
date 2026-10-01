@@ -92,7 +92,7 @@ test('the hero is the headline and one sentence, and the billing facts sit under
   // The h1 is the brief's line; the category is in the one sentence under
   // it and in the served <title>. The semester price is the fact strip's
   // third fact (landing-audit.test.js) and the pricing page's whole point.
-  assert.match(HERO, /You showed up to the lecture\./, 'the h1 is the brief’s line; it stays');
+  assert.match(HERO, /Just listen\./, 'the headline: six words, the promise, who does the work');
   assert.match(HERO, /records the lecture/);
   assert.match(HERO, /Two full lectures free\. No card, nothing expires\./);
   // Scope, stated: who it is not for — in the FAQ, where the question is asked.

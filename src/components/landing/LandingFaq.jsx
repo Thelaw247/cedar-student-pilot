@@ -17,7 +17,7 @@ import { FAQ } from '@/lib/faq';
 export default function LandingFaq({ ids = null }) {
   const items = ids ? FAQ.filter((item) => ids.includes(item.id)) : FAQ;
   return (
-    <section id="faq" className="px-4 py-20 sm:px-6 lg:py-24">
+    <section id="faq" className="px-4 py-16 sm:px-6 lg:py-24">
       <div className="mx-auto max-w-3xl">
         <div className="text-center">
           <p className="text-sm font-semibold text-primary">Before you sign up</p>

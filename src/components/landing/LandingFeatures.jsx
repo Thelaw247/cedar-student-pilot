@@ -61,13 +61,13 @@ function Tile({ tile }) {
 
 export default function LandingFeatures() {
   return (
-    <section id="features" className="px-4 py-20 sm:px-6 lg:py-28">
+    <section id="features" className="px-4 py-16 sm:px-6 lg:py-24">
       <div className="mx-auto max-w-6xl">
         <div className="mx-auto max-w-2xl text-center">
           <h2 className="text-balance text-4xl font-bold tracking-[-0.045em] text-foreground sm:text-5xl">Everything after the lecture, handled.</h2>
           <p className="mt-4 text-lg leading-8 text-muted-foreground">One recording feeds all of it. Nothing to rebuild by hand.</p>
         </div>
-        <div className="mt-12 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {FEATURE_TILES.map((tile) => <Tile key={tile.slug} tile={tile} />)}
         </div>
       </div>

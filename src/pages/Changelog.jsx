@@ -15,6 +15,16 @@ import { PUBLIC_PAGES } from '@/lib/publicPages';
  */
 export const CHANGELOG = [
   {
+    date: '2026-10-01',
+    title: 'Today answers back',
+    items: [
+      'On Today, an attendance answer that could not be saved now says so and what to do next, an answer given offline is saved when you are back on, and “Ask me later” means later.',
+      'A recording that will not save tells you the real reason — the server’s own words, not “check your connection” — keeps the part that failed to upload for the retry, and offers Discard when there is nothing to send.',
+      'On a phone, the sheets for adding an event, adding an exam and rebooking no longer end up under the bottom bar, and the small buttons on Today are big enough for a thumb.',
+      'The homepage opens with six words.',
+    ],
+  },
+  {
     date: '2026-09-29',
     title: 'A homepage you can read in a minute',
     items: [

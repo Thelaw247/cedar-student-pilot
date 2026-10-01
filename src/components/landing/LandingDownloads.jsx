@@ -40,9 +40,9 @@ export default function LandingDownloads() {
   const ordered = [...DESKTOP_DOWNLOADS].sort((a, b) => Number(b.id.startsWith(current || '~')) - Number(a.id.startsWith(current || '~')));
 
   return (
-    <section id="download" className="px-4 py-20 sm:px-6 lg:py-28">
+    <section id="download" className="px-4 py-16 sm:px-6 lg:py-24">
       <div className="mx-auto max-w-6xl">
-        <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
+        <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
           <div>
             <h2 className="text-balance text-4xl font-bold tracking-[-0.045em] text-foreground sm:text-5xl">Runs on your laptop too.</h2>
             <p className="mt-4 max-w-xl text-lg leading-8 text-muted-foreground">

@@ -30,16 +30,14 @@ function NavLink({ link, className, onClick = undefined }) {
  * browsers without backdrop-filter and for prefers-reduced-transparency — so
  * nothing here is a second glass recipe. The pill squares its corners while
  * the phone menu is open so the menu reads as part of the same surface.
+ * Nothing is painted behind the pill: a fade from the page colour used to
+ * sit there and read as a dark band across the top of every page.
  */
 export default function LandingNav() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 px-3 pt-3 sm:px-6 sm:pt-4">
-      {/* A soft fade from the page colour behind the pill, so scrolled
-          content does not sit raw in the gap above it. It is a decoration
-          layer, not the header's background: the strip stays see-through. */}
-      <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-24 bg-gradient-to-b from-[hsl(222_33%_8%/0.9)] via-[hsl(222_33%_8%/0.45)] to-transparent" />
       <nav
         aria-label="Site"
         className={`glass-chrome mx-auto max-w-6xl border shadow-[0_14px_44px_-22px_rgba(0,0,0,0.7),inset_0_1px_0_rgba(255,255,255,0.14)] transition-[border-radius] duration-300 ease-standard ${menuOpen ? 'rounded-[28px]' : 'rounded-full'}`}

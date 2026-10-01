@@ -48,9 +48,18 @@ const at = (tag) => { const i = LANDING.indexOf(tag); assert.ok(i >= 0, `${tag} 
 
 // ------------------------------------------------------------- the first screen
 
-test('the hero is the headline, one sentence, the product and two buttons', () => {
-  assert.match(HERO, /You showed up to the lecture\./, 'the h1 is the brief’s line; it stays');
-  assert.match(HERO, /<span className="text-primary">That should be the hard part\.<\/span>/, 'the second sentence carries the brand colour');
+test('the hero is six words, one sentence, the product and two buttons, on one flat surface', () => {
+  assert.match(HERO, /Just listen\.\{' '\}/, 'the headline is the founder’s own problem turned into the promise');
+  assert.match(HERO, /<span className="text-primary">We&rsquo;ll take the notes\.<\/span>/, 'the second sentence carries the brand colour');
+  // No lit patch behind the first screen: it read as a filter over the hero
+  // and broke the one surface the page is. The header paints nothing
+  // behind its pill for the same reason.
+  assert.doesNotMatch(HERO, /radial-gradient|blur-3xl/, 'a glow is back under the hero');
+  assert.doesNotMatch(NAV, /bg-gradient-to-b/, 'the fade band behind the header pill is back');
+  // The words start at the top edge of the product window, not halfway down it.
+  assert.match(HERO, /grid max-w-6xl items-start/);
+  assert.match(HOW, /grid items-start gap-6 lg:grid-cols-\[0\.8fr_1\.2fr\]/, 'the step text must align with the top of its screen');
+  assert.match(HOW, /Step \{step\.number\} of \{STEPS\.length\}/);
   const sub = HERO.match(/text-muted-foreground">\s*([^<]+?)\s*<\/p>/)[1];
   assert.ok(words(sub) <= 25, `the hero sentence is ${words(sub)} words`);
   assert.match(sub, /records the lecture/, 'the sentence names the category');
