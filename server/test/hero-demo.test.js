@@ -27,9 +27,27 @@ test('the loop autoplays everywhere a muted video can, with no controls and no s
   assert.match(video, /width="1386"\s+height="780"/, 'the box is sized before the file loads, so nothing shifts');
 });
 
-test('less motion means a still, and the hook follows the setting while the page is open', () => {
+test('the loop plays from a blob: URL, because the static host will not answer a range request and Safari needs one', () => {
+  // A Range request to praelecta.ca gets the whole file and a 200; Safari
+  // stops on that. The browser serves a blob: URL to itself with ranges.
+  const video = HERO.slice(HERO.indexOf('<video'), HERO.indexOf('/>', HERO.indexOf('<video')));
+  assert.match(video, /src=\{src \|\| undefined\}/, 'the video points at its own address again; Safari will show only the poster');
+  assert.doesNotMatch(video, /src=\{HERO_DEMO_VIDEO\}/);
+  assert.match(HERO, /fetch\(HERO_DEMO_VIDEO, \{ signal: controller\.signal, priority: 'low' \}\)/);
+  assert.match(HERO, /objectUrl = URL\.createObjectURL\(blob\);/);
+  // Nothing outlives the component: the request is cancelled, the URL freed,
+  // and a reply that lands after unmount creates nothing.
+  assert.match(HERO, /controller\.abort\(\);\s*if \(objectUrl\) URL\.revokeObjectURL\(objectUrl\);/);
+  assert.match(HERO, /if \(controller\.signal\.aborted\) return;/);
+  assert.match(HEADERS, /media-src 'self' blob:/, 'without blob: in media-src the loop is blocked everywhere');
+});
+
+test('less motion or a data saver means a still, and the hook follows the setting while the page is open', () => {
   assert.match(HERO, /\(prefers-reduced-motion: reduce\)/);
-  assert.match(HERO, /if \(reduced\) \{\s*return <img src=\{HERO_DEMO_POSTER\} alt=\{HERO_DEMO_ALT\}/);
+  assert.match(HERO, /navigator\.connection\?\.saveData/);
+  assert.match(HERO, /const still = reduced \|\| saveData;/);
+  assert.match(HERO, /if \(still\) return undefined;/, 'the 2.4 MB is fetched for a visitor who will only see the still');
+  assert.match(HERO, /if \(still\) \{\s*return <img src=\{HERO_DEMO_POSTER\} alt=\{HERO_DEMO_ALT\}/);
   assert.match(HERO, /media\.addEventListener\('change', onChange\)/);
   assert.match(HERO, /media\.removeEventListener\('change', onChange\)/);
 });
@@ -49,5 +67,4 @@ test('the files the page names exist in the deploy, are small, and are cached un
   assert.ok(head.includes('ftyp'), 'not an MP4');
   assert.ok(head.includes('moov'), 'the moov atom is at the end of the file; the video cannot start until it has all downloaded');
   assert.match(HEADERS, /^\/hero-demo-\*\n\s+Cache-Control: public, max-age=31536000, immutable$/m);
-  assert.match(HEADERS, /media-src 'self'/, 'the CSP must allow the loop from this origin');
 });

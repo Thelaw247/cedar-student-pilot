@@ -49,18 +49,51 @@ function usePrefersReducedMotion() {
 }
 
 /**
- * A visitor who asked their system for less motion gets the first frame
- * as a picture, not a looping video; everyone else gets the loop. Both
- * carry the same description for a screen reader.
+ * A visitor who asked their system for less motion, or their browser to
+ * save data, gets the first frame as a picture, not a 2.4 MB loop; everyone
+ * else gets the loop. Both carry the same description for a screen reader.
+ *
+ * The loop is fetched once and played from a blob: URL, not from its own
+ * address. praelecta.ca's static assets answer a byte-range request with
+ * the whole file and a 200 (checked 2 Oct 2026: `Range: bytes=0-1` returns
+ * all 2.4 MB, no Content-Range). Chrome, Edge and Firefox play from that;
+ * Safari on the iPhone and the Mac asks for two bytes first, gets the whole
+ * file instead of a 206, and stops — the visitor would see the poster and
+ * nothing would move. A blob: URL is served by the browser to itself,
+ * ranges included, so the same file plays everywhere, and the CSP already
+ * allows media from blob:. Until the file is in, the poster (the same
+ * first frame) shows; if the fetch fails, the poster stays.
  */
 export function HeroDemo() {
   const reduced = usePrefersReducedMotion();
-  if (reduced) {
+  const saveData = typeof navigator !== 'undefined' && !!navigator.connection?.saveData;
+  const still = reduced || saveData;
+  const [src, setSrc] = React.useState(null);
+
+  React.useEffect(() => {
+    if (still) return undefined;
+    const controller = new AbortController();
+    let objectUrl = null;
+    fetch(HERO_DEMO_VIDEO, { signal: controller.signal, priority: 'low' })
+      .then((res) => (res.ok ? res.blob() : Promise.reject(new Error(`hero demo: ${res.status}`))))
+      .then((blob) => {
+        if (controller.signal.aborted) return;
+        objectUrl = URL.createObjectURL(blob);
+        setSrc(objectUrl);
+      })
+      .catch(() => {}); // the poster stays: the same first frame, standing still
+    return () => {
+      controller.abort();
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [still]);
+
+  if (still) {
     return <img src={HERO_DEMO_POSTER} alt={HERO_DEMO_ALT} width="1386" height="780" className="block aspect-video w-full bg-card object-cover" />;
   }
   return (
     <video
-      src={HERO_DEMO_VIDEO}
+      src={src || undefined}
       poster={HERO_DEMO_POSTER}
       width="1386"
       height="780"
@@ -70,7 +103,6 @@ export function HeroDemo() {
       loop
       playsInline
       disablePictureInPicture
-      preload="metadata"
       aria-label={HERO_DEMO_ALT}
     />
   );
