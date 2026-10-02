@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { Sun, Moon, Bell, Sparkles, Clock, Palette, Check, AlertCircle, GraduationCap, BookOpen, Shield, User, Zap, LineChart, ArrowRight, LifeBuoy, Mail, CalendarRange } from 'lucide-react';
+import { Sun, Moon, Bell, Sparkles, Clock, Palette, Check, AlertCircle, GraduationCap, BookOpen, Shield, User, Zap, LineChart, ArrowRight, LifeBuoy, Mail, CalendarRange, Star } from 'lucide-react';
 import { getSetting, setSetting } from '@/lib/settings';
 import ProfileSettings from '@/components/ProfileSettings';
 import DeleteAccountSection from '@/components/DeleteAccountSection';
@@ -11,6 +11,7 @@ import LearningModeToggle from '@/components/LearningModeToggle';
 import ConceptDecaySettings from '@/components/ConceptDecaySettings';
 import DataExportSection from '@/components/DataExportSection';
 import SemestersSection from '@/components/SemestersSection';
+import YourReviewSection from '@/components/YourReviewSection';
 import Widget from '@/components/ui/Widget';
 import { SUPPORT_EMAIL, SUPPORT_MAILTO } from '@/lib/legal';
 
@@ -140,6 +141,14 @@ export default function Settings() {
           <DeleteAccountSection />
         </div>
       </SettingsSection>
+
+      {/* A student's own review: what became of it, and the way to change or
+          delete it. Not for the owner — the founder does not rate his own app. */}
+      {!isAdmin && (
+        <SettingsSection icon={Star} title="Your review">
+          <YourReviewSection />
+        </SettingsSection>
+      )}
 
       {/* The support section the privacy policy and terms have always pointed
           at. Both said "reach out through the in-app support link" while no

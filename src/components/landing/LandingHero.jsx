@@ -1,6 +1,9 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Play } from 'lucide-react';
+import Stars from '@/components/ui/Stars';
+import { usePublicReviews } from '@/hooks/usePublicReviews';
+import { ratingSummary } from '@/lib/reviews';
 
 /**
  * The first screen: six words, one sentence, two buttons, and the product.
@@ -108,12 +111,32 @@ export function HeroDemo() {
   );
 }
 
+/**
+ * What students rated it, next to the button they press — the one number
+ * here that comes from other people. The average of every rating left in
+ * the app (GET /public/reviews), and nothing at all until there are enough
+ * of them to mean something (ratingSummary: five or more). Never typed in.
+ */
+function HeroRating() {
+  const summary = ratingSummary(usePublicReviews());
+  if (!summary) return null;
+  return (
+    <p className="mt-3 inline-flex items-center gap-2 text-sm text-muted-foreground">
+      <Stars rating={summary.average} />
+      <span><span className="font-semibold text-foreground">{summary.average.toFixed(1)}</span> out of 5 from {summary.count} students</span>
+    </p>
+  );
+}
+
 export default function LandingHero() {
   return (
     <section className="px-4 pb-12 pt-28 sm:px-6 lg:pb-16 lg:pt-36">
       <div className="mx-auto grid max-w-6xl items-start gap-10 lg:grid-cols-[1fr_1.05fr] lg:gap-12">
         <div className="max-w-xl lg:pt-1">
-          <h1 className="text-balance text-5xl font-bold leading-[1.0] tracking-[-0.045em] text-foreground sm:text-6xl lg:text-[4.5rem]">
+          {/* 40 / 52 / 60px: two lines from a phone to a wide screen (measured
+              at 390, 768, 1024, 1280, 1440 and 1920). At 72px it broke into
+              three lines on a laptop and five on a phone. */}
+          <h1 className="text-balance text-[2.5rem] font-bold leading-[1.02] tracking-[-0.045em] text-foreground sm:text-[3.25rem] xl:text-[3.75rem]">
             Just listen.{' '}
             <span className="text-primary">We&rsquo;ll take the notes.</span>
           </h1>
@@ -134,6 +157,7 @@ export default function LandingHero() {
           <p className="mt-5 text-sm font-semibold text-foreground/85">
             Two full lectures free. No card, nothing expires.
           </p>
+          <HeroRating />
         </div>
 
         <div>

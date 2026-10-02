@@ -64,6 +64,7 @@ const TABLE_MAP = {
   Handbook: 'handbooks',
   LectureMaterial: 'lecture_materials', // read-only from the client; the API writes rows (see files.materials)
   Todo: 'todos',
+  AppReview: 'app_reviews', // the student's own review; approved_at is server-only (see the migration)
   CreditBalance: 'credit_balances',
   UsageEvent: 'usage_events',
   ProcessedStripeEvent: 'processed_stripe_events',

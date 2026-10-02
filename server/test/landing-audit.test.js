@@ -76,6 +76,22 @@ test('the hero is six words, one sentence, the product and two buttons, on one f
   // badge, no trust line — each has a section of its own now.
   assert.doesNotMatch(HERO, /coreFeatures|<PaymentTrustLine|<ProofFacts|<FounderLine|App Store/);
   assert.doesNotMatch(HERO, /\d,\d{3},\d{3}\+|#1 |10x|3x faster/, 'no invented crowd');
+  // 40 / 52 / 60px: two lines from a phone to a wide screen. At 72px the
+  // headline broke into three lines on a laptop and five on a phone.
+  assert.match(HERO, /text-\[2\.5rem\][^"]*sm:text-\[3\.25rem\][^"]*xl:text-\[3\.75rem\]/);
+  assert.doesNotMatch(HERO, /text-\[4\.5rem\]/, 'the headline is back at 72px');
+});
+
+test('the footer is three labelled columns and a bottom bar, not a paragraph of links', () => {
+  for (const title of ['Product', 'Company', 'Compare']) {
+    assert.match(FOOTER, new RegExp(`<Column title="${title}">`), `no "${title}" column`);
+  }
+  assert.match(FOOTER, /<nav aria-label="Footer"/);
+  // The legal pages and sign-in sit in the bottom bar, under the divider.
+  const bar = FOOTER.slice(FOOTER.indexOf('border-t border-border/60'));
+  for (const to of ['/privacy', '/terms', '/login']) assert.match(bar, new RegExp(`to="${to}"`), `${to} is not in the bottom bar`);
+  assert.match(FOOTER, /href=\{SUPPORT_MAILTO\}/, 'a contact in the footer of every public page');
+  assert.doesNotMatch(FOOTER, /flex flex-wrap gap-x-5 gap-y-2/, 'the run-on row of links is back');
 });
 
 test('the fact strip is its own section, from the code that makes the facts true', () => {

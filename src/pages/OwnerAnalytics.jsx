@@ -10,6 +10,7 @@
  */
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
+import OwnerReviews from '@/components/OwnerReviews';
 import { Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 
 const money = (n) => (n == null ? '—' : `$${Number(n).toFixed(2)}`);
@@ -227,6 +228,10 @@ export default function OwnerAnalytics() {
           </table>
         </div>
       </section>
+
+      {/* What students said from the in-app review card, and the one place a
+          review is approved for praelecta.ca. */}
+      <OwnerReviews />
 
       <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 space-y-1">
         <p className="font-medium">How to read these numbers</p>

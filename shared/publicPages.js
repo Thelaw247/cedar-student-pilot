@@ -34,7 +34,7 @@ export const PUBLIC_PAGES = {
   },
   '/about': {
     title: 'About — Praelecta',
-    description: `Praelecta was built by ${FOUNDER.name}, an engineering student at the University of Saskatchewan, for students who can't listen and take notes at the same time.`,
+    description: `Praelecta was built by ${FOUNDER.name}, an engineering student at the University of Saskatchewan, so every student can give the lecture their full attention.`,
   },
   '/changelog': {
     title: 'What’s new — Praelecta',

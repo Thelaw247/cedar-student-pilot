@@ -17,6 +17,7 @@ import DailyProgressRing from '@/components/DailyProgressRing';
 import FloatingActionButton from '@/components/FloatingActionButton';
 import AutoPrintPrompt from '@/components/AutoPrintPrompt';
 import AttendancePrompt from '@/components/AttendancePrompt';
+import ReviewPrompt from '@/components/ReviewPrompt';
 import DetectedDeadlines from '@/components/DetectedDeadlines';
 import WeeklyCalendar from '@/components/WeeklyCalendar';
 import AddEventModal from '@/components/AddEventModal';
@@ -244,6 +245,9 @@ export default function Home() {
           <AutoPrintPrompt />
           <AttendancePrompt />
           <DetectedDeadlines lectures={lectures} assignments={assignments} onChanged={() => loadData({ quiet: true })} />
+          {/* The ask for a review: a card among the other questions, never a
+              pop-up, and only for a current student (components/ReviewPrompt). */}
+          <ReviewPrompt lectures={lectures} />
 
           <DailyProgressRing
             classes={todayClasses}

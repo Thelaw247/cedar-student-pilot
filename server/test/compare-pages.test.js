@@ -42,8 +42,11 @@ test('there is a routed, listed, linked comparison page for each competitor', ()
     assert.match(PUBLIC_PAGES[path].title, new RegExp(`^Praelecta vs ${c.name}`));
   }
   assert.ok(APP.indexOf('path="/vs/lemora"') < APP.indexOf('<ProtectedRoute'), 'the comparison pages must be public');
-  assert.match(FOOTER, /Compare<\/span>/, 'the footer needs the "Compare" heading the audit asked for');
+  assert.match(FOOTER, /<Column title="Compare">/, 'the footer needs the "Compare" heading the audit asked for');
   assert.match(FOOTER, /to=\{`\/vs\/\$\{c\.slug\}`\}/);
+  // "vs Lemora" on screen under the heading; the full name for screen
+  // readers and search engines.
+  assert.match(FOOTER, /<span className="sr-only">Praelecta <\/span>vs \{c\.name\}/);
 });
 
 test('every competitor column answers every row, from dated, linked sources, and argues both ways', () => {
@@ -92,9 +95,15 @@ test('every public route gets its own served <head>, distinct from the homepage'
     assert.ok(html.includes(`<meta property="og:url" content="${publicPageUrl(route)}" />`), `${route}: og:url not written`);
     assert.ok(!html.includes('content="Record your lecture'), `${route} still carries the homepage description`);
   }
-  // The audit's own wording for the three pages it named.
+  // The audit's own wording for the three pages it named; the About line is
+  // the founder's own, the same sentence that sits under his name on the
+  // homepage (LandingProof's FounderLine).
   assert.match(PUBLIC_PAGES['/pricing'].description, /^Praelecta pricing: two lectures free, then \$\d+\.\d\d\/month or \$\d+\.\d\d\/semester\. Credit packs, plan comparison, and semester savings\.$/);
-  assert.match(PUBLIC_PAGES['/about'].description, /built by De Wet Luus, an engineering student at the University of Saskatchewan, for students who can't listen and take notes at the same time/);
+  assert.match(PUBLIC_PAGES['/about'].description, /built by De Wet Luus, an engineering student at the University of Saskatchewan, so every student can give the lecture their full attention/);
+  assert.match(read('../../src/components/landing/LandingProof.jsx'), /an engineering student at the University of Saskatchewan, so every student can give the lecture their full attention\./);
+  for (const src of [PUBLIC_PAGES['/about'].description, read('../../src/components/landing/LandingProof.jsx'), read('../../src/pages/About.jsx')]) {
+    assert.doesNotMatch(src, /couldn.t listen|could not keep up|could never do both/, 'the founder line reads as an apology again');
+  }
   assert.equal(PUBLIC_PAGES['/changelog'].description, 'What shipped in Praelecta, newest first. Desktop apps, study tools, and lecture features, dated.');
 });
 

@@ -59,6 +59,15 @@ test('the public counts answer without a session — and never as a 401', async 
   assert.ok(body && typeof body === 'object');
 });
 
+test('the public reviews answer without a session — and never as a 401', async () => {
+  // Read signed out by the homepage, like the counts above.
+  const response = await fetch(`${baseUrl}/public/reviews`);
+  assert.notEqual(response.status, 401);
+  assert.ok([200, 503].includes(response.status), `unexpected status ${response.status}`);
+  const body = await response.json();
+  assert.ok(body && typeof body === 'object');
+});
+
 test('unknown routes return JSON 404', async () => {
   const response = await fetch(`${baseUrl}/does-not-exist`);
   assert.equal(response.status, 404);
@@ -92,6 +101,7 @@ test('every user-data and provider route fails closed without authorization', as
     ['POST', '/generate-project-roadmap'],
     ['POST', '/generate-class-handbook'],
     ['POST', '/owner-analytics'],
+    ['POST', '/owner-reviews'],
     ['POST', '/export-transcript'],
     ['POST', '/process-lecture-recording'],
     ['POST', '/send-study-reminders'],

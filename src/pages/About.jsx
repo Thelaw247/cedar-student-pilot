@@ -35,7 +35,7 @@ export default function About() {
       <section className="px-4 pb-20 pt-28 sm:px-6 sm:pt-32">
         <div className="mx-auto max-w-3xl">
           <p className="text-sm font-semibold text-primary">About</p>
-          <h1 className="mt-2 text-4xl font-bold tracking-[-0.045em] text-foreground sm:text-5xl">Built by a student, for the lecture I could not keep up with.</h1>
+          <h1 className="mt-2 text-4xl font-bold tracking-[-0.045em] text-foreground sm:text-5xl">Built by a student, so every lecture gets your full attention.</h1>
 
           <div className="mt-10 flex flex-col gap-6 rounded-[26px] border border-border bg-card p-6 sm:flex-row sm:items-start sm:p-8">
             <FounderPhoto />
@@ -61,7 +61,7 @@ export default function About() {
           <div className="mt-10 space-y-5 text-base leading-7 text-muted-foreground">
             <h2 className="text-2xl font-bold tracking-[-0.03em] text-foreground">Why I built this</h2>
             <p>
-              I built Praelecta before starting engineering at the University of Saskatchewan, for one reason: in a fast lecture you can listen or you can write, and I could never do both. Whatever I wrote down was half of what was said, and the half I missed was usually the half on the test.
+              I built Praelecta before starting engineering at the University of Saskatchewan, for one reason: in a fast lecture, writing and listening compete for the same attention. Every line copied down is a moment of the explanation missed, and the part that slips past is often the part the exam asks about.
             </p>
             <p>
               So the app does the writing. You press record, go to class, and by the time you are out of the room the lecture is a transcript, a summary, flashcards and practice questions. When the exam gets announced, the study sessions book themselves around your calendar. I use it for my own courses every week, which is also why the things that annoy students about study apps — hidden quotas, cancel screens built to lose you, paywalls dressed up as errors — are written out of this one in the code, not in a promise.

@@ -15,6 +15,16 @@ import { PUBLIC_PAGES } from '@/lib/publicPages';
  */
 export const CHANGELOG = [
   {
+    date: '2026-10-02',
+    title: 'Your review, in your words',
+    items: [
+      'Today asks for a quick review: a star rating and a sentence or two. Putting it on praelecta.ca is your choice — the box starts unticked — and Settings → Your review is where you change it, take it off the site or delete it.',
+      'The homepage shows what students said, with their stars and only with their say-so, and the average rating once there are enough ratings for it to mean something. The average counts every rating, not only the ones on the page.',
+      'The footer is three short columns — Product, Company and Compare — with Privacy, Terms and Sign in underneath.',
+      'The homepage headline is a little smaller and reads on two lines on any screen, and the About page says why Praelecta exists in plainer words.',
+    ],
+  },
+  {
     date: '2026-10-01',
     title: 'Today answers back',
     items: [

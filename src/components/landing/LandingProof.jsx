@@ -46,10 +46,12 @@ export function LandingFacts() {
 }
 
 /**
- * The person, at the final call to action. A first-year at the University of
- * Saskatchewan is a proof no other study app can copy, and the last line
- * before the footer is where a visitor who has read the page wants to know
- * who made it. The photo is FOUNDER.photo when the file exists and the
+ * The person, at the final call to action. A named engineering student at the
+ * University of Saskatchewan is a proof no other study app can copy, and the
+ * last line before the footer is where a visitor who has read the page wants
+ * to know who made it. The line is the founder's own (2 Oct 2026): what the
+ * product is for, not an apology for what he once could not do. The photo is
+ * FOUNDER.photo when the file exists and the
  * initials until it does, the same fallback the About page uses — never a
  * broken image.
  */
@@ -61,7 +63,7 @@ export function FounderLine({ className = '' }) {
         ? <span className="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-primary/15 text-[11px] font-bold text-primary" aria-hidden="true">{FOUNDER.initials}</span>
         : <img src={FOUNDER.photo} alt="" onError={() => setMissing(true)} className="h-8 w-8 flex-none rounded-full object-cover" />}
       <span className="text-xs leading-4 text-muted-foreground">
-        Built by <span className="font-semibold text-foreground">{FOUNDER.name}</span>, a first-year engineering student at the University of Saskatchewan, because he couldn&rsquo;t listen and take notes at the same time.
+        Built by <span className="font-semibold text-foreground">{FOUNDER.name}</span>, an engineering student at the University of Saskatchewan, so every student can give the lecture their full attention.
         <span className="ml-1 font-semibold text-primary group-hover:text-foreground">About →</span>
       </span>
     </Link>

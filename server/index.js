@@ -36,6 +36,7 @@ import rebookStudySessionRouter from './routes/rebookStudySession.js';
 import generateProjectRoadmapRouter from './routes/generateProjectRoadmap.js';
 import generateClassHandbookRouter from './routes/generateClassHandbook.js';
 import ownerAnalyticsRouter from './routes/ownerAnalytics.js';
+import ownerReviewsRouter from './routes/ownerReviews.js';
 import trackEventRouter from './routes/trackEvent.js';
 import exportTranscriptRouter from './routes/exportTranscript.js';
 import processLectureRecordingRouter from './routes/processLectureRecording.js';
@@ -48,6 +49,7 @@ import enrichLectureRouter from './routes/enrichLecture.js';
 import lectureMaterialsRouter from './routes/lectureMaterials.js';
 import recordStudyCoverageRouter from './routes/recordStudyCoverage.js';
 import publicStatsRouter from './routes/publicStats.js';
+import publicReviewsRouter from './routes/publicReviews.js';
 
 export const app = express();
 const PORT = process.env.PORT || 3000;
@@ -95,6 +97,7 @@ app.use('/rebook-study-session', rebookStudySessionRouter);
 app.use('/generate-project-roadmap', generateProjectRoadmapRouter);
 app.use('/generate-class-handbook', generateClassHandbookRouter);
 app.use('/owner-analytics', ownerAnalyticsRouter);
+app.use('/owner-reviews', ownerReviewsRouter);
 app.use('/track-event', trackEventRouter);
 app.use('/export-transcript', exportTranscriptRouter);
 app.use('/process-lecture-recording', processLectureRecordingRouter);
@@ -106,8 +109,10 @@ app.use('/create-semester-import', createSemesterImportRouter);
 app.use('/enrich-lecture', enrichLectureRouter);
 app.use('/lecture-materials', lectureMaterialsRouter);
 app.use('/record-study-coverage', recordStudyCoverageRouter);
-// Aggregate counts for the landing page. Public by design; see the route.
+// Aggregate counts and approved student reviews for the landing page.
+// Public by design; see the routes.
 app.use('/public', publicStatsRouter);
+app.use('/public', publicReviewsRouter);
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', service: SERVICE_NAME, timestamp: new Date().toISOString() });
