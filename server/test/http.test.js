@@ -144,13 +144,30 @@ test('a preflight carrying the analytics session headers is allowed', async () =
     headers: {
       Origin: 'https://staging.cedar.example',
       'Access-Control-Request-Method': 'GET',
-      'Access-Control-Request-Headers': 'authorization, x-posthog-session-id',
+      'Access-Control-Request-Headers': 'authorization, x-posthog-distinct-id, x-posthog-session-id, x-posthog-window-id',
     },
   });
   assert.equal(response.status, 204);
   const allowed = (response.headers.get('access-control-allow-headers') || '')
     .split(',').map((header) => header.trim().toLowerCase());
-  for (const header of ['authorization', 'content-type', 'stripe-signature', 'x-posthog-session-id', 'x-posthog-window-id']) {
+  for (const header of ['authorization', 'content-type', 'stripe-signature', 'x-posthog-session-id', 'x-posthog-window-id', 'x-posthog-distinct-id']) {
     assert.ok(allowed.includes(header), `${header} is not allowed: ${allowed.join(', ')}`);
   }
+});
+
+test('a preflight for an analytics header the API has not seen yet still passes; any other header does not', async () => {
+  // The SDK adds tracing headers from code it loads at runtime. A new one
+  // must not take every API call in the browser down again (2 Oct 2026).
+  const response = await fetch(`${baseUrl}/public/reviews`, {
+    method: 'OPTIONS',
+    headers: {
+      Origin: 'https://staging.cedar.example',
+      'Access-Control-Request-Method': 'GET',
+      'Access-Control-Request-Headers': 'x-posthog-something-new, x-not-ours',
+    },
+  });
+  assert.equal(response.status, 204);
+  const allowed = (response.headers.get('access-control-allow-headers') || '').toLowerCase();
+  assert.ok(allowed.includes('x-posthog-something-new'), allowed);
+  assert.ok(!allowed.includes('x-not-ours'), 'a header outside the analytics pattern was reflected');
 });

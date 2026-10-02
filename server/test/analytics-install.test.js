@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import { ALLOWED_REQUEST_HEADERS, allowedRequestHeaders } from '../lib/http.js';
 
 /**
  * The HeyCatch install, held together across the six files it touches.
@@ -69,10 +70,22 @@ test('the API host is traced in the browser and allowed through CORS', () => {
   assert.ok(hosts.length > 0, 'the API is on another host; it has to be traced');
   const apiHost = new URL(read('../../.env.cloudflare').match(/^VITE_RENDER_API_URL=(\S+)/m)[1]).host;
   assert.ok(hosts.includes(apiHost), `tracingHosts does not name ${apiHost}, the host the build calls`);
-  const allowed = HTTP.match(/'Access-Control-Allow-Headers': '([^']+)'/)[1].toLowerCase();
-  for (const header of ['x-posthog-session-id', 'x-posthog-window-id']) {
+  assert.match(HTTP, /'Access-Control-Allow-Headers': allowedRequestHeaders\(req\.get\('Access-Control-Request-Headers'\)\)/);
+  const allowed = allowedRequestHeaders('').toLowerCase();
+  for (const header of ['x-posthog-session-id', 'x-posthog-window-id', 'x-posthog-distinct-id']) {
     assert.ok(allowed.includes(header), `${header} is not allowed by the API: every API call in the browser fails`);
   }
+});
+
+test('a tracing header the SDK adds later is allowed without a deploy; nothing else is reflected', () => {
+  // The SDK's core comes from in.heycatch.ai at runtime. On 2 Oct 2026 it
+  // started sending X-POSTHOG-DISTINCT-ID and every browser call to the API
+  // failed its preflight until the list caught up.
+  const answer = allowedRequestHeaders('authorization, x-posthog-distinct-id, X-PostHog-Trace-Id, x-evil, cookie').toLowerCase().split(', ');
+  assert.ok(answer.includes('x-posthog-trace-id'), 'a new x-posthog-* header was refused');
+  assert.ok(!answer.includes('x-evil') && !answer.includes('cookie'), 'a header outside the tracing pattern was reflected');
+  assert.equal(answer.filter((h) => h === 'x-posthog-distinct-id').length, 1, 'a known header is listed twice');
+  assert.equal(ALLOWED_REQUEST_HEADERS.length, 6);
 });
 
 test('the CSP lets the SDK load and send', () => {

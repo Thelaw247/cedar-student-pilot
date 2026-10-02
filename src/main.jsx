@@ -12,9 +12,11 @@ import '@/index.css'
 // it belongs in the bundle, the way the Supabase anon key does.
 //
 // tracingHosts names the API because it lives on its own host: requests to it
-// then carry X-POSTHOG-SESSION-ID, which server/lib/http.js must allow through
-// CORS or the browser drops the request (server/test/analytics-install.test.js
-// keeps the two in step). Nothing else is configured: no apiHost, no guards,
+// then carry the SDK's X-POSTHOG-* tracing headers (session, window and, since
+// the SDK's core updated itself on 2 Oct 2026, distinct id), which
+// server/lib/http.js must allow through CORS or the browser drops the request.
+// It allows any X-POSTHOG-* header by pattern for that reason
+// (server/test/analytics-install.test.js keeps the two in step). Nothing else is configured: no apiHost, no guards,
 // and no hand-instrumented UI events — autocapture covers those.
 analytics.init({
   projectKey: 'hck_pk_DAwNG96mZXpjqzyKcLl-K5UIEoeRbPrB',
