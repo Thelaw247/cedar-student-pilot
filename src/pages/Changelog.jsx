@@ -21,7 +21,7 @@ export const CHANGELOG = [
       'On Today, an attendance answer that could not be saved now says so and what to do next, an answer given offline is saved when you are back on, and “Ask me later” means later.',
       'A recording that will not save tells you the real reason — the server’s own words, not “check your connection” — keeps the part that failed to upload for the retry, and offers Discard when there is nothing to send.',
       'On a phone, the sheets for adding an event, adding an exam and rebooking no longer end up under the bottom bar, and the small buttons on Today are big enough for a thumb.',
-      'The homepage opens with six words.',
+      'The homepage opens with six words, and the product beside them is the product: a short loop of a real account — a lecture already turned into notes, formulas and an exam radar, two lectures ticked for studying, the week with the sessions booked in. If your system asks for less motion, you get the first frame as a picture instead.',
     ],
   },
   {

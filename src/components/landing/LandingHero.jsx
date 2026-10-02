@@ -1,7 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Play } from 'lucide-react';
-import { LectureResultCard } from '@/components/landing/RecordingFeature';
 
 /**
  * The first screen: six words, one sentence, two buttons, and the product.
@@ -16,10 +15,67 @@ import { LectureResultCard } from '@/components/landing/RecordingFeature';
  * No glow and no band behind this section. The page is one surface from
  * the header to the footer; a lit patch under the hero read as a filter
  * laid over the first screen and broke that. The product on the right is
- * the saved-lecture card from the recording section in a window frame,
- * and the text column starts at the top edge of that window, not halfway
- * down it — the eye enters both at the same line.
+ * the app in use, in a window frame, and the text column starts at the
+ * top edge of that window, not halfway down it — the eye enters both at
+ * the same line.
  */
+
+/**
+ * The demo loop: forty-six seconds of a real account, recorded from the
+ * live app and cut in the order the page tells the story — a recorded
+ * lecture that is already notes, formulas and an exam radar; two lectures
+ * ticked on the study page and the tools following; the day and the week
+ * the studying was booked into. Muted, looping, no controls, 16:9, under
+ * 2.5 MB; it starts on the notes, so the poster (its first frame) is what
+ * the headline promises. The filename is versioned because _headers caches
+ * it for a year: a new cut is a new name.
+ */
+export const HERO_DEMO_VIDEO = '/hero-demo-v1.mp4';
+export const HERO_DEMO_POSTER = '/hero-demo-v1.jpg';
+const HERO_DEMO_ALT = 'Praelecta in use: a recorded lecture already turned into notes, formulas and an exam radar; two lectures ticked for studying; the week with the sessions booked in.';
+
+const REDUCED_MOTION = '(prefers-reduced-motion: reduce)';
+
+function usePrefersReducedMotion() {
+  const [reduced, setReduced] = React.useState(() => typeof window !== 'undefined' && !!window.matchMedia && window.matchMedia(REDUCED_MOTION).matches);
+  React.useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return undefined;
+    const media = window.matchMedia(REDUCED_MOTION);
+    const onChange = (e) => setReduced(e.matches);
+    media.addEventListener('change', onChange);
+    return () => media.removeEventListener('change', onChange);
+  }, []);
+  return reduced;
+}
+
+/**
+ * A visitor who asked their system for less motion gets the first frame
+ * as a picture, not a looping video; everyone else gets the loop. Both
+ * carry the same description for a screen reader.
+ */
+export function HeroDemo() {
+  const reduced = usePrefersReducedMotion();
+  if (reduced) {
+    return <img src={HERO_DEMO_POSTER} alt={HERO_DEMO_ALT} width="1386" height="780" className="block aspect-video w-full bg-card object-cover" />;
+  }
+  return (
+    <video
+      src={HERO_DEMO_VIDEO}
+      poster={HERO_DEMO_POSTER}
+      width="1386"
+      height="780"
+      className="block aspect-video w-full bg-card object-cover"
+      autoPlay
+      muted
+      loop
+      playsInline
+      disablePictureInPicture
+      preload="metadata"
+      aria-label={HERO_DEMO_ALT}
+    />
+  );
+}
+
 export default function LandingHero() {
   return (
     <section className="px-4 pb-12 pt-28 sm:px-6 lg:pb-16 lg:pt-36">
@@ -54,9 +110,9 @@ export default function LandingHero() {
               <span className="h-2.5 w-2.5 rounded-full bg-foreground/15" />
               <span className="h-2.5 w-2.5 rounded-full bg-foreground/15" />
               <span className="h-2.5 w-2.5 rounded-full bg-foreground/15" />
-              <span className="ml-2 truncate text-[11px] font-medium text-muted-foreground">PHYS 117 · Equilibrium &amp; free-body diagrams</span>
+              <span className="ml-2 truncate text-[11px] font-medium text-muted-foreground">praelecta.ca</span>
             </div>
-            <LectureResultCard bare />
+            <HeroDemo />
           </div>
         </div>
       </div>

@@ -63,9 +63,11 @@ test('the hero is six words, one sentence, the product and two buttons, on one f
   const sub = HERO.match(/text-muted-foreground">\s*([^<]+?)\s*<\/p>/)[1];
   assert.ok(words(sub) <= 25, `the hero sentence is ${words(sub)} words`);
   assert.match(sub, /records the lecture/, 'the sentence names the category');
-  // The product, in a window: the saved-lecture card the recording section
-  // builds from the lecture detail screen's own fields.
-  assert.match(HERO, /<LectureResultCard bare \/>/);
+  // The product, in a window: the app in use, as a muted loop of a real
+  // account (hero-demo.test.js holds the file, the poster and the cache
+  // rule). The saved-lecture card stays in the recording section.
+  assert.match(HERO, /<HeroDemo \/>/);
+  assert.doesNotMatch(HERO, /LectureResultCard/, 'the hero shows the product moving, not a mock of it');
   assert.match(SECTIONS.RecordingFeature, /export function LectureResultCard/);
   assert.match(HERO, /to="\/register"/);
   assert.match(HERO, /href="#how-it-works"/, 'the second button scrolls to the steps');

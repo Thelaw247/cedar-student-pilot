@@ -29,3 +29,9 @@ https://cedar-student-pilot.dewetluus.workers.dev/*
 # Vite filenames contain content hashes, so these can be cached permanently.
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
+
+# The hero's demo loop and its poster carry a version in the filename
+# (hero-demo-v1.mp4), so a new cut is a new name and these can be cached
+# as long as the bundle. Range requests pass through untouched.
+/hero-demo-*
+  Cache-Control: public, max-age=31536000, immutable
