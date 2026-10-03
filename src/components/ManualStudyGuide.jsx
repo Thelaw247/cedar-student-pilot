@@ -179,7 +179,7 @@ export default function ManualStudyGuide({ classId, studyMode = null, lectureIds
 
               {ch.exam_mentions?.length > 0 && (
                 <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
-                  <p className="text-xs font-semibold text-amber-600 uppercase tracking-wide mb-1">⚠ Exam Mentions</p>
+                  <p className="text-xs font-semibold text-amber-700 dark:text-amber-500 uppercase tracking-wide mb-1">⚠ Exam Mentions</p>
                   <ul className="space-y-1">
                     {ch.exam_mentions.map((m, j) => (
                       <li key={j} className="text-xs text-amber-700 dark:text-amber-500">{m}</li>

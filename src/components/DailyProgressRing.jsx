@@ -123,7 +123,7 @@ export default function DailyProgressRing({ classes, events, studySessions, atte
           <p className="text-[11px] text-muted-foreground tabular-nums mt-0.5">{breakdown}</p>
         )}
         {pendingClasses > 0 && (
-          <p className="text-[11px] text-amber-600 dark:text-amber-500 mt-1">
+          <p className="text-[11px] text-amber-700 dark:text-amber-500 mt-1">
             {pendingClasses} {pendingClasses === 1 ? 'class needs' : 'classes need'} an attendance answer
           </p>
         )}

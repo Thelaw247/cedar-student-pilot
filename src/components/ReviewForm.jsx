@@ -143,7 +143,7 @@ export default function ReviewForm({ existing = null, fullName = '', onClose, on
                   onMouseEnter={() => setHover(n)}
                   className="inline-flex h-11 w-11 items-center justify-center rounded-lg transition-transform hover:scale-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
                 >
-                  <Star aria-hidden="true" className={`h-7 w-7 ${n <= shown ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground/40'}`} />
+                  <Star aria-hidden="true" className={`h-7 w-7 ${n <= shown ? 'fill-amber-400 text-amber-600' : 'text-muted-foreground/40'}`} />
                 </button>
               ))}
               <span className="ml-2 text-xs font-medium text-muted-foreground" aria-hidden="true">{WORDS[shown]}</span>
@@ -212,7 +212,7 @@ export default function ReviewForm({ existing = null, fullName = '', onClose, on
 
           {error && (
             <div role="alert" className="flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 text-left text-xs leading-5 text-foreground">
-              <AlertTriangle className="mt-0.5 h-4 w-4 flex-none text-amber-500" aria-hidden="true" />
+              <AlertTriangle className="mt-0.5 h-4 w-4 flex-none text-amber-700 dark:text-amber-500" aria-hidden="true" />
               <span>
                 {error.text}
                 {error.kind === 'signed_out' && <> <Link to="/login" className="font-semibold text-primary hover:text-foreground">Sign in</Link></>}
@@ -234,7 +234,7 @@ export default function ReviewForm({ existing = null, fullName = '', onClose, on
 
           {editing && (
             <button type="button" onClick={remove} disabled={!!busy} aria-busy={busy === 'delete'}
-              className="inline-flex min-h-[44px] w-full items-center justify-center gap-1.5 text-xs font-medium text-red-600 hover:text-red-500 disabled:opacity-50">
+              className="inline-flex min-h-[44px] w-full items-center justify-center gap-1.5 text-xs font-medium text-red-700 dark:text-red-400 hover:text-red-500 disabled:opacity-50">
               {busy === 'delete' ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />}
               {confirmDelete ? 'Tap again to delete it everywhere' : 'Delete my review'}
             </button>

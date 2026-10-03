@@ -85,7 +85,7 @@ export default function StudyShelf({
 
       <div className="grid grid-cols-2 gap-3 mb-5">
         <Tile
-          icon={ListChecks} tint="text-emerald-600"
+          icon={ListChecks} tint="text-emerald-700 dark:text-emerald-500"
           title="Quiz me"
           desc="Question by question, in teaching order"
           lockedTierName={review.allowed ? null : review.requiredTierName}
@@ -94,7 +94,7 @@ export default function StudyShelf({
           onClick={() => navigate(`/lecture-review?ids=${lectureIds.join(',')}&mode=quiz`)}
         />
         <Tile
-          icon={BookOpen} tint="text-amber-600"
+          icon={BookOpen} tint="text-amber-700 dark:text-amber-500"
           title="Handbook"
           desc="Your lectures as chapters, each with a quiz"
           lockedTierName={handbook.allowed ? null : handbook.requiredTierName}
@@ -103,7 +103,7 @@ export default function StudyShelf({
           onClick={() => setOverlay('handbook')}
         />
         <Tile
-          icon={ClipboardList} tint="text-sky-600"
+          icon={ClipboardList} tint="text-sky-700 dark:text-sky-400"
           title="Paper guide"
           desc="Topics to work through on paper"
           lockedTierName={handbook.allowed ? null : handbook.requiredTierName}
@@ -121,7 +121,7 @@ export default function StudyShelf({
       <h3 className="text-xs font-medium text-muted-foreground mb-2">Or catch up across every class</h3>
       <div className="grid grid-cols-2 gap-3">
         <Tile
-          icon={CalendarDays} tint="text-blue-600"
+          icon={CalendarDays} tint="text-blue-600 dark:text-blue-400"
           title="Today's lectures"
           desc="Everything recorded today"
           lockedTierName={review.allowed ? null : review.requiredTierName}
@@ -130,7 +130,7 @@ export default function StudyShelf({
           onClick={() => navigate('/lecture-review/today?mode=quiz')}
         />
         <Tile
-          icon={CalendarRange} tint="text-purple-600"
+          icon={CalendarRange} tint="text-purple-600 dark:text-purple-400"
           title="This week"
           desc="Everything from the past 7 days"
           lockedTierName={review.allowed ? null : review.requiredTierName}

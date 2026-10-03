@@ -112,7 +112,7 @@ export default function StudySessionNotifier() {
         {rebookResult ? (
           <>
             <div className={`w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4 ${rebookResult.error ? 'bg-amber-500/10' : 'bg-emerald-500/10'}`}>
-              {rebookResult.error ? <AlertTriangle className="w-7 h-7 text-amber-500" /> : <RefreshCw className="w-7 h-7 text-emerald-600" />}
+              {rebookResult.error ? <AlertTriangle className="w-7 h-7 text-amber-700 dark:text-amber-500" /> : <RefreshCw className="w-7 h-7 text-emerald-700 dark:text-emerald-500" />}
             </div>
             <h3 className="font-heading text-lg font-semibold text-center mb-2">{rebookResult.error ? 'Not rebooked' : 'Session Rebooked'}</h3>
             {rebookResult.error ? (

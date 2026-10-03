@@ -383,7 +383,7 @@ export default function AssignmentEditModal({ assignment, onClose, onUpdate }) {
                         {isProject ? `Step ${i + 1}` : `Session ${i + 1}`}
                       </span>
                       {s.status === 'completed' && (
-                        <span className="text-[10px] font-semibold text-emerald-600 flex items-center gap-1"><Check className="w-2.5 h-2.5" /> Completed</span>
+                        <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-500 flex items-center gap-1"><Check className="w-2.5 h-2.5" /> Completed</span>
                       )}
                       {s.status === 'skipped' && (
                         <span className="text-[10px] font-semibold text-muted-foreground">Skipped</span>

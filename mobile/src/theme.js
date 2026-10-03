@@ -23,8 +23,16 @@ export const colors = {
   border: '#2E3849',       // 218 22% 24%
   input: '#2E3849',
   primary: '#578AFF',      // 224 100% 67%
-  primaryPressed: '#3C74F5',
-  primaryForeground: '#FFFFFF',
+  // Navy on a blue fill, as the web's navy surfaces now have: white on this
+  // lifted blue measured 3.2:1, navy reads 5.8:1.
+  primaryForeground: '#0E121B',
+  // The sign-in button is the CTA. The web paints it as a gradient with a
+  // white label (.auth-cta); native has no gradient, so it takes the brand
+  // blue at rest and the gradient's bottom stop when pressed (white reads
+  // 4.7:1 and 5.7:1 on them).
+  cta: '#2E66FF',
+  ctaPressed: '#1453FF',
+  ctaForeground: '#FFFFFF',
   foreground: '#EFF3F9',   // 210 40% 96%
   muted: '#8E9AAF',        // 215 18% 64%
   secondary: '#1C2231',    // 222 26% 14%

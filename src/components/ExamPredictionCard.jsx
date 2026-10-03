@@ -109,7 +109,7 @@ export default function ExamPredictionCard({ classId }) {
                 <div className="min-w-0">
                   <p className={`text-sm text-foreground ${t.high ? 'font-semibold' : 'font-medium'}`}>
                     {t.topic}
-                    {t.high && <span className="ml-2 text-[11px] font-semibold text-amber-600 dark:text-amber-500 uppercase tracking-wide">Likely</span>}
+                    {t.high && <span className="ml-2 text-[11px] font-semibold text-amber-700 dark:text-amber-500 uppercase tracking-wide">Likely</span>}
                   </p>
                   <p className="text-[11px] text-muted-foreground">{t.reason}</p>
                 </div>

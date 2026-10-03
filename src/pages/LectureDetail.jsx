@@ -428,8 +428,8 @@ export default function LectureDetail() {
           <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1 text-xs text-muted-foreground">
             <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{lecture.date}</span>
             {lecture.duration_seconds > 0 && <span>• {Math.floor(lecture.duration_seconds / 60)} min</span>}
-            {lecture.is_ai_estimated && <span className="flex items-center gap-1 text-amber-600"><AlertCircle className="w-3 h-3" /> AI Estimated</span>}
-            {lecture.status === 'processing' && <span className="text-amber-600">• AI Processing...</span>}
+            {lecture.is_ai_estimated && <span className="flex items-center gap-1 text-amber-700 dark:text-amber-500"><AlertCircle className="w-3 h-3" /> AI Estimated</span>}
+            {lecture.status === 'processing' && <span className="text-amber-700 dark:text-amber-500">• AI Processing...</span>}
           </div>
         </div>
       </div>
@@ -460,7 +460,7 @@ export default function LectureDetail() {
       {/* AI Estimated banner */}
       {lecture.is_ai_estimated && (
         <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 mb-6 flex items-start gap-2">
-          <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+          <AlertCircle className="w-4 h-4 text-amber-700 dark:text-amber-500 mt-0.5 flex-shrink-0" />
           <p className="text-xs text-amber-700 dark:text-amber-500">This lecture was not recorded. The summary below is AI-generated based on previous lectures and course context. It may not reflect what was actually covered in class.</p>
         </div>
       )}
@@ -472,7 +472,7 @@ export default function LectureDetail() {
       {(lecture.status === LECTURE_PENDING || processingStalled) && lecture.recording_url && !lecture.ai_title && (
         <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 mb-6">
           <div className="flex items-start gap-2">
-            <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+            <AlertTriangle className="w-4 h-4 text-amber-700 dark:text-amber-500 mt-0.5 flex-shrink-0" />
             <div className="flex-1">
               <p className="text-sm font-medium text-amber-700 dark:text-amber-500">
                 {processingStalled ? 'Processing stopped before it finished' : "This recording hasn't been processed yet"}

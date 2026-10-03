@@ -125,7 +125,7 @@ export default function Timeline({ items, onAddEvent, onDeleteItem }) {
     <div>
     {conflicts.length > 0 && (
       <div className="mb-3 rounded-lg border border-amber-500/30 bg-amber-500/5 p-2.5 flex items-center gap-2">
-        <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-500 flex-shrink-0" />
+        <AlertCircle className="w-4 h-4 text-amber-700 dark:text-amber-500 flex-shrink-0" />
         <p className="text-xs text-amber-700 dark:text-amber-500 font-medium">
           {conflicts.length} scheduling conflict{conflicts.length !== 1 ? 's' : ''} — the overlapping events are highlighted below
         </p>

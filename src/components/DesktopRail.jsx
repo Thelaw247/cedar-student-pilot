@@ -154,7 +154,7 @@ export default function DesktopRail() {
                     <p className="text-xs font-medium text-foreground truncate">{a.title}</p>
                     <p className="text-[11px] text-muted-foreground truncate">{cls?.name || 'Unassigned'}</p>
                   </div>
-                  <span className={`text-[11px] font-medium tabular-nums flex-shrink-0 inline-flex items-center gap-1 ${urgent ? 'text-amber-600 dark:text-amber-500' : 'text-muted-foreground'}`}>
+                  <span className={`text-[11px] font-medium tabular-nums flex-shrink-0 inline-flex items-center gap-1 ${urgent ? 'text-amber-700 dark:text-amber-500' : 'text-muted-foreground'}`}>
                     {urgent && <AlertCircle className="w-3 h-3" />}
                     {daysUntil(a.due_date)}
                   </span>

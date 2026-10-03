@@ -95,7 +95,7 @@ export default function Subscription() {
           >
             Semester
             {maxSavingPercent > 0 && (
-              <span className="ml-1.5 text-[10px] font-semibold text-emerald-600 uppercase">
+              <span className="ml-1.5 text-[10px] font-semibold text-emerald-700 dark:text-emerald-500 uppercase">
                 Save up to {maxSavingPercent}%
               </span>
             )}
@@ -167,7 +167,7 @@ export default function Subscription() {
                 {period === 'semester' ? (
                   <p className="text-xs text-foreground">
                     Billed ${tier.semester.toFixed(2)} once per semester
-                    {saving && <span className="text-emerald-600"> · save ${saving.saved}</span>}
+                    {saving && <span className="text-emerald-700 dark:text-emerald-500"> · save ${saving.saved}</span>}
                   </p>
                 ) : (
                   <p className="text-xs text-muted-foreground">Billed ${tier.monthly.toFixed(2)} every month</p>

@@ -51,9 +51,9 @@ export default function ProjectSessionEndModal({ assignmentId, onClose }) {
   };
 
   const priorityColors = {
-    low: 'bg-blue-500/10 text-blue-600 border-blue-500/20',
-    medium: 'bg-amber-500/10 text-amber-600 border-amber-500/20',
-    high: 'bg-rose-500/10 text-rose-600 border-rose-500/20',
+    low: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20',
+    medium: 'bg-amber-500/10 text-amber-700 dark:text-amber-500 border-amber-500/20',
+    high: 'bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-500/20',
   };
 
   return (
@@ -113,7 +113,7 @@ export default function ProjectSessionEndModal({ assignmentId, onClose }) {
         {phase === 'scheduled' && (
           <div className="text-center">
             <div className="w-14 h-14 rounded-full bg-emerald-500/10 flex items-center justify-center mx-auto mb-4">
-              <Check className="w-7 h-7 text-emerald-600" />
+              <Check className="w-7 h-7 text-emerald-700 dark:text-emerald-500" />
             </div>
             <h3 className="font-heading text-lg font-semibold mb-2">Time Scheduled!</h3>
             <p className="text-sm text-muted-foreground mb-6">
@@ -129,7 +129,7 @@ export default function ProjectSessionEndModal({ assignmentId, onClose }) {
         {phase === 'full' && (
           <div>
             <div className="flex items-start gap-2 mb-4 rounded-lg bg-amber-500/5 border border-amber-500/30 p-3">
-              <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+              <AlertTriangle className="w-5 h-5 text-amber-700 dark:text-amber-500 flex-shrink-0 mt-0.5" />
               <div>
                 <p className="text-sm font-medium text-amber-700 dark:text-amber-500">Schedule is Full</p>
                 <p className="text-xs text-muted-foreground mt-1">

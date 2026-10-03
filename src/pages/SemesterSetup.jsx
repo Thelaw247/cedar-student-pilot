@@ -477,7 +477,7 @@ export default function SemesterSetup() {
               {updatingSemesterId && (
                 <p className="text-[10px] font-semibold uppercase tracking-wide">
                   {cls.id
-                    ? <span className="text-emerald-600">Updates {existingClasses.find((c) => c.id === cls.id)?.course_code || existingClasses.find((c) => c.id === cls.id)?.name || 'an existing course'}</span>
+                    ? <span className="text-emerald-700 dark:text-emerald-500">Updates {existingClasses.find((c) => c.id === cls.id)?.course_code || existingClasses.find((c) => c.id === cls.id)?.name || 'an existing course'}</span>
                     : <span className="text-primary">New course</span>}
                 </p>
               )}
@@ -613,7 +613,7 @@ export default function SemesterSetup() {
     return (
       <div className="max-w-lg mx-auto px-4 sm:px-6 py-6 lg:py-20 text-center animate-fade-in">
         <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 flex items-center justify-center mx-auto mb-6">
-          <Check className="w-8 h-8 text-emerald-600" strokeWidth={2} />
+          <Check className="w-8 h-8 text-emerald-700 dark:text-emerald-500" strokeWidth={2} />
         </div>
         <h1 className="font-heading text-2xl font-bold mb-2">Schedule Updated</h1>
         <p className="text-muted-foreground text-sm mb-8">
@@ -629,7 +629,7 @@ export default function SemesterSetup() {
   return (
     <div className="max-w-lg mx-auto px-4 sm:px-6 py-6 lg:py-20 text-center animate-fade-in">
       <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 flex items-center justify-center mx-auto mb-6">
-        <Check className="w-8 h-8 text-emerald-600" strokeWidth={2} />
+        <Check className="w-8 h-8 text-emerald-700 dark:text-emerald-500" strokeWidth={2} />
       </div>
       <h1 className="font-heading text-2xl font-bold mb-2">Semester Created!</h1>
       <p className="text-muted-foreground text-sm mb-8">Your classes have been added and your timeline is ready.</p>

@@ -124,7 +124,7 @@ export default function RebookSessionModal({ session, className = '', onClose, o
             <button onClick={() => setMode('manual')}
               className="w-full flex items-center gap-3 rounded-xl border border-border p-3.5 hover:border-primary/30 hover:bg-primary/5 transition-all text-left">
               <div className="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center flex-shrink-0">
-                <CalendarClock className="w-5 h-5 text-amber-600" />
+                <CalendarClock className="w-5 h-5 text-amber-700 dark:text-amber-500" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-foreground">Choose a Time</p>
@@ -135,7 +135,7 @@ export default function RebookSessionModal({ session, className = '', onClose, o
             <button onClick={handleStartNow} disabled={manualLoading}
               className="w-full flex items-center gap-3 rounded-xl border border-border p-3.5 hover:border-emerald-500/30 hover:bg-emerald-500/5 transition-all text-left disabled:opacity-60">
               <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
-                {manualLoading ? <Loader2 className="w-5 h-5 text-emerald-600 animate-spin" /> : <Zap className="w-5 h-5 text-emerald-600" />}
+                {manualLoading ? <Loader2 className="w-5 h-5 text-emerald-700 dark:text-emerald-500 animate-spin" /> : <Zap className="w-5 h-5 text-emerald-700 dark:text-emerald-500" />}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-foreground">Start Now</p>
@@ -177,7 +177,7 @@ export default function RebookSessionModal({ session, className = '', onClose, o
         {mode === 'done' && aiResult && (
           <div className="text-center py-2">
             <div className="w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center mx-auto mb-3">
-              <Check className="w-6 h-6 text-emerald-600" />
+              <Check className="w-6 h-6 text-emerald-700 dark:text-emerald-500" />
             </div>
             <p className="text-sm font-medium text-foreground mb-1">
               Rebooked to {aiResult.new_date} at {aiResult.new_time}
@@ -195,7 +195,7 @@ export default function RebookSessionModal({ session, className = '', onClose, o
         {mode === 'done' && !aiResult && (
           <div className="text-center py-2">
             <div className="w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center mx-auto mb-3">
-              <Check className="w-6 h-6 text-emerald-600" />
+              <Check className="w-6 h-6 text-emerald-700 dark:text-emerald-500" />
             </div>
             <p className="text-sm font-medium text-foreground mb-4">Session rebooked!</p>
             <button onClick={onClose}

@@ -204,7 +204,7 @@ export default function ProfileSettings() {
                 <AlertCircle className="w-3 h-3 mt-px flex-shrink-0" />{pwError}
               </p>
             )}
-            {pwMsg && <p className="text-[11px] text-emerald-600">{pwMsg}</p>}
+            {pwMsg && <p className="text-[11px] text-emerald-700 dark:text-emerald-500">{pwMsg}</p>}
             <div className="flex gap-2 pt-1">
               <button onClick={() => { setShowPw(false); setPwError(null); setCurrentPw(''); setNewPw(''); setConfirmPw(''); }}
                 className="flex-1 px-3 py-2 rounded-lg border border-border text-xs font-medium text-muted-foreground hover:bg-muted">

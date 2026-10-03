@@ -64,7 +64,7 @@ export default function TodayIntelligenceCard({
         <div className="overflow-hidden rounded-2xl border border-border bg-card divide-y divide-border">
           {showExamWeek && (
             <div className="flex items-center gap-2.5 px-4 py-2.5 bg-amber-500/5">
-              <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-500 flex-shrink-0" />
+              <AlertTriangle className="w-4 h-4 text-amber-700 dark:text-amber-500 flex-shrink-0" />
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-semibold text-amber-700 dark:text-amber-500">Exam week</p>
                 <p className="text-[11px] text-muted-foreground truncate">
@@ -84,7 +84,7 @@ export default function TodayIntelligenceCard({
 
           {showBehind && (
             <div className="flex items-center gap-2.5 px-4 py-2.5 bg-rose-500/5">
-              <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0" />
+              <AlertCircle className="w-4 h-4 text-rose-700 dark:text-rose-400 flex-shrink-0" />
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-semibold text-rose-700 dark:text-rose-500">You're behind</p>
                 <p className="text-[11px] text-muted-foreground">

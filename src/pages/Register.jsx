@@ -212,7 +212,7 @@ export default function Register() {
           </InputOTP>
         </div>
         <Button
-          className="w-full h-12 font-medium"
+          className="auth-cta w-full h-12 font-medium"
           onClick={handleVerify}
           disabled={loading || otpCode.length < OTP_LENGTH}
         >
