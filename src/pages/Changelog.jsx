@@ -25,7 +25,7 @@ export const CHANGELOG = [
       'Plans are shown in hours of lectures instead of a lecture count, every place you can pay links to the refund policy, and Settings only shows switches that change something.',
       'Every button now says what it does to a screen reader, form fields are labelled, pop-up windows close with Escape, and the homepage video has a pause button.',
       'An address that is not a page now says so, in the site’s own design, with a way back. Every screen in the app has its own name in the browser tab, and the Tab key can skip straight past the menu.',
-      'Sign-in errors are read out by screen readers. After sign-up, Resend waits out the one-minute email limit instead of failing, a reset email that could not be sent says so, and choosing a new password ends on a screen that says it worked.',
+      'Sign-in errors are read out by screen readers. After sign-up, Resend waits out the one-minute email limit instead of failing, and its “New code sent” message closes on its own or with its ✕. A reset email that could not be sent says so, and choosing a new password ends on a screen that says it worked.',
       'After you pay, the confirmation names the plan or the credit pack you bought.',
     ],
   },

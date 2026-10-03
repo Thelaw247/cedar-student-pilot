@@ -142,6 +142,16 @@ test('form errors are announced, and the sign-in flow says what happened', () =>
   assert.match(register, /aria-label=\{`\$\{OTP_LENGTH\}-digit code from the email`\}/);
 });
 
+test('a toast closes on its own and on its ✕', () => {
+  // The toast components are plain elements, not Radix's: nothing closed a
+  // toast, and the ✕ had no handler, so "New code sent" sat on screen for
+  // about 17 minutes.
+  const toaster = read('../../src/components/ui/toaster.jsx');
+  assert.match(toaster, /const timer = setTimeout\(\(\) => onOpenChange\?\.\(false\), duration\);/);
+  assert.match(toaster, /<ToastClose onClick=\{\(\) => onOpenChange\?\.\(false\)\} \/>/);
+  assert.match(toaster, /toasts\.filter\(\(t\) => t\.open !== false\)/, 'a dismissed toast is still drawn');
+});
+
 test('the thank-you page names what was bought', () => {
   const route = read('../routes/confirmCheckoutSession.js');
   assert.match(route, /\{ kind: 'subscription', tier: entitlement\.tier, period: entitlement\.period \}/);
