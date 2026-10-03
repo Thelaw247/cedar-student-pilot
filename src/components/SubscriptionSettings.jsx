@@ -3,6 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { Link } from 'react-router-dom';
 import { Loader2, Zap, CreditCard, ExternalLink, TrendingUp, AlertCircle, ChevronRight } from 'lucide-react';
 import { CREDIT_PACKS, tierOf, nextTierUp, hoursFrom } from '@/lib/tiers';
+import PaywallLegalLinks from '@/components/monetization/PaywallLegalLinks';
 
 /**
  * Subscription, credit balance and purchase management.
@@ -212,6 +213,9 @@ export default function SubscriptionSettings() {
             </button>
           ))}
         </div>
+        <p className="text-[11px] text-muted-foreground mt-3">
+          Cancel anytime in Settings · Prices in CAD · <PaywallLegalLinks />
+        </p>
       </div>
     </div>
   );

@@ -160,6 +160,34 @@ async function authHeaders() {
 const CREDITS_SPENT_HEADER = 'X-Credits-Spent';
 
 /**
+ * What a student reads when a request never reached the server: offline, a
+ * dropped connection, a blocked preflight. The browser's own words for that
+ * ("Failed to fetch" in Chrome, "Load failed" in Safari, "NetworkError when
+ * attempting to fetch resource" in Firefox) were shown as they were by every
+ * screen that shows an error's message.
+ *
+ * `code: 'NETWORK'` is the signal for code. The sentence keeps the word
+ * "network" on purpose: the offline queue (useEntityData, useAutosave,
+ * LectureDetail's notes) recognises a dropped connection by it, and
+ * shared/saveErrors.js recognises the whole sentence.
+ */
+export const UNREACHABLE_MESSAGE = "Couldn't reach Praelecta. Check your network connection and try again.";
+
+/** fetch, with a dropped connection reported as UNREACHABLE_MESSAGE. */
+async function reach(url, init) {
+  try {
+    return await fetch(url, init);
+  } catch (cause) {
+    if (cause?.name === 'AbortError') throw cause;
+    /** @type {Error & {code?: string, status?: number}} */
+    const error = new Error(UNREACHABLE_MESSAGE, { cause });
+    error.code = 'NETWORK';
+    error.status = 0;
+    throw error;
+  }
+}
+
+/**
  * Fire the app's existing data-changed event when a response reports a charge.
  * useBalance listens for it, so the credit meter and every gated surface
  * re-read the balance without any per-feature wiring. Header absent or zero
@@ -186,7 +214,7 @@ function announceCreditsSpent(response) {
  */
 async function apiRequest(path, { method = 'GET', body, headers = {} } = {}) {
   if (!RENDER_API_URL) throw new Error('The Praelecta API URL is not configured');
-  const response = await fetch(`${RENDER_API_URL}${path}`, {
+  const response = await reach(`${RENDER_API_URL}${path}`, {
     method,
     headers: {
       ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
@@ -244,7 +272,7 @@ const files = {
       method: 'POST',
       body: { content_type: file.type, size_bytes: file.size },
     });
-    const uploaded = await fetch(prepared.data.upload_url, {
+    const uploaded = await reach(prepared.data.upload_url, {
       method: 'PUT',
       headers: prepared.data.headers,
       body: file,
@@ -260,7 +288,7 @@ const files = {
       method: 'POST',
       body: { content_type: file.type, size_bytes: file.size },
     });
-    const uploaded = await fetch(prepared.data.upload_url, {
+    const uploaded = await reach(prepared.data.upload_url, {
       method: 'PUT', headers: prepared.data.headers, body: file,
     });
     if (!uploaded.ok) throw new Error(`Profile photo upload failed (${uploaded.status})`);
@@ -310,7 +338,7 @@ const materials = {
       method: 'POST',
       body: { ...scope, content_type: contentType, size_bytes: file.size, file_name: fileName },
     });
-    const uploaded = await fetch(prepared.data.upload_url, { method: 'PUT', headers: prepared.data.headers, body: file });
+    const uploaded = await reach(prepared.data.upload_url, { method: 'PUT', headers: prepared.data.headers, body: file });
     if (!uploaded.ok) throw new Error(`Material upload failed (${uploaded.status})`);
     return (await apiRequest('/lecture-materials/confirm', {
       method: 'POST',

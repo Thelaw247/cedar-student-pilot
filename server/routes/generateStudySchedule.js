@@ -4,6 +4,7 @@ import { requireAuth } from '../middleware/requireAuth.js';
 import { createLlmUsage } from '../lib/llm.js';
 import { gateFeature, settleFeature } from '../lib/credits.js';
 import { bookAssignmentSessions } from '../lib/studyScheduler.js';
+import { sendServerError } from '../lib/http.js';
 
 // Booking study sessions for a deadline the student created. The one way in:
 // the lecture pipeline used to call bookAssignmentSessions directly for a
@@ -37,7 +38,7 @@ router.post('/', requireAuth, async (req, res) => {
     await settleFeature(gate, { feature: 'study_schedule', llmUsage });
     res.json({ sessions_created: sessionsCreated });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendServerError(res, error, 'study-schedule');
   }
 });
 

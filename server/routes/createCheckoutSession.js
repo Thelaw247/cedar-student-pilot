@@ -6,6 +6,7 @@ import {
 } from '../lib/stripe.js';
 import { isNoSuchCustomer } from '../lib/stripeErrors.js';
 import { subscriptionPrices, packPrices, VALID_TIERS, VALID_PACKS, VALID_PERIODS } from '../lib/stripePrices.js';
+import { sendServerError } from '../lib/http.js';
 
 // Direct port of base44/functions/createCheckoutSession/entry.ts. Price is
 // resolved server-side from tier/pack id — NEVER from client input.
@@ -94,8 +95,7 @@ router.post('/', requireAuth, async (req, res) => {
     }
     res.json({ url: session.url });
   } catch (error) {
-    console.error('[createCheckoutSession]', error.message);
-    res.status(500).json({ error: error.message });
+    sendServerError(res, error, 'createCheckoutSession');
   }
 });
 

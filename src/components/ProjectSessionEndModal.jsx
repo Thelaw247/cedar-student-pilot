@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Check, Clock, Trash2, Loader2, AlertTriangle, Calendar } from 'lucide-react';
+import { toast } from '@/components/ui/use-toast';
 
 export default function ProjectSessionEndModal({ assignmentId, onClose }) {
   const [phase, setPhase] = useState('ask'); // ask → time → fitting → scheduled → full → done
@@ -26,7 +27,7 @@ export default function ProjectSessionEndModal({ assignmentId, onClose }) {
         setPhase('full');
       }
     } catch (e) {
-      alert('Could not schedule additional time. Please try again.');
+      toast({ variant: 'destructive', title: "Couldn't schedule more time", description: 'Please try again.' });
     }
     setFitting(false);
   };
@@ -40,7 +41,7 @@ export default function ProjectSessionEndModal({ assignmentId, onClose }) {
       }
       setDeletedIds(prev => new Set([...prev, suggestion.id]));
     } catch (e) {
-      alert('Could not delete event.');
+      toast({ variant: 'destructive', title: "Couldn't delete this event", description: 'Please try again.' });
     }
   };
 
@@ -56,8 +57,8 @@ export default function ProjectSessionEndModal({ assignmentId, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 glass p-4">
-      <div className="bg-card rounded-2xl border border-border p-6 max-w-md w-full animate-fade-in max-h-[85vh] overflow-y-auto">
+    <div className="sheet-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/40 glass p-4">
+      <div role="dialog" aria-modal="true" aria-label="Finish this project session" className="bg-card rounded-2xl border border-border p-6 max-w-md w-full animate-fade-in max-h-[85vh] overflow-y-auto">
         {phase === 'ask' && (
           <div className="text-center">
             <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">

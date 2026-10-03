@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import BottomNav from './BottomNav';
@@ -16,6 +16,7 @@ import RecordingIsland from '@/recording/RecordingIsland';
 import { StudySessionProvider } from '@/study/StudySessionContext';
 import { NAV_ITEMS } from '@/lib/navItems';
 import { usePublicPageMeta } from '@/hooks/usePublicPageMeta';
+import { useOnScreenKeyboard } from '@/hooks/useOnScreenKeyboard';
 
 // Screens that are not tabs in the nav. Tabs take their name from NAV_ITEMS,
 // so renaming a tab renames its title too.
@@ -44,18 +45,11 @@ function screenTitle(pathname) {
 export default function Layout() {
   const { pathname } = useLocation();
   usePublicPageMeta({ title: screenTitle(pathname) });
+  // Form sheets and the recording island stay above the phone's keyboard.
+  useOnScreenKeyboard();
 
-  const [isDark, setIsDark] = useState(false);
-
-  useEffect(() => {
-    const stored = localStorage.getItem('cedar-theme');
-    if (stored === 'dark') setIsDark(true);
-  }, []);
-
-  useEffect(() => {
-    document.documentElement.classList.toggle('dark', isDark);
-    localStorage.setItem('cedar-theme', isDark ? 'dark' : 'light');
-  }, [isDark]);
+  // The theme is applied before the first paint (main.jsx) and changed in
+  // Settings; nothing here touches it.
 
   const [showShortcuts, setShowShortcuts] = useState(false);
 

@@ -4,6 +4,7 @@ import { requireAuth } from '../middleware/requireAuth.js';
 import { requireAdmin } from '../middleware/requireAdmin.js';
 import { stripeGet } from '../lib/stripe.js';
 import { TIER_GRANT } from '../lib/credits.js';
+import { sendServerError } from '../lib/http.js';
 
 // Direct port of base44/functions/ownerAnalytics/entry.ts. Admin check is
 // now against profiles.role (a table this server owns), not a field on the
@@ -143,7 +144,7 @@ router.post('/', requireAuth, requireAdmin, async (req, res) => {
       },
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendServerError(res, error, 'owner-analytics');
   }
 });
 

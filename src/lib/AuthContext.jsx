@@ -7,11 +7,15 @@ import { clearAllRecordings, clearOtherRecordings, initializeRecordingStore } fr
 import { supabase } from '@/lib/supabaseClient';
 import { shouldRecheckAuth } from '@/lib/authEvents';
 import { CONSENT_EVENT } from '@/lib/analyticsConsent';
+import { clearAllDrafts } from '@/hooks/useDraft';
 
 const AuthContext = createContext(null);
 const USE_SUPABASE = import.meta.env.VITE_BACKEND_MODE === 'supabase';
 
 async function purgeUserOfflineData(userId) {
+  // Unsaved forms (hooks/useDraft.js) belong to whoever typed them; the tab
+  // keeps them, so they go at sign-out and when someone else signs in.
+  clearAllDrafts();
   if (!userId) return;
   // localStorage deletion is synchronous; wait for IndexedDB before logout can
   // navigate away so crash-recovery audio is not left behind.

@@ -9,6 +9,7 @@ import { matchParsedToExisting, unclaimedClasses } from '@/lib/courseIdentity';
 import { invalidateEntity } from '@/lib/cache';
 import { announceDataChange } from '@/lib/dataChanged';
 import { Upload, Loader2, Check, X, Plus, ChevronRight, Camera, AlertCircle } from 'lucide-react';
+import { useDraft } from '@/hooks/useDraft';
 
 const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -84,13 +85,24 @@ export default function SemesterSetup() {
   const [existingClasses, setExistingClasses] = useState([]);
   const [existingLoaded, setExistingLoaded] = useState(!updatingSemesterId);
   const [saved, setSaved] = useState(null); // the server's answer, for the success screen
+  // The parsed classes and the semester's dates, with every correction the
+  // student makes to them, are kept if they leave before saving
+  // (hooks/useDraft.js): the parse takes a minute, the corrections longer,
+  // and both used to go with one press of the back button. A restored draft
+  // opens on the review step it was left on.
+  const draft = `semester-setup:${updatingSemesterId || 'new'}`;
+  const [parsedClasses, setParsedClasses, discardClasses] = useDraft(`${draft}:classes`, []);
+  const [semesterInfo, setSemesterInfo, discardInfo, infoRestored] = useDraft(`${draft}:info`, { name: '', start_date: '', end_date: '' });
   // Step 0 (name + optional photo) only shows for someone who has never set a
   // name — i.e. genuinely the first time through. Nothing else in the app
   // captures a name at signup (Register.jsx is email/password only), so this
   // is the only place it's ever asked. An existing user setting up a SECOND
   // semester already has a name and skips straight to step 1, unchanged from
   // before this feature existed. Re-import always starts at step 1.
-  const [step, setStep] = useState(() => (user?.full_name || updatingSemesterId ? 1 : 0));
+  const [step, setStep] = useState(() => (parsedClasses.length ? 2 : user?.full_name || updatingSemesterId ? 1 : 0));
+  // Only a restored review (parsed classes and all) outranks the semester as
+  // saved; a name or dates left without one are re-read from the server.
+  const [reviewRestored] = useState(() => infoRestored && parsedClasses.length > 0);
   const [welcomeName, setWelcomeName] = useState(user?.full_name || '');
   const [welcomeBusy, setWelcomeBusy] = useState(false);
   const [welcomeError, setWelcomeError] = useState(null);
@@ -99,8 +111,6 @@ export default function SemesterSetup() {
   const [file, setFile] = useState(null);
   const [fileUrl, setFileUrl] = useState(null);
   const [parsing, setParsing] = useState(false);
-  const [parsedClasses, setParsedClasses] = useState([]);
-  const [semesterInfo, setSemesterInfo] = useState({ name: '', start_date: '', end_date: '' });
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -113,7 +123,8 @@ export default function SemesterSetup() {
           base44.entities.Class.filter({ semester_id: updatingSemesterId }),
         ]);
         if (cancelled) return;
-        setSemesterInfo({ name: semester.name || '', start_date: semester.start_date || '', end_date: semester.end_date || '' });
+        // A restored review already holds the student's edits to these.
+        if (!reviewRestored) setSemesterInfo({ name: semester.name || '', start_date: semester.start_date || '', end_date: semester.end_date || '' });
         setExistingClasses(classes);
       } catch (e) {
         console.error(e);
@@ -122,7 +133,7 @@ export default function SemesterSetup() {
       if (!cancelled) setExistingLoaded(true);
     })();
     return () => { cancelled = true; };
-  }, [updatingSemesterId]);
+  }, [updatingSemesterId, reviewRestored, setSemesterInfo]);
 
   const handleFileChange = async (e) => {
     const f = e.target.files[0];
@@ -188,6 +199,8 @@ export default function SemesterSetup() {
         }),
       });
       setSaved(response?.data || null);
+      discardClasses();
+      discardInfo();
       // Every page that reads the semester or its classes refreshes; the
       // import used to rely on the next navigation to notice.
       invalidateEntity('Semester');
@@ -366,7 +379,8 @@ export default function SemesterSetup() {
   if (step === 1) {
     return (
       <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 lg:py-10 animate-fade-in">
-        <Link to={updatingSemesterId ? '/classes' : '/today'} className="text-sm text-muted-foreground hover:text-foreground mb-6 inline-flex items-center gap-1">
+        {/* Leaving by Cancel is done with it; leaving any other way keeps the draft. */}
+        <Link to={updatingSemesterId ? '/classes' : '/today'} onClick={() => { discardClasses(); discardInfo(); }} className="text-sm text-muted-foreground hover:text-foreground mb-6 inline-flex items-center gap-1">
           <X className="w-4 h-4" /> Cancel
         </Link>
         {updatingSemesterId ? (

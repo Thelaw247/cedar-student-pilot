@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { X, Music, Plus, Apple, Trash2, Play, Pause, Square, ExternalLink, Pencil, Check, Loader2 } from 'lucide-react';
+import { toast } from '@/components/ui/use-toast';
 
 // Video IDs supplied and confirmed playable by the user. If one ever starts
 // showing "Video unavailable" it means the upload was removed or its owner
@@ -121,7 +122,7 @@ export default function MusicPlayer({ onClose }) {
   const addCustomTrack = async () => {
     const videoId = extractYouTubeId(customUrl.trim());
     if (!videoId) {
-      alert('Please enter a valid YouTube URL (e.g. https://youtube.com/watch?v=...)');
+      toast({ title: "That isn't a YouTube link", description: 'Paste a link like https://youtube.com/watch?v=...' });
       return;
     }
     // Name is optional — fall back to a numbered label so a track is never blank.

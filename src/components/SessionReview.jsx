@@ -3,6 +3,7 @@ import { base44 } from '@/api/base44Client';
 import GateNotice, { gateFromError } from '@/components/monetization/GateNotice';
 import { Loader2, X, Brain, ChevronRight, Award, TrendingUp, BookOpen, Target } from 'lucide-react';
 import QuizReview, { ChoiceOptions, isChoiceCorrect } from '@/components/quiz/QuizReview';
+import { toast } from '@/components/ui/use-toast';
 
 export default function SessionReview({
   classId,
@@ -94,7 +95,8 @@ export default function SessionReview({
         throw new Error(res.data?.error || 'Failed to process review');
       }
     } catch (e) {
-      alert('Failed to process review: ' + e.message);
+      console.error('[session-review] could not score the review', e);
+      toast({ variant: 'destructive', title: "Couldn't score this review", description: 'Your answers are still here. Please try again.' });
     }
     setGenerating(false);
   };

@@ -117,6 +117,7 @@ export default function PrivacyPolicy() {
           <li><span className="font-medium text-foreground">Preferences</span>: light or dark mode, tips you dismissed, panels you collapsed, and your answer to the cookie question.</li>
           <li><span className="font-medium text-foreground">An offline copy</span> of your classes and lectures, so pages open quickly and work without a connection. It is removed when you sign out.</li>
           <li><span className="font-medium text-foreground">A recording backup</span>: a lecture being recorded is kept in your browser until it uploads, so a crash or a closed tab doesn&rsquo;t lose it.</li>
+          <li><span className="font-medium text-foreground">Unsaved forms</span>: what you have typed into a form you haven&rsquo;t saved yet, in this tab only, so going back doesn&rsquo;t lose it. It is removed when you save or close the form, close the tab, or sign out.</li>
         </ul>
         <p className="mt-2">
           One is optional: the <span className="font-medium text-foreground">analytics cookie</span> (names starting

@@ -30,7 +30,8 @@ const MODALS = [
 
 test('every backdrop-closed panel is a modal dialog', () => {
   for (const [name, src] of MODALS) {
-    const backdrops = (src.match(/className="fixed inset-0 [^"]*" onClick=/g) || []).length;
+    // sheet-overlay: the keyboard-aware sheets (hooks/useOnScreenKeyboard.js).
+    const backdrops = (src.match(/className="(?:sheet-overlay )?fixed inset-0 [^"]*" onClick=/g) || []).length;
     const dialogs = (src.match(/role="dialog" aria-modal="true" aria-labelledby=\{/g) || []).length;
     assert.ok(backdrops > 0, `${name}: the backdrop moved`);
     assert.equal(dialogs, backdrops, `${name}: ${backdrops} backdrops but ${dialogs} dialog panels`);

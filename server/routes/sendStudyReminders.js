@@ -2,6 +2,7 @@ import express from 'express';
 import { pool } from '../lib/db.js';
 import { emailIsConfigured, escapeEmailHtml, sendEmail } from '../lib/email.js';
 import { renderEmail } from '../lib/emailLayout.js';
+import { sendServerError } from '../lib/http.js';
 
 // Direct port of base44/functions/sendStudyReminders/entry.ts. See that
 // file's preserved header comment for the security history (this was the
@@ -120,7 +121,7 @@ router.post('/', async (req, res) => {
 
     res.status(emailsFailed ? 207 : 200).json({ ok: emailsFailed === 0, sent: emailsSent, failed: emailsFailed });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendServerError(res, error, 'study-reminder');
   }
 });
 

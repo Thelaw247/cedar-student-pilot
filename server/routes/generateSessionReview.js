@@ -4,6 +4,7 @@ import { requireAuth } from '../middleware/requireAuth.js';
 import { invokeLLM, createLlmUsage } from '../lib/llm.js';
 import { gateFeature, settleFeature } from '../lib/credits.js';
 import { normalizeQuizQuestions, QUIZ_QUESTION_SCHEMA, QUIZ_FORMAT_RULES } from '../lib/quizQuestions.js';
+import { sendServerError } from '../lib/http.js';
 
 // Direct port of base44/functions/generateSessionReview/entry.ts. Since 2 Sep
 // 2026 the questions are multiple choice only and validated server-side
@@ -94,7 +95,7 @@ Return a JSON object with:
       all_concepts: uniqueConcepts, is_complex: isComplex,
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendServerError(res, error, 'session-review');
   }
 });
 

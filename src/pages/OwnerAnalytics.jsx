@@ -73,11 +73,11 @@ export default function OwnerAnalytics() {
   if (error) {
     return (
       <div className="max-w-2xl mx-auto p-6">
-        <div className="rounded-xl border border-red-200 bg-red-50 p-4 flex gap-3">
-          <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+        <div className="rounded-xl border border-red-200 bg-red-50 dark:border-red-500/30 dark:bg-red-500/10 p-4 flex gap-3">
+          <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
           <div>
-            <p className="font-medium text-red-900">Couldn't load analytics</p>
-            <p className="text-sm text-red-700 mt-1">{error}</p>
+            <p className="font-medium text-red-900 dark:text-red-200">Couldn't load analytics</p>
+            <p className="text-sm text-red-700 dark:text-red-300 mt-1">{error}</p>
           </div>
         </div>
       </div>
@@ -233,7 +233,7 @@ export default function OwnerAnalytics() {
           review is approved for praelecta.ca. */}
       <OwnerReviews />
 
-      <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 space-y-1">
+      <div className="rounded-xl border border-amber-200 bg-amber-50 dark:border-amber-500/30 dark:bg-amber-500/10 p-4 text-sm text-amber-900 dark:text-amber-200 space-y-1">
         <p className="font-medium">How to read these numbers</p>
         <p>{data.notes.cost}</p>
         <p>{data.notes.fees}</p>

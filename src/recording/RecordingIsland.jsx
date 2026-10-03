@@ -83,7 +83,7 @@ export default function RecordingIsland() {
   // --- Finishing the last upload ---
   if (rec.uploadingSegment) {
     return (
-      <div className={shell} style={surface}>
+      <div className={shell} style={surface} data-recording-island>
         <div className="flex items-center gap-3 px-4 py-3">
           <Loader2 className="w-4 h-4 animate-spin text-white/80 flex-shrink-0" />
           <div className="flex-1 min-w-0">
@@ -98,7 +98,7 @@ export default function RecordingIsland() {
   // --- Processing on the server ---
   if (rec.processing) {
     return (
-      <div className={shell} style={surface}>
+      <div className={shell} style={surface} data-recording-island>
         <div className="flex items-center gap-3 px-4 py-3">
           <Loader2 className="w-4 h-4 animate-spin text-white/80 flex-shrink-0" />
           <div className="flex-1 min-w-0">
@@ -125,7 +125,7 @@ export default function RecordingIsland() {
     const primaryClass = 'flex-[2] min-h-[44px] py-2.5 rounded-xl bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-colors disabled:opacity-60';
     const secondaryClass = 'flex-1 min-h-[44px] py-2.5 rounded-xl border border-white/20 text-xs font-medium text-white/70 hover:bg-white/10 transition-colors disabled:opacity-60';
     return (
-      <div className={shell} style={surface}>
+      <div className={shell} style={surface} data-recording-island>
         <div className="px-4 py-3.5">
           {failure ? (
             <div className="flex items-start gap-2.5 mb-3" role="alert">
@@ -219,7 +219,7 @@ export default function RecordingIsland() {
 
   // --- Live: recording or paused ---
   return (
-    <div className={shell} style={surface}>
+    <div className={shell} style={surface} data-recording-island>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}

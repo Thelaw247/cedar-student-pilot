@@ -3,6 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { Loader2, Trash2, X, AlertTriangle } from 'lucide-react';
 import AutosaveIndicator from '@/components/AutosaveIndicator';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
+import { useDraft } from '@/hooks/useDraft';
 
 const ALL_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EF4444', '#EC4899', '#14B8A6'];
@@ -41,9 +42,14 @@ export default function EditClassModal({ classData = null, semesterId, onDeleteC
     ...data,
   });
 
-  const [form, setForm] = useState(buildForm(classData));
-  const [scheduleMode, setScheduleMode] = useState(initialMode(classData));
+  // A new class is kept if the student leaves before adding it
+  // (hooks/useDraft.js). An existing one saves as it goes, so it keeps no
+  // draft: a stale one would overwrite what was saved.
+  const draftKey = isEdit ? null : `class:new:${semesterId || ''}`;
+  const [form, setForm, discardForm] = useDraft(draftKey, () => buildForm(classData));
+  const [scheduleMode, setScheduleMode, discardMode] = useDraft(draftKey && `${draftKey}:mode`, () => initialMode(classData));
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
   const [deleting, setDeleting] = useState(false);
   // Autosave state — edit mode only. Creating a class still needs an explicit
   // submit, since there's no record to write to until it exists.
@@ -207,10 +213,17 @@ export default function EditClassModal({ classData = null, semesterId, onDeleteC
     // In edit mode everything is already autosaved; this just closes.
     if (isEdit) { onClose(); return; }
     setSaving(true);
+    setError(null);
     try {
       await base44.entities.Class.create(buildPayload());
+      discardForm();
+      discardMode();
       onClose();
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      // It used to fail with nothing on screen.
+      console.error(e);
+      setError('That class could not be added. Check your connection and try again.');
+    }
     setSaving(false);
   };
 
@@ -229,7 +242,7 @@ export default function EditClassModal({ classData = null, semesterId, onDeleteC
   };
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/30 glass" onClick={onClose}>
+    <div className="sheet-overlay fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/30 glass" onClick={onClose}>
       <div role="dialog" aria-modal="true" aria-labelledby={`${id}-title`} className="bg-card w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl border border-border p-6 animate-fade-in max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
           <h3 id={`${id}-title`} className="font-heading text-lg font-semibold">{isEdit ? 'Edit Class' : 'Add Class'}</h3>
@@ -434,6 +447,7 @@ export default function EditClassModal({ classData = null, semesterId, onDeleteC
           {/* Actions. Editing autosaves, so there's nothing to confirm — just
               a status line and a way out. Creating still needs a submit. */}
           {isEdit && <AutosaveIndicator status={autosaveStatus} className="block pt-3" />}
+          {error && <p role="alert" className="text-xs text-destructive pt-3">{error}</p>}
           <div className="flex gap-2 pt-3">
             {isEdit && (
               <button type="button" onClick={() => setConfirmingDelete(true)} aria-label="Delete class"

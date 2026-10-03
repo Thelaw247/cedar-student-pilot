@@ -10,6 +10,7 @@ import {
   S3Client,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { SNIFF_BYTES, detectedType, notAudioReason } from './fileSignature.js';
 
 // Groq's free-tier direct attachment limit is 25 MB. Stay one MiB below it so
 // multipart/form-data overhead and provider-side rounding cannot turn an
@@ -217,6 +218,12 @@ export async function createAvatarUpload(userId, input) {
   };
 }
 
+/** The start of a stored object, for lib/fileSignature.js. */
+async function firstBytes(client, bucket, key) {
+  const object = await client.send(new GetObjectCommand({ Bucket: bucket, Key: key, Range: `bytes=0-${SNIFF_BYTES - 1}` }));
+  return Buffer.from(await object.Body.transformToByteArray());
+}
+
 export async function confirmRecordingUpload(userId, rawKey) {
   const key = assertOwnedKey(userId, rawKey);
   const { client, bucket } = r2Client();
@@ -230,6 +237,13 @@ export async function confirmRecordingUpload(userId, rawKey) {
   if (!size || !declaredMax || size > declaredMax || size > MAX_RECORDING_BYTES) {
     await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key })).catch(() => {});
     throw new RangeError('The uploaded recording size is invalid');
+  }
+  // Only what is plainly not audio is refused here; see notAudioReason for
+  // why a recording is not held to a strict format check.
+  const notAudio = notAudioReason(await firstBytes(client, bucket, key));
+  if (notAudio) {
+    await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key })).catch(() => {});
+    throw new TypeError(`This file is ${notAudio}, not an audio recording.`);
   }
   const playbackUrl = await getSignedUrl(
     client,
@@ -261,6 +275,12 @@ export async function confirmAvatarUpload(userId, rawKey) {
   if (!size || !declaredMax || size > declaredMax || size > MAX_AVATAR_BYTES) {
     await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key })).catch(() => {});
     throw new RangeError('The uploaded profile photo size is invalid');
+  }
+  // Any of the three, whatever the name said: a browser shows a PNG served
+  // as image/jpeg without complaint. Anything else is refused.
+  if (!AVATAR_TYPES.has(detectedType(await firstBytes(client, bucket, key)))) {
+    await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key })).catch(() => {});
+    throw new TypeError('This file is not a JPEG, PNG or WebP image. Choose a photo saved in one of those formats.');
   }
   return { key, storage_ref: storageRef(key), size_bytes: size, content_type: contentType };
 }

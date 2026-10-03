@@ -2,6 +2,7 @@ import express from 'express';
 import { pool } from '../lib/db.js';
 import { requireAuth } from '../middleware/requireAuth.js';
 import { emailIsConfigured, sendEmail } from '../lib/email.js';
+import { sendServerError } from '../lib/http.js';
 
 // Direct port of exportTranscript's SECURITY-FIXED version (built earlier
 // this session after a real scan finding: an open mail relay via a
@@ -145,7 +146,7 @@ router.post('/', requireAuth, async (req, res) => {
 
     res.json({ status: 'ok', mode: 'print', html });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendServerError(res, error, 'export-transcript');
   }
 });
 

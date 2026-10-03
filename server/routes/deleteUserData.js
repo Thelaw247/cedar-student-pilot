@@ -4,6 +4,7 @@ import { requireAuth } from '../middleware/requireAuth.js';
 import { stripeDelete } from '../lib/stripe.js';
 import { deleteAllOwnedObjects, r2IsConfigured } from '../lib/r2.js';
 import { deleteAuthUser } from '../lib/accountDeletion.js';
+import { sendServerError } from '../lib/http.js';
 
 // Direct port of base44/functions/deleteUserData/entry.ts. Same ordering
 // discipline as the original: cancel Stripe FIRST (see that file's preserved
@@ -153,7 +154,7 @@ router.post('/', requireAuth, async (req, res) => {
       note: 'The account has been deleted along with all app data and stored files, and any active subscription was cancelled. No refund was issued. Signing in again is not possible; a new account would have to be created. Provider backups follow their configured retention policies.',
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendServerError(res, error, 'delete-user-data');
   }
 });
 

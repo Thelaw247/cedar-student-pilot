@@ -254,7 +254,7 @@ export default function AssignmentEditModal({ assignment, onClose, onUpdate }) {
   useEscapeKey(handleClose);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/30 glass" onClick={handleClose}>
+    <div className="sheet-overlay fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/30 glass" onClick={handleClose}>
       <div role="dialog" aria-modal="true" aria-labelledby={`${id}-title`} className="bg-card w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl border border-border p-6 animate-fade-in max-h-[90dvh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         {/* One ✕ in this header, and it closes the modal. Delete used to sit
             here too — a destructive ✕ eight pixels from the close ✕, same

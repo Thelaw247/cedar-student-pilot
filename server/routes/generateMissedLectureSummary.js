@@ -3,6 +3,7 @@ import { pool } from '../lib/db.js';
 import { requireAuth } from '../middleware/requireAuth.js';
 import { invokeLLM, createLlmUsage, QUALITY_MODEL } from '../lib/llm.js';
 import { gateFeature, settleFeature } from '../lib/credits.js';
+import { sendServerError } from '../lib/http.js';
 
 // An AI-estimated stand-in for a lecture the student could not record.
 //
@@ -98,7 +99,7 @@ IMPORTANT: This is an estimation based on course progression. Be clear that this
 
     res.json({ lecture_id: lectureId, status: 'complete' });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendServerError(res, error, 'missed-summary');
   }
 });
 

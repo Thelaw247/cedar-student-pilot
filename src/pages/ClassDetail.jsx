@@ -23,6 +23,7 @@ import DeadlineForm, { DeadlineModal } from '@/components/DeadlineForm';
 import DetectedDeadlines from '@/components/DetectedDeadlines';
 import { hasFeature } from '@/lib/tiers';
 import { studyPath } from '@/lib/studyScope';
+import { toast } from '@/components/ui/use-toast';
 
 export default function ClassDetail() {
   const { classId } = useParams();
@@ -567,7 +568,7 @@ function AssignmentTab({ assignments, lectures = [], coverage = [], classId, cls
       await base44.functions.invoke('resolveAssignment', { assignment_id: assignmentId, action });
       onUpdate();
     } catch (e) {
-      alert('Could not update the assignment. Please try again.');
+      toast({ variant: 'destructive', title: "Couldn't update the assignment", description: 'Please try again.' });
     }
     setResolvingKey(null);
   };
@@ -822,8 +823,8 @@ function MissedLectureConfirmModal({ classId, onClose, onGenerated }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/30 glass" onClick={onClose}>
-      <div className="bg-card w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl border border-border p-6 animate-fade-in max-h-[90dvh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+    <div className="sheet-overlay fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/30 glass" onClick={onClose}>
+      <div role="dialog" aria-modal="true" aria-label="Generate a missed lecture summary" className="bg-card w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl border border-border p-6 animate-fade-in max-h-[90dvh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-heading text-lg font-semibold">Generate Missed Lecture Summary?</h3>
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>

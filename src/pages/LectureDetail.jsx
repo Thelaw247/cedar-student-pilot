@@ -27,6 +27,7 @@ import { useFeatureGate } from '@/components/monetization/useFeatureGate';
 import { Lock } from 'lucide-react';
 import { LECTURE_COMPLETE, LECTURE_PENDING, LECTURE_PROCESSING, PROCESSING_STALE_MINUTES } from '@/lib/lectureStatus';
 import { classifySaveError, describeSaveError } from '@/lib/saveErrors';
+import { toast } from '@/components/ui/use-toast';
 
 export default function LectureDetail() {
   const { lectureId } = useParams();
@@ -293,7 +294,7 @@ export default function LectureDetail() {
       await base44.entities.Lecture.delete(lectureId);
       navigate(cls ? `/classes/${cls.id}?tab=lectures` : '/classes');
     } catch (e) {
-      alert('Could not delete this lecture. Please try again.');
+      toast({ variant: 'destructive', title: "Couldn't delete this lecture", description: 'Please try again.' });
       setDeleting(false);
     }
   };
@@ -315,7 +316,7 @@ export default function LectureDetail() {
       // Same classification as the recording island, so a provider rate
       // limit reads as "wait", not as a bug to hammer.
       const copy = describeSaveError(classifySaveError(e));
-      alert(`${copy.title}\n\n${copy.body}`);
+      toast({ variant: 'destructive', title: copy.title, description: copy.body });
     }
     setRetrying(false);
   };

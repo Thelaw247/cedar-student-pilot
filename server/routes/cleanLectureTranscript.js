@@ -3,6 +3,7 @@ import { pool } from '../lib/db.js';
 import { requireAuth } from '../middleware/requireAuth.js';
 import { invokeLLM, createLlmUsage } from '../lib/llm.js';
 import { getBalance, availableCredits, insufficientResponse, spendCredits, logUsage, durationCost, COST_PER_30MIN_CLEAN, base44CostCad, tierAllows } from '../lib/credits.js';
+import { sendServerError } from '../lib/http.js';
 
 // Direct port of base44/functions/cleanLectureTranscript/entry.ts. See that
 // file's preserved header comment for why this is on-demand rather than
@@ -143,7 +144,7 @@ router.post('/', requireAuth, async (req, res) => {
       chunks_unchanged: fellBack,
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendServerError(res, error, 'clean-transcript');
   }
 });
 

@@ -14,6 +14,7 @@ import Segmented from '@/components/ui/Segmented';
 import { useStudyScope, sessionStudyPath } from '@/lib/studyScope';
 import StudyTimer from '@/study/StudyTimer';
 import { useStudySession } from '@/study/StudySessionContext';
+import { toast } from '@/components/ui/use-toast';
 
 const priorityColors = {
   high: 'bg-rose-500/10 text-rose-600 border-rose-500/20',
@@ -150,7 +151,7 @@ export default function StudyPlanner() {
       await base44.functions.invoke('resolveAssignment', { assignment_id: assignmentId, action });
       await loadData();
     } catch (e) {
-      alert('Could not update the assignment. Please try again.');
+      toast({ variant: 'destructive', title: "Couldn't update the assignment", description: 'Please try again.' });
     }
     setResolvingKey(null);
   };

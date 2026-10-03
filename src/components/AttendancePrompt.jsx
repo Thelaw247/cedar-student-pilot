@@ -42,7 +42,9 @@ export function describeAttendanceError(e) {
   if (/failed to fetch|load failed|networkerror|network request failed|timeout/.test(text) || status === 0) {
     return { kind: 'network', text: "Couldn't reach the server. Check your connection and tap again — your answer is only saved once it goes through." };
   }
-  return { kind: 'unknown', text: `This answer could not be saved${e?.message ? ` (${e.message})` : ''}. Tap again, or ask me later.` };
+  // The error's own text is the database's (a constraint, a policy name), and
+  // the caller logs it; the student gets a sentence.
+  return { kind: 'unknown', text: 'This answer could not be saved. Tap again, or ask me later.' };
 }
 
 export default function AttendancePrompt() {

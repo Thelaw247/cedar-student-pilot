@@ -5,6 +5,7 @@ import { requireAuth } from '../middleware/requireAuth.js';
 import { invokeLLM, createLlmUsage, QUALITY_MODEL } from '../lib/llm.js';
 import { gateFeature, settleFeature, getBalance } from '../lib/credits.js';
 import { normalizeQuizQuestions, QUIZ_QUESTION_SCHEMA, QUIZ_FORMAT_RULES } from '../lib/quizQuestions.js';
+import { sendServerError } from '../lib/http.js';
 
 // Direct port of base44/functions/generateLectureReview/entry.ts. Two modes:
 // grading (free — the student already paid for the questions, charging again
@@ -175,7 +176,7 @@ Return a JSON object with:
       lecture_titles: sorted.map((l) => l.ai_title || `Lecture — ${l.date}`),
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendServerError(res, error, 'lecture-review');
   }
 });
 

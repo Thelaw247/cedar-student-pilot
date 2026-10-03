@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   ChevronLeft, FileText, UserCheck, Mic, CreditCard, RefreshCw,
   ShieldCheck, Sparkles, Ban, Server, AlertTriangle, Scale, Mail,
+  KeyRound, Copyright,
 } from 'lucide-react';
 import { TIERS, TIER_ORDER, CREDIT_PACKS, CREDIT_COSTS } from '@/lib/tiers';
 import { TERMS_EFFECTIVE_DATE, SUPPORT_EMAIL, SUPPORT_MAILTO, MONEY_BACK_DAYS, moneyBackGuarantee } from '@/lib/legal';
@@ -225,6 +226,20 @@ export default function Terms() {
         </p>
       </Section>
 
+      <Section id="licence" icon={KeyRound} title="Your licence to use Praelecta">
+        <p>
+          The app itself, its design and its name are ours. While you have an account and keep to these terms, we give
+          you a personal licence to use Praelecta, on the web and in our apps, for your own studying. It isn’t exclusive,
+          and you can’t transfer it or sell it on. It ends when your account does, and pauses while an account is
+          suspended under “Things you agree not to do” below.
+        </p>
+        <p>
+          This licence doesn’t make the app yours, just as the one above doesn’t make your content ours. If you get
+          Praelecta from an app store, that store’s terms apply as well, but Praelecta is still provided and supported by
+          us, not by the store.
+        </p>
+      </Section>
+
       <Section icon={Sparkles} title="What the AI can and can’t do">
         <p>
           Transcripts, summaries, flashcards, predicted exam topics and study schedules are generated automatically.
@@ -253,6 +268,20 @@ export default function Terms() {
         <p className="mt-2">
           If an account is doing one of these we may suspend it. Where it’s something fixable, we’ll tell you what the
           problem is first and give you a chance to fix it.
+        </p>
+      </Section>
+
+      <Section id="copyright" icon={Copyright} title="Copyright complaints">
+        <p>
+          What a student uploads stays private to their account: we don’t publish it or show it to anyone else. If you
+          believe something stored in Praelecta infringes your copyright, email{' '}
+          <a href={SUPPORT_MAILTO} className="text-primary hover:underline">{SUPPORT_EMAIL}</a> with your name and how to
+          reach you, the work you own, why you believe it is being infringed, and anything that helps us find it.
+        </p>
+        <p>
+          We forward a complaint to the account holder, as Canadian law requires, and remove material where the law or a
+          court order requires it. An account that keeps infringing will be closed. If something of yours was removed
+          and you believe it shouldn’t have been, reply to our message and tell us why.
         </p>
       </Section>
 

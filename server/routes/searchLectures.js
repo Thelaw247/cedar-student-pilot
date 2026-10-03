@@ -1,6 +1,7 @@
 import express from 'express';
 import { pool } from '../lib/db.js';
 import { requireAuth } from '../middleware/requireAuth.js';
+import { sendServerError } from '../lib/http.js';
 
 // Direct port of base44/functions/searchLectures/entry.ts.
 
@@ -51,7 +52,7 @@ router.post('/', requireAuth, async (req, res) => {
 
     res.json({ results });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendServerError(res, error, 'search-lectures');
   }
 });
 

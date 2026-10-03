@@ -57,10 +57,17 @@ The free-vs-paid gate became a ladder. One matrix, two copies:
 in src/lib/tiers.js renders locks (hasFeature / featureMinTierName /
 useFeatureGate).
 
+A double tap is charged once (Oct 3, 2026). Before anything else,
+gateFeature asks server/lib/sameRequest.js whether the same user, feature
+and request body is already running; if so, the second request waits and
+is sent the first one's answer, refusals included, without running or
+settling. Transcript cleanup (operation id per lecture) and recording
+processing (an atomic claim on the lecture) were already idempotent.
+
 The ladder (research: gate added value, never the hook):
 - FREE — the hook, never gated: recording, transcription, summaries,
   concepts, flashcards, timetable import, planner/calendar/focus/analytics.
-  2 full lectures (20 lifetime credits).
+  2 full lectures of up to 90 minutes (30 lifetime credits).
 - STUDENT — the everyday study kit: lecture reviews & quick quizzes,
   practice generation (from lectures, the professor's files, or both — one
   credit either way; a PDF is charged once, when it is read at upload),

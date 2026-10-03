@@ -58,7 +58,11 @@ export function classifySaveError(error) {
   // overloaded, or the lecture's own failure reason from polling all carry a
   // sentence worth showing — classifying those as "check your connection"
   // hid the real reason behind the wrong advice.
-  if (/failed to fetch|load failed|networkerror|network request failed|econnreset|err_internet_disconnected/.test(lower) || (status === 0 && !text)) {
+  // The web client reports its own dropped requests with code NETWORK and
+  // the sentence "Couldn't reach Praelecta…" (lib/cedarClient.js), which the
+  // recording flow then wraps in a sentence of its own.
+  if (error?.code === 'NETWORK' || /couldn.t reach praelecta/.test(lower)
+    || /failed to fetch|load failed|networkerror|network request failed|econnreset|err_internet_disconnected/.test(lower) || (status === 0 && !text)) {
     return { kind: SAVE_ERROR.NETWORK, retryNow: true, message: text };
   }
 

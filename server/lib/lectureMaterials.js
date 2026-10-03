@@ -3,6 +3,7 @@ import { DeleteObjectCommand, GetObjectCommand, HeadObjectCommand, PutObjectComm
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { r2Client, assertOwnedKey, storageRef, parseStorageRef } from './r2.js';
 import { CHEAP_MODEL, recordGeminiUsage } from './llm.js';
+import { contentMatchesType } from './fileSignature.js';
 
 // Professor-supplied materials for a lecture: slides, handouts, problem
 // sets, the formula sheet. They live in R2 under the same per-user prefix as
@@ -109,6 +110,14 @@ export async function confirmMaterialUpload(userId, rawKey, llmUsage = undefined
 
   const object = await client.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
   const buffer = Buffer.from(await object.Body.transformToByteArray());
+  // The type was declared by the browser from the file name. The bytes have
+  // to agree before the file is kept or sent to be read (lib/fileSignature.js).
+  if (!contentMatchesType(buffer, contentType)) {
+    await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key })).catch(() => {});
+    throw new TypeError(MATERIAL_TYPES.get(contentType) === 'pdf'
+      ? 'This file is not a real PDF. Save or export it as a PDF and upload it again.'
+      : 'This file is not plain text. Upload a PDF, a .txt or a .md file.');
+  }
   const extraction = await extractMaterialText(buffer, contentType, llmUsage);
 
   return {

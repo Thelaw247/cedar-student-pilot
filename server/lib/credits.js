@@ -1,5 +1,6 @@
 import { pool } from './db.js';
 import { recordCreditsSpent } from './creditSignal.js';
+import { answeredAsDuplicate } from './sameRequest.js';
 
 // Direct port of base44/shared/credits.ts. Business rules, cost table, and
 // gate/settle contract are unchanged — only the storage layer differs
@@ -278,6 +279,9 @@ export async function requireTier(userId, feature, res, extra = {}) {
 }
 
 export async function gateFeature(userId, feature, res, extra = {}) {
+  // A double tap: the same request is already running. It answers for both,
+  // and only it is charged (lib/sameRequest.js).
+  if (await answeredAsDuplicate(userId, feature, res)) return { ok: false };
   const cost = FEATURE_COSTS[feature] ?? 0;
   const tier = await requireTier(userId, feature, res, extra);
   if (!tier.ok) return { ok: false };

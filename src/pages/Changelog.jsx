@@ -16,6 +16,20 @@ import { PUBLIC_PAGES } from '@/lib/publicPages';
 export const CHANGELOG = [
   {
     date: '2026-10-03',
+    title: 'Nothing lost, nothing charged twice',
+    items: [
+      'Going back no longer loses what you typed. A deadline, event, study block, class, review or project you had not saved yet, and a semester you were still correcting, are there when you come back to them in the same tab, until you save or close them.',
+      'Tapping something that costs credits twice runs it once and charges once, even when the second tap gets through.',
+      'On a phone, form sheets and the recording island sit above the keyboard instead of under it, and the bottom bar steps aside while you type.',
+      'Errors are sentences now. A dropped connection says so, a problem on our side says to try again in a moment, and pop-up alerts became notices that close on their own. Adding an event or a class that could not be saved says so instead of doing nothing.',
+      'The strip along the top of a phone screen where notices appear no longer catches taps meant for what is under it.',
+      'Dark mode is dark from the first frame instead of flashing light first.',
+      'Uploads are checked for what they really are, not what the file name says: a timetable, handout, profile photo or recording that is something else is refused before anything reads it.',
+      'Every place you can pay links the Terms and the Privacy Policy next to the refund policy, and the terms have two new short sections: your licence to use the app, and how to report a copyright problem.',
+    ],
+  },
+  {
+    date: '2026-10-03',
     title: 'Analytics only with your yes',
     items: [
       'Product analytics only starts if you allow it. A small banner asks once, with two equal buttons, and Settings → Data & Privacy changes your answer any time. A browser that sends Global Privacy Control is never asked.',
@@ -177,7 +191,7 @@ export default function Changelog() {
 
           <ol className="mt-10 space-y-6">
             {CHANGELOG.map((entry) => (
-              <li key={entry.date} className="rounded-[26px] border border-border bg-card p-6 sm:p-7">
+              <li key={`${entry.date}:${entry.title}`} className="rounded-[26px] border border-border bg-card p-6 sm:p-7">
                 <time dateTime={entry.date} className="text-xs font-bold uppercase tracking-[0.12em] text-primary">{longDate(entry.date)}</time>
                 <h2 className="mt-2 text-xl font-bold tracking-[-0.03em] text-foreground">{entry.title}</h2>
                 <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-6 text-muted-foreground">

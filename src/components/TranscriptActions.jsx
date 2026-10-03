@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import { Printer, Mail, Loader2, Check } from 'lucide-react';
+import { toast } from '@/components/ui/use-toast';
 
 /**
  * Print and email export for a lecture transcript.
@@ -34,7 +35,9 @@ export default function TranscriptActions({ lecture }) {
       if (!html) throw new Error('No print data returned');
       const printWin = window.open('', '_blank');
       if (!printWin) {
-        alert('Please allow pop-ups to print transcripts.');
+        toast({ title: 'Allow pop-ups to print', description: 'Your browser blocked the print window. Allow pop-ups for Praelecta, then try again.' });
+        // The early return skipped the reset below and left the button spinning.
+        setPrinting(false);
         return;
       }
       printWin.document.write(html);
@@ -42,7 +45,7 @@ export default function TranscriptActions({ lecture }) {
       printWin.focus();
       setTimeout(() => printWin.print(), 500);
     } catch (e) {
-      alert('Could not prepare transcript for printing.');
+      toast({ variant: 'destructive', title: "Couldn't prepare the transcript for printing", description: 'Please try again.' });
     }
     setPrinting(false);
   };

@@ -2,6 +2,7 @@ import express from 'express';
 import { pool } from '../lib/db.js';
 import { requireAuth } from '../middleware/requireAuth.js';
 import { invokeLLM, QUALITY_MODEL } from '../lib/llm.js';
+import { sendServerError } from '../lib/http.js';
 
 // Direct port of base44/functions/academicAIChat/entry.ts — DISABLED,
 // matching its current withdrawn state in Base44. Same kill-switch pattern:
@@ -110,7 +111,7 @@ Student question: ${message}`;
 
       res.json({ answer: typeof answer === 'string' ? answer : answer.answer || 'I could not process that request.', fallback_level: 3, citations: [], topic_covered: false });
     } catch (error) {
-      res.status(500).json({ error: error.message });
+      sendServerError(res, error, 'academic-chat');
     }
   });
 });

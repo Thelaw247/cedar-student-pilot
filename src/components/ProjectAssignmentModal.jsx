@@ -2,22 +2,31 @@ import React, { useId, useState } from 'react';
 import GateNotice, { gateFromError } from '@/components/monetization/GateNotice';
 import { base44 } from '@/api/base44Client';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
+import { useDraft } from '@/hooks/useDraft';
 import { Loader2, X, ArrowRight, ArrowLeft, Check, Sparkles, Clock, ListChecks } from 'lucide-react';
 import { defaultCoverageScope } from '@/lib/assignmentScope';
 
 export default function ProjectAssignmentModal({ classId, className, onClose }) {
   const id = useId();
   useEscapeKey(onClose);
-  const [step, setStep] = useState('form'); // form → fields → roadmap → done
-  const [title, setTitle] = useState('');
-  const [dueDate, setDueDate] = useState('');
-  const [description, setDescription] = useState('');
-  const [fields, setFields] = useState([]);
-  const [fieldValues, setFieldValues] = useState({});
-  const [roadmap, setRoadmap] = useState([]);
+  // What the student typed, and the roadmap they were charged for, are kept
+  // if they leave before creating the project (hooks/useDraft.js).
+  const draft = `project:${classId}`;
+  const [title, setTitle, discardTitle] = useDraft(`${draft}:title`, '');
+  const [dueDate, setDueDate, discardDueDate] = useDraft(`${draft}:due_date`, '');
+  const [description, setDescription, discardDescription] = useDraft(`${draft}:description`, '');
+  const [fields, setFields, discardFields] = useDraft(`${draft}:fields`, []);
+  const [fieldValues, setFieldValues, discardFieldValues] = useDraft(`${draft}:field_values`, {});
+  const [roadmap, setRoadmap, discardRoadmap] = useDraft(`${draft}:roadmap`, []);
+  // form → fields → roadmap → done. A restored draft opens where it got to.
+  const [step, setStep] = useState(() => (roadmap.length ? 'roadmap' : fields.length ? 'fields' : 'form'));
   const [loadingFields, setLoadingFields] = useState(false);
   const [loadingRoadmap, setLoadingRoadmap] = useState(false);
   const [creating, setCreating] = useState(false);
+  // The project row, once it exists. If its sessions then fail, the retry
+  // creates only the sessions: pressing Create again used to add a second
+  // copy of the project.
+  const [createdAssignment, setCreatedAssignment] = useState(null);
   // alert() cannot hold a button, so a refusal that can only be resolved by
   // upgrading was a dead end here by construction.
   const [gate, setGate] = useState(null);
@@ -59,10 +68,16 @@ export default function ProjectAssignmentModal({ classId, className, onClose }) 
     setLoadingRoadmap(false);
   };
 
+  const discardDrafts = () => {
+    discardTitle(); discardDueDate(); discardDescription();
+    discardFields(); discardFieldValues(); discardRoadmap();
+  };
+
   const createProject = async () => {
     setCreating(true);
+    setError(null);
     try {
-      const assignment = await base44.entities.Assignment.create({
+      const assignment = createdAssignment || await base44.entities.Assignment.create({
         class_id: classId,
         title,
         due_date: dueDate,
@@ -77,6 +92,9 @@ export default function ProjectAssignmentModal({ classId, className, onClose }) 
         // (AssignmentEditModal) for the ones that really do.
         coverage_scope: defaultCoverageScope('project'),
       });
+      setCreatedAssignment(assignment);
+      // The project exists: a draft brought back now would make a second one.
+      discardDrafts();
 
       // Create project sessions from roadmap, distributed from today to due date
       const today = new Date();
@@ -119,7 +137,7 @@ export default function ProjectAssignmentModal({ classId, className, onClose }) 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/30 glass" onClick={onClose}>
+    <div className="sheet-overlay fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/30 glass" onClick={onClose}>
       <div role="dialog" aria-modal="true" aria-labelledby={`${id}-title`} className="bg-card w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl border border-border p-6 animate-fade-in max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
           <h3 id={`${id}-title`} className="font-heading text-lg font-semibold">

@@ -8,6 +8,7 @@ import { normalizeQuizQuestions, QUIZ_QUESTION_SCHEMA } from '../lib/quizQuestio
 import { materialsForPrompt } from '../lib/lectureEnrichment.js';
 import { MAX_MATERIALS_PER_CLASS } from '../lib/lectureMaterials.js';
 import { buildStudyMaterialPrompt, STUDY_MATERIALS_CHARS } from '../lib/studyMaterial.js';
+import { sendServerError } from '../lib/http.js';
 
 // Direct port of base44/functions/generateStudyMaterial/entry.ts, with the
 // question path rebuilt on 4 Sep 2026 and the professor's files added as a
@@ -168,9 +169,10 @@ router.post('/', requireAuth, async (req, res) => {
     // Loudly. This route failed silently for two weeks: no console line, no
     // usage_events row (the throw lands between gateFeature and
     // settleFeature, so neither writes one), and a client that replaced the
-    // message with its own. Any one of the three would have caught it.
-    console.error('[study-material]', error);
-    res.status(500).json({ error: error.message });
+    // message with its own. Any one of the three would have caught it. The
+    // helper logs the whole error, stack included; the student gets a
+    // sentence rather than the error's own text.
+    sendServerError(res, error, 'study-material');
   }
 });
 

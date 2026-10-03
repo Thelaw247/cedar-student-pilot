@@ -87,7 +87,8 @@ test('the prompt asks for the one question format the product supports', () => {
 });
 
 test('a failure is visible in all three places it used to be invisible', () => {
-  assert.match(ROUTE, /console\.error\('\[study-material\]', error\)/);
+  // Logged whole, stack included, by the shared helper (lib/http.js).
+  assert.match(ROUTE, /sendServerError\(res, error, 'study-material'\)/);
   // A run that produces nothing usable is a genuine failure, and is recorded
   // as one: success false with no refusal, which is what the owner dashboard
   // separates from a paywall stop.

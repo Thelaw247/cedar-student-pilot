@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { startCheckout as beginCheckout } from '@/lib/checkout';
 import { TIERS, TIER_ORDER, CREDIT_PACKS, PLAN_FEATURES, planHas, semesterSaving, maxSemesterSavingPercent, hoursFrom } from '@/lib/tiers';
 import { SUPPORT_EMAIL } from '@/lib/legal';
 import { Check, Loader2, ArrowLeft, Zap, Sparkles, AlertCircle } from 'lucide-react';
+import PaywallLegalLinks from '@/components/monetization/PaywallLegalLinks';
 
 /**
  * Full plan comparison and checkout.
@@ -253,7 +254,7 @@ export default function Subscription() {
       </p>
       <p className="text-center text-[11px] text-muted-foreground mb-12">
         Cancel anytime in Settings · No hidden fees · Prices in CAD ·{' '}
-        <Link to="/terms#refunds" className="underline hover:text-foreground">Refund policy</Link>
+        <PaywallLegalLinks />
       </p>
 
       {/* Credit packs — deliberately the overflow, not the pitch (MON-04 §4):

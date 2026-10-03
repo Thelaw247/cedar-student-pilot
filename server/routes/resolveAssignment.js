@@ -1,6 +1,7 @@
 import express from 'express';
 import { pool } from '../lib/db.js';
 import { requireAuth } from '../middleware/requireAuth.js';
+import { sendServerError } from '../lib/http.js';
 
 // Direct port of base44/functions/resolveAssignment/entry.ts. See that file's
 // header comment (preserved in git history) for why deletion clears every
@@ -44,7 +45,7 @@ router.post('/', requireAuth, async (req, res) => {
 
     res.json({ status: 'complete', assignment_id, new_status: newStatus, cleared_sessions: clearedSessions });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendServerError(res, error, 'resolve-assignment');
   }
 });
 

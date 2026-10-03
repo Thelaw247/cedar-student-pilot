@@ -3,6 +3,7 @@ import crypto from 'node:crypto';
 import { requireAuth } from '../middleware/requireAuth.js';
 import { getBalance } from '../lib/credits.js';
 import { stripePost, appOrigin } from '../lib/stripe.js';
+import { sendServerError } from '../lib/http.js';
 
 // Direct port of base44/functions/createPortalSession/entry.ts.
 
@@ -23,8 +24,7 @@ router.post('/', requireAuth, async (req, res) => {
 
     res.json({ url: session.url });
   } catch (error) {
-    console.error('[createPortalSession]', error.message);
-    res.status(500).json({ error: error.message });
+    sendServerError(res, error, 'createPortalSession');
   }
 });
 

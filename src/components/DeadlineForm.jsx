@@ -3,6 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { Loader2, ChevronLeft } from 'lucide-react';
 import { useFeatureGate } from '@/components/monetization/useFeatureGate';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
+import { useDraft } from '@/hooks/useDraft';
 import ScheduleSkippedNotice from '@/components/monetization/ScheduleSkippedNotice';
 import DeadlineCoverage, { coverageSummary } from '@/components/DeadlineCoverage';
 import { defaultCoverageScope, deadlineTypeLabel, resolveAssignmentLectures } from '@/lib/assignmentScope';
@@ -56,14 +57,19 @@ export default function DeadlineForm({
   const titleId = useContext(ModalTitleId);
   const startType = initial?.type || (classes ? 'exam' : 'assignment');
   const [step, setStep] = useState('fields');
-  const [form, setForm] = useState({
-    title: initial?.title || '',
-    due_date: initial?.due_date || '',
-    type: startType,
-    class_id: classId || '',
-    coverage_scope: defaultCoverageScope(startType),
-    lecture_ids: [],
-  });
+  // Kept if the student leaves before saving (hooks/useDraft.js), per class
+  // and per detected deadline, so one form's draft never fills another's.
+  const [form, setForm, discardDraft] = useDraft(
+    `deadline:${classId || 'any'}:${initial?.title || ''}:${initial?.due_date || ''}`,
+    () => ({
+      title: initial?.title || '',
+      due_date: initial?.due_date || '',
+      type: startType,
+      class_id: classId || '',
+      coverage_scope: defaultCoverageScope(startType),
+      lecture_ids: [],
+    }),
+  );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   // The deadline itself is free for everyone; the plan of sessions around it
@@ -144,6 +150,8 @@ export default function DeadlineForm({
         scheduleAllowed: scheduleGate.allowed,
       });
       setSavedAssignment(assignment);
+      // The row exists: a draft brought back now would make a second one.
+      discardDraft();
       onSaved?.(assignment);
       if (outcome === 'locked') { setScheduleSkipped(true); setSaving(false); return; }
       if (outcome === 'failed') { setError(bookingError); setSaving(false); return; }
@@ -279,7 +287,7 @@ export function DeadlineModal({ onClose, children }) {
   const titleId = useId();
   useEscapeKey(onClose);
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/30 glass" onClick={onClose}>
+    <div className="sheet-overlay fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/30 glass" onClick={onClose}>
       <div role="dialog" aria-modal="true" aria-labelledby={titleId} className="bg-card w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl border border-border p-6 animate-fade-in max-h-[90dvh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <ModalTitleId.Provider value={titleId}>{children}</ModalTitleId.Provider>
       </div>

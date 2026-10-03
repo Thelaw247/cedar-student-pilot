@@ -4,6 +4,7 @@ import { requireAuth } from '../middleware/requireAuth.js';
 import { createLlmUsage } from '../lib/llm.js';
 import { gateFeature, settleFeature } from '../lib/credits.js';
 import { scheduleAsap, addDaysStr } from '../lib/studyScheduler.js';
+import { sendServerError } from '../lib/http.js';
 
 // Rebooking a missed/skipped session (3 Sep 2026: refactored onto the shared
 // studyScheduler). This used to ask an LLM to freely pick a date/time within
@@ -49,7 +50,7 @@ router.post('/', requireAuth, async (req, res) => {
 
     res.json({ success: true, new_date: placement.date, new_time: placement.time, reason: 'Moved to the next open slot inside your preferred study window.' });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendServerError(res, error, 'rebook');
   }
 });
 

@@ -1,6 +1,7 @@
 import React, { useId, useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
+import { useDraft } from '@/hooks/useDraft';
 import { GraduationCap, ChevronRight } from 'lucide-react';
 
 const ALL_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -22,8 +23,9 @@ function getTodayString() {
 export default function AddEventModal({ classes, onAddClass, onClose }) {
   const id = useId();
   useEscapeKey(onClose);
-  const [repeat, setRepeat] = useState('none'); // 'none' | 'weekly'
-  const [form, setForm] = useState({
+  // Both kept if the student leaves before saving (hooks/useDraft.js).
+  const [repeat, setRepeat, discardRepeat] = useDraft('event:new:repeat', 'none'); // 'none' | 'weekly'
+  const [form, setForm, discardForm] = useDraft('event:new', () => ({
     title: '',
     type: 'custom',
     date: getTodayString(),
@@ -33,8 +35,9 @@ export default function AddEventModal({ classes, onAddClass, onClose }) {
     recurrence_days: [],
     recurrence_start_date: getTodayString(),
     recurrence_end_date: '',
-  });
+  }));
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
 
   const toggleDay = (d) => {
     setForm(prev => ({
@@ -55,6 +58,7 @@ export default function AddEventModal({ classes, onAddClass, onClose }) {
     e.preventDefault();
     if (!canSave) return;
     setSaving(true);
+    setError(null);
     try {
       if (repeat === 'weekly') {
         await base44.entities.CalendarEvent.create({
@@ -79,15 +83,22 @@ export default function AddEventModal({ classes, onAddClass, onClose }) {
           recurrence: 'none',
         });
       }
+      discardForm();
+      discardRepeat();
       onClose();
-    } catch (err) { console.error(err); }
+    } catch (err) {
+      // It used to fail with nothing on screen: the button came back and the
+      // event was not there.
+      console.error(err);
+      setError('That could not be saved. Check your connection and try again.');
+    }
     setSaving(false);
   };
 
   const inputCls = 'w-full px-3 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/30 glass" onClick={onClose}>
+    <div className="sheet-overlay fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/30 glass" onClick={onClose}>
       <div role="dialog" aria-modal="true" aria-labelledby={`${id}-title`} className="bg-card w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl border border-border p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:pb-6 animate-fade-in max-h-[90dvh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <h3 id={`${id}-title`} className="font-heading text-lg font-semibold mb-4">Add Event</h3>
 
@@ -178,6 +189,7 @@ export default function AddEventModal({ classes, onAddClass, onClose }) {
           <textarea aria-label="Notes" placeholder="Notes (optional)" value={form.notes}
             onChange={e => setForm({ ...form, notes: e.target.value })} className={`${inputCls} resize-none`} rows={2} />
 
+          {error && <p role="alert" className="text-xs text-destructive">{error}</p>}
           <div className="flex gap-2 pt-2">
             <button type="button" onClick={onClose} className="flex-1 px-4 py-2.5 rounded-lg border border-border text-sm font-medium text-muted-foreground hover:bg-muted">Cancel</button>
             <button type="submit" disabled={saving || !canSave}

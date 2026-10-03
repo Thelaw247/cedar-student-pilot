@@ -464,3 +464,38 @@ html.landing-active {
     opacity: 1 !important;
   }
 }
+
+/* The on-screen keyboard (hooks/useOnScreenKeyboard.js, Oct 2026). A phone
+   opens it over the page, so a form sheet anchored to the bottom of the
+   screen kept its lower fields and its Save button under the keyboard, and
+   the recording island's note field with them. While it is up, a sheet's
+   overlay covers only the part of the screen still visible, so the sheet
+   sits on top of the keyboard and scrolls inside that space; the island
+   rides just above it; and the bottom nav, which cannot be used while
+   typing, steps aside instead of covering the field on the phones that
+   shrink the page for the keyboard. */
+html.keyboard-open .sheet-overlay {
+  top: var(--visible-top, 0px);
+  bottom: auto;
+  height: var(--visible-height, 100%);
+}
+/* A sheet rendered inside a space-y-* list picks up that list's top margin
+   (from a more specific selector): a strip at the top of the screen the
+   overlay neither dimmed nor guarded, and, with the keyboard up, a shift
+   down under it. An overlay has no business with a margin. */
+.sheet-overlay {
+  margin: 0 !important;
+}
+html.keyboard-open .sheet-overlay > [role="dialog"] {
+  max-height: calc(var(--visible-height, 100dvh) - 0.75rem);
+}
+@media (max-width: 1023.98px) {
+  html.keyboard-open [data-recording-island] {
+    bottom: calc(var(--keyboard-inset, 0px) + 0.75rem);
+    max-height: calc(var(--visible-height, 100dvh) - 1.5rem);
+    overflow-y: auto;
+  }
+  html.keyboard-open [data-bottom-nav] {
+    visibility: hidden;
+  }
+}

@@ -16,6 +16,7 @@ import { MAX_RECORDING_BYTES, resolveRecordingStorageRef } from '../lib/r2.js';
 import { runEnrichment, syncLectureTodos } from '../lib/lectureEnrichment.js';
 import { loadLectureMaterials } from '../lib/lectureMaterials.js';
 import { scheduleAsap, addDaysStr } from '../lib/studyScheduler.js';
+import { sendServerError } from '../lib/http.js';
 
 // One review session per lecture, booked the moment processing finishes (3
 // Sep 2026 rework, refactored 3 Sep 2026 onto the shared studyScheduler).
@@ -714,9 +715,16 @@ router.post('/', requireAuth, async (req, res) => {
 
     return res.status(202).json({ status: 'processing', lecture_id });
   } catch (error) {
-    console.error('[recording] request failed:', error?.message || error);
+    // A RequestError (all 4xx) is a sentence for the student and is sent as
+    // it is; the save flow reads some of them (shared/saveErrors.js). Any
+    // other failure is one they cannot fix: logged whole and answered with
+    // a sentence instead of its own text (lib/http.js).
     const status = Number(error?.status) || 500;
-    res.status(status >= 400 && status < 600 ? status : 500).json({ error: error.message || 'Recording processing failed' });
+    if (status >= 400 && status < 500) {
+      console.error('[recording] request failed:', error?.message || error);
+      return res.status(status).json({ error: error.message || 'Recording processing failed' });
+    }
+    return sendServerError(res, error, 'recording');
   }
 });
 

@@ -3,6 +3,7 @@ import crypto from 'node:crypto';
 import { requireAuth } from '../middleware/requireAuth.js';
 import { invokeLLM, createLlmUsage } from '../lib/llm.js';
 import { gateFeature, settleFeature, getBalance } from '../lib/credits.js';
+import { sendServerError } from '../lib/http.js';
 
 // Direct port of base44/functions/generateProjectRoadmap/entry.ts. Phase 1
 // (field discovery) is free — a setup step, not the deliverable. Only Phase
@@ -86,7 +87,7 @@ Each step needs:
 
     res.json({ roadmap: result.roadmap || [] });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendServerError(res, error, 'project-roadmap');
   }
 });
 

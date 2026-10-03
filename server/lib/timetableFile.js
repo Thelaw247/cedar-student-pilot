@@ -1,3 +1,5 @@
+import { detectedType } from './fileSignature.js';
+
 // Base64 expands by ~4/3 and this travels inside Express's 10 MB JSON limit.
 // Seven binary MB leaves room for JSON framing without a misleading upload
 // that the parser itself would accept but the HTTP layer would reject.
@@ -8,6 +10,12 @@ const ALLOWED_TIMETABLE_TYPES = new Set([
   'image/png',
   'image/webp',
 ]);
+const TYPE_NAMES = {
+  'application/pdf': 'PDF',
+  'image/jpeg': 'JPEG image',
+  'image/png': 'PNG image',
+  'image/webp': 'WebP image',
+};
 
 export function parseTimetableDataUrl(value) {
   if (typeof value !== 'string' || !value.startsWith('data:')) {
@@ -33,5 +41,13 @@ export function parseTimetableDataUrl(value) {
   if (buffer.toString('base64').replace(/=+$/, '') !== canonicalInput) {
     throw new TypeError('Timetable upload contains invalid base64 data');
   }
-  return { mimeType, buffer };
+  // The declared type is only the browser's reading of the file name. The
+  // bytes decide, before anything is sent to the model provider: one of the
+  // allowed types under the wrong name (a PNG saved as .jpg) is accepted as
+  // what it really is; anything else is refused.
+  const actualType = detectedType(buffer);
+  if (!ALLOWED_TIMETABLE_TYPES.has(actualType)) {
+    throw new TypeError(`This file is not a real ${TYPE_NAMES[mimeType]}. Save your timetable as a PDF or a screenshot (JPEG, PNG or WebP) and upload that.`);
+  }
+  return { mimeType: actualType, buffer };
 }

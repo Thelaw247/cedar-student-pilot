@@ -16,6 +16,17 @@ import '@/index.css'
 // tracked, and every other analytics call is a no-op for them.
 startAnalyticsIfAllowed()
 
+// The theme chosen in Settings, on <html> before anything is drawn. Layout
+// used to apply it in an effect, which runs after the first frame, and in an
+// order that first switched it off: every load and every arrival in the app
+// drew the light theme first, then the dark one. Settings changes it from
+// here on.
+try {
+  if (localStorage.getItem('cedar-theme') === 'dark') document.documentElement.classList.add('dark')
+} catch {
+  // Storage blocked: the light theme.
+}
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <App />
 )

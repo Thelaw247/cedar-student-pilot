@@ -94,7 +94,18 @@ cd server
 npm test             # node --test
 ```
 
-The suite is the safety net for the credit economy, auth flows, scheduling and the recording pipeline (currently 664 tests).
+The suite is the safety net for the credit economy, auth flows, scheduling and the recording pipeline (currently 737 tests).
+
+## Safeguards
+
+Cross-cutting protections every new route, form or table is expected to keep. `server/test/safeguards.test.js` holds them.
+
+- **Errors are sentences.** A route's catch-all answers with `sendServerError` (`server/lib/http.js`): the error is logged whole, the student reads "Something went wrong on our side…". Messages written for students (4xx, or a 5xx with its own sentence) are sent as they are. In the browser, a request that never reached the server is reported as `UNREACHABLE_MESSAGE` with `code: 'NETWORK'` (`src/lib/cedarClient.js`), and failures are toasts, never `alert()`.
+- **One charge per tap.** `gateFeature` first asks `server/lib/sameRequest.js` whether the same user, feature and body is already in flight; a duplicate waits and gets the first one's answer without running or being charged. In memory, per instance.
+- **Uploads are checked by content.** Every upload path compares the file's bytes with its declared type (`server/lib/fileSignature.js`): timetables, materials and profile photos strictly, recordings by refusing only what is plainly not audio. Files are stored in the private R2 bucket under names the server picks.
+- **Forms survive the back button.** `src/hooks/useDraft.js` is `useState` kept in `sessionStorage` until the form is saved or closed; drafts are cleared at sign-out.
+- **The keyboard never covers the field.** `src/hooks/useOnScreenKeyboard.js` (mounted in `Layout`) publishes the visible part of the screen; overlays with the `sheet-overlay` class, the recording island and the bottom nav fit around the keyboard (`src/index.css`).
+- **The Data API grants only what the browser uses.** Every table has row-level security, and a table created by a migration revokes Supabase's default `anon`/`authenticated` privileges unless the browser needs them.
 
 ## Deployment
 

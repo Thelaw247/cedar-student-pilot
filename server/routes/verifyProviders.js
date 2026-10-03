@@ -2,6 +2,7 @@ import express from 'express';
 import { requireAuth } from '../middleware/requireAuth.js';
 import { requireAdmin } from '../middleware/requireAdmin.js';
 import { CHEAP_MODEL, QUALITY_MODEL } from '../lib/llm.js';
+import { sendServerError } from '../lib/http.js';
 
 // Direct port of base44/functions/verifyProviders/entry.ts — diagnostic only,
 // checks GROQ_API_KEY/GEMINI_API_KEY are set AND valid against the live
@@ -44,7 +45,7 @@ router.post('/', requireAuth, requireAdmin, async (req, res) => {
     };
     res.json(out);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendServerError(res, error, 'verify-providers');
   }
 });
 

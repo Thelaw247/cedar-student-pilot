@@ -193,7 +193,9 @@ test('the ask is a card on Today, not a pop-up, with three one-tap answers', () 
 });
 
 test('the form asks every student the same thing, with the public box unticked and nothing offered in return', () => {
-  assert.match(FORM, /useState\(!!existing\?\.may_publish\)/, 'the consent box must start unticked for a new review');
+  // A draft kept across the back button (hooks/useDraft.js) restores only what
+  // the student set themselves; a new form still starts from this.
+  assert.match(FORM, /useDraft\(`\$\{draft\}:may_publish`, !!existing\?\.may_publish\)/, 'the consent box must start unticked for a new review');
   assert.doesNotMatch(FORM, /rating\s*(>=|>|<=|<)\s*\d/, 'a different path for high and low ratings is review gating');
   assert.match(FORM, /Your star rating counts toward the average shown on praelecta\.ca\. Your words and name appear only if you tick the box, and only after a quick check\./);
   for (const [name, src] of [['ReviewPrompt', PROMPT], ['ReviewForm', FORM]]) {

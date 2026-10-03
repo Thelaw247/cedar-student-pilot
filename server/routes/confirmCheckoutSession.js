@@ -3,6 +3,7 @@ import { requireAuth } from '../middleware/requireAuth.js';
 import { getBalance, availableCredits } from '../lib/credits.js';
 import { appId, stripeGet, grantSubscriptionInitial, grantPack } from '../lib/stripe.js';
 import { checkoutEntitlement } from '../lib/stripePrices.js';
+import { sendServerError } from '../lib/http.js';
 
 // Direct port of base44/functions/confirmCheckoutSession/entry.ts. The
 // redirect is never trusted — this re-fetches the session FROM Stripe and
@@ -47,8 +48,7 @@ router.post('/', requireAuth, async (req, res) => {
       purchase,
     });
   } catch (error) {
-    console.error('[confirmCheckoutSession]', error.message);
-    res.status(500).json({ error: error.message });
+    sendServerError(res, error, 'confirmCheckoutSession');
   }
 });
 

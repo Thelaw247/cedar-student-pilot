@@ -2,6 +2,7 @@ import express from 'express';
 import { pool } from '../lib/db.js';
 import { requireAuth } from '../middleware/requireAuth.js';
 import { scheduleMinutesAsap, MIN_SESSION_MINUTES, MAX_SESSION_MINUTES } from '../lib/studyScheduler.js';
+import { sendServerError } from '../lib/http.js';
 
 // "I need N more minutes of project work before this is due" (3 Sep 2026:
 // refactored onto the shared studyScheduler — same buffer/preferred-window/
@@ -81,7 +82,7 @@ router.post('/', requireAuth, async (req, res) => {
 
     res.json({ scheduled: false, total_free_minutes: totalPlaced, needed_minutes: additional_minutes, suggestions: suggestions.slice(0, 12) });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendServerError(res, error, 'fit-project-time');
   }
 });
 

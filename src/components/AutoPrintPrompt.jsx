@@ -3,6 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { userStorageKey } from '@/lib/currentUser';
 import { Printer, X, Loader2 } from 'lucide-react';
 import { LECTURE_COMPLETE } from '@/lib/lectureStatus';
+import { toast } from '@/components/ui/use-toast';
 
 export default function AutoPrintPrompt() {
   const [todaysLectures, setTodaysLectures] = useState([]);
@@ -79,7 +80,7 @@ ${htmlParts.map((h, i) => `<div class="${i > 0 ? 'lecture-divider' : ''}">${h}</
 
       const printWin = window.open('', '_blank');
       if (!printWin) {
-        alert('Please allow pop-ups to print transcripts.');
+        toast({ title: 'Allow pop-ups to print', description: 'Your browser blocked the print window. Allow pop-ups for Praelecta, then try again.' });
         setPrinting(false);
         return;
       }
@@ -89,7 +90,7 @@ ${htmlParts.map((h, i) => `<div class="${i > 0 ? 'lecture-divider' : ''}">${h}</
       setTimeout(() => printWin.print(), 500);
       dismiss();
     } catch (e) {
-      alert('Could not prepare transcripts for printing.');
+      toast({ variant: 'destructive', title: "Couldn't prepare the transcripts for printing", description: 'Please try again.' });
     }
     setPrinting(false);
   };

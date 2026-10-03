@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Mic, FileText, Layers, CalendarCheck, Check, Loader2, Shield, X, Lock, Sparkles } from 'lucide-react';
 import { TIERS, hoursFrom } from '@/lib/tiers';
 import { startCheckout } from '@/lib/checkout';
 import { track } from '@/lib/analytics';
+import PaywallLegalLinks from '@/components/monetization/PaywallLegalLinks';
 
 /**
  * The onboarding-primed paywall, v2 (MON-04 §2 + Aug 2026 rework).
@@ -311,7 +312,7 @@ export default function Onboarding() {
               {error && <p className="text-xs text-destructive mb-2 text-center">{error}</p>}
               <p className="text-[11px] text-muted-foreground text-center">
                 Cancel anytime in Settings · Keep your plan until the period ends · Prices in CAD ·{' '}
-                <Link to="/terms#refunds" className="underline hover:text-foreground">Refund policy</Link>
+                <PaywallLegalLinks />
               </p>
             </div>
           )}

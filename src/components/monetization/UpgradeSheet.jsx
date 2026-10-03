@@ -5,6 +5,7 @@ import { TIERS, TIER_ORDER, CREDIT_COSTS, CREDITS_PER_HOUR, FEATURES, featureMin
 import { startCheckout } from '@/lib/checkout';
 import { useBalance } from '@/hooks/useBalance';
 import { track } from '@/lib/analytics';
+import PaywallLegalLinks from '@/components/monetization/PaywallLegalLinks';
 
 /**
  * The single upgrade surface (MON-04 §3-4). Entry-aware headline, semester
@@ -199,7 +200,7 @@ export default function UpgradeSheet({ source = 'generic', feature = null, onClo
             </div>
             <p className="text-[11px] text-muted-foreground text-center mt-3">
               Cancel anytime in Settings · No hidden fees · Prices in CAD ·{' '}
-              <Link to="/terms#refunds" onClick={onClose} className="underline hover:text-foreground">Refund policy</Link>
+              <PaywallLegalLinks onNavigate={onClose} />
             </p>
           </>
         )}

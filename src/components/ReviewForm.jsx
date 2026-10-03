@@ -4,6 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { announceDataChange } from '@/lib/dataChanged';
 import { REVIEW_LIMITS, suggestedDisplayName, validateReview } from '@/lib/reviews';
 import { AlertTriangle, Loader2, Star, Trash2 } from 'lucide-react';
+import { useDraft } from '@/hooks/useDraft';
 
 /**
  * The review itself: a star rating and a short description, with an
@@ -31,19 +32,23 @@ export function describeReviewError(e) {
     || (typeof navigator !== 'undefined' && navigator.onLine === false)) {
     return { kind: 'network', text: "Couldn't reach the server. Check your connection and send again — nothing is saved until it goes through." };
   }
-  return { kind: 'unknown', text: `This could not be saved${e?.message ? ` (${e.message})` : ''}. Try again in a moment.` };
+  // The error's own text is the database's, and the caller logs it.
+  return { kind: 'unknown', text: 'This could not be saved. Try again in a moment.' };
 }
 
 export default function ReviewForm({ existing = null, fullName = '', onClose, onSaved }) {
   const id = useId();
   const editing = !!existing && !existing.declined && existing.rating != null;
-  const [rating, setRating] = useState(existing?.rating || 0);
+  // What the student has written is kept if they leave before sending it
+  // (hooks/useDraft.js); closing the form or sending it lets it go.
+  const draft = `review:${existing?.id || 'new'}`;
+  const [rating, setRating] = useDraft(`${draft}:rating`, existing?.rating || 0);
   const [hover, setHover] = useState(0);
-  const [body, setBody] = useState(existing?.body || '');
-  const [mayPublish, setMayPublish] = useState(!!existing?.may_publish);
-  const [displayName, setDisplayName] = useState(existing?.display_name || suggestedDisplayName(fullName));
-  const [detail, setDetail] = useState(existing?.detail || '');
-  const [school, setSchool] = useState(existing?.school || '');
+  const [body, setBody] = useDraft(`${draft}:body`, existing?.body || '');
+  const [mayPublish, setMayPublish] = useDraft(`${draft}:may_publish`, !!existing?.may_publish);
+  const [displayName, setDisplayName] = useDraft(`${draft}:display_name`, existing?.display_name || suggestedDisplayName(fullName));
+  const [detail, setDetail] = useDraft(`${draft}:detail`, existing?.detail || '');
+  const [school, setSchool] = useDraft(`${draft}:school`, existing?.school || '');
   const [errors, setErrors] = useState({});
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(null); // 'save' | 'delete' | null
@@ -104,7 +109,7 @@ export default function ReviewForm({ existing = null, fullName = '', onClose, on
   const shown = hover || rating;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/30 glass" onClick={() => { if (!busy) onClose(); }}>
+    <div className="sheet-overlay fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/30 glass" onClick={() => { if (!busy) onClose(); }}>
       <div
         role="dialog"
         aria-modal="true"

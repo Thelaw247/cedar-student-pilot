@@ -2,6 +2,7 @@ import express from 'express';
 import { pool } from '../lib/db.js';
 import { requireAuth } from '../middleware/requireAuth.js';
 import { getClassMeetingsForDate } from '../../src/lib/classSchedule.js';
+import { sendServerError } from '../lib/http.js';
 
 // Direct port of base44/functions/detectAcademicRisk/entry.ts. Pure read +
 // compute, no writes, no LLM calls — not credit-gated in the original either.
@@ -91,7 +92,7 @@ router.post('/', requireAuth, async (req, res) => {
       stats: { total_study_minutes_week: totalStudyMinutes, upcoming_deadlines: upcomingDeadlines.length, missed_lectures: missedLectures.length, study_sessions_behind: behindSessions.length },
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendServerError(res, error, 'academic-risk');
   }
 });
 

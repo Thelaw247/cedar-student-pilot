@@ -167,5 +167,5 @@ test('the rebook confirmation reads the data envelope and a failed rebook says w
   assert.doesNotMatch(NOTIFIER, /Failed to rebook\. Try again later\./);
   // The print prompt no longer spins forever when a pop-up is blocked.
   const print = read('../../src/components/AutoPrintPrompt.jsx');
-  assert.match(print, /alert\('Please allow pop-ups to print transcripts\.'\);\s*setPrinting\(false\);\s*return;/);
+  assert.match(print, /toast\(\{ title: 'Allow pop-ups to print'[^\n]*\n\s*setPrinting\(false\);\s*return;/);
 });

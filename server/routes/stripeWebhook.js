@@ -7,6 +7,7 @@ import {
 } from '../lib/stripe.js';
 import { checkoutEntitlement, expectedStripeMode } from '../lib/stripePrices.js';
 import { analytics } from '../lib/analytics.js';
+import { sendServerError } from '../lib/http.js';
 
 // Direct port of base44/functions/stripeWebhook/entry.ts. Route logic,
 // event-type handling, and metadata contract are unchanged — only the
@@ -143,8 +144,7 @@ router.post('/', async (req, res) => {
     // A 500 makes Stripe retry. Fulfillment is anchored atomically inside a
     // Postgres transaction, so a retry repairs partial audit work without
     // double-granting.
-    console.error('[stripeWebhook]', error.message);
-    return res.status(500).json({ error: error.message });
+    return sendServerError(res, error, 'stripeWebhook');
   }
 });
 

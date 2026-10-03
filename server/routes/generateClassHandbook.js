@@ -5,6 +5,7 @@ import { requireAuth } from '../middleware/requireAuth.js';
 import { invokeLLM, createLlmUsage } from '../lib/llm.js';
 import { gateFeature, settleFeature } from '../lib/credits.js';
 import { resolveAssignmentLectures } from '../../shared/assignmentScope.js';
+import { sendServerError } from '../lib/http.js';
 
 // Direct port of base44/functions/generateClassHandbook/entry.ts. See that
 // file's preserved header comment for the three real bugs this fixed
@@ -182,7 +183,7 @@ Return ONLY the supplementary explanation text (or an empty string if none is ne
     await settleFeature(gate, { feature: 'handbook', llmUsage });
     res.json({ ...payload, cached: false });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendServerError(res, error, 'handbook');
   }
 });
 

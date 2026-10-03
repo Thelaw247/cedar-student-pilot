@@ -83,3 +83,26 @@ export function requestSecurity(req, res, next) {
   if (req.method === 'OPTIONS') return res.sendStatus(204);
   return next();
 }
+
+/**
+ * What a student is told when a request failed in a way they cannot fix.
+ */
+export const SERVER_ERROR_MESSAGE = 'Something went wrong on our side. Please try again in a moment.';
+
+/**
+ * Answer a request that failed unexpectedly: the details go to the log, the
+ * student gets a sentence.
+ *
+ * Twenty-four routes answered a failure with `error.message`, so whatever
+ * threw reached the screen as written: a database constraint, "fetch
+ * failed", a provider's JSON, "Cannot read properties of undefined". None of
+ * it means anything to a student, and some of it describes the database to
+ * anyone who asks. Messages written for people (a 4xx, or a 5xx with its own
+ * sentence, like "you have not been charged") are still sent by the routes
+ * themselves; this is only for the catch-all.
+ */
+export function sendServerError(res, error, where) {
+  console.error(`[${where}]`, error);
+  if (res.headersSent) return;
+  res.status(500).json({ error: SERVER_ERROR_MESSAGE });
+}

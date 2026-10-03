@@ -3,6 +3,7 @@ import { pool } from '../lib/db.js';
 import { requireAuth } from '../middleware/requireAuth.js';
 import { invokeLLM, createLlmUsage, QUALITY_MODEL } from '../lib/llm.js';
 import { gateFeature, settleFeature } from '../lib/credits.js';
+import { sendServerError } from '../lib/http.js';
 
 // Direct port of base44/functions/predictExamTopics/entry.ts.
 
@@ -87,7 +88,7 @@ Rules:
 
     res.json({ prediction, stats: { total_lectures: totalLectures, coverage_percent: coveragePercent, upcoming_exam: upcomingExam ? upcomingExam.due_date : null } });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendServerError(res, error, 'exam-prediction');
   }
 });
 
