@@ -59,7 +59,7 @@ export default function QuizViewer({ questions }) {
               <button key={i} onClick={() => reveal(i)} disabled={revealed}
                 className={`w-full text-left px-4 py-3 rounded-lg border text-sm transition-all flex items-center justify-between ${style}`}>
                 <span className="text-foreground">{opt}</span>
-                {revealed && isCorrect && <Check className="w-4 h-4 text-emerald-600" />}
+                {revealed && isCorrect && <Check className="w-4 h-4 text-emerald-700 dark:text-emerald-500" />}
                 {revealed && isSelected && !isCorrect && <X className="w-4 h-4 text-destructive" />}
               </button>
             );
@@ -74,7 +74,7 @@ export default function QuizViewer({ questions }) {
             </button>
           ) : (
             <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-4">
-              <p className="text-[10px] text-emerald-600 uppercase tracking-wide mb-1">Answer</p>
+              <p className="text-[10px] text-emerald-700 dark:text-emerald-500 uppercase tracking-wide mb-1">Answer</p>
               <p className="text-sm text-foreground">{q.answer}</p>
             </div>
           )}

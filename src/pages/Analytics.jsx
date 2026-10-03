@@ -5,7 +5,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieCha
 import { Clock, TrendingUp, Calendar, Brain, BarChart3, Loader2, GraduationCap, Target, BookOpen, Award, Check, X } from 'lucide-react';
 import KnowledgeCoverageSection from '@/components/KnowledgeCoverageSection';
 import { computeClassProficiency, pairCoverageWithLectures, aggregateProficiency } from '@/lib/conceptDecay';
-import { classColor } from '@/lib/color';
+import { classColor, readableInk } from '@/lib/color';
 
 // Chart series can't resolve CSS vars in SVG fill attributes, so the brand
 // pair is pinned here: full blue for the primary series, the soft step for
@@ -242,8 +242,8 @@ export default function Analytics() {
       {/* Summary cards */}
       <div className="grid grid-cols-3 gap-3 mb-6">
         <StatCard icon={Clock} label="Today" value={formatDuration(todaySeconds)} color="text-primary" />
-        <StatCard icon={TrendingUp} label="This Week" value={formatDuration(weekSeconds)} color="text-emerald-600" />
-        <StatCard icon={BarChart3} label="All Time" value={formatDuration(totalSeconds)} color="text-amber-600" />
+        <StatCard icon={TrendingUp} label="This Week" value={formatDuration(weekSeconds)} color="text-emerald-700 dark:text-emerald-500" />
+        <StatCard icon={BarChart3} label="All Time" value={formatDuration(totalSeconds)} color="text-amber-700 dark:text-amber-500" />
       </div>
 
       {/* Streak & goals */}
@@ -257,7 +257,7 @@ export default function Analytics() {
         </div>
         <div className="rounded-xl border border-border bg-card p-4">
           <div className="flex items-center gap-2 mb-1">
-            <Brain className="w-4 h-4 text-emerald-600" />
+            <Brain className="w-4 h-4 text-emerald-700 dark:text-emerald-500" />
             <span className="text-xs font-medium text-muted-foreground">Goals Met</span>
           </div>
           <p className="font-heading text-2xl font-bold">{goalMet}</p>
@@ -277,14 +277,14 @@ export default function Analytics() {
           </div>
           <div className="rounded-xl border border-border bg-card p-4">
             <div className="flex items-center gap-2 mb-1">
-              <Check className="w-4 h-4 text-emerald-600" />
+              <Check className="w-4 h-4 text-emerald-700 dark:text-emerald-500" />
               <span className="text-xs font-medium text-muted-foreground">Attended</span>
             </div>
             <p className="font-heading text-2xl font-bold">{attendedLectures}</p>
           </div>
           <div className="rounded-xl border border-border bg-card p-4">
             <div className="flex items-center gap-2 mb-1">
-              <X className="w-4 h-4 text-rose-600" />
+              <X className="w-4 h-4 text-rose-700 dark:text-rose-400" />
               <span className="text-xs font-medium text-muted-foreground">Missed</span>
             </div>
             <p className="font-heading text-2xl font-bold">{missedLectures}</p>
@@ -319,6 +319,9 @@ export default function Analytics() {
               </button>
               {classes.map(c => {
                 const active = effectiveClassId === c.id;
+                // The selected chip is filled with the class's own colour, and
+                // white on the amber, green and teal presets read 2.1 to 2.5:1:
+                // readableInk picks white or near-black, whichever reads.
                 return (
                   <button
                     key={c.id}
@@ -328,9 +331,9 @@ export default function Analytics() {
                         ? 'text-primary-foreground border-transparent'
                         : 'bg-card text-muted-foreground border-border hover:bg-muted'
                     }`}
-                    style={active ? { backgroundColor: classColor(c.color) } : undefined}
+                    style={active ? { backgroundColor: classColor(c.color), color: readableInk(c.color) } : undefined}
                   >
-                    <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: active ? 'rgba(255,255,255,0.9)' : classColor(c.color) }} />
+                    <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: active ? 'currentColor' : classColor(c.color) }} />
                     {c.name}
                   </button>
                 );
@@ -444,7 +447,7 @@ export default function Analytics() {
           {records.slice(0, 15).map(r => (
             <div key={r.id} className="rounded-xl border border-border bg-card p-3 flex items-center gap-3">
               <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${r.study_type === 'in_app' ? 'bg-primary/10' : 'bg-amber-500/10'}`}>
-                {r.study_type === 'in_app' ? <Brain className="w-4 h-4 text-primary" /> : <BookOpen className="w-4 h-4 text-amber-600" />}
+                {r.study_type === 'in_app' ? <Brain className="w-4 h-4 text-primary" /> : <BookOpen className="w-4 h-4 text-amber-700 dark:text-amber-500" />}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate">

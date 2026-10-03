@@ -227,7 +227,7 @@ export default function OAuthConsent() {
           Deny
         </Button>
         <Button
-          className="flex-1 h-12 font-medium"
+          className="auth-cta flex-1 h-12 font-medium"
           disabled={submitting}
           onClick={() => respond("approve")}
         >

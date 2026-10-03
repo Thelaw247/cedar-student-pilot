@@ -111,9 +111,10 @@ export default function WeekGroupedLectures({ lectures, coverageMap, allClassLec
                   {group.lectures.length} lecture{group.lectures.length !== 1 ? 's' : ''}
                 </p>
               </div>
+              {/* The state's own text and tint classes, as FreshnessBadge uses:
+                  the raw state colour as text measured 2.1 to 3.5:1 on its tint. */}
               <span
-                className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-md"
-                style={{ backgroundColor: aggState.color + '15', color: aggState.color }}
+                className={`inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-md ${aggState.bgClass} ${aggState.textClass}`}
               >
                 <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: aggState.color }} />
                 {aggState.label}

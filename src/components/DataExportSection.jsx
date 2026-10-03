@@ -45,7 +45,7 @@ export default function DataExportSection() {
         {exporting ? <><Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> Exporting…</> : <><Download className="w-4 h-4" aria-hidden="true" /> Export my data</>}
       </button>
       {success && (
-        <div role="status" className="mt-3 flex items-center gap-2 text-sm text-emerald-600">
+        <div role="status" className="mt-3 flex items-center gap-2 text-sm text-emerald-700 dark:text-emerald-500">
           <FileJson className="w-4 h-4" aria-hidden="true" /> Export downloaded successfully.
         </div>
       )}

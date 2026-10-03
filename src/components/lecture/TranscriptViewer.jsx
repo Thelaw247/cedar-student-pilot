@@ -137,7 +137,7 @@ export function TranscriptCleanup({ lecture, cleanGate, cleaning, cleanError, cl
     <div className="mb-3">
       <div className="flex items-center justify-between gap-3">
         {lecture.transcript_cleaned ? (
-          <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-emerald-600"><Sparkles className="w-3 h-3" /> Cleaned up</span>
+          <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-emerald-700 dark:text-emerald-500"><Sparkles className="w-3 h-3" /> Cleaned up</span>
         ) : (
           <p className="text-[11px] text-muted-foreground">Raw transcript. Clean it up if this recording came out noisy.</p>
         )}

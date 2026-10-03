@@ -1,6 +1,12 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  darkMode: ["class"],
+  // `dark:` applies in the app's dark mode AND inside the two navy surfaces
+  // (.landing-surface, .auth-surface). The public pages embed real app
+  // components (the quiz, the flashcards, the calendar in the homepage
+  // mocks), and their status colours have a light step for light surfaces
+  // and a dark step for dark ones: on navy they need the dark step. No
+  // landing or auth file uses `dark:` itself, so nothing else moves.
+  darkMode: ["variant", ["&:is(.dark *)", "&:is(.landing-surface *)", "&:is(.auth-surface *)"]],
   // Hover styles only apply on devices that actually hover — otherwise the
   // -translate-y lifts fired as sticky-hover jank on every touch (Design
   // Blueprint, global fix #13).

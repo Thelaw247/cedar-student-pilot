@@ -54,7 +54,7 @@ export default function Todos() {
   const done = filtered.filter((t) => t.done).sort((a, b) => String(b.done_at || '').localeCompare(String(a.done_at || '')));
 
   const groups = [
-    { key: 'overdue', title: 'Overdue', tone: 'text-rose-600', items: open.filter((t) => t.due_date && t.due_date < today) },
+    { key: 'overdue', title: 'Overdue', tone: 'text-rose-700 dark:text-rose-400', items: open.filter((t) => t.due_date && t.due_date < today) },
     { key: 'today', title: 'Today', tone: 'text-primary', items: open.filter((t) => t.due_date === today) },
     { key: 'week', title: 'This week', tone: 'text-foreground', items: open.filter((t) => t.due_date && t.due_date > today && t.due_date <= weekEnd) },
     { key: 'later', title: 'Later', tone: 'text-foreground', items: open.filter((t) => t.due_date && t.due_date > weekEnd) },
@@ -180,7 +180,7 @@ function TodoRow({ todo, cls, lecture, tone = '', today, onToggle, onRemove, onU
             <input type="date" autoFocus aria-label="Due date" defaultValue={todo.due_date || ''} onBlur={(e) => { setEditingDate(false); if ((e.target.value || null) !== (todo.due_date || null)) onUpdate({ due_date: e.target.value || null }); }}
               className="rounded border border-input bg-background px-1.5 py-0.5 text-[11px]" />
           ) : (
-            <button type="button" onClick={() => setEditingDate(true)} className={`inline-flex items-center gap-1 hover:text-foreground ${overdue ? 'text-rose-600 font-medium' : tone}`}>
+            <button type="button" onClick={() => setEditingDate(true)} className={`inline-flex items-center gap-1 hover:text-foreground ${overdue ? 'text-rose-700 dark:text-rose-400 font-medium' : tone}`}>
               <CalendarDays className="w-3 h-3" /> {todo.due_date ? formatDue(todo.due_date, today) : 'Set a date'}
             </button>
           )}

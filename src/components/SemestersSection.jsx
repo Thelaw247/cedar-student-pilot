@@ -119,7 +119,7 @@ export default function SemestersSection() {
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="text-sm font-medium text-foreground truncate">{s.name}</p>
                       {s.is_active && (
-                        <span className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600">Active</span>
+                        <span className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-500">Active</span>
                       )}
                     </div>
                     <p className="text-[11px] text-muted-foreground mt-0.5 tabular-nums">
@@ -161,7 +161,7 @@ export default function SemestersSection() {
         </ul>
       )}
 
-      {notice && <p className="text-[11px] text-emerald-600 mt-3">{notice}</p>}
+      {notice && <p className="text-[11px] text-emerald-700 dark:text-emerald-500 mt-3">{notice}</p>}
       {error && <p className="text-[11px] text-destructive mt-3">{error}</p>}
     </div>
   );

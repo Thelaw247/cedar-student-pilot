@@ -228,7 +228,7 @@ export default function HandbookReader({ classId, lectureIds = null, assignmentI
           <h1 className="font-heading text-2xl font-bold mb-1" style={{ color: handbook.class_color }}>{handbook.title}</h1>
           {handbook.instructor && <p className="text-sm text-muted-foreground">by Prof. {handbook.instructor}</p>}
           {handbook.is_scoped && !showFullHandbook && (
-            <div className="inline-flex items-center gap-1.5 mt-2 px-2.5 py-1 rounded-md bg-amber-500/10 text-amber-600 text-[10px] font-medium">
+            <div className="inline-flex items-center gap-1.5 mt-2 px-2.5 py-1 rounded-md bg-amber-500/10 text-amber-700 dark:text-amber-500 text-[10px] font-medium">
               <Filter className="w-3 h-3" /> Scoped: {handbook.scope_label}
             </div>
           )}
@@ -239,7 +239,7 @@ export default function HandbookReader({ classId, lectureIds = null, assignmentI
           <p className="text-xs text-muted-foreground mt-3">
             {handbook.total_lectures} chapter{handbook.total_lectures === 1 ? '' : 's'}
             {handbook.lectures_excluded > 0 && (
-              <span className="text-amber-600">
+              <span className="text-amber-700 dark:text-amber-500">
                 {' · '}{handbook.lectures_excluded} lecture{handbook.lectures_excluded === 1 ? '' : 's'} not processed yet
               </span>
             )}
@@ -260,7 +260,7 @@ export default function HandbookReader({ classId, lectureIds = null, assignmentI
                   <span className="text-[10px] text-muted-foreground tabular-nums w-6">{String(toc.chapter).padStart(2, '0')}</span>
                   <span className="flex-1 truncate">{toc.title}</span>
                   {toc.section_count !== undefined && toc.section_count <= 2 && (
-                    <span className="text-[9px] text-amber-600 font-medium uppercase tracking-wide">thin</span>
+                    <span className="text-[9px] text-amber-700 dark:text-amber-500 font-medium uppercase tracking-wide">thin</span>
                   )}
                   <span className="text-[10px] text-muted-foreground">{toc.date}</span>
                 </button>
@@ -518,7 +518,7 @@ function QuizView({ questions, loading, answers, setAnswers, idx, setIdx, result
         </div>
 
         {q.flow_position && (
-          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md uppercase mb-3 inline-block bg-blue-500/10 text-blue-600">
+          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md uppercase mb-3 inline-block bg-blue-500/10 text-blue-600 dark:text-blue-400">
             {q.flow_position} of lecture
           </span>
         )}

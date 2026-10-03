@@ -159,7 +159,7 @@ export default function AttendancePrompt() {
 
         {error && (
           <div role="alert" className="mb-4 flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 text-left text-xs leading-5 text-foreground">
-            <AlertTriangle className="mt-0.5 h-4 w-4 flex-none text-amber-500" aria-hidden="true" />
+            <AlertTriangle className="mt-0.5 h-4 w-4 flex-none text-amber-700 dark:text-amber-500" aria-hidden="true" />
             <span>
               {error.text}
               {error.kind === 'signed_out' && (

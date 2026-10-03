@@ -120,7 +120,7 @@ export default function UpNextCard({ todayClasses, events }) {
       <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
-            <CheckCircle2 className="w-6 h-6 text-emerald-600" strokeWidth={1.5} />
+            <CheckCircle2 className="w-6 h-6 text-emerald-700 dark:text-emerald-500" strokeWidth={1.5} />
           </div>
           <div>
             <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-500">All classes done for today!</p>

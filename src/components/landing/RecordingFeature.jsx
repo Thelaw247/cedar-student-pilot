@@ -20,7 +20,9 @@ const ACCURACY = [
 ];
 
 function OutputRow({ icon: Icon, title, children, tone = 'blue' }) {
-  const toneClass = tone === 'amber' ? 'bg-amber-50 text-amber-400' : 'bg-primary/10 text-primary';
+  // A tint of the tone, as the blue chip has: the old bg-amber-50 was a
+  // near-white square on the navy card with its icon at 1.6:1.
+  const toneClass = tone === 'amber' ? 'bg-amber-500/10 text-amber-400' : 'bg-primary/10 text-primary';
   return (
     <div className="rounded-xl border border-border bg-card p-4">
       <div className="flex items-center gap-2">

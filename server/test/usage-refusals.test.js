@@ -66,7 +66,7 @@ test('the dashboard separates paywall stops from faults', () => {
   assert.match(DASHBOARD, /c\.refusals > 0/);
   assert.match(DASHBOARD, /paywall/i);
   // Only a real failure keeps the warning colour.
-  assert.match(DASHBOARD, /\{c\.failures > 0 && <span className="ml-1 text-xs text-amber-600">/);
+  assert.match(DASHBOARD, /\{c\.failures > 0 && <span className="ml-1 text-xs text-amber-700 dark:text-amber-500">/);
 });
 
 test('the backfill classifies old rows the same way the code now does', () => {

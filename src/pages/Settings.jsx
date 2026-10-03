@@ -49,7 +49,7 @@ export default function Settings() {
         <div className="space-y-2">
           <button onClick={() => toggleTheme(false)}
             className={`w-full flex items-center gap-3 p-3 rounded-lg border transition-colors ${!isDark ? 'border-primary bg-primary/5' : 'border-border'}`}>
-            <Sun className="w-5 h-5 text-amber-500" />
+            <Sun className="w-5 h-5 text-amber-600" />
             <div className="text-left flex-1">
               <p className="text-sm font-medium">Light Mode</p>
               <p className="text-xs text-muted-foreground">Blue and white — focus-optimized</p>

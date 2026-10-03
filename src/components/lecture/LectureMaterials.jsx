@@ -166,10 +166,10 @@ export default function LectureMaterials({ lecture = null, cls = null, lectures 
                       {from && m.lecture_id && (
                         <> · from <Link to={`/lectures/${m.lecture_id}`} className="text-primary hover:underline">{from}</Link></>
                       )}
-                      {m.extraction_status === 'ready' && !classScope && <span className="inline-flex items-center gap-1 ml-2 text-emerald-600"><ShieldCheck className="w-3 h-3" /> used for verification</span>}
-                      {m.extraction_status === 'ready' && classScope && <span className="inline-flex items-center gap-1 ml-2 text-emerald-600"><ShieldCheck className="w-3 h-3" /> readable</span>}
-                      {m.extraction_status === 'failed' && <span className="inline-flex items-center gap-1 ml-2 text-amber-600"><AlertTriangle className="w-3 h-3" /> no readable text (scanned?) — kept for download only</span>}
-                      {m.extraction_status === 'unsupported' && <span className="ml-2 text-amber-600">kept for download only</span>}
+                      {m.extraction_status === 'ready' && !classScope && <span className="inline-flex items-center gap-1 ml-2 text-emerald-700 dark:text-emerald-500"><ShieldCheck className="w-3 h-3" /> used for verification</span>}
+                      {m.extraction_status === 'ready' && classScope && <span className="inline-flex items-center gap-1 ml-2 text-emerald-700 dark:text-emerald-500"><ShieldCheck className="w-3 h-3" /> readable</span>}
+                      {m.extraction_status === 'failed' && <span className="inline-flex items-center gap-1 ml-2 text-amber-700 dark:text-amber-500"><AlertTriangle className="w-3 h-3" /> no readable text (scanned?) — kept for download only</span>}
+                      {m.extraction_status === 'unsupported' && <span className="ml-2 text-amber-700 dark:text-amber-500">kept for download only</span>}
                     </p>
                   </div>
                   <button type="button" onClick={() => download(m)} aria-label={`Download ${m.file_name}`} className="text-muted-foreground hover:text-foreground"><Download className="w-4 h-4" /></button>
@@ -210,7 +210,7 @@ export default function LectureMaterials({ lecture = null, cls = null, lectures 
           </div>
         )}
         {gate && <GateNotice gate={gate} source="materials" className="mt-3" />}
-        {notice && <p className="text-[11px] text-emerald-600 mt-2">{notice}</p>}
+        {notice && <p className="text-[11px] text-emerald-700 dark:text-emerald-500 mt-2">{notice}</p>}
         {error && <p className="text-[11px] text-destructive mt-2">{error}</p>}
       </div>
     </Widget>

@@ -64,6 +64,26 @@ research behind every choice is in the printed series document DSN-03
   never an emoji.
 - Anything interactive must look interactive; focus states stay visible.
 
+## Contrast
+
+Every text colour clears 4.5:1 and every shape that carries meaning 3:1 on
+the surface it sits on, in Light, in Dark and on the navy pages (Oct 2026
+contrast pass).
+
+- Status text takes the -700 of its hue in light and a lighter step in dark:
+  `text-emerald-700 dark:text-emerald-500`, `text-amber-700
+  dark:text-amber-500`, `text-rose-700 dark:text-rose-400` (red, orange, sky
+  likewise; blue and purple stay -600 in light). The -600s measured 3.2 to
+  3.8:1 on white and on their own 10% tints. Lighter shades are only for
+  surfaces that are dark in every theme: the navy pages, the auth card, the
+  recording island.
+- A blue fill carries a dark label wherever the blue is lifted (Dark, the
+  navy pages): `--primary-foreground` is the page colour there. The CTA
+  (`.auth-cta`) sets its own white label, which its gradient is drawn for.
+- Text on a class-colour fill: `readableInk(color)` from `lib/color`.
+- Stars: an amber-400 fill with an amber-600 edge.
+- The initials avatars use the -700 of green, amber and cyan.
+
 Changed values → update this file and DSN-03's successor in the same commit.
 
 ## The widget grammar (UI redesign, Aug 2026)

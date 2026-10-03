@@ -15,8 +15,12 @@ export function getInitials(fullName) {
 
 /** Deterministic background colour for the initials fallback, picked from
  *  the user id so the same person always gets the same colour across
- *  sessions and devices, without needing to store a colour choice. */
-const PALETTE = ['#2E66FF', '#7C3AED', '#059669', '#DB2777', '#D97706', '#0891B2'];
+ *  sessions and devices, without needing to store a colour choice.
+ *  The white initials read 4.6:1 or better on every entry: the green, amber
+ *  and cyan were one step lighter (emerald/amber/cyan-600) and measured 3.2
+ *  to 3.8:1, so they moved to the -700 of the same hue; same order, so each
+ *  person keeps their hue. */
+const PALETTE = ['#2E66FF', '#7C3AED', '#047857', '#DB2777', '#B45309', '#0E7490'];
 export function getAvatarColor(seed) {
   const s = String(seed || '');
   let hash = 0;

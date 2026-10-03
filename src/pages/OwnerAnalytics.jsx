@@ -19,8 +19,8 @@ const short = (d) => (d ? new Date(d).toLocaleDateString() : '—');
 
 function Stat({ label, value, sub = '', tone = '' }) {
   const toneClass =
-    tone === 'good' ? 'text-emerald-600'
-      : tone === 'bad' ? 'text-red-600'
+    tone === 'good' ? 'text-emerald-700 dark:text-emerald-500'
+      : tone === 'bad' ? 'text-red-700 dark:text-red-400'
         : 'text-foreground';
   return (
     <div className="rounded-xl border border-border bg-card p-4">
@@ -74,7 +74,7 @@ export default function OwnerAnalytics() {
     return (
       <div className="max-w-2xl mx-auto p-6">
         <div className="rounded-xl border border-red-200 bg-red-50 dark:border-red-500/30 dark:bg-red-500/10 p-4 flex gap-3">
-          <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+          <AlertCircle className="w-5 h-5 text-red-700 dark:text-red-400 shrink-0 mt-0.5" />
           <div>
             <p className="font-medium text-red-900 dark:text-red-200">Couldn't load analytics</p>
             <p className="text-sm text-red-700 dark:text-red-300 mt-1">{error}</p>
@@ -140,7 +140,7 @@ export default function OwnerAnalytics() {
                   <td className="px-3 py-2">{r.customers}</td>
                   <td className="px-3 py-2">{money(r.revenue_cad)}</td>
                   <td className="px-3 py-2">{money(r.cost_cad)}</td>
-                  <td className={`px-3 py-2 font-medium ${r.profit_cad >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                  <td className={`px-3 py-2 font-medium ${r.profit_cad >= 0 ? 'text-emerald-700 dark:text-emerald-500' : 'text-red-700 dark:text-red-400'}`}>
                     {money(r.profit_cad)}
                   </td>
                   <td className="px-3 py-2">{r.actions}</td>
@@ -200,7 +200,7 @@ export default function OwnerAnalytics() {
                     <p className="text-xs text-muted-foreground">{c.email}</p>
                   </td>
                   <td className="px-3 py-2 capitalize whitespace-nowrap">
-                    {c.tier}{c.subscribed && <span className="ml-1 text-[10px] text-emerald-600 uppercase">sub</span>}
+                    {c.tier}{c.subscribed && <span className="ml-1 text-[10px] text-emerald-700 dark:text-emerald-500 uppercase">sub</span>}
                   </td>
                   <td className="px-3 py-2 whitespace-nowrap">{short(c.joined)}</td>
                   <td className="px-3 py-2">{c.available_credits}</td>
@@ -209,7 +209,7 @@ export default function OwnerAnalytics() {
                     {/* A refusal is the paywall stopping someone, not the app
                         breaking, so it reads as upgrade demand rather than as a
                         fault. Only a real failure is amber. */}
-                    {c.failures > 0 && <span className="ml-1 text-xs text-amber-600">({c.failures} failed)</span>}
+                    {c.failures > 0 && <span className="ml-1 text-xs text-amber-700 dark:text-amber-500">({c.failures} failed)</span>}
                     {c.refusals > 0 && (
                       <span className="ml-1 text-xs text-muted-foreground" title="Blocked by the paywall — tier or credits. Not an error.">
                         ({c.refusals} paywall {c.refusals === 1 ? 'stop' : 'stops'})
@@ -218,7 +218,7 @@ export default function OwnerAnalytics() {
                   </td>
                   <td className="px-3 py-2">{money(c.revenue_cad)}</td>
                   <td className="px-3 py-2">{money(c.cost_cad)}</td>
-                  <td className={`px-3 py-2 font-medium ${c.profit_cad >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                  <td className={`px-3 py-2 font-medium ${c.profit_cad >= 0 ? 'text-emerald-700 dark:text-emerald-500' : 'text-red-700 dark:text-red-400'}`}>
                     {money(c.profit_cad)}
                   </td>
                   <td className="px-3 py-2">{pct(c.margin_pct)}</td>

@@ -7,11 +7,11 @@ export const DECAY_PRESETS = {
 };
 
 export const DECAY_STATES = {
-  fresh: { label: 'Reviewed', color: '#10B981', bgClass: 'bg-emerald-500/10', textClass: 'text-emerald-600' },
-  fading: { label: 'Fading', color: '#F59E0B', bgClass: 'bg-amber-500/10', textClass: 'text-amber-600' },
-  stale: { label: 'Stale', color: '#F97316', bgClass: 'bg-orange-500/10', textClass: 'text-orange-600' },
-  overdue: { label: 'Overdue', color: '#EF4444', bgClass: 'bg-rose-500/10', textClass: 'text-rose-600' },
-  unreviewed: { label: 'Unreviewed', color: '#9CA3AF', bgClass: 'bg-gray-500/10', textClass: 'text-gray-500' },
+  fresh: { label: 'Reviewed', color: '#10B981', bgClass: 'bg-emerald-500/10', textClass: 'text-emerald-700 dark:text-emerald-500' },
+  fading: { label: 'Fading', color: '#F59E0B', bgClass: 'bg-amber-500/10', textClass: 'text-amber-700 dark:text-amber-500' },
+  stale: { label: 'Stale', color: '#F97316', bgClass: 'bg-orange-500/10', textClass: 'text-orange-700 dark:text-orange-400' },
+  overdue: { label: 'Overdue', color: '#EF4444', bgClass: 'bg-rose-500/10', textClass: 'text-rose-700 dark:text-rose-400' },
+  unreviewed: { label: 'Unreviewed', color: '#9CA3AF', bgClass: 'bg-gray-500/10', textClass: 'text-gray-600 dark:text-gray-400' },
 };
 
 const STATE_RANKS = { fresh: 0, fading: 1, stale: 2, overdue: 3, unreviewed: 4 };

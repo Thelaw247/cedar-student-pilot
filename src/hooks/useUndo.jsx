@@ -42,9 +42,12 @@ export function UndoToast({ toast, onUndo, onDismiss }) {
     <div className="fixed bottom-24 lg:bottom-6 left-1/2 -translate-x-1/2 z-[55] animate-fade-in w-[calc(100vw-2rem)] max-w-sm pb-[env(safe-area-inset-bottom)]">
       <div className="flex items-center gap-3 bg-foreground text-background px-4 py-2.5 rounded-notification shadow-3">
         <span className="text-sm font-medium">{toast.message}</span>
+        {/* The toast is painted in foreground, so its ink is background in
+            both themes. primary-foreground was white, which all but vanished
+            on the light toast dark mode draws. */}
         <button
           onClick={onUndo}
-          className="flex items-center gap-1 text-sm font-semibold text-primary-foreground/90 hover:text-primary-foreground underline underline-offset-2"
+          className="flex items-center gap-1 text-sm font-semibold text-background/90 hover:text-background underline underline-offset-2"
         >
           <Undo2 className="w-3.5 h-3.5" /> Undo
         </button>

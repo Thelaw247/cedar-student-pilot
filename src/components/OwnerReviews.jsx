@@ -46,7 +46,7 @@ export default function OwnerReviews() {
           ? `${s.ratings} rating${s.ratings === 1 ? '' : 's'}${s.average != null ? ` · average ${Number(s.average).toFixed(1)}` : ''} · ${s.waiting} waiting for a check · ${s.shown} on the site · ${s.declined} declined`
           : 'Ratings and words students left from the app. The homepage shows the average once there are five ratings.'}
       </p>
-      {error && <p className="text-sm text-red-600 mb-3">{error}</p>}
+      {error && <p className="text-sm text-red-700 dark:text-red-400 mb-3">{error}</p>}
       {!data && !error && <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />}
       {data && data.reviews.filter((r) => !r.declined).length === 0 && (
         <p className="text-sm text-muted-foreground">No reviews yet. Students are asked on Today once they have a processed lecture or a week in the app.</p>
@@ -74,7 +74,7 @@ export default function OwnerReviews() {
               )}
               {r.may_publish && r.approved_at && (
                 <>
-                  <span className="text-xs font-medium text-emerald-600">On the site since {day(r.approved_at)}</span>
+                  <span className="text-xs font-medium text-emerald-700 dark:text-emerald-500">On the site since {day(r.approved_at)}</span>
                   <button type="button" disabled={busyId === r.id} onClick={() => decide(r.id, false)}
                     className="min-h-[36px] rounded-lg border border-border px-3 text-xs font-medium text-muted-foreground hover:bg-muted disabled:opacity-50">
                     Take off site

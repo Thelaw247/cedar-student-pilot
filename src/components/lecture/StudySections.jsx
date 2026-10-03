@@ -348,7 +348,7 @@ export function InsightsSection({ misconceptions, questions }) {
           <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-2">Easy to get wrong</p>
           <ul className="space-y-1.5">
             {misconceptions.map((m, i) => (
-              <li key={i} className="flex items-start gap-2 text-[13px] text-foreground/85"><span className="text-rose-500 mt-0.5">✗</span>{m}</li>
+              <li key={i} className="flex items-start gap-2 text-[13px] text-foreground/85"><span className="text-rose-700 dark:text-rose-400 mt-0.5">✗</span>{m}</li>
             ))}
           </ul>
         </div>
