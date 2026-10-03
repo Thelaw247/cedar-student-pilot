@@ -36,6 +36,8 @@ export default function FloatingActionButton({ actions }) {
       )}
       <button
         onClick={() => setOpen(!open)}
+        aria-label="Add"
+        aria-expanded={open}
         className={`w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-all ${
           open ? 'bg-card border border-border text-foreground rotate-90' : 'bg-primary text-primary-foreground hover:bg-primary/90'
         }`}

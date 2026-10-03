@@ -88,7 +88,7 @@ export default function Todos() {
         {classes.length > 1 && (
           <label className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
             <Filter className="w-3.5 h-3.5" />
-            <select value={classFilter} onChange={(e) => setClassFilter(e.target.value)} className="rounded-lg border border-input bg-background px-2 py-1.5 text-xs text-foreground">
+            <select value={classFilter} onChange={(e) => setClassFilter(e.target.value)} aria-label="Filter by class" className="rounded-lg border border-input bg-background px-2 py-1.5 text-xs text-foreground">
               <option value="all">All classes</option>
               {classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
@@ -99,7 +99,7 @@ export default function Todos() {
       {/* Add */}
       <form onSubmit={add} className="rounded-xl border border-border bg-card shadow-1 p-3 mb-6">
         <div className="flex items-center gap-2">
-          <input value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} placeholder="Add a to-do… e.g. Finish problem set 2"
+          <input value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} aria-label="New to-do" placeholder="Add a to-do… e.g. Finish problem set 2"
             className="flex-1 px-3 py-2 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40" />
           <button type="submit" disabled={!draft.title.trim() || adding}
             className="inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 disabled:opacity-50">
@@ -107,12 +107,12 @@ export default function Todos() {
           </button>
         </div>
         <div className="flex flex-wrap items-center gap-2 mt-2">
-          <select value={draft.kind} onChange={(e) => setDraft({ ...draft, kind: e.target.value })} className="rounded-lg border border-input bg-background px-2 py-1.5 text-xs text-foreground">
+          <select value={draft.kind} onChange={(e) => setDraft({ ...draft, kind: e.target.value })} aria-label="To-do type" className="rounded-lg border border-input bg-background px-2 py-1.5 text-xs text-foreground">
             {KINDS.map((k) => <option key={k} value={k}>{TODO_KIND_LABEL[k]}</option>)}
           </select>
           <input type="date" value={draft.due_date} onChange={(e) => setDraft({ ...draft, due_date: e.target.value })} className="rounded-lg border border-input bg-background px-2 py-1.5 text-xs text-foreground" aria-label="Due date" />
           {classes.length > 0 && (
-            <select value={draft.class_id} onChange={(e) => setDraft({ ...draft, class_id: e.target.value })} className="rounded-lg border border-input bg-background px-2 py-1.5 text-xs text-foreground">
+            <select value={draft.class_id} onChange={(e) => setDraft({ ...draft, class_id: e.target.value })} aria-label="Class" className="rounded-lg border border-input bg-background px-2 py-1.5 text-xs text-foreground">
               <option value="">No class</option>
               {classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
@@ -161,7 +161,7 @@ function TodoRow({ todo, cls, lecture, tone = '', today, onToggle, onRemove, onU
   const overdue = !todo.done && todo.due_date && todo.due_date < today;
   return (
     <li className={`group flex items-start gap-3 py-2.5 ${todo.done ? 'opacity-60' : ''}`}>
-      <button type="button" role="checkbox" aria-checked={todo.done} onClick={onToggle}
+      <button type="button" role="checkbox" aria-checked={todo.done} aria-label={`Mark "${todo.title}" done`} onClick={onToggle}
         className={`w-5 h-5 rounded-md border flex items-center justify-center flex-shrink-0 mt-0.5 transition-colors ${todo.done ? 'bg-primary border-primary text-primary-foreground' : 'border-border hover:border-primary'}`}>
         {todo.done && <Check className="w-3.5 h-3.5" strokeWidth={3} />}
       </button>
@@ -177,7 +177,7 @@ function TodoRow({ todo, cls, lecture, tone = '', today, onToggle, onRemove, onU
           )}
           {todo.detail && <span>{todo.detail}</span>}
           {editingDate ? (
-            <input type="date" autoFocus defaultValue={todo.due_date || ''} onBlur={(e) => { setEditingDate(false); if ((e.target.value || null) !== (todo.due_date || null)) onUpdate({ due_date: e.target.value || null }); }}
+            <input type="date" autoFocus aria-label="Due date" defaultValue={todo.due_date || ''} onBlur={(e) => { setEditingDate(false); if ((e.target.value || null) !== (todo.due_date || null)) onUpdate({ due_date: e.target.value || null }); }}
               className="rounded border border-input bg-background px-1.5 py-0.5 text-[11px]" />
           ) : (
             <button type="button" onClick={() => setEditingDate(true)} className={`inline-flex items-center gap-1 hover:text-foreground ${overdue ? 'text-rose-600 font-medium' : tone}`}>

@@ -22,7 +22,7 @@ export default function LandingCompare() {
       <div className="mx-auto max-w-6xl">
         <div className="mx-auto max-w-3xl text-center">
           <p className="text-sm font-semibold text-primary">Next to the monthly apps</p>
-          <h2 className="mt-2 text-3xl font-bold tracking-[-0.04em] text-foreground sm:text-4xl">Same job, different bill.</h2>
+          <h2 className="mt-2 text-3xl font-bold tracking-[-0.04em] text-foreground sm:text-4xl">What you pay, side by side</h2>
           <p className="mt-4 text-base leading-7 text-muted-foreground">
             Their columns are from their own sites and app-store listings as of {longDate(checkedOn)}, in US dollars; Praelecta&rsquo;s is in Canadian dollars.
           </p>

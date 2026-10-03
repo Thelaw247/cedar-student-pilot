@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useId, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { X, Loader2, CalendarClock, Check, Trash2, AlertTriangle, Lock } from 'lucide-react';
 import { useAutosave } from '@/hooks/useAutosave';
+import { useEscapeKey } from '@/hooks/useEscapeKey';
 import DeleteXButton from '@/components/DeleteXButton';
 import AutosaveIndicator from '@/components/AutosaveIndicator';
 import { defaultSessionTitle } from '@/lib/sessionTitle';
@@ -28,6 +29,7 @@ import { bookSessionsFor } from '@/lib/saveDeadline';
  * doesn't fire on every keystroke.
  */
 export default function AssignmentEditModal({ assignment, onClose, onUpdate }) {
+  const id = useId();
   const [title, setTitle] = useState(assignment.title || '');
   const [dueDate, setDueDate] = useState(assignment.due_date || '');
   const [rubric, setRubric] = useState(assignment.rubric || []);
@@ -249,16 +251,17 @@ export default function AssignmentEditModal({ assignment, onClose, onUpdate }) {
     if (dirtyRef.current) onUpdate?.();
     onClose();
   }, [assignmentSaver, sessionSaver, onUpdate, onClose]);
+  useEscapeKey(handleClose);
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/30 glass" onClick={handleClose}>
-      <div className="bg-card w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl border border-border p-6 animate-fade-in max-h-[90dvh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+      <div role="dialog" aria-modal="true" aria-labelledby={`${id}-title`} className="bg-card w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl border border-border p-6 animate-fade-in max-h-[90dvh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         {/* One ✕ in this header, and it closes the modal. Delete used to sit
             here too — a destructive ✕ eight pixels from the close ✕, same
             size, told apart only by colour. It lives at the bottom now, as a
             labelled button, which is what EditClassModal already does. */}
         <div className="flex items-start justify-between mb-1 gap-3">
-          <h3 className="font-heading text-lg font-semibold">Edit {isProject ? 'Project' : 'Assignment'}</h3>
+          <h3 id={`${id}-title`} className="font-heading text-lg font-semibold">Edit {isProject ? 'Project' : 'Assignment'}</h3>
           <button onClick={handleClose} aria-label="Close" className="flex-shrink-0 text-muted-foreground hover:text-foreground">
             <X className="w-4 h-4" />
           </button>
@@ -268,13 +271,13 @@ export default function AssignmentEditModal({ assignment, onClose, onUpdate }) {
         {/* Title + due date */}
         <div className="space-y-3 mb-3">
           <div>
-            <p className="text-xs font-medium text-muted-foreground mb-1.5">Title</p>
-            <input type="text" value={title} onChange={e => onTitleChange(e.target.value)}
+            <p id={`${id}-name`} className="text-xs font-medium text-muted-foreground mb-1.5">Title</p>
+            <input type="text" aria-labelledby={`${id}-name`} value={title} onChange={e => onTitleChange(e.target.value)}
               className="w-full px-3 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40" />
           </div>
           <div>
-            <p className="text-xs font-medium text-muted-foreground mb-1.5">Due date</p>
-            <input type="date" value={dueDate} onChange={e => onDueDateChange(e.target.value)}
+            <p id={`${id}-due`} className="text-xs font-medium text-muted-foreground mb-1.5">Due date</p>
+            <input type="date" aria-labelledby={`${id}-due`} value={dueDate} onChange={e => onDueDateChange(e.target.value)}
               className="w-full px-3 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40" />
           </div>
         </div>
@@ -325,7 +328,7 @@ export default function AssignmentEditModal({ assignment, onClose, onUpdate }) {
             </div>
           )}
           <div className="flex gap-2">
-            <input type="text" value={newRubricItem} onChange={e => setNewRubricItem(e.target.value)}
+            <input type="text" aria-label="New rubric item" value={newRubricItem} onChange={e => setNewRubricItem(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addRubricItem(); } }}
               placeholder="e.g. Cite at least 3 sources"
               className="flex-1 px-3 py-2 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40" />
@@ -364,6 +367,8 @@ export default function AssignmentEditModal({ assignment, onClose, onUpdate }) {
             <div className="space-y-2">
               {sessions.map((s, i) => {
                 const e = edits[s.id] || { title: '', scheduled_date: '', scheduled_time: '', notes: '' };
+                // Every row has the same four fields, so each is named for its row.
+                const row = `${isProject ? 'Step' : 'Session'} ${i + 1}`;
                 return (
                   <div key={s.id} className="relative rounded-lg border border-border p-3 pr-10">
                     {/* Delete just this session. */}
@@ -386,19 +391,19 @@ export default function AssignmentEditModal({ assignment, onClose, onUpdate }) {
                     </div>
 
                     {/* Title — the session's own name, NOT its description. */}
-                    <input type="text" value={e.title} onChange={ev => updateEdit(s.id, 'title', ev.target.value)}
+                    <input type="text" aria-label={`${row} title`} value={e.title} onChange={ev => updateEdit(s.id, 'title', ev.target.value)}
                       placeholder="Session title"
                       className="w-full px-2.5 py-2 rounded-lg border border-input bg-background text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-primary/40" />
 
                     {/* Notes — the longer "what to do in this session" text. */}
-                    <input type="text" value={e.notes} onChange={ev => updateEdit(s.id, 'notes', ev.target.value)}
+                    <input type="text" aria-label={`${row} notes`} value={e.notes} onChange={ev => updateEdit(s.id, 'notes', ev.target.value)}
                       placeholder="Notes (optional)"
                       className="w-full px-2.5 py-2 rounded-lg border border-input bg-background text-xs text-muted-foreground mb-2 focus:outline-none focus:ring-2 focus:ring-primary/40" />
 
                     <div className="flex gap-2">
-                      <input type="date" value={e.scheduled_date} onChange={ev => updateEdit(s.id, 'scheduled_date', ev.target.value)}
+                      <input type="date" aria-label={`${row} date`} value={e.scheduled_date} onChange={ev => updateEdit(s.id, 'scheduled_date', ev.target.value)}
                         className="flex-1 px-2.5 py-2 rounded-lg border border-input bg-background text-xs focus:outline-none focus:ring-2 focus:ring-primary/40" />
-                      <input type="time" value={e.scheduled_time} onChange={ev => updateEdit(s.id, 'scheduled_time', ev.target.value)}
+                      <input type="time" aria-label={`${row} time`} value={e.scheduled_time} onChange={ev => updateEdit(s.id, 'scheduled_time', ev.target.value)}
                         className="flex-1 px-2.5 py-2 rounded-lg border border-input bg-background text-xs focus:outline-none focus:ring-2 focus:ring-primary/40" />
                     </div>
                   </div>

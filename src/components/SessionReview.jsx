@@ -164,7 +164,7 @@ export default function SessionReview({
     const scoreColor = results.overall_score >= 75 ? 'text-emerald-600' : results.overall_score >= 50 ? 'text-amber-600' : 'text-rose-600';
 
     return (
-      <div className="fixed inset-0 z-50 bg-background overflow-y-auto">
+      <div className="fixed inset-0 z-50 bg-background overflow-y-auto ph-sensitive">
         <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
           <div className="text-center mb-8 animate-fade-in">
             <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
@@ -272,11 +272,11 @@ export default function SessionReview({
     const hasAnswer = answers[currentQuestion] && answers[currentQuestion].trim();
 
     return (
-      <div className="fixed inset-0 z-50 bg-background overflow-y-auto">
+      <div className="fixed inset-0 z-50 bg-background overflow-y-auto ph-sensitive">
         <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
           {/* Progress */}
           <div className="flex items-center justify-between mb-6">
-            <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
+            <button onClick={onClose} aria-label="Close review" className="text-muted-foreground hover:text-foreground">
               <X className="w-5 h-5" />
             </button>
             <span className="text-xs font-medium text-muted-foreground">
@@ -325,7 +325,7 @@ export default function SessionReview({
     return (
       <div className="fixed inset-0 z-50 bg-background overflow-y-auto">
         <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground mb-6">
+          <button onClick={onClose} aria-label="Close review" className="text-muted-foreground hover:text-foreground mb-6">
             <X className="w-5 h-5" />
           </button>
 
@@ -353,7 +353,7 @@ export default function SessionReview({
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="text-xs text-muted-foreground w-8">0%</span>
-                  <input type="range" min="0" max="100" step="10" value={selfRatings[idx] || 0}
+                  <input type="range" aria-label={`${topic.topic} proficiency`} min="0" max="100" step="10" value={selfRatings[idx] || 0}
                     onChange={e => setSelfRatings(prev => ({ ...prev, [idx]: Number(e.target.value) }))}
                     className="flex-1 accent-primary" />
                   <span className="text-xs font-bold text-primary w-10 text-right">{selfRatings[idx] || 0}%</span>

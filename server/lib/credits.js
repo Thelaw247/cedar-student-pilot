@@ -51,9 +51,13 @@ export function durationCost(seconds, per30) {
 }
 
 export const TIER_GRANT = {
-  free: 20, // 2 lectures, LIFETIME — not refreshed monthly. ALSO hardcoded in
-            // the Supabase auth_auto_provisioning migration trigger (SQL can't
-            // import this constant) — keep both in sync if this ever changes.
+  free: 30, // Two lectures of up to 90 minutes each, LIFETIME, not refreshed
+            // monthly. Was 20 until Oct 2026: that only covered two lectures
+            // of an hour, while the median recorded lecture runs 72 minutes,
+            // so "two full lectures free" was false for most students. ALSO
+            // hardcoded in public.handle_new_user() (latest definition:
+            // supabase/migrations/20261003120000_free_grant_covers_two_lectures.sql;
+            // SQL can't import this constant). Keep both in sync.
   student: 200,
   scholar: 450,
   unlimited: 1000,

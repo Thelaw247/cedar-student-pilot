@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Play } from 'lucide-react';
+import { ArrowDown, ArrowRight, Pause, Play } from 'lucide-react';
 import Stars from '@/components/ui/Stars';
 import { usePublicReviews } from '@/hooks/usePublicReviews';
 import { ratingSummary } from '@/lib/reviews';
@@ -28,13 +28,18 @@ import { ratingSummary } from '@/lib/reviews';
  * live app and cut in the order the page tells the story — a recorded
  * lecture that is already notes, formulas and an exam radar; two lectures
  * ticked on the study page and the tools following; the day and the week
- * the studying was booked into. Muted, looping, no controls, 16:9, under
- * 2.5 MB; it starts on the notes, so the poster (its first frame) is what
+ * the studying was booked into. Muted, looping, 16:9, under 2.5 MB, with
+ * one control: a pause button, because anything that moves for more than
+ * five seconds needs a way to stop it (WCAG 2.2.2). It starts on the notes, so the poster (its first frame) is what
  * the headline promises. The filename is versioned because _headers caches
  * it for a year: a new cut is a new name.
+ *
+ * v2 (Oct 2026) is v1 with the account's email address in the sidebar
+ * blurred, frame for frame; v1 was removed from public/ so the address is
+ * no longer served at all.
  */
-export const HERO_DEMO_VIDEO = '/hero-demo-v1.mp4';
-export const HERO_DEMO_POSTER = '/hero-demo-v1.jpg';
+export const HERO_DEMO_VIDEO = '/hero-demo-v2.mp4';
+export const HERO_DEMO_POSTER = '/hero-demo-v2.jpg';
 const HERO_DEMO_ALT = 'Praelecta in use: a recorded lecture already turned into notes, formulas and an exam radar; two lectures ticked for studying; the week with the sessions booked in.';
 
 const REDUCED_MOTION = '(prefers-reduced-motion: reduce)';
@@ -72,6 +77,20 @@ export function HeroDemo() {
   const saveData = typeof navigator !== 'undefined' && !!navigator.connection?.saveData;
   const still = reduced || saveData;
   const [src, setSrc] = React.useState(null);
+  const videoRef = React.useRef(null);
+  const [paused, setPaused] = React.useState(false);
+
+  const togglePlayback = () => {
+    const video = videoRef.current;
+    if (!video) return;
+    if (video.paused) {
+      video.play().catch(() => {});
+      setPaused(false);
+    } else {
+      video.pause();
+      setPaused(true);
+    }
+  };
 
   React.useEffect(() => {
     if (still) return undefined;
@@ -95,19 +114,30 @@ export function HeroDemo() {
     return <img src={HERO_DEMO_POSTER} alt={HERO_DEMO_ALT} width="1386" height="780" className="block aspect-video w-full bg-card object-cover" />;
   }
   return (
-    <video
-      src={src || undefined}
-      poster={HERO_DEMO_POSTER}
-      width="1386"
-      height="780"
-      className="block aspect-video w-full bg-card object-cover"
-      autoPlay
-      muted
-      loop
-      playsInline
-      disablePictureInPicture
-      aria-label={HERO_DEMO_ALT}
-    />
+    <div className="relative">
+      <video
+        ref={videoRef}
+        src={src || undefined}
+        poster={HERO_DEMO_POSTER}
+        width="1386"
+        height="780"
+        className="block aspect-video w-full bg-card object-cover"
+        autoPlay
+        muted
+        loop
+        playsInline
+        disablePictureInPicture
+        aria-label={HERO_DEMO_ALT}
+      />
+      <button
+        type="button"
+        onClick={togglePlayback}
+        aria-label={paused ? 'Play the demo' : 'Pause the demo'}
+        className="absolute bottom-3 right-3 inline-flex h-9 w-9 items-center justify-center rounded-full bg-black/60 text-white transition-colors hover:bg-black/75 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+      >
+        {paused ? <Play className="h-4 w-4" aria-hidden="true" /> : <Pause className="h-4 w-4" aria-hidden="true" />}
+      </button>
+    </div>
   );
 }
 
@@ -148,14 +178,18 @@ export default function LandingHero() {
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
             <Link to="/register" className="auth-cta inline-flex items-center justify-center gap-2 rounded-2xl px-6 py-3.5 text-base font-semibold text-primary-foreground">
-              Start free <ArrowRight className="h-4 w-4" aria-hidden="true" />
+              Record your first lecture free <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </Link>
             <a href="#how-it-works" className="inline-flex items-center justify-center gap-2 rounded-2xl border border-border bg-card/70 px-6 py-3.5 text-base font-semibold text-foreground/85 transition-colors hover:bg-card hover:text-foreground">
-              <Play className="h-4 w-4 text-primary" aria-hidden="true" /> See how it works
+              <ArrowDown className="h-4 w-4 text-primary" aria-hidden="true" /> See how it works
             </a>
           </div>
+          {/* "Up to 90 minutes": the free credits cover two lectures that long
+              (server/lib/credits.js), and notes and flashcards are what the
+              free plan includes; the practice questions and scheduling in the
+              sentence above come with paid plans. */}
           <p className="mt-5 text-sm font-semibold text-foreground/85">
-            Two full lectures free. No card, nothing expires.
+            Two full lectures free, up to 90 minutes each, with notes and flashcards. No card, nothing expires.
           </p>
           <HeroRating />
         </div>

@@ -11,12 +11,21 @@ import { ALLOWED_REQUEST_HEADERS, allowedRequestHeaders } from '../lib/http.js';
  * working perfectly and the dashboard simply staying empty. So the pieces
  * that have to agree are pinned to each other here.
  *
+ * Since Oct 2026 the browser half starts only after the visitor allows it
+ * (src/lib/analyticsConsent.js, the cookie banner, Settings). The consent
+ * check is pinned here too: a change that quietly starts analytics for
+ * everyone again would leave the dashboard looking better, not broken.
+ *
  * Read from source, like public-routes.test.js, because the frontend has no
  * test runner of its own on this stack.
  */
 
 const read = (rel) => fs.readFileSync(new URL(rel, import.meta.url), 'utf8');
 const MAIN = read('../../src/main.jsx');
+const CONSENT = read('../../src/lib/analyticsConsent.js');
+const BANNER = read('../../src/components/CookieConsent.jsx');
+const APP = read('../../src/App.jsx');
+const SETTINGS = read('../../src/pages/Settings.jsx');
 const SERVER_ANALYTICS = read('../lib/analytics.js');
 const HEADERS = read('../../public/_headers');
 const REDIRECTS = read('../../public/_redirects');
@@ -43,21 +52,48 @@ test('the SDK is a stable release in both packages', () => {
     'browser and server must send from the same SDK version');
 });
 
-test('init runs once at module scope in the entry file, before the app renders', () => {
-  assert.match(MAIN, /^import \{ analytics \} from '@heycatch\/sdk'$/m, 'a static import, not a lazy one');
-  const initAt = MAIN.indexOf('analytics.init(');
-  assert.ok(initAt > -1, 'src/main.jsx does not initialise analytics');
-  assert.ok(initAt < MAIN.indexOf('ReactDOM.createRoot'), 'init has to run before the first render');
-  // Module scope: nothing may wrap the call.
-  assert.match(MAIN, /^analytics\.init\(\{$/m);
-  assert.doesNotMatch(MAIN, /typeof window/, 'the guide forbids window guards and once-flags');
-  assert.doesNotMatch(MAIN, /apiHost:/, 'the guide forbids passing apiHost');
-  assert.ok(MAIN.includes(`projectKey: '${KEY}'`), 'the project key is not the one from the dashboard');
-  assert.match(MAIN, /framework: 'vite-react'/);
-  assert.match(MAIN, /frameworkVersion: '18'/, 'React 18 is what package.json pins');
-  assert.match(MAIN, /agent: 'claude-code'/);
+test('init runs only for a visitor who said yes, from one place, before the app renders', () => {
+  // Since Oct 2026 the cookie banner asks first. The SDK has no opt-out call,
+  // so "no" is enforced by never calling init, and every other call
+  // (setIdentity, resetIdentity, trackEvent) is a no-op until it runs.
+  assert.match(CONSENT, /^import \{ analytics \} from '@heycatch\/sdk';$/m, 'a static import, not a lazy one');
+  assert.equal(CONSENT.match(/analytics\.init\(/g)?.length, 1, 'init is called from one place');
+  for (const [name, src] of [['main.jsx', MAIN], ['AuthContext.jsx', AUTH], ['Register.jsx', REGISTER]]) {
+    assert.doesNotMatch(src, /analytics\.init\(/, `${name} starts analytics around the consent check`);
+  }
+  assert.match(CONSENT, /export function startAnalyticsIfAllowed\(\) \{\s*if \(readConsent\(\) === 'granted'\) startAnalytics\(\);/,
+    'init runs without a stored yes');
+  // Global Privacy Control is an answer: no, until its owner says otherwise.
+  assert.match(CONSENT, /navigator\.globalPrivacyControl === true/);
+  assert.match(CONSENT, /return readConsent\(\) \|\| \(sendsGlobalPrivacyControl\(\) \? 'denied' : null\);/);
+  // Module scope in the entry file, before the first render, so a visitor who
+  // already said yes still has their first page view seen.
+  assert.match(MAIN, /^import \{ startAnalyticsIfAllowed \} from '@\/lib\/analyticsConsent'$/m);
+  assert.match(MAIN, /^startAnalyticsIfAllowed\(\)$/m, 'nothing may wrap the call');
+  assert.ok(MAIN.indexOf('startAnalyticsIfAllowed()') < MAIN.indexOf('ReactDOM.createRoot'), 'the check has to run before the first render');
+  assert.doesNotMatch(MAIN, /typeof window/, 'the guide forbids window guards');
+  // The install guide's settings, unchanged by the move.
+  assert.doesNotMatch(CONSENT, /apiHost:/, 'the guide forbids passing apiHost');
+  assert.ok(CONSENT.includes(`projectKey: '${KEY}'`), 'the project key is not the one from the dashboard');
+  assert.match(CONSENT, /framework: 'vite-react'/);
+  assert.match(CONSENT, /frameworkVersion: '18'/, 'React 18 is what package.json pins');
+  assert.match(CONSENT, /agent: 'claude-code'/);
   assert.equal(webPkg.dependencies.react.replace(/[^\d.]/g, '').split('.')[0], '18',
-    'React moved major: frameworkVersion in main.jsx has to move with it');
+    'React moved major: frameworkVersion in analyticsConsent.js has to move with it');
+});
+
+test('the banner asks, it does not steer, and the answer can be changed', () => {
+  // Two answers with the same weight, neither chosen in advance, and a way to
+  // the details. Closing the page without answering leaves analytics off.
+  const buttons = [...BANNER.matchAll(/<button type="button" className=\{(\w+)\} onClick=\{\(\) => choose\('(granted|denied)'\)\}>/g)];
+  assert.deepEqual(buttons.map((m) => m[2]).sort(), ['denied', 'granted'], 'the banner does not offer both answers');
+  assert.equal(new Set(buttons.map((m) => m[1])).size, 1, 'the two answers are styled differently');
+  assert.match(BANNER, /to="\/privacy#cookies"/, 'no link to what the cookie is');
+  assert.match(BANNER, /useState\(\(\) => effectiveConsent\(\)\)/, 'the banner shows to someone who already answered');
+  assert.match(APP, /<CookieConsent \/>/, 'the banner is not mounted');
+  assert.match(SETTINGS, /setConsent\(/, 'Settings cannot change the answer');
+  // Saying no removes what an earlier yes left behind.
+  assert.match(CONSENT, /if \(answer === 'granted'\) startAnalytics\(\);\s*else clearAnalyticsStorage\(\);/);
 });
 
 test('the API host is traced in the browser and allowed through CORS', () => {
@@ -65,7 +101,7 @@ test('the API host is traced in the browser and allowed through CORS', () => {
   // bound for that host. Allow-Headers on the API is a fixed list, so a host
   // traced without being allowed fails the preflight — and with it every API
   // call the app makes. http.test.js proves the live preflight.
-  const traced = MAIN.match(/tracingHosts: \[([^\]]*)\]/)?.[1] || '';
+  const traced = CONSENT.match(/tracingHosts: \[([^\]]*)\]/)?.[1] || '';
   const hosts = [...traced.matchAll(/'([^']+)'/g)].map((m) => m[1]);
   assert.ok(hosts.length > 0, 'the API is on another host; it has to be traced');
   const apiHost = new URL(read('../../.env.cloudflare').match(/^VITE_RENDER_API_URL=(\S+)/m)[1]).host;
@@ -133,5 +169,7 @@ test('the outcomes nobody can autocapture are sent, each from the side that know
 
 test('the privacy policy says an analytics company sees this', () => {
   assert.ok(PRIVACY.includes('HeyCatch'), 'a processor the policy does not name');
-  assert.match(PRIVACY, /recordings, transcripts and uploaded files are never sent to it/);
+  assert.match(PRIVACY, /recordings, transcripts and uploaded files are never sent to HeyCatch/);
+  assert.match(PRIVACY, /runs only if you allow the analytics cookie/, 'the policy does not say analytics waits for a yes');
+  assert.match(PRIVACY, /id="cookies"/, 'the banner links to a cookies section that is not there');
 });

@@ -13,7 +13,7 @@ import { usePublicPageMeta } from '@/hooks/usePublicPageMeta';
  * mounted and restored when it unmounts (usePublicPageMeta), so the app's
  * own pages keep theirs.
  */
-export default function MarketingShell({ title, description, children }) {
+export default function MarketingShell({ title, description, noindex = false, children }) {
   // The dark floor goes on the canvas for as long as a public page is mounted.
   //
   // On a phone, iOS reveals a rubber-band region above the top and below the
@@ -26,7 +26,7 @@ export default function MarketingShell({ title, description, children }) {
     return () => document.documentElement.classList.remove('landing-active');
   }, []);
 
-  usePublicPageMeta({ title, description });
+  usePublicPageMeta({ title, description, noindex });
 
   // No bg-background on the wrapper below, deliberately. This element is
   // positioned, so an opaque background on it paints in the positioned-element
@@ -41,8 +41,10 @@ export default function MarketingShell({ title, description, children }) {
           waveform vanished on phones and the navy floor stopped mid-page. */}
       <div className="landing-backdrop" aria-hidden="true" />
       <div className="landing-surface relative min-h-screen overflow-x-hidden text-foreground selection:bg-primary/25 selection:text-foreground">
+        {/* Keyboard users skip the nav: the first Tab stop, visible only when focused. */}
+        <a href="#main" className="skip-link">Skip to content</a>
         <LandingNav />
-        <main>{children}</main>
+        <main id="main" tabIndex={-1} className="outline-none">{children}</main>
         <LandingFooter />
       </div>
     </>

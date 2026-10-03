@@ -23,16 +23,18 @@
          because that is what a student types into a search box; the tagline
          stays in the hero. Kept under 60 characters. src/pages/Landing.jsx sets
          the same string at runtime (LANDING_TITLE) - keep the two equal. -->
-    <title>Praelecta — AI Lecture Recording &amp; Study Tool for Students</title>
+    <title>Praelecta | AI Lecture Recording &amp; Study Tool for Students</title>
     <!-- Static fallback for crawlers/scrapers that don't execute JS. Landing.jsx
          overrides this via useEffect for browsers that do (keeps per-page control),
          but the SPA shell needs a real description in the initial HTML too, or a
          non-JS crawler and some social scrapers see nothing here at all. Kept under
          160 chars on purpose - Google truncates past that, mid-sentence, in the
          search snippet. -->
-    <meta name="description" content="Record your lecture — Praelecta turns it into a transcript, flashcards, practice questions and a study plan, automatically. Two lectures free." />
-    <meta property="og:title" content="Praelecta — You show up, we&#39;ll do the rest" />
-    <meta property="og:description" content="Just go to class. We’ll take the notes — transcript, summary and flashcards, minutes after you walk out." />
+    <meta name="description" content="Record your lecture and Praelecta turns it into a transcript, a summary and flashcards a few minutes later. Two full lectures free, no card." />
+    <meta property="og:site_name" content="Praelecta" />
+    <meta property="og:locale" content="en_CA" />
+    <meta property="og:title" content="Praelecta | Just listen. We&#39;ll take the notes." />
+    <meta property="og:description" content="Record your lecture and get the transcript, a summary and flashcards a few minutes later. Two full lectures free, no card." />
     <!-- og:image / twitter:image stay absolute deliberately: social scrapers
          (Facebook, LinkedIn, Slack, WhatsApp, iMessage) do not resolve
          relative paths. JPEG, not WebP or PNG: every scraper handles JPEG,
@@ -43,6 +45,9 @@
          to praelecta.ca now the domain resolves; verified the file serves
          there as image/jpeg before changing this. -->
     <meta property="og:image" content="https://praelecta.ca/og-card-v1.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Praelecta logo and name" />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://praelecta.ca/" />
     <!-- Two hosts serve this identical app - praelecta.ca and the workers.dev
@@ -53,9 +58,7 @@
     <link rel="canonical" href="https://praelecta.ca/" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:image" content="https://praelecta.ca/og-card-v1.jpg" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+    <meta name="twitter:image:alt" content="Praelecta logo and name" />
     <!-- JSON-LD: SoftwareApplication schema for rich results / AI answer engines.
          featureList is deliberately exhaustive (every feature the credit system
          bills for, plus the free-form ones) rather than a marketing-copy summary -
@@ -68,18 +71,18 @@
       "@type": "SoftwareApplication",
       "name": "Praelecta",
       "applicationCategory": "EducationApplication",
-      "operatingSystem": "Web, iOS",
+      "operatingSystem": "Web, Windows, macOS, Linux",
       "url": "https://praelecta.ca/",
-      "description": "Praelecta records your lectures and turns them into transcripts, summaries, flashcards, practice questions and a study plan, automatically.",
+      "description": "Praelecta records your lectures and turns them into transcripts, summaries and flashcards, with practice questions, exam prediction and study schedules on paid plans.",
       "image": "https://praelecta.ca/og-card-v1.jpg",
       "featureList": [
-        "Automatic lecture recording with multi-hour, multi-segment capture",
+        "Lecture recording of up to six hours, with recovery after a crash",
         "Speech-to-text lecture transcription",
         "AI-generated lecture summaries",
         "Transcript-anchored topic outline for every lecture",
         "Concept extraction linked back to the lecture or web sources",
         "Formula extraction, verified against attached professor materials",
-        "Key definitions and worked examples pulled from every lecture",
+        "Key definitions and worked examples pulled from each lecture",
         "Exam topic prediction",
         "Common-misconception detection",
         "Auto-generated practice questions",
@@ -103,7 +106,7 @@
         "@type": "AggregateOffer",
         "priceCurrency": "CAD",
         "lowPrice": "0",
-        "highPrice": "24.99",
+        "highPrice": "79.99",
         "offerCount": "4"
       }
     }
@@ -147,7 +150,7 @@
           "name": "What happens to my audio?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "It goes into your account's private storage and is transcribed by Groq (Deepgram as a backup); Google's Gemini then writes the summary, concepts and questions. Those providers process it only to return your results and, under their terms, don't use it to train their models. Nobody else can see it, we never sell it, and it's deleted when you delete the lecture, the class, or your account."
+            "text": "It goes into your account's private storage and is transcribed by Groq (Deepgram as a backup); Google's Gemini then writes the summary, concepts and questions. Those providers process it only to return your results and, under their terms, don't use it to train their models. No other user can see it, we never sell it, and it's deleted when you delete the lecture, the class, or your account."
           }
         },
         {
@@ -155,7 +158,7 @@
           "name": "Will I run out of credits mid-semester?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "You always see your balance and what an action costs before you spend it, so it's never a surprise. A one-hour lecture is 10 credits. Student gives you 200 a month (about 20 lectures), Scholar 450, Unlimited 1000. If you need more, a credit pack tops you up without changing your plan, and packs never expire."
+            "text": "You always see your balance and what an action costs before you spend it, so it's never a surprise. A one-hour lecture is 10 credits. Student gives you 200 a month (about 20 hours of lectures), Scholar 450, Unlimited 1000. If you need more, a credit pack tops you up without changing your plan, and packs never expire."
           }
         },
         {
@@ -163,7 +166,7 @@
           "name": "Can I cancel anytime?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Yes. One tap in Settings, no chat with support. You keep what you paid for until the end of the period, everything you made stays in your account, and your price never goes up while you're subscribed."
+            "text": "Yes, from Settings: Manage billing opens Stripe's billing portal, where you cancel yourself, with no email or chat with support. You keep what you paid for until the end of the period, everything you made stays in your account, and your price never goes up while you're subscribed."
           }
         },
         {
@@ -171,7 +174,7 @@
           "name": "Does Praelecta write my essays?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "No. It only works with your lectures: the recording, the transcript and what your professor actually said. It doesn't write assignments, and there's nowhere in the app to ask it to."
+            "text": "No. It works from your lectures and the course files you attach, like a syllabus or a past exam. It doesn't write assignments, and there's nowhere in the app to ask it to."
           }
         },
         {
@@ -179,7 +182,7 @@
           "name": "What if my professor talks too fast?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Record it and replay any part with the transcript right beside it. The summary and key concepts are ready a few minutes after class ends, so you can listen in class instead of racing to write."
+            "text": "Record it and replay any part with the transcript right beside it. The summary and key concepts are usually ready about three minutes after you stop recording, so you can listen in class instead of racing to write."
           }
         },
         {
@@ -195,7 +198,7 @@
           "name": "How much does it cost?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Two full lectures are free, no card needed. After that, Student is $7.99 a month or $24.99 for the whole semester, one bill that matches your term. Scholar is $12.99 a month or $39.99 a semester, Unlimited $24.99 or $79.99. The full comparison is on the pricing page."
+            "text": "Two full lectures of up to 90 minutes are free, no card needed. After that, Student is $7.99 a month or $24.99 for the whole semester, one bill that matches your term. Scholar is $12.99 a month or $39.99 a semester, Unlimited $24.99 or $79.99. The full comparison is on the pricing page."
           }
         }
       ]

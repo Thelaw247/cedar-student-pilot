@@ -1,18 +1,22 @@
-import React, { useState } from 'react';
+import React, { useId, useState } from 'react';
 import { base44 } from '@/api/base44Client';
+import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { Loader2, X, FileText, BookOpen, ChevronLeft } from 'lucide-react';
 import DeadlineForm, { DeadlineModal } from '@/components/DeadlineForm';
 
 export default function AddExamOrStudyModal({ classes, onClose }) {
+  const id = useId();
   const [mode, setMode] = useState(null);
+  // The exam and study views are modals of their own and close on Escape there.
+  useEscapeKey(onClose, !mode);
 
   if (!mode) {
     return (
       <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/30 glass" onClick={onClose}>
-        <div className="bg-card w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl border border-border p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:pb-6 animate-fade-in max-h-[90dvh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div role="dialog" aria-modal="true" aria-labelledby={`${id}-title`} className="bg-card w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl border border-border p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:pb-6 animate-fade-in max-h-[90dvh] overflow-y-auto" onClick={e => e.stopPropagation()}>
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-heading text-lg font-semibold">Add to Plan</h3>
-            <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
+            <h3 id={`${id}-title`} className="font-heading text-lg font-semibold">Add to Plan</h3>
+            <button onClick={onClose} aria-label="Close" className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
           </div>
           <div className="space-y-2">
             <button onClick={() => setMode('exam')} className="w-full flex items-center gap-3 rounded-xl border border-border p-4 hover:bg-muted transition-colors text-left">
@@ -56,6 +60,8 @@ function ExamForm({ classes, onBack, onClose }) {
 }
 
 function StudyForm({ classes, onBack, onClose }) {
+  const id = useId();
+  useEscapeKey(onClose);
   const [form, setForm] = useState({
     class_id: '',
     title: '',
@@ -94,36 +100,36 @@ function StudyForm({ classes, onBack, onClose }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/30 glass" onClick={onClose}>
-      <div className="bg-card w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl border border-border p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:pb-6 animate-fade-in max-h-[90dvh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+      <div role="dialog" aria-modal="true" aria-labelledby={`${id}-title`} className="bg-card w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl border border-border p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:pb-6 animate-fade-in max-h-[90dvh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="flex items-center gap-3 mb-4">
-          <button onClick={onBack} className="text-muted-foreground hover:text-foreground"><ChevronLeft className="w-5 h-5" /></button>
-          <h3 className="font-heading text-lg font-semibold">Add Study Block</h3>
+          <button onClick={onBack} aria-label="Back" className="text-muted-foreground hover:text-foreground"><ChevronLeft className="w-5 h-5" /></button>
+          <h3 id={`${id}-title`} className="font-heading text-lg font-semibold">Add Study Block</h3>
         </div>
         <form onSubmit={handleSubmit} className="space-y-3">
-          <select value={form.class_id} onChange={e => setForm({ ...form, class_id: e.target.value })}
+          <select aria-label="Class" value={form.class_id} onChange={e => setForm({ ...form, class_id: e.target.value })}
             className="w-full px-3 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40">
             <option value="">Select a class...</option>
             {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
-          <input type="text" placeholder="Session title (optional)" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })}
+          <input type="text" aria-label="Session title" placeholder="Session title (optional)" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })}
             className="w-full px-3 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40" />
-          <input type="date" value={form.scheduled_date} onChange={e => setForm({ ...form, scheduled_date: e.target.value })}
+          <input type="date" aria-label="Date" value={form.scheduled_date} onChange={e => setForm({ ...form, scheduled_date: e.target.value })}
             className="w-full px-3 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40" />
           <div className="grid grid-cols-2 gap-3">
-            <input type="time" value={form.scheduled_time} onChange={e => setForm({ ...form, scheduled_time: e.target.value })}
+            <input type="time" aria-label="Start time" value={form.scheduled_time} onChange={e => setForm({ ...form, scheduled_time: e.target.value })}
               className="px-3 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40" />
-            <select value={form.duration_minutes} onChange={e => setForm({ ...form, duration_minutes: Number(e.target.value) })}
+            <select aria-label="Duration" value={form.duration_minutes} onChange={e => setForm({ ...form, duration_minutes: Number(e.target.value) })}
               className="px-3 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40">
               {[30, 45, 60, 90, 120].map(m => <option key={m} value={m}>{m} min</option>)}
             </select>
           </div>
-          <select value={form.priority} onChange={e => setForm({ ...form, priority: e.target.value })}
+          <select aria-label="Priority" value={form.priority} onChange={e => setForm({ ...form, priority: e.target.value })}
             className="w-full px-3 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40">
             <option value="low">Low Priority</option>
             <option value="medium">Medium Priority</option>
             <option value="high">High Priority</option>
           </select>
-          <input type="text" placeholder="Notes (optional)" value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })}
+          <input type="text" aria-label="Notes" placeholder="Notes (optional)" value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })}
             className="w-full px-3 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40" />
           {error && <p className="text-xs text-destructive">{error}</p>}
           <div className="flex gap-2 pt-2">

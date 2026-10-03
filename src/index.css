@@ -1,4 +1,6 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+/* Inter is self-hosted: @fontsource-variable/inter is imported in src/main.jsx,
+   so no visitor's browser calls Google Fonts (it used to, from here and from
+   index.html, which sent every visitor's IP address to Google). */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -19,7 +21,10 @@
     --muted-foreground: 218 14% 46%;
     --accent: 220 63% 97%;
     --accent-foreground: 218 47% 20%;
-    --destructive: 0 84% 60%;
+    /* 0 72% 45%, not the old 0 84% 60%: error text measured 3.5 to 3.8:1 on
+       the light backgrounds and white on a delete button the same. This is
+       5.4:1 or better for both (Oct 2026 contrast audit). */
+    --destructive: 0 72% 45%;
     --destructive-foreground: 0 0% 98%;
     --border: 220 26% 90%;
     --input: 220 26% 90%;
@@ -54,9 +59,9 @@
     /* Apple-derived spring-feel curve; entries ease out, exits ease in. */
     --ease-standard: cubic-bezier(0.32, 0.72, 0, 1);
 
-    --font-heading: 'Inter', ui-sans-serif, system-ui, sans-serif;
-    --font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
-    --font-display: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    --font-heading: 'Inter Variable', 'Inter', ui-sans-serif, system-ui, sans-serif;
+    --font-body: 'Inter Variable', 'Inter', ui-sans-serif, system-ui, sans-serif;
+    --font-display: 'Inter Variable', 'Inter', ui-sans-serif, system-ui, sans-serif;
     --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   }
 
@@ -78,8 +83,11 @@
     --muted-foreground: 218 11% 66%;
     --accent: 219 14% 16%;
     --accent-foreground: 216 25% 95%;
-    --destructive: 0 62% 45%;
-    --destructive-foreground: 0 0% 98%;
+    /* Dark mode: error text at 0 62% 45% measured 2.9:1 on a card. A lighter
+       red reads at 4.8:1, and a delete button then carries near-black text,
+       4.8:1, where white on the lighter red would fail. */
+    --destructive: 0 74% 62%;
+    --destructive-foreground: 0 0% 10%;
     --border: 218 13% 17%;
     --input: 218 13% 17%;
     --ring: 224 100% 65%;
@@ -94,6 +102,14 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
+  }
+  /* A visible ring wherever a keyboard lands (WCAG 2.4.7). The rule above only
+     tints the browser's own outline to the ring colour at half strength, which
+     measured under 3:1 on both backgrounds. Components that draw their own
+     focus ring (focus-visible:outline-none plus ring-*) keep theirs. */
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
   }
   body {
     @apply bg-background text-foreground font-body antialiased;
@@ -147,8 +163,36 @@
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
       animation-duration: 0.01ms !important;
+      /* One pass: an infinite spin or pulse at 0.01ms flickers instead of stopping. */
+      animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
     }
+  }
+  /* "Skip to content": the first Tab stop on a page, off-screen until focused. */
+  .skip-link {
+    position: absolute;
+    left: 1rem;
+    top: -4rem;
+    z-index: 100;
+    padding: 0.5rem 1rem;
+    border-radius: 0.75rem;
+    background: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+    font-size: 0.875rem;
+    font-weight: 600;
+  }
+  .skip-link:focus { top: 1rem; }
+  /* The cookie banner (components/CookieConsent.jsx) sits at the foot of the
+     screen, lifted above the phone's bottom navigation on the app pages that
+     have one (BottomNav, data-bottom-nav; hidden from lg up). On the public
+     pages and the sign-in screens there is no bar, and the old fixed lift
+     left the banner floating over the middle of the form. */
+  .cookie-consent { bottom: calc(env(safe-area-inset-bottom, 0px) + 1rem); }
+  body:has([data-bottom-nav]) .cookie-consent { bottom: calc(env(safe-area-inset-bottom, 0px) + 5.5rem); }
+  @media (min-width: 1024px) {
+    .cookie-consent,
+    body:has([data-bottom-nav]) .cookie-consent { bottom: 1.5rem; }
   }
 }
 

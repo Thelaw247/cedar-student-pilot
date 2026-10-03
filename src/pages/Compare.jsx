@@ -33,9 +33,9 @@ export default function Compare({ competitor: slug }) {
             {them.summary} Praelecta records the lecture too, then scopes the studying to what the test covers and books the study sessions around your calendar, billed by the semester in Canadian dollars.
           </p>
           <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">
-            Everything in the {them.name} column is taken from{' '}
+            Everything in the {them.name} column comes from{' '}
             <a href={them.url} target="_blank" rel="noreferrer" className="font-semibold text-primary hover:text-foreground">their own site</a>
-            {' '}as of {longDate(them.checkedOn)}. Their prices are in US dollars, Praelecta’s in Canadian. Where their site does not say, the table says so.
+            {' '}and their app-store listings, as of {longDate(them.checkedOn)}; the sources are listed at the bottom. Their prices are in US dollars, Praelecta’s in Canadian. Where they do not say, the table says so.
           </p>
 
           {/* Three readable columns need about 640px; on a phone the table
@@ -82,13 +82,13 @@ export default function Compare({ competitor: slug }) {
 
           <div className="mt-10 flex flex-col gap-3 sm:flex-row">
             <Link to="/register" className="auth-cta inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold text-primary-foreground">
-              Try Praelecta free <ArrowRight className="h-4 w-4" />
+              Try Praelecta free <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </Link>
             <Link to="/pricing" className="inline-flex items-center justify-center rounded-xl border border-border bg-card px-5 py-3 text-sm font-semibold text-foreground/85 transition-colors hover:bg-muted">
               See every plan
             </Link>
           </div>
-          <p className="mt-3 text-xs text-muted-foreground">Two full lectures free, no card needed.</p>
+          <p className="mt-3 text-xs text-muted-foreground">Two full lectures free, up to 90 minutes each, no card needed.</p>
 
           <div className="mt-12 border-t border-border pt-6 text-xs leading-5 text-muted-foreground">
             <p className="font-semibold text-foreground">Where the {them.name} column comes from</p>

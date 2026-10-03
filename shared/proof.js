@@ -2,7 +2,9 @@
  * The proof line on the landing page, from the public counts.
  *
  * Praelecta is weeks old, so the numbers are small; they are shown as what
- * they are — early students, not a crowd — rather than inflated or hidden.
+ * they are (early students, not a crowd) rather than inflated or hidden.
+ * `students` counts people who have recorded at least one lecture
+ * (server/routes/publicStats.js), so the sentence below is true as worded.
  * With no counts (API unreachable, or nothing recorded yet) the line still
  * reads truthfully.
  */

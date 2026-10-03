@@ -280,8 +280,17 @@ export default function StudyPlanner() {
                       {/* Clicking the row lands you on this item inside the class's
                           Assignments tab (same deep-link pattern used elsewhere). */}
                       <div
+                        role="button"
+                        tabIndex={0}
                         className="flex items-center gap-3 cursor-pointer"
                         onClick={() => navigate(`/classes/${a.class_id}?tab=assignments&assignmentId=${a.id}`)}
+                        onKeyDown={(e) => {
+                          // The row's own keys only: Enter or Space on the Edit
+                          // button inside it bubbles up here as well.
+                          if (e.target !== e.currentTarget || (e.key !== 'Enter' && e.key !== ' ')) return;
+                          e.preventDefault(); // Space would otherwise scroll the page
+                          e.currentTarget.click();
+                        }}
                       >
                         <div className="w-1 h-10 rounded-full flex-shrink-0" style={{ backgroundColor: classColor(cls?.color) }}></div>
                         <div className="flex-1 min-w-0">
@@ -377,6 +386,7 @@ export default function StudyPlanner() {
                     />
                     <div className="flex items-start gap-3">
                       <button onClick={() => toggleStatus(s)}
+                        role="checkbox" aria-checked={s.status === 'completed'} aria-label={`Mark "${sessionTitle(s, assignment)}" done`}
                         className={`w-6 h-6 rounded-md border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition-colors ${s.status === 'completed' ? 'bg-primary border-primary' : 'border-border hover:border-primary'}`}>
                         {s.status === 'completed' && <Check className="w-4 h-4 text-primary-foreground" strokeWidth={3} />}
                       </button>
@@ -434,7 +444,7 @@ export default function StudyPlanner() {
                             Only shown when this session belongs to an assignment
                             (some ad-hoc study blocks don't). */}
                         {assignment && (
-                          <button onClick={() => setEditAssignment(assignment)}
+                          <button onClick={() => setEditAssignment(assignment)} aria-label={`Edit ${assignment.title}`}
                             className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-border text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors flex-shrink-0">
                             <Pencil className="w-3.5 h-3.5" />
                           </button>

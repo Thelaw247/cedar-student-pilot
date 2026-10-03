@@ -46,7 +46,7 @@ export default function FlashcardViewer({ flashcards }) {
   };
 
   return (
-    <div className="rounded-xl border border-border bg-card shadow-1 p-6">
+    <div className="rounded-xl border border-border bg-card shadow-1 p-6 ph-sensitive">
       <div className="flex items-center justify-between mb-4">
         <p className="text-xs text-muted-foreground tabular-nums">{index + 1} / {count}</p>
         <button onClick={shuffle} className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground">

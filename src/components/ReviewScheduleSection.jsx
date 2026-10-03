@@ -74,7 +74,7 @@ export default function ReviewScheduleSection() {
                 <span key={t} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-card text-sm">
                   <Clock className="w-3 h-3 text-primary" />
                   {formatDisplay(t)}
-                  <button onClick={() => removeTime(t)} className="ml-1 text-muted-foreground hover:text-destructive">
+                  <button onClick={() => removeTime(t)} aria-label={`Remove ${formatDisplay(t)}`} className="ml-1 text-muted-foreground hover:text-destructive">
                     <X className="w-3 h-3" />
                   </button>
                 </span>
@@ -85,6 +85,7 @@ export default function ReviewScheduleSection() {
           <div className="flex gap-2 items-center">
             <input
               type="time"
+              aria-label="Preferred study time"
               value={newTime}
               onChange={e => setNewTime(e.target.value)}
               className="px-3 py-2 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"

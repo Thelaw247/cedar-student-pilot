@@ -39,9 +39,9 @@ export default function Pricing() {
           <div className="mx-auto max-w-3xl text-center">
             <LandingProof />
             <p className="mt-5 text-sm font-semibold text-primary">Pricing</p>
-            <h1 className="mt-2 text-4xl font-bold tracking-[-0.045em] text-foreground sm:text-5xl">Free to try. Less than a textbook to keep.</h1>
+            <h1 className="mt-2 text-4xl font-bold tracking-[-0.045em] text-foreground sm:text-5xl">Two lectures free. Plans from {money(TIERS.student.semester / 4)} a month.</h1>
             <p className="mt-4 text-base leading-7 text-muted-foreground sm:text-lg">
-              Two full lectures on us, no card needed. After that, one plan and one bill: by the month, or once a semester so it matches your term. Every price is in Canadian dollars, and the price you sign up at is your price for as long as you stay.
+              Two full lectures on us, up to 90 minutes each, no card needed. After that, one plan and one bill: by the month, or once a semester so it matches your term. Every price is in Canadian dollars, and the price you sign up at is your price for as long as you stay.
             </p>
           </div>
 
@@ -55,7 +55,7 @@ export default function Pricing() {
             <CreditsExplainer />
 
             <div className="rounded-[26px] border border-border bg-card p-7 sm:p-8">
-              <Package className="h-6 w-6 text-primary" />
+              <Package className="h-6 w-6 text-primary" aria-hidden="true" />
               <h2 className="mt-5 text-2xl font-bold tracking-[-0.03em] text-foreground">Credit packs</h2>
               <p className="mt-3 text-sm leading-6 text-muted-foreground">
                 A one-off top-up for a heavy month. Packs never expire, survive a downgrade or a cancellation, and don&rsquo;t change your plan. Plan credits are spent first, pack credits after.
@@ -73,7 +73,7 @@ export default function Pricing() {
               <ul className="mt-3 space-y-1.5 text-sm text-muted-foreground">
                 {savings.map(({ tier, saving }) => saving && (
                   <li key={tier.id}>
-                    <span className="font-semibold text-foreground">{tier.name}</span>: {money(tier.semester)} a semester instead of {money(tier.monthly * 4)} over four months — save {money(Number(saving.saved))} ({saving.percent}%).
+                    <span className="font-semibold text-foreground">{tier.name}</span>: {money(tier.semester)} a semester instead of {money(tier.monthly * 4)} over four months, a saving of {money(Number(saving.saved))} ({saving.percent}%).
                   </li>
                 ))}
               </ul>
@@ -108,10 +108,10 @@ export default function Pricing() {
 
           <div className="mt-14 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Link to="/register" className="auth-cta inline-flex w-full items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold text-primary-foreground sm:w-auto">
-              Start free <ArrowRight className="h-4 w-4" />
+              Record your first lecture free <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </Link>
-            <Link to="/login" className="inline-flex w-full items-center justify-center rounded-xl border border-border bg-card px-5 py-3 text-sm font-semibold text-foreground/85 transition-colors hover:bg-muted sm:w-auto">
-              Already have an account? Upgrade in Settings
+            <Link to="/login?returnTo=%2Fsubscription" className="inline-flex w-full items-center justify-center rounded-xl border border-border bg-card px-5 py-3 text-sm font-semibold text-foreground/85 transition-colors hover:bg-muted sm:w-auto">
+              Sign in to upgrade
             </Link>
           </div>
         </div>

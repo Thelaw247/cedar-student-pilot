@@ -15,12 +15,27 @@ import { PUBLIC_PAGES } from '@/lib/publicPages';
  */
 export const CHANGELOG = [
   {
+    date: '2026-10-03',
+    title: 'Analytics only with your yes',
+    items: [
+      'Product analytics only starts if you allow it. A small banner asks once, with two equal buttons, and Settings → Data & Privacy changes your answer any time. A browser that sends Global Privacy Control is never asked.',
+      'The free plan covers two full lectures of up to 90 minutes each. If you are on Free, the extra credits are already in your account.',
+      'The privacy policy and terms were rewritten against what the app actually does: what is stored, which companies process it and where, a section on cookies and browser storage, and where Export and Delete really are.',
+      'The Inter font now comes from praelecta.ca itself instead of Google, and the focus music player uses YouTube’s privacy-enhanced mode.',
+      'Plans are shown in hours of lectures instead of a lecture count, every place you can pay links to the refund policy, and Settings only shows switches that change something.',
+      'Every button now says what it does to a screen reader, form fields are labelled, pop-up windows close with Escape, and the homepage video has a pause button.',
+      'An address that is not a page now says so, in the site’s own design, with a way back. Every screen in the app has its own name in the browser tab, and the Tab key can skip straight past the menu.',
+      'Sign-in errors are read out by screen readers. After sign-up, Resend waits out the one-minute email limit instead of failing, a reset email that could not be sent says so, and choosing a new password ends on a screen that says it worked.',
+      'After you pay, the confirmation names the plan or the credit pack you bought.',
+    ],
+  },
+  {
     date: '2026-10-02',
     title: 'Your review, in your words',
     items: [
-      'Today asks for a quick review: a star rating and a sentence or two. Putting it on praelecta.ca is your choice — the box starts unticked — and Settings → Your review is where you change it, take it off the site or delete it.',
+      'Today asks for a quick review: a star rating and a sentence or two. Putting it on praelecta.ca is your choice (the box starts unticked), and Settings → Your review is where you change it, take it off the site or delete it.',
       'The homepage shows what students said, with their stars and only with their say-so, and the average rating once there are enough ratings for it to mean something. The average counts every rating, not only the ones on the page.',
-      'The footer is three short columns — Product, Company and Compare — with Privacy, Terms and Sign in underneath.',
+      'The footer is three short columns (Product, Company and Compare) with Privacy, Terms and Sign in underneath.',
       'The homepage headline is a little smaller and reads on two lines on any screen, and the About page says why Praelecta exists in plainer words.',
     ],
   },
@@ -29,9 +44,9 @@ export const CHANGELOG = [
     title: 'Today answers back',
     items: [
       'On Today, an attendance answer that could not be saved now says so and what to do next, an answer given offline is saved when you are back on, and “Ask me later” means later.',
-      'A recording that will not save tells you the real reason — the server’s own words, not “check your connection” — keeps the part that failed to upload for the retry, and offers Discard when there is nothing to send.',
+      'A recording that will not save tells you the real reason, in the server’s own words instead of “check your connection”, keeps the part that failed to upload for the retry, and offers Discard when there is nothing to send.',
       'On a phone, the sheets for adding an event, adding an exam and rebooking no longer end up under the bottom bar, and the small buttons on Today are big enough for a thumb.',
-      'The homepage opens with six words, and the product beside them is the product: a short loop of a real account — a lecture already turned into notes, formulas and an exam radar, two lectures ticked for studying, the week with the sessions booked in. It plays on an iPhone and a Mac too. If your system asks for less motion, or your browser to save data, you get the first frame as a picture instead.',
+      'The homepage opens with six words, and the product beside them is the product: a short loop of a real account: a lecture already turned into notes, formulas and an exam radar, two lectures ticked for studying, the week with the sessions booked in. It plays on an iPhone and a Mac too. If your system asks for less motion, or your browser to save data, you get the first frame as a picture instead.',
     ],
   },
   {
@@ -47,8 +62,8 @@ export const CHANGELOG = [
     date: '2026-09-28',
     title: 'A shorter homepage, with things you can check',
     items: [
-      'The homepage says each thing once: four facts under the first button (six-hour recordings, two full lectures free, the semester price, one-tap cancelling), the person who built it, what the free tier actually includes, and the promise that the notes come from the lecture, not the internet.',
-      'Four feature pages — Lecture recorder, Test coverage, Study schedule and Study system — carry the long version of each section, with the questions that belong to it.',
+      'The homepage says each thing once: four facts under the first button (six-hour recordings, two full lectures free, the semester price, cancelling in Settings), the person who built it, what the free tier actually includes, and where the notes come from.',
+      'Four feature pages (Lecture recorder, Test coverage, Study schedule and Study system) carry the long version of each section, with the questions that belong to it.',
       'Two more comparison pages, Praelecta vs Studley AI and vs Turbo AI, and an at-a-glance table on the homepage against both.',
       'The header is a floating glass bar the page scrolls under.',
     ],
@@ -57,7 +72,7 @@ export const CHANGELOG = [
     date: '2026-09-23',
     title: 'Praelecta next to the other study apps',
     items: [
-      'Three comparison pages — Praelecta vs Lemora, vs Scholarly and vs Studr — with what each one records, builds, schedules and charges, taken from their own sites on a stated date, and an honest "when to pick them" list on every page.',
+      'Three comparison pages (Praelecta vs Lemora, vs Scholarly and vs Studr) with what each one records, builds, schedules and charges, taken from their own sites on a stated date, and an honest "when to pick them" list on every page.',
       'The homepage says up front that Praelecta bills by the semester, and the study-schedule section says what that is for: being caught up before you are.',
     ],
   },
@@ -174,7 +189,7 @@ export default function Changelog() {
 
           <div className="mt-10">
             <Link to="/register" className="auth-cta inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold text-primary-foreground">
-              Start free <ArrowRight className="h-4 w-4" />
+              Record your first lecture free <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </Link>
           </div>
         </div>

@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 
 const studyTools = [
-  { icon: Layers3, title: 'Flashcards', body: 'Made from the exact lectures you pick, not the whole textbook.' },
+  { icon: Layers3, title: 'Flashcards', body: 'Made from the exact lectures you pick.' },
   { icon: FileQuestion, title: 'Quizzes', body: 'Test yourself instead of rereading and hoping it stuck.' },
   { icon: ClipboardList, title: 'Practice tests', body: 'Mixed questions across everything you selected, like the real thing.' },
   { icon: FileText, title: 'Summary sheets', body: 'A whole topic on one sheet, in the order it was taught.' },
@@ -81,7 +81,7 @@ export default function StudySystemFeature() {
               <span className="text-5xl font-black tracking-[-0.07em] text-primary/25">04</span>
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.14em] text-primary">The complete study system</p>
-                <p className="mt-0.5 text-sm font-semibold text-muted-foreground">The calendar says when. This tells you what to actually do.</p>
+                <p className="mt-0.5 text-sm font-semibold text-muted-foreground">Each session comes with a job to do.</p>
               </div>
             </div>
 
@@ -142,7 +142,7 @@ export default function StudySystemFeature() {
           <div className="h-full rounded-[28px] border border-border bg-card p-5 sm:p-7">
             <div className="max-w-2xl">
                 <p className="text-xs font-bold uppercase tracking-[0.13em] text-primary">Every study tool in the same class</p>
-                <h3 className="mt-2 text-2xl font-bold tracking-[-0.035em] text-foreground">Every tool works from the same class. Nothing to rebuild, ever.</h3>
+                <h3 className="mt-2 text-2xl font-bold tracking-[-0.035em] text-foreground">Every tool works from the same class, with nothing to rebuild.</h3>
               </div>
             <div className="mt-6 grid gap-3 sm:grid-cols-2">
                 {studyTools.map((tool) => (
@@ -162,7 +162,7 @@ export default function StudySystemFeature() {
                   <p className="mt-5 text-xs font-bold uppercase tracking-[0.13em] text-primary">Projects work the same way</p>
                   <h3 className="mt-2 text-3xl font-bold leading-tight tracking-[-0.04em]">Turn &ldquo;finish the project&rdquo; into work you can actually start tonight.</h3>
                   <p className="mt-4 text-sm leading-6 text-muted-foreground">
-                    We ask only for the details we are missing, split the project into steps that each fit one sitting, and spread those sittings between now and the due date. A path, instead of one giant deadline you keep not starting.
+                    We ask only for the details we are missing, split the project into steps that each fit one sitting, and spread those sittings between now and the due date. You get a path to the due date, one sitting at a time.
                   </p>
                 </div>
 
@@ -256,7 +256,7 @@ export default function StudySystemFeature() {
               </div>
           </div>
         </div>
-        <SectionCta className="mt-10" label="Start free" />
+        <SectionCta className="mt-10" label="Study your first lecture free" />
       </div>
     </section>
   );

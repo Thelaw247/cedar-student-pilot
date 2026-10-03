@@ -75,7 +75,9 @@ failure at any point leaves the app fully working on the previous step.
    one end-to-end recording on production by the owner.
 4. Onboarding check: fresh signup lands on /welcome, questionnaire →
    paywall → X → recommendation → Continue with Free all work, and the
-   free account gets exactly 20 credits.
+   free account gets exactly 30 credits (two lectures of up to 90
+   minutes; it was 20 until Oct 2026, see
+   supabase/migrations/20261003120000_free_grant_covers_two_lectures.sql).
 
 ## Phase 4 — first week
 

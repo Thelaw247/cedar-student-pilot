@@ -64,7 +64,7 @@ export default function About() {
               I built Praelecta before starting engineering at the University of Saskatchewan, for one reason: in a fast lecture, writing and listening compete for the same attention. Every line copied down is a moment of the explanation missed, and the part that slips past is often the part the exam asks about.
             </p>
             <p>
-              So the app does the writing. You press record, go to class, and by the time you are out of the room the lecture is a transcript, a summary, flashcards and practice questions. When the exam gets announced, the study sessions book themselves around your calendar. I use it for my own courses every week, which is also why the things that annoy students about study apps — hidden quotas, cancel screens built to lose you, paywalls dressed up as errors — are written out of this one in the code, not in a promise.
+              So the app does the writing. You press record, go to class, and a few minutes after it ends the lecture is a transcript, a summary and flashcards, with practice questions a tap away. When an exam is announced, the study sessions can be booked around your calendar. I use it for my own courses every week, which is also why it shows every limit before you reach it, lets you cancel yourself in Settings, and never dresses a paywall up as an error.
             </p>
             <p>
               Praelecta is made in Canada, priced in Canadian dollars, and bills by the semester because that is how school actually works. If something is wrong, or you want something it does not do yet, email me. It will be me who answers.
@@ -73,7 +73,7 @@ export default function About() {
 
           <div className="mt-10 flex flex-col gap-3 sm:flex-row">
             <Link to="/register" className="auth-cta inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold text-primary-foreground">
-              Start free <ArrowRight className="h-4 w-4" />
+              Record your first lecture free <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </Link>
             <Link to="/changelog" className="inline-flex items-center justify-center rounded-xl border border-border bg-card px-5 py-3 text-sm font-semibold text-foreground/85 transition-colors hover:bg-muted">
               See what shipped recently

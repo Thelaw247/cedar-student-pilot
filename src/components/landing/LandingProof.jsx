@@ -15,10 +15,10 @@ import { FOUNDER } from '@/lib/founder';
  * RecordingContext.jsx, held equal by a test), the prices from tiers.js.
  */
 export const PROOF_FACTS = [
-  { icon: Clock3, text: 'Records up to 6 hours' },
-  { icon: Mic, text: 'Two full lectures free, no card' },
+  { icon: Clock3, text: 'Records up to six hours' },
+  { icon: Mic, text: 'Two lectures free (up to 90 min)' },
   { icon: CreditCard, text: `$${TIERS.student.semester.toFixed(2)} CAD for the whole semester` },
-  { icon: LogOut, text: 'Cancel in one tap' },
+  { icon: LogOut, text: 'Cancel anytime in Settings' },
 ];
 
 export function ProofFacts({ className = '' }) {

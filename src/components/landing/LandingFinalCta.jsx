@@ -20,10 +20,10 @@ export default function LandingFinalCta() {
           <div className="pointer-events-none absolute right-[2%] bottom-[-16%] h-44 w-[34%] rotate-[14deg] rounded-[50%] bg-primary/20 blur-3xl" />
 
           <div className="relative z-10">
-            <h2 className="mx-auto max-w-3xl text-balance text-4xl font-bold tracking-[-0.045em] text-foreground sm:text-5xl">Go to class. Everything after that is handled.</h2>
-            <p className="mx-auto mt-5 max-w-xl text-lg leading-8 text-foreground/80">Two full lectures free, no card. See it on your own class this week.</p>
+            <h2 className="mx-auto max-w-3xl text-balance text-4xl font-bold tracking-[-0.045em] text-foreground sm:text-5xl">Record your next lecture and see the notes for yourself.</h2>
+            <p className="mx-auto mt-5 max-w-xl text-lg leading-8 text-foreground/80">Two full lectures free, up to 90 minutes each, no card. Try it on your own class this week.</p>
             <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-              <Link to="/register" className="auth-cta inline-flex items-center justify-center gap-2 rounded-2xl px-6 py-3.5 text-base font-semibold text-primary-foreground transition-all hover:-translate-y-0.5">Start free <ArrowRight className="h-4 w-4" aria-hidden="true" /></Link>
+              <Link to="/register" className="auth-cta inline-flex items-center justify-center gap-2 rounded-2xl px-6 py-3.5 text-base font-semibold text-primary-foreground transition-all hover:-translate-y-0.5">Record your first lecture free <ArrowRight className="h-4 w-4" aria-hidden="true" /></Link>
               <Link to="/login" className="inline-flex items-center justify-center rounded-2xl border border-border bg-card/60 px-6 py-3.5 text-base font-semibold text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.10)] backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:bg-card/80">Sign in</Link>
             </div>
             <PaymentTrustLine className="mt-6" />

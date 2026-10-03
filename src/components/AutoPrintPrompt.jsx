@@ -115,7 +115,7 @@ ${htmlParts.map((h, i) => `<div class="${i > 0 ? 'lecture-divider' : ''}">${h}</
         {printing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Printer className="w-3.5 h-3.5" />}
         Print All
       </button>
-      <button onClick={dismiss} className="text-muted-foreground hover:text-foreground flex-shrink-0">
+      <button onClick={dismiss} aria-label="Dismiss" className="text-muted-foreground hover:text-foreground flex-shrink-0">
         <X className="w-4 h-4" />
       </button>
     </div>

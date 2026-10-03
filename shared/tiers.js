@@ -20,13 +20,13 @@ export const TIERS = {
   free: {
     id: 'free',
     name: 'Free',
-    blurb: 'See exactly what we do — 2 full lectures on us.',
+    blurb: 'Two full lectures on us, notes and flashcards included.',
     monthly: 0,
     semester: 0,
-    creditsPerMonth: 20,
+    creditsPerMonth: 30,
     lifetimeOnly: true, // free credits are a one-off grant, not a monthly refresh
     includes: [
-      '2 recorded lectures — full transcript, summary & flashcards',
+      '2 recorded lectures of up to 90 minutes each, with transcript, summary & flashcards',
       'Unlimited typed-note lectures',
       'Full exam coverage map',
       'Calendar, planner, focus mode & analytics',
@@ -47,7 +47,7 @@ export const TIERS = {
     creditsPerMonth: 200,
     includes: [
       'Everything in Free',
-      '~20 recorded lectures a month',
+      'About 20 hours of lectures a month',
       'AI reviews, quick quizzes & practice questions',
       'Missed-lecture catch-up summaries',
       'Cleaned "Professor\'s Voice" transcripts',
@@ -58,14 +58,14 @@ export const TIERS = {
   scholar: {
     id: 'scholar',
     name: 'Scholar',
-    blurb: 'Everything unlocked.',
+    blurb: 'Every study tool, for a full course load.',
     monthly: 12.99,
     semester: 39.99,
     creditsPerMonth: 450,
     everything: true,
     includes: [
       'Everything in Student',
-      '~45 recorded lectures a month',
+      'About 45 hours of lectures a month',
       'Class handbooks for every course',
       'Exam topic prediction',
       'AI study schedules',
@@ -83,7 +83,6 @@ export const TIERS = {
     includes: [
       'Everything in Scholar',
       'Record every lecture and lab',
-      'Priority processing',
       'Fair use: 250 hours a semester',
     ],
   },
@@ -149,8 +148,19 @@ export const CREDIT_COSTS = {
   },
 };
 
-/** ~1 lecture, for translating credits into something a student understands. */
-export const CREDITS_PER_LECTURE = 10;
+/**
+ * Credits to record and process one hour of lecture (5 per started 30
+ * minutes), for turning credits into something a student can picture.
+ *
+ * Hours, not lectures: this used to be CREDITS_PER_LECTURE and the copy said
+ * "about 20 recorded lectures a month", which assumed every lecture is an
+ * hour. The median lecture recorded so far runs 72 minutes, so the lecture
+ * count overstated every plan. An hour is exact; a lecture is not.
+ */
+export const CREDITS_PER_HOUR = CREDIT_COSTS.perThirtyMinutes.process_lecture * 2;
+
+/** Whole hours of lecture a number of credits records, rounded down. */
+export const hoursFrom = (credits) => Math.floor((Number(credits) || 0) / CREDITS_PER_HOUR);
 
 /**
  * Feature -> minimum tier (Design Blueprint follow-up + MON-04 rework,
@@ -206,7 +216,7 @@ export const PLAN_FEATURES = [
   { label: 'AI study schedules', minTier: 'scholar' },
   // Unlimited — volume (2)
   { label: 'Record every lecture and lab', minTier: 'unlimited' },
-  { label: 'Priority processing', minTier: 'unlimited' },
+  { label: 'The most credits: 1,000 a month', minTier: 'unlimited' },
 ];
 
 /** Does this plan include this PLAN_FEATURES row? */
@@ -233,5 +243,5 @@ export const nextTierUp = (id) => {
 
 /** Friendly copy for a 402 from the server. */
 export function limitMessage(feature, required, balance) {
-  return `This needs ${required} credits and you have ${balance}. Top up or upgrade to keep going — your work is saved either way.`;
+  return `This needs ${required} credits and you have ${balance}. Top up or upgrade to keep going. Your work is saved either way.`;
 }

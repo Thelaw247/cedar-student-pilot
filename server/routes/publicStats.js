@@ -4,8 +4,11 @@ import { pool } from '../lib/db.js';
 /**
  * GET /public/stats — the numbers the landing page shows as proof of use.
  *
- * Aggregates only, no auth: how many students have an account and how many
- * lectures they have recorded. A typed number on the landing page would be
+ * Aggregates only, no auth: how many students have recorded a lecture and
+ * how many lectures they have recorded. "Students" counted every account
+ * until Oct 2026, including ones that never recorded anything, which made
+ * "N students have recorded M lectures" overstate N; it now counts only the
+ * people the sentence is about. A typed number on the landing page would be
  * out of date the day after it was written; this is read from the database
  * and cached in memory, so the page always shows a true count without a
  * query per visitor. The landing page renders without the numbers when this
@@ -20,7 +23,7 @@ let cached = { at: 0, value: null };
 
 export async function loadPublicStats(db) {
   const { rows } = await db.query(
-    `select (select count(*)::int from auth.users) as students,
+    `select (select count(distinct user_id)::int from lectures where status = 'complete') as students,
             (select count(*)::int from lectures where status = 'complete') as lectures,
             (select coalesce(floor(sum(duration_seconds) / 3600), 0)::int from lectures) as hours`,
   );

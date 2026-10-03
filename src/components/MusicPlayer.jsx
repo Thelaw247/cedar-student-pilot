@@ -202,7 +202,11 @@ export default function MusicPlayer({ onClose }) {
             key={currentVideoId}
             className="w-full rounded-lg"
             height="120"
-            src={`https://www.youtube.com/embed/${currentVideoId}?autoplay=1&controls=1&rel=0&enablejsapi=1`}
+            // youtube-nocookie.com: YouTube's privacy-enhanced embed, which
+            // sets no tracking cookies until the visitor interacts with it.
+            // Same player and API (commands go by postMessage with '*'), and
+            // the CSP's frame-src already allows it.
+            src={`https://www.youtube-nocookie.com/embed/${currentVideoId}?autoplay=1&controls=1&rel=0&enablejsapi=1`}
             title={currentTitle}
             frameBorder="0"
             allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
@@ -332,16 +336,16 @@ export default function MusicPlayer({ onClose }) {
           {tab === 'custom' && (
             <div>
               <div className="space-y-2 mb-3">
-                <input type="text" placeholder="Paste YouTube URL..." value={customUrl}
+                <input type="text" aria-label="YouTube link" placeholder="Paste YouTube URL..." value={customUrl}
                   onChange={e => setCustomUrl(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && addCustomTrack()}
                   className="w-full px-2.5 py-2 rounded-md border border-input bg-background text-xs focus:outline-none focus:ring-1 focus:ring-primary" />
                 <div className="flex gap-2">
-                  <input type="text" placeholder="Track name (optional)" value={customTitle}
+                  <input type="text" aria-label="Track name (optional)" placeholder="Track name (optional)" value={customTitle}
                     onChange={e => setCustomTitle(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && addCustomTrack()}
                     className="flex-1 px-2.5 py-2 rounded-md border border-input bg-background text-xs focus:outline-none focus:ring-1 focus:ring-primary" />
-                  <button onClick={addCustomTrack}
+                  <button onClick={addCustomTrack} aria-label="Add track"
                     className="px-2.5 py-2 rounded-md bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 flex items-center justify-center flex-shrink-0">
                     <Plus className="w-3.5 h-3.5" />
                   </button>

@@ -1,75 +1,56 @@
-import { useLocation } from 'react-router-dom';
-import { base44 } from '@/api/base44Client';
-import { useQuery } from '@tanstack/react-query';
+import React from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { ArrowRight } from 'lucide-react';
+import MarketingShell from '@/components/landing/MarketingShell';
+import { useAuth } from '@/lib/AuthContext';
+import { SUPPORT_EMAIL, SUPPORT_MAILTO } from '@/lib/legal';
 
+/**
+ * Every address the app has no route for.
+ *
+ * The host answers every path with the app and a 200 (it is a single-page
+ * app), so this page is the only thing that can tell a search engine the
+ * address is not a page: it renders inside the public site's frame with
+ * `noindex` and its own title.
+ *
+ * Rewritten Oct 2026. The page it replaced came from the app builder: a grey
+ * slate screen in another design system, a "Go Home" button that reloaded the
+ * whole app, an extra sign-in request on every miss, and an "Admin Note"
+ * telling the owner to ask an AI to build the missing page.
+ */
+export default function PageNotFound() {
+  const { pathname } = useLocation();
+  const { isAuthenticated } = useAuth();
+  const home = isAuthenticated ? { to: '/today', label: 'Go to Today' } : { to: '/', label: 'Go to the homepage' };
 
-export default function PageNotFound({}) {
-    const location = useLocation();
-    const pageName = location.pathname.substring(1);
-
-    const { data: authData, isFetched } = useQuery({
-        queryKey: ['user'],
-        queryFn: async () => {
-            try {
-                const user = await base44.auth.me();
-                return { user, isAuthenticated: true };
-            } catch (error) {
-                return { user: null, isAuthenticated: false };
-            }
-        }
-    });
-    
-    return (
-        <div className="min-h-screen flex items-center justify-center p-6 bg-slate-50">
-            <div className="max-w-md w-full">
-                <div className="text-center space-y-6">
-                    {/* 404 Error Code */}
-                    <div className="space-y-2">
-                        <h1 className="text-7xl font-light text-slate-300">404</h1>
-                        <div className="h-0.5 w-16 bg-slate-200 mx-auto"></div>
-                    </div>
-                    
-                    {/* Main Message */}
-                    <div className="space-y-3">
-                        <h2 className="text-2xl font-medium text-slate-800">
-                            Page Not Found
-                        </h2>
-                        <p className="text-slate-600 leading-relaxed">
-                            The page <span className="font-medium text-slate-700">"{pageName}"</span> could not be found in this application.
-                        </p>
-                    </div>
-                    
-                    {/* Admin Note */}
-                    {isFetched && authData.isAuthenticated && authData.user?.role === 'admin' && (
-                        <div className="mt-8 p-4 bg-slate-100 rounded-lg border border-slate-200">
-                            <div className="flex items-start space-x-3">
-                                <div className="flex-shrink-0 w-5 h-5 rounded-full bg-orange-100 flex items-center justify-center mt-0.5">
-                                    <div className="w-2 h-2 rounded-full bg-orange-400"></div>
-                                </div>
-                                <div className="text-left space-y-1">
-                                    <p className="text-sm font-medium text-slate-700">Admin Note</p>
-                                    <p className="text-sm text-slate-600 leading-relaxed">
-                                        This could mean that the AI hasn't implemented this page yet. Ask it to implement it in the chat.
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                    
-                    {/* Action Button */}
-                    <div className="pt-6">
-                        <button 
-                            onClick={() => window.location.href = authData?.isAuthenticated ? '/today' : '/'} 
-                            className="inline-flex items-center px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 hover:border-slate-300 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500"
-                        >
-                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                            </svg>
-                            Go Home
-                        </button>
-                    </div>
-                </div>
-            </div>
+  return (
+    <MarketingShell
+      title="Page not found | Praelecta"
+      description="This address is not a page on Praelecta."
+      noindex
+    >
+      <section className="px-4 pb-24 pt-32 sm:px-6 sm:pt-40">
+        <div className="mx-auto max-w-xl text-center">
+          <p className="text-sm font-semibold text-primary">404</p>
+          <h1 className="mt-2 text-3xl font-bold tracking-[-0.04em] text-foreground sm:text-4xl">This page doesn&rsquo;t exist.</h1>
+          <p className="mt-4 text-base leading-7 text-muted-foreground">
+            Nothing lives at <code className="break-all rounded-md bg-muted px-1.5 py-0.5 text-sm text-foreground">{pathname}</code>.
+            The link may be mistyped, or the page may have moved.
+          </p>
+          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <Link to={home.to} className="auth-cta inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-primary-foreground">
+              {home.label} <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            </Link>
+            <Link to="/pricing" className="inline-flex items-center rounded-full border border-border px-5 py-2.5 text-sm font-semibold text-foreground transition-colors hover:bg-foreground/[0.06]">
+              See pricing
+            </Link>
+          </div>
+          <p className="mt-8 text-sm text-muted-foreground">
+            Followed a link from Praelecta that brought you here? Tell us at{' '}
+            <a href={SUPPORT_MAILTO} className="font-medium text-foreground underline underline-offset-2">{SUPPORT_EMAIL}</a>.
+          </p>
         </div>
-    )
+      </section>
+    </MarketingShell>
+  );
 }

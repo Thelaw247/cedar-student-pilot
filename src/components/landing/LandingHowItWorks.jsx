@@ -19,7 +19,7 @@ const STEPS = [
   {
     number: '1',
     title: 'Record the lecture.',
-    body: 'Press record when class starts, up to six hours. A lecture you didn’t record is gone. This one stays yours.',
+    body: 'Press record when class starts. It runs for up to six hours and saves to your account.',
     visual: <RecorderCard />,
     narrow: true,
   },
@@ -32,7 +32,7 @@ const STEPS = [
   {
     number: '3',
     title: 'The studying books itself.',
-    body: 'Give it the exam date. Sessions land in real gaps around your classes, shifts and deadlines, and you show up.',
+    body: 'Give it the exam date. Sessions land around your classes and shifts. Included in the Scholar plan.',
     visual: <ScheduleMock compact />,
   },
 ];
@@ -43,7 +43,7 @@ export default function LandingHowItWorks() {
       <div className="mx-auto max-w-6xl">
         <div className="mx-auto max-w-2xl text-center">
           <h2 className="text-balance text-4xl font-bold tracking-[-0.045em] text-foreground sm:text-5xl">How it works</h2>
-          <p className="mt-4 text-lg leading-8 text-muted-foreground">Three things you do. Everything else comes from them.</p>
+          <p className="mt-4 text-lg leading-8 text-muted-foreground">Three steps, shown on the app itself.</p>
         </div>
 
         <ol className="mt-12 space-y-14 lg:space-y-20">
@@ -61,7 +61,7 @@ export default function LandingHowItWorks() {
           ))}
         </ol>
 
-        <SectionCta className="mt-14" label="Start free" />
+        <SectionCta className="mt-14" label="Record your first lecture free" />
       </div>
     </section>
   );

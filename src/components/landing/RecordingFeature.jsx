@@ -15,8 +15,8 @@ import SectionCta from '@/components/landing/SectionCta';
 const ACCURACY = [
   { icon: FileText, text: 'The transcript stays beside every summary, so any line can be checked against what your prof actually said.' },
   { icon: FileSearch, text: `Attach the prof’s slides and the formulas are checked against them (${TIERS.student.name} plan).` },
-  { icon: AlertCircle, text: 'Every “this is on the midterm” moment is flagged, with the words that were said.' },
-  { icon: ShieldCheck, text: 'Nothing is pulled in from outside your class. No web search, no textbook it guessed at.' },
+  { icon: AlertCircle, text: '“This is on the midterm” moments are flagged, with the words that were said.' },
+  { icon: ShieldCheck, text: 'Anything taken only from the recording carries a badge, so you know what to check against the slides. Concept cards link out if you want to read more.' },
 ];
 
 function OutputRow({ icon: Icon, title, children, tone = 'blue' }) {
@@ -126,17 +126,17 @@ export default function RecordingFeature() {
               <span className="text-5xl font-black tracking-[-0.07em] text-primary/25">01</span>
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.14em] text-primary">Lecture recording</p>
-                <p className="mt-0.5 text-sm font-semibold text-muted-foreground">Your prof is not going to say it twice.</p>
+                <p className="mt-0.5 text-sm font-semibold text-muted-foreground">Up to six hours per recording.</p>
               </div>
             </div>
             <h2 className="mt-5 text-4xl font-bold leading-[1.04] tracking-[-0.05em] text-foreground sm:text-5xl">
-              Put the pen down. You are allowed to just listen.
+              Record the lecture and get the notes, the transcript and the formulas.
             </h2>
             <p className="mt-5 max-w-xl text-base leading-7 text-muted-foreground">
-              Hit record when class starts. When it ends, the lecture is filed under the course with a transcript, a plain-English summary, the formulas, and every moment your prof said &ldquo;this is on the midterm.&rdquo; No audio file to dig through later. No typing up notes at 11pm.
+              Hit record when class starts. When it ends, the lecture is filed under the course with a transcript, a plain-English summary, the formulas, and the moments your prof said &ldquo;this is on the midterm&rdquo; flagged. No audio file to dig through later. No typing up notes at 11pm.
             </p>
             <div className="mt-7 space-y-3 text-sm text-foreground/80">
-              <div className="flex gap-3"><ShieldCheck className="mt-0.5 h-5 w-5 flex-none text-primary" /><span>You confirm you have permission to record first. One tap, then you are recording.</span></div>
+              <div className="flex gap-3"><ShieldCheck className="mt-0.5 h-5 w-5 flex-none text-primary" /><span>You confirm you have permission to record, once per class, and then you are recording.</span></div>
               <div className="flex gap-3"><FileText className="mt-0.5 h-5 w-5 flex-none text-primary" /><span>Recordings run up to six hours without stopping, so a double lecture or a full lab is fine.</span></div>
               <div className="flex gap-3"><BookOpen className="mt-0.5 h-5 w-5 flex-none text-primary" /><span>That one recording feeds everything after it: the class handbook, the flashcards, the practice questions, the reviews.</span></div>
             </div>
@@ -149,8 +149,8 @@ export default function RecordingFeature() {
         </div>
 
         <div id="accuracy" className="mt-14 rounded-[26px] border border-border bg-muted p-7 sm:p-9">
-          <p className="text-xs font-bold uppercase tracking-[0.14em] text-primary">What the prof said, not what a model guessed</p>
-          <h3 className="mt-2 text-2xl font-bold tracking-[-0.035em] text-foreground sm:text-3xl">The notes come from the lecture, not from the internet.</h3>
+          <p className="text-xs font-bold uppercase tracking-[0.14em] text-primary">Checked against the lecture</p>
+          <h3 className="mt-2 text-2xl font-bold tracking-[-0.035em] text-foreground sm:text-3xl">Every summary can be checked against what your prof said.</h3>
           <div className="mt-6 grid gap-x-8 gap-y-4 sm:grid-cols-2">
             {ACCURACY.map((a) => (
               <div key={a.text} className="flex items-start gap-3">

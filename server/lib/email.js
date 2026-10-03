@@ -40,7 +40,12 @@ export function emailStatus(env = process.env) {
   if (missing.length) {
     return { ok: false, message: `outbound email: ${missing.join(' and ')} not set — study reminders and transcript exports will fail` };
   }
-  const domain = from.split('@').pop().toLowerCase();
+  // Resend accepts a display name, "Praelecta <noreply@praelecta.ca>", and
+  // that is the form the live service uses. Only the address inside the angle
+  // brackets has a domain: splitting the whole string at '@' read
+  // "praelecta.ca>" and logged a correct sender as broken on every boot.
+  const address = (from.match(/<([^<>]+)>\s*$/)?.[1] || from).trim();
+  const domain = address.split('@').pop().toLowerCase();
   const ours = domain === MAIL_DOMAIN || domain.endsWith(`.${MAIL_DOMAIN}`);
   if (!ours) {
     return {

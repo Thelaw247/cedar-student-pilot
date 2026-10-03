@@ -1,6 +1,7 @@
 import React from "react";
 import { Check } from "lucide-react";
 import { BRAND_MARK_URL } from "@/lib/brand";
+import { usePublicPageMeta } from "@/hooks/usePublicPageMeta";
 
 /**
  * Auth shell for Login, Register, Forgot-/Reset-password and the OAuth consent
@@ -22,12 +23,20 @@ import { BRAND_MARK_URL } from "@/lib/brand";
  * Layer order, bottom to top: flat navy, waveform, brand glow, vignette. The
  * vignette is deliberately weak — a strong one swallowed the waveform at the
  * edges, which is the only place it exists.
+ *
+ * The heading doubles as the tab title ("Sign in | Praelecta"), so every
+ * screen in the sign-in flow says what it is in the tab and in history, not
+ * the homepage's title. Small text on the navy floor is at least 55% white:
+ * the 30% and 40% it used to be measured 2.5:1 and 3.8:1 against #0B0E16,
+ * under the 4.5:1 that WCAG asks of text that size.
  */
 
 const TRUST = ["Records & transcribes", "Summaries & flashcards", "Private to you"];
 
 // eslint-disable-next-line no-unused-vars -- icon is accepted for API stability; the brandmark is the hero
 export default function AuthLayout({ icon = undefined, title, subtitle = "", footer = null, children = null }) {
+  usePublicPageMeta({ title: title ? `${title} | Praelecta` : undefined });
+
   return (
     <div className="relative min-h-screen overflow-hidden flex flex-col" style={{ backgroundColor: "#0B0E16" }}>
       <div aria-hidden="true" className="absolute inset-0 pointer-events-none select-none">
@@ -57,7 +66,7 @@ export default function AuthLayout({ icon = undefined, title, subtitle = "", foo
         />
       </div>
 
-      <div className="relative flex-1 flex items-center justify-center px-4 py-10">
+      <main id="main" className="relative flex-1 flex items-center justify-center px-4 py-10">
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
             <img
@@ -77,16 +86,16 @@ export default function AuthLayout({ icon = undefined, title, subtitle = "", foo
 
           <div className="hidden sm:flex items-center justify-center gap-5 mt-8">
             {TRUST.map((t) => (
-              <span key={t} className="flex items-center gap-1.5 text-xs text-white/40">
-                <Check className="w-3.5 h-3.5 text-white/60" strokeWidth={2.5} />
+              <span key={t} className="flex items-center gap-1.5 text-xs text-white/60">
+                <Check className="w-3.5 h-3.5 text-white/60" strokeWidth={2.5} aria-hidden="true" />
                 {t}
               </span>
             ))}
           </div>
         </div>
-      </div>
+      </main>
 
-      <p className="relative text-center text-[11px] text-white/30 pb-6 px-4">
+      <p className="relative text-center text-[11px] text-white/55 pb-6 px-4">
         Made in Canada &middot; Your recordings stay private to you
       </p>
     </div>

@@ -122,7 +122,7 @@ export default function PracticePanel({ initialClassId = '', initialLectureIds =
   }
 
   return (
-    <div>
+    <div className="ph-sensitive">
       {/* Class selector */}
       <div className="mb-6">
         <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Class</label>

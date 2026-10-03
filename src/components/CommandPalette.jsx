@@ -114,11 +114,12 @@ export default function CommandPalette({ classes: classesProp = null, lectures: 
 
   return (
     <div className="fixed inset-0 z-[60] flex items-start justify-center pt-[15vh] px-4 bg-black/30 glass" onClick={() => setOpen(false)}>
-      <div className="w-full max-w-xl bg-card rounded-modal border border-border shadow-3 overflow-hidden animate-fade-in" onClick={e => e.stopPropagation()}>
+      <div role="dialog" aria-modal="true" aria-label="Command palette" className="w-full max-w-xl bg-card rounded-modal border border-border shadow-3 overflow-hidden animate-fade-in" onClick={e => e.stopPropagation()}>
         <div className="flex items-center gap-3 px-4 py-3 border-b border-border">
           <Search className="w-4 h-4 text-muted-foreground flex-shrink-0" />
           <input
             autoFocus
+            aria-label="Search"
             value={query}
             onChange={e => { setQuery(e.target.value); setActiveIndex(0); }}
             placeholder="Search classes, lectures, notes..."

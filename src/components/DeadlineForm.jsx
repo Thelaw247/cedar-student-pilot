@@ -1,11 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { createContext, useContext, useId, useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Loader2, ChevronLeft } from 'lucide-react';
 import { useFeatureGate } from '@/components/monetization/useFeatureGate';
+import { useEscapeKey } from '@/hooks/useEscapeKey';
 import ScheduleSkippedNotice from '@/components/monetization/ScheduleSkippedNotice';
 import DeadlineCoverage, { coverageSummary } from '@/components/DeadlineCoverage';
 import { defaultCoverageScope, deadlineTypeLabel, resolveAssignmentLectures } from '@/lib/assignmentScope';
 import { saveDeadline, bookSessionsFor, bookingErrorMessage } from '@/lib/saveDeadline';
+
+// The modal's title is whichever heading the form inside it is showing, so
+// DeadlineModal hands its id down instead of every caller wiring one up.
+const ModalTitleId = createContext(undefined);
 
 /**
  * DeadlineForm — adding an exam, quiz, assignment or project. One copy.
@@ -48,6 +53,7 @@ export default function DeadlineForm({
   onSaved = null,
   onDone,
 }) {
+  const titleId = useContext(ModalTitleId);
   const startType = initial?.type || (classes ? 'exam' : 'assignment');
   const [step, setStep] = useState('fields');
   const [form, setForm] = useState({
@@ -169,8 +175,8 @@ export default function DeadlineForm({
     return (
       <>
         <div className="flex items-center gap-3 mb-1">
-          <button onClick={() => setStep('fields')} className="text-muted-foreground hover:text-foreground"><ChevronLeft className="w-5 h-5" /></button>
-          <h3 className="font-heading text-lg font-semibold">Does this look right?</h3>
+          <button onClick={() => setStep('fields')} aria-label="Back" className="text-muted-foreground hover:text-foreground"><ChevronLeft className="w-5 h-5" /></button>
+          <h3 id={titleId} className="font-heading text-lg font-semibold">Does this look right?</h3>
         </div>
         <p className="text-xs text-muted-foreground mb-4 pl-8">
           These are the lectures &ldquo;{form.title}&rdquo; will be studied from.
@@ -198,16 +204,16 @@ export default function DeadlineForm({
 
   return (
     <>
-      <h3 className="font-heading text-lg font-semibold mb-4">Add {deadlineTypeLabel(form.type)}</h3>
+      <h3 id={titleId} className="font-heading text-lg font-semibold mb-4">Add {deadlineTypeLabel(form.type)}</h3>
       <form onSubmit={handleSubmit} className="space-y-3">
-        <input type="text" placeholder="Title (e.g. Midterm Exam)" value={form.title}
+        <input type="text" aria-label="Title" placeholder="Title (e.g. Midterm Exam)" value={form.title}
           onChange={e => setForm({ ...form, title: e.target.value })} className={inputCls} autoFocus />
         {/* A different class means different lectures, so a scope picked
             against the old one goes back to the type's default. Keeping
             'custom' here left the row saved as "specific lectures" with an
             empty list — which the resolver reads as "nobody picked yet". */}
         {classes && (
-          <select value={form.class_id} onChange={e => setForm({
+          <select aria-label="Class" value={form.class_id} onChange={e => setForm({
             ...form, class_id: e.target.value,
             coverage_scope: defaultCoverageScope(form.type), lecture_ids: [],
           })} className={inputCls}>
@@ -215,9 +221,9 @@ export default function DeadlineForm({
             {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
         )}
-        <input type="date" value={form.due_date}
+        <input type="date" aria-label="Due date" value={form.due_date}
           onChange={e => setForm({ ...form, due_date: e.target.value })} className={inputCls} />
-        <select value={form.type} onChange={e => {
+        <select aria-label="Type" value={form.type} onChange={e => {
           // The type decides what the thing is, so its coverage returns to
           // that type's default instead of carrying an exam's scope onto a
           // problem set.
@@ -270,10 +276,12 @@ export default function DeadlineForm({
 
 /** The modal shell both add surfaces put this form in. */
 export function DeadlineModal({ onClose, children }) {
+  const titleId = useId();
+  useEscapeKey(onClose);
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/30 glass" onClick={onClose}>
-      <div className="bg-card w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl border border-border p-6 animate-fade-in max-h-[90dvh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-        {children}
+      <div role="dialog" aria-modal="true" aria-labelledby={titleId} className="bg-card w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl border border-border p-6 animate-fade-in max-h-[90dvh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <ModalTitleId.Provider value={titleId}>{children}</ModalTitleId.Provider>
       </div>
     </div>
   );

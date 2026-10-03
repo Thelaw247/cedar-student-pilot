@@ -24,6 +24,10 @@ const USE_SUPABASE = import.meta.env.VITE_BACKEND_MODE === "supabase";
 // the box would accept. That was a real signup bug. Change both together, and
 // never let this constant exceed the Supabase setting.
 const OTP_LENGTH = 8;
+// Supabase sends at most one email per address per minute and rejects a
+// resend inside that window ("you can only request this after N seconds"),
+// so the Resend button waits it out instead of offering a click that fails.
+const RESEND_WAIT_SECONDS = 60;
 const APPLE_AUTH_ENABLED = !USE_SUPABASE || import.meta.env.VITE_ENABLE_APPLE_AUTH === "true";
 const FACEBOOK_AUTH_ENABLED = !USE_SUPABASE || import.meta.env.VITE_ENABLE_FACEBOOK_AUTH === "true";
 const SOCIAL_AUTH_ENABLED = APPLE_AUTH_ENABLED || FACEBOOK_AUTH_ENABLED;
@@ -45,6 +49,8 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
   const [showOtp, setShowOtp] = useState(false);
   const [otpCode, setOtpCode] = useState("");
+  const [resending, setResending] = useState(false);
+  const [resendWait, setResendWait] = useState(0);
   // Unticked by default and never pre-ticked. A pre-checked consent box is not
   // consent, it is a dark pattern, and in several jurisdictions it is not valid
   // agreement at all.
@@ -66,6 +72,13 @@ export default function Register() {
       navigate(explicitReturn ? safeReturnTo() : '/welcome', { replace: true });
     }
   }, [showOtp, isAuthenticated, navigate]);
+
+  // Counts the resend wait down a second at a time while it runs.
+  useEffect(() => {
+    if (resendWait <= 0) return undefined;
+    const timer = setTimeout(() => setResendWait((seconds) => seconds - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [resendWait]);
 
   // Every path that can create an account goes through this — the email form
   // and both social buttons. Supabase's OAuth sign-in creates the account on
@@ -93,6 +106,8 @@ export default function Register() {
       // provable later rather than assumed from the signup date.
       await base44.auth.register({ email, password, legalVersion: LEGAL_VERSION });
       setShowOtp(true);
+      // The first email just went out, so the same one-minute wait applies.
+      setResendWait(RESEND_WAIT_SECONDS);
     } catch (err) {
       setError(registrationErrorMessage(err));
     } finally {
@@ -126,7 +141,7 @@ export default function Register() {
       // browser knows nothing about, and their account is already confirmed.
       const raw = String(err?.message || "");
       setError(/expired|invalid/i.test(raw)
-        ? "That code has expired or has already been used. If you tapped the button in the email, your account is confirmed — sign in below."
+        ? "That code has expired or has already been used. If you tapped the button in the email, your account is confirmed. Sign in below."
         : raw || "Invalid verification code");
     } finally {
       setLoading(false);
@@ -134,15 +149,20 @@ export default function Register() {
   };
 
   const handleResend = async () => {
+    if (resending || resendWait > 0) return;
     setError("");
+    setResending(true);
     try {
       await base44.auth.resendOtp(email);
+      setResendWait(RESEND_WAIT_SECONDS);
       toast({
         title: "New code sent",
         description: "Check your email for the new 8-digit code.",
       });
     } catch (err) {
       setError(err.message || "Failed to resend code");
+    } finally {
+      setResending(false);
     }
   };
 
@@ -164,7 +184,7 @@ export default function Register() {
         subtitle={`We sent an 8-digit code to ${email}`}
       >
         {error && (
-          <div className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
+          <div role="alert" className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
             {error}
           </div>
         )}
@@ -184,6 +204,7 @@ export default function Register() {
             onChange={setOtpCode}
             autoFocus
             autoComplete="one-time-code"
+            aria-label={`${OTP_LENGTH}-digit code from the email`}
           >
             <InputOTPGroup>
               {Array.from({ length: OTP_LENGTH }, (_, i) => <InputOTPSlot key={i} index={i} />)}
@@ -197,8 +218,8 @@ export default function Register() {
         >
           {loading ? (
             <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Verifying...
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden="true" />
+              Verifying…
             </>
           ) : (
             "Verify"
@@ -206,15 +227,20 @@ export default function Register() {
         </Button>
         <p className="text-center text-sm text-muted-foreground mt-4">
           Didn't get the code?{" "}
-          <button onClick={handleResend} className="text-primary font-medium hover:underline">
-            Resend
+          <button
+            type="button"
+            onClick={handleResend}
+            disabled={resending || resendWait > 0}
+            className="text-primary font-medium hover:underline disabled:cursor-default disabled:text-muted-foreground disabled:no-underline"
+          >
+            {resending ? "Sending…" : resendWait > 0 ? `Resend in ${resendWait}s` : "Resend"}
           </button>
         </p>
         {USE_SUPABASE && (
           <p className="text-center text-sm text-muted-foreground mt-3">
             Already confirmed?{" "}
             <Link to="/login" className="text-primary font-medium hover:underline">
-              Continue to log in
+              Continue to sign in
             </Link>
           </p>
         )}
@@ -226,12 +252,12 @@ export default function Register() {
     <AuthLayout
       icon={UserPlus}
       title="Create your account"
-      subtitle="Sign up to get started"
+      subtitle="Two lectures free, up to 90 minutes each. No card."
       footer={
         <>
           Already have an account?{" "}
           <Link to={`/login${window.location.search}`} className="text-primary font-medium hover:underline">
-            Log in
+            Sign in
           </Link>
         </>
       }
@@ -265,7 +291,7 @@ export default function Register() {
       )}
 
       {error && (
-        <div className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
+        <div role="alert" className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
           {error}
         </div>
       )}
@@ -305,7 +331,7 @@ export default function Register() {
           </div>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="confirm">Confirm Password</Label>
+          <Label htmlFor="confirm">Confirm password</Label>
           <div className="relative">
             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" aria-hidden="true" />
             <Input
@@ -347,7 +373,7 @@ export default function Register() {
             </Label>
           </div>
           {agreeError && (
-            <p id="legal-consent-error" className="mt-2 ml-7 text-sm text-destructive">
+            <p id="legal-consent-error" role="alert" className="mt-2 ml-7 text-sm text-destructive">
               Please agree to the Terms of Service and Privacy Policy to create an account.
             </p>
           )}
@@ -359,8 +385,8 @@ export default function Register() {
         <Button type="submit" className="auth-cta w-full h-12 font-medium" disabled={loading}>
           {loading ? (
             <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Creating account...
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden="true" />
+              Creating account…
             </>
           ) : (
             "Create account"

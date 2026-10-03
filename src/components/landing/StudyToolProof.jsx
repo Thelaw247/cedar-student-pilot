@@ -120,7 +120,7 @@ export default function StudyToolProof() {
               <span className="text-5xl font-black tracking-[-0.07em] text-primary/25">02</span>
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.14em] text-primary">Exact test coverage</p>
-                <p className="mt-0.5 text-sm font-semibold text-muted-foreground">The midterm is rarely the whole course.</p>
+                <p className="mt-0.5 text-sm font-semibold text-muted-foreground">Scope your studying to the test.</p>
               </div>
             </div>
             <h2 className="mt-5 text-4xl font-bold leading-[1.04] tracking-[-0.05em] text-foreground sm:text-5xl">
@@ -130,7 +130,7 @@ export default function StudyToolProof() {
               Tick the lectures your prof said are covered. That is the whole setup. Every flashcard, practice question and review we build from then on stays inside that slice, so you never lose a Tuesday night to a chapter that is not being tested. No pasting notes into another app and explaining the class all over again.
             </p>
             <p className="mt-4 max-w-xl text-base font-semibold leading-7 text-foreground">
-              You walk into the test knowing there is nothing on it you have not seen.
+              Your study time goes to the lectures the test covers.
             </p>
 
             <div className="mt-7 rounded-2xl border border-primary/25 bg-primary/10 p-5">

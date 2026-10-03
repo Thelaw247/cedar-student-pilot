@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Link } from 'react-router-dom';
 import { Loader2, Zap, CreditCard, ExternalLink, TrendingUp, AlertCircle, ChevronRight } from 'lucide-react';
-import { CREDIT_PACKS, CREDITS_PER_LECTURE, tierOf, nextTierUp } from '@/lib/tiers';
+import { CREDIT_PACKS, tierOf, nextTierUp, hoursFrom } from '@/lib/tiers';
 
 /**
  * Subscription, credit balance and purchase management.
@@ -92,7 +92,7 @@ export default function SubscriptionSettings() {
   const tier = tierOf(balance?.tier || 'free');
   const upgrade = nextTierUp(tier.id);
   const available = (balance?.subscription_credits || 0) + (balance?.purchased_credits || 0);
-  const lecturesLeft = Math.floor(available / CREDITS_PER_LECTURE);
+  const hoursLeft = hoursFrom(available);
   const low = available > 0 && available <= 10;
   const empty = available <= 0;
 
@@ -121,13 +121,15 @@ export default function SubscriptionSettings() {
             <span className="text-xs text-muted-foreground">credits left</span>
           </div>
           <p className="text-[11px] text-muted-foreground mt-1">
-            About {lecturesLeft} more {lecturesLeft === 1 ? 'lecture' : 'lectures'}.
+            {hoursLeft >= 1
+              ? `About ${hoursLeft} more ${hoursLeft === 1 ? 'hour' : 'hours'} of lectures.`
+              : 'Less than an hour of lectures.'}
             {(balance?.purchased_credits || 0) > 0 && ` ${balance.purchased_credits} of these never expire.`}
           </p>
           {empty && (
             <p className="text-[11px] text-destructive mt-2 flex items-start gap-1.5">
               <AlertCircle className="w-3 h-3 mt-px flex-shrink-0" />
-              You&rsquo;re out of credits. Recordings are still saved &mdash; they process as soon as you top up.
+              You&rsquo;re out of credits. Recordings are still saved, and they process as soon as you top up.
             </p>
           )}
         </div>
@@ -205,7 +207,7 @@ export default function SubscriptionSettings() {
               className="rounded-lg border border-border p-3 text-left hover:border-primary/30 hover:bg-primary/[0.03] transition-colors disabled:opacity-50">
               <p className="text-sm font-semibold">${p.price}</p>
               <p className="text-[11px] text-muted-foreground">
-                {p.credits} credits &middot; ~{Math.floor(p.credits / CREDITS_PER_LECTURE)} lectures
+                {p.credits} credits &middot; ~{hoursFrom(p.credits)} hours of lectures
               </p>
             </button>
           ))}

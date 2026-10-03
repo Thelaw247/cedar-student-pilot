@@ -75,7 +75,7 @@ export default function QuizReview({ questions, answers, className = '' }) {
   });
 
   return (
-    <div className={className}>
+    <div className={`${className} ph-sensitive`}>
       {missed.length > 0 ? (
         <div className="mb-5">
           <div className="flex items-center justify-between mb-3">
@@ -119,7 +119,7 @@ export default function QuizReview({ questions, answers, className = '' }) {
 export function ChoiceOptions({ question, value, onChange, compact = false }) {
   const options = Array.isArray(question?.options) ? question.options : [];
   return (
-    <div className="space-y-2" role="radiogroup" aria-label="Answer options">
+    <div className="space-y-2 ph-sensitive" role="radiogroup" aria-label="Answer options">
       {options.map((opt, i) => {
         const selected = value === opt;
         return (

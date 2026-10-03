@@ -19,5 +19,9 @@ Disallow: /register
 Disallow: /forgot-password
 Disallow: /reset-password
 Disallow: /oauth-consent
+Disallow: /auth/
+# The study page, and only it: a bare "/study" would also block the public
+# /study-schedule and /study-system pages, because robots rules are prefixes.
+Disallow: /study$
 
 Sitemap: https://praelecta.ca/sitemap.xml

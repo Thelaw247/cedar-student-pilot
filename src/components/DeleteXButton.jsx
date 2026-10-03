@@ -30,6 +30,21 @@ export default function DeleteXButton({
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState(null);
   const wrapRef = useRef(null);
+  const xRef = useRef(null);
+  const cancelRef = useRef(null);
+
+  // Backing out puts the keyboard back on the ✕, instead of on the page body
+  // once the panel holding the focused button unmounts.
+  const backOut = () => {
+    setConfirming(false);
+    setError(null);
+    xRef.current?.focus();
+  };
+
+  // Opening the confirm puts the keyboard on Cancel, the safe choice.
+  useEffect(() => {
+    if (confirming) cancelRef.current?.focus();
+  }, [confirming]);
 
   // Clicking elsewhere or pressing Escape backs out of the confirm.
   useEffect(() => {
@@ -40,8 +55,11 @@ export default function DeleteXButton({
         setError(null);
       }
     };
+    // preventDefault marks this Escape as handled. The edit modal this sits in
+    // closes on Escape too (useEscapeKey), and skips one already handled, so
+    // backing out of the confirm no longer also throws away the open modal.
     const onKey = (e) => {
-      if (e.key === 'Escape') { setConfirming(false); setError(null); }
+      if (e.key === 'Escape') { e.preventDefault(); backOut(); }
     };
     document.addEventListener('mousedown', onDocClick);
     document.addEventListener('keydown', onKey);
@@ -69,6 +87,7 @@ export default function DeleteXButton({
       {/* The ✕ always stays in the layout; the confirm panel overlays it, so
           opening the confirm never reflows the card behind it. */}
       <button
+        ref={xRef}
         type="button"
         aria-label={ariaLabel}
         aria-expanded={confirming}
@@ -77,20 +96,21 @@ export default function DeleteXButton({
                    flex items-center justify-center hover:bg-destructive/20 hover:border-destructive/40
                    transition-colors flex-shrink-0 ${confirming ? 'opacity-0 pointer-events-none' : ''}`}
       >
-        <X className="w-3.5 h-3.5" strokeWidth={2.5} />
+        <X className="w-3.5 h-3.5" strokeWidth={2.5} aria-hidden="true" />
       </button>
 
       {confirming && (
         <div className="absolute top-0 right-0 w-56 rounded-lg border border-destructive/30 bg-card shadow-lg p-2.5 animate-fade-in">
           <div className="flex items-start gap-1.5 mb-2">
-            <AlertTriangle className="w-3.5 h-3.5 text-destructive mt-px flex-shrink-0" />
+            <AlertTriangle className="w-3.5 h-3.5 text-destructive mt-px flex-shrink-0" aria-hidden="true" />
             <p className="text-[11px] leading-snug text-muted-foreground">{confirmText}</p>
           </div>
-          {error && <p className="text-[11px] text-destructive mb-2">{error}</p>}
+          {error && <p role="alert" className="text-[11px] text-destructive mb-2">{error}</p>}
           <div className="flex gap-1.5">
             <button
+              ref={cancelRef}
               type="button"
-              onClick={(e) => { e.stopPropagation(); setConfirming(false); setError(null); }}
+              onClick={(e) => { e.stopPropagation(); backOut(); }}
               disabled={deleting}
               className="flex-1 py-1.5 rounded-md border border-border text-[11px] font-medium
                          text-muted-foreground hover:bg-muted disabled:opacity-50"
@@ -105,7 +125,7 @@ export default function DeleteXButton({
                          font-medium hover:bg-destructive/90 disabled:opacity-50
                          inline-flex items-center justify-center gap-1"
             >
-              {deleting ? <Loader2 className="w-3 h-3 animate-spin" /> : <X className="w-3 h-3" />}
+              {deleting ? <Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" /> : <X className="w-3 h-3" aria-hidden="true" />}
               {confirmLabel}
             </button>
           </div>

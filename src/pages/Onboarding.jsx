@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Mic, FileText, Layers, CalendarCheck, Check, Loader2, Shield, X, Lock, Sparkles } from 'lucide-react';
-import { TIERS, CREDITS_PER_LECTURE } from '@/lib/tiers';
+import { TIERS, hoursFrom } from '@/lib/tiers';
 import { startCheckout } from '@/lib/checkout';
 import { track } from '@/lib/analytics';
 
@@ -29,23 +29,23 @@ const GOALS = [
 ];
 
 const STUDY_STYLES = [
-  { id: 'cram', label: 'Cramming from messy notes the night before', answer: 'We turn every lecture into a summary and flashcards the day it happens — studying starts already done.' },
-  { id: 'reread', label: 'Re-reading or re-listening to everything', answer: 'Searchable transcripts and summaries take you straight to the part that matters — no more re-listening.' },
+  { id: 'cram', label: 'Cramming from messy notes the night before', answer: 'Each lecture you record becomes a summary and flashcards the same day, so you start studying from notes you already have.' },
+  { id: 'reread', label: 'Re-reading or re-listening to everything', answer: 'Searchable transcripts and summaries take you straight to the part that matters, so you never re-listen to a whole lecture.' },
   { id: 'flashcards', label: 'Making my own flashcards by hand', answer: 'Flashcards make themselves from every recorded lecture.' },
-  { id: 'unsure', label: "I never know what to study first", answer: 'Exam topic prediction ranks what to study first — from your own lectures.' },
+  { id: 'unsure', label: "I never know what to study first", answer: 'Exam topic prediction ranks what to study first, using your own lectures.' },
 ];
 
 const COURSE_LOADS = [
   { id: 'few', label: '3 or fewer' },
-  { id: 'mid', label: '4 – 5' },
+  { id: 'mid', label: '4 or 5' },
   { id: 'many', label: '6 or more' },
 ];
 
 const PROMISES = {
-  'fast-prof': { title: 'Never miss a word again', lines: ['Record the lecture — we transcribe every word', 'Replay anything at your own speed, with the transcript beside it', 'A clean summary and key concepts, minutes after class ends'] },
+  'fast-prof': { title: 'Keep up with a fast professor', lines: ['Record the lecture and get the full transcript', 'Replay anything at your own speed, with the transcript beside it', 'A clean summary and key concepts a few minutes after class'] },
   notes: { title: 'Just listen. We take the notes.', lines: ['Hit record and put the pen down', 'Transcript, summary and action items appear after class', 'Your own quick notes attach to the exact lecture'] },
-  exams: { title: 'Walk into every exam covered', lines: ['Every lecture becomes flashcards and practice questions', 'We flag every exam mention your prof drops', 'Exam-topic prediction shows what to study first'] },
-  organized: { title: 'Your semester, already structured', lines: ['Import your timetable once — every class scheduled', 'Study sessions planned around your real deadlines', 'One place for lectures, notes, flashcards and plans'] },
+  exams: { title: 'Prepare for the exams that count', lines: ['Your lectures become flashcards and practice questions', 'Exam hints your prof drops get flagged', 'Exam-topic prediction shows what to study first'] },
+  organized: { title: 'Your semester, already structured', lines: ['Import your timetable once and every class is scheduled', 'Study sessions planned around your real deadlines', 'One place for lectures, notes, flashcards and plans'] },
 };
 
 // What stays locked on Free — shown ON the paywall so the value of upgrading
@@ -57,9 +57,9 @@ const LOCKED_ON_FREE = [
 ];
 
 const LOAD_NUDGE = {
-  few: 'Scholar keeps every tool unlocked — handbooks, predictions and schedules included.',
-  mid: 'With 4–5 courses, most students land on Scholar — a handbook for every class.',
-  many: 'With 6+ courses, Scholar’s ~45 lectures a month is the safe pick.',
+  few: 'Scholar includes every tool: handbooks, exam predictions and study schedules.',
+  mid: 'With 4 or 5 courses, Scholar gives you a handbook for every class.',
+  many: `With 6 or more courses, Scholar records about ${hoursFrom(TIERS.scholar.creditsPerMonth)} hours of lectures a month. Unlimited records more.`,
 };
 
 const STEPS = 5; // struggle, study style, course load, promise, plans
@@ -121,7 +121,7 @@ export default function Onboarding() {
       <h1 className="font-heading text-2xl font-bold text-foreground text-center mb-1">{title}</h1>
       {sub && <p className="text-sm text-muted-foreground text-center mb-6">{sub}</p>}
       {children}
-      <button type="button" onClick={() => finish()} className="mt-6 w-full text-center text-xs text-muted-foreground/70 hover:text-foreground">
+      <button type="button" onClick={() => finish()} className="mt-6 w-full text-center text-xs text-muted-foreground hover:text-foreground">
         Skip for now
       </button>
     </div>
@@ -133,7 +133,7 @@ export default function Onboarding() {
         <div className="w-full max-w-md">
           {/* progress */}
           {!exitOffer && (
-            <div className="flex items-center justify-center gap-1.5 mb-8" aria-label={`Step ${step + 1} of ${STEPS}`}>
+            <div className="flex items-center justify-center gap-1.5 mb-8" role="img" aria-label={`Step ${step + 1} of ${STEPS}`}>
               {Array.from({ length: STEPS }, (_, i) => (
                 <span key={i} className={`h-1.5 rounded-full transition-all duration-standard ease-standard ${i === step ? 'w-6 bg-primary' : i < step ? 'w-1.5 bg-primary/40' : 'w-1.5 bg-muted'}`} />
               ))}
@@ -162,7 +162,7 @@ export default function Onboarding() {
 
           {/* Q2 — how studying happens today */}
           {step === 1 && (
-            <QuestionShell title="When an exam gets close, what does studying usually look like?" sub="Be honest — everyone&rsquo;s is messier than they admit.">
+            <QuestionShell title="When an exam gets close, what does studying usually look like?" sub="Be honest. Everyone&rsquo;s is messier than they admit.">
               <div className="space-y-2.5">
                 {STUDY_STYLES.map((s) => (
                   <button key={s.id} type="button" onClick={() => pick(setStudyStyle, 'cedar-studystyle', s.id, 2)}
@@ -209,8 +209,8 @@ export default function Onboarding() {
               <div className="flex items-start gap-2 rounded-xl bg-muted/40 px-4 py-3 mb-6">
                 <Shield className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
                 <p className="text-xs text-muted-foreground">
-                  Your recordings stay private to you. We help you learn your own lectures — we never do
-                  assignments — and recording consent is built into every class.
+                  Your recordings stay private to you. We help you learn your own lectures, we never do
+                  assignments, and every class asks you to confirm you have permission to record.
                 </p>
               </div>
               <button type="button" onClick={() => setStep(4)}
@@ -235,7 +235,7 @@ export default function Onboarding() {
               {/* Honest free framing + what stays locked */}
               <div className="rounded-xl border border-border bg-muted/30 p-3.5 mb-4">
                 <p className="text-xs text-foreground font-medium mb-2">
-                  Free covers your first {Math.floor(TIERS.free.creditsPerMonth / CREDITS_PER_LECTURE)} recorded lectures — transcripts, summaries and flashcards included. These stay locked:
+                  Free covers your first two lectures of up to 90 minutes each, with transcripts, summaries and flashcards. These stay locked:
                 </p>
                 <ul className="space-y-1">
                   {LOCKED_ON_FREE.map((f) => (
@@ -267,7 +267,7 @@ export default function Onboarding() {
                     <div key={id} className={`relative rounded-2xl border p-4 ${recommended ? 'border-primary/50 ring-1 ring-primary/25 bg-primary/[0.03]' : 'border-border bg-card'}`}>
                       {recommended && (
                         <span className="absolute -top-2.5 left-4 px-2 py-0.5 rounded-full bg-primary text-primary-foreground text-[10px] font-semibold uppercase tracking-wide">
-                          Recommended · Everything unlocked
+                          Recommended · Every tool included
                         </span>
                       )}
                       <div className="flex items-baseline justify-between gap-2">
@@ -279,7 +279,7 @@ export default function Onboarding() {
                       </div>
                       <p className="text-xs text-muted-foreground mt-0.5 mb-1.5">
                         {period === 'semester' ? `Billed $${t.semester.toFixed(2)} once per semester.` : `Billed $${t.monthly.toFixed(2)} monthly.`}{' '}
-                        ~{Math.floor(t.creditsPerMonth / CREDITS_PER_LECTURE)} recorded lectures a month.
+                        About {hoursFrom(t.creditsPerMonth)} hours of lectures a month.
                       </p>
                       {/* Compact by design — the paywall step stays scannable;
                           the full comparison lives on /subscription. */}
@@ -302,7 +302,7 @@ export default function Onboarding() {
               {/* Unlimited, compact — it exists for the heaviest users */}
               <button type="button" onClick={() => buy('unlimited')} disabled={busy !== null}
                 className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl border border-border text-left hover:bg-muted transition-colors duration-micro disabled:opacity-50 mb-3">
-                <span className="text-xs text-foreground font-medium">Unlimited — record everything, every day</span>
+                <span className="text-xs text-foreground font-medium">Unlimited: record every lecture and lab</span>
                 <span className="text-xs tabular-nums text-muted-foreground">
                   {busy === 'unlimited' ? 'Opening…' : `$${(period === 'semester' ? TIERS.unlimited.semester / 4 : TIERS.unlimited.monthly).toFixed(2)}/mo`}
                 </span>
@@ -310,7 +310,8 @@ export default function Onboarding() {
 
               {error && <p className="text-xs text-destructive mb-2 text-center">{error}</p>}
               <p className="text-[11px] text-muted-foreground text-center">
-                Cancel anytime · Keep your plan until the period ends · Prices in CAD
+                Cancel anytime in Settings · Keep your plan until the period ends · Prices in CAD ·{' '}
+                <Link to="/terms#refunds" className="underline hover:text-foreground">Refund policy</Link>
               </p>
             </div>
           )}
@@ -321,10 +322,10 @@ export default function Onboarding() {
               <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
                 <Sparkles className="w-6 h-6 text-primary" />
               </div>
-              <h1 className="font-heading text-xl font-bold text-foreground mb-2">Before you decide —</h1>
+              <h1 className="font-heading text-xl font-bold text-foreground mb-2">Before you decide</h1>
               <p className="text-sm text-muted-foreground mb-1">
-                We recommend starting with at least <b className="text-foreground">Scholar</b>. Having every tool
-                unlocked from day one — handbooks, exam predictions, AI schedules — is the best way to experience Praelecta.
+                We recommend starting with <b className="text-foreground">Scholar</b>. It includes every tool from day one:
+                handbooks, exam predictions and AI study schedules.
               </p>
               <p className="text-xs text-muted-foreground mb-5">
                 ${scholarPerMonth}/mo{period === 'semester' ? `, billed $${TIERS.scholar.semester.toFixed(2)} once per semester` : ''}. Cancel anytime.

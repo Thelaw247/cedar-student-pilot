@@ -1,22 +1,30 @@
 import { useEffect } from 'react';
+import { LANDING_DESCRIPTION, LANDING_TITLE } from '@/lib/publicPages';
 
 /**
- * Writes a public page's title and description into the document while the
- * page is mounted, and puts the previous ones back when it unmounts, so the
- * app's own pages keep theirs.
+ * Writes a page's title and description into the document while the page is
+ * mounted, and puts the site's defaults back when it unmounts.
  *
  * Every public page reads its strings from lib/publicPages.js — the same
  * table the build uses to write the served <head> for that route — so what a
  * crawler reads and what a visitor's tab shows are one string, not two.
+ *
+ * The cleanup restores the site defaults, not whatever the tab showed when
+ * the page mounted. It used to restore the latter, and a visitor who arrived
+ * on /pricing (whose served head already says "Pricing | Praelecta") then
+ * pressed the button carried that title and description onto /register and
+ * every app page after it (Oct 2026 audit).
+ *
+ * `noindex` adds <meta name="robots" content="noindex"> for as long as the
+ * page is mounted: the 404 page, which the host serves with a 200 because
+ * the app is a single-page app, must not be indexed as a real page.
  */
-export function usePublicPageMeta({ title, description }) {
+export function usePublicPageMeta({ title, description, noindex = false }) {
   useEffect(() => {
-    const previousTitle = document.title;
     if (title) document.title = title;
 
-    let meta = document.querySelector('meta[name="description"]');
-    const previousDescription = meta?.getAttribute('content') || null;
     if (description) {
+      let meta = document.querySelector('meta[name="description"]');
       if (!meta) {
         meta = document.createElement('meta');
         meta.setAttribute('name', 'description');
@@ -25,11 +33,18 @@ export function usePublicPageMeta({ title, description }) {
       meta.setAttribute('content', description);
     }
 
+    let robots = null;
+    if (noindex) {
+      robots = document.createElement('meta');
+      robots.setAttribute('name', 'robots');
+      robots.setAttribute('content', 'noindex');
+      document.head.appendChild(robots);
+    }
+
     return () => {
-      document.title = previousTitle;
-      if (!description) return;
-      if (previousDescription === null) meta?.remove();
-      else meta?.setAttribute('content', previousDescription);
+      if (title) document.title = LANDING_TITLE;
+      if (description) document.querySelector('meta[name="description"]')?.setAttribute('content', LANDING_DESCRIPTION);
+      robots?.remove();
     };
-  }, [title, description]);
+  }, [title, description, noindex]);
 }

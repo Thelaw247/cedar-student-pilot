@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import BottomNav from './BottomNav';
 import ClassStatusBar from './ClassStatusBar';
@@ -14,8 +14,37 @@ import PendingSchedules from './monetization/PendingSchedules';
 import { RecordingProvider } from '@/recording/RecordingContext';
 import RecordingIsland from '@/recording/RecordingIsland';
 import { StudySessionProvider } from '@/study/StudySessionContext';
+import { NAV_ITEMS } from '@/lib/navItems';
+import { usePublicPageMeta } from '@/hooks/usePublicPageMeta';
+
+// Screens that are not tabs in the nav. Tabs take their name from NAV_ITEMS,
+// so renaming a tab renames its title too.
+const SCREEN_TITLES = {
+  '/setup': 'Set up your semester',
+  '/lectures': 'Lecture',
+  '/focus': 'Focus session',
+  '/lecture-review': 'Lecture review',
+  '/subscription': 'Plans',
+  '/checkout': 'Checkout',
+  '/owner': 'Owner analytics',
+};
+
+/**
+ * "Classes | Praelecta" for /classes and anything under it. Every app screen
+ * used to carry the homepage's title, so a tab, the history list and a screen
+ * reader's page announcement all said the same thing on every screen (WCAG
+ * 2.4.2, Page Titled).
+ */
+function screenTitle(pathname) {
+  const top = `/${pathname.split('/')[1] || ''}`;
+  const name = NAV_ITEMS.find((item) => item.to === top)?.label || SCREEN_TITLES[top];
+  return name ? `${name} | Praelecta` : undefined;
+}
 
 export default function Layout() {
+  const { pathname } = useLocation();
+  usePublicPageMeta({ title: screenTitle(pathname) });
+
   const [isDark, setIsDark] = useState(false);
 
   useEffect(() => {
@@ -57,9 +86,12 @@ export default function Layout() {
     <RecordingProvider>
     <StudySessionProvider>
     <div className="flex min-h-screen bg-background">
+      {/* First stop for the Tab key: jumps past the sidebar's links to the
+          page itself (WCAG 2.4.1). Hidden until focused; styles in index.css. */}
+      <a href="#main" className="skip-link">Skip to content</a>
       <Sidebar />
       <div className="flex-1 flex flex-col min-w-0">
-        <main className="flex-1 pb-[calc(5rem+env(safe-area-inset-bottom))] lg:pb-0">
+        <main id="main" tabIndex={-1} className="flex-1 outline-none pb-[calc(5rem+env(safe-area-inset-bottom))] lg:pb-0">
           <ClassStatusBar variant="mobile" />
           <Outlet />
         </main>

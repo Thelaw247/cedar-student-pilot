@@ -84,14 +84,14 @@ export default function ProjectSessionEndModal({ assignmentId, onClose }) {
             <p className="text-sm text-muted-foreground mb-4">The AI will find free time in your schedule before the due date.</p>
             <div className="grid grid-cols-4 gap-2 mb-4">
               {quickOptions.map(m => (
-                <button key={m} onClick={() => { setMinutes(m); }}
+                <button key={m} onClick={() => { setMinutes(m); }} aria-pressed={minutes === m}
                   className={`py-2.5 rounded-lg text-sm font-medium transition-colors ${minutes === m ? 'bg-primary text-primary-foreground' : 'border border-border text-muted-foreground hover:bg-muted'}`}>
                   {m}m
                 </button>
               ))}
             </div>
             <div className="flex items-center gap-2 mb-4">
-              <input type="number" value={minutes}
+              <input type="number" aria-label="Minutes" value={minutes}
                 onChange={e => setMinutes(Math.max(15, Number(e.target.value)))}
                 className="flex-1 px-3 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40" />
               <span className="text-sm text-muted-foreground">minutes</span>
@@ -157,7 +157,7 @@ export default function ProjectSessionEndModal({ assignmentId, onClose }) {
                     <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded border uppercase ${priorityColors[s.priority] || priorityColors.medium}`}>
                       {s.priority}
                     </span>
-                    <button onClick={() => handleDeleteSuggestion(s)}
+                    <button onClick={() => handleDeleteSuggestion(s)} aria-label={`Delete ${s.title}`}
                       className="w-8 h-8 rounded-lg border border-destructive/30 text-destructive flex items-center justify-center hover:bg-destructive/10 transition-colors flex-shrink-0">
                       <Trash2 className="w-4 h-4" />
                     </button>

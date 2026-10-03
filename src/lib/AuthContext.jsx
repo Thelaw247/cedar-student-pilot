@@ -6,6 +6,7 @@ import { clearLegacyUserStorage, clearOtherUserStorage, clearUserStorage, getCac
 import { clearAllRecordings, clearOtherRecordings, initializeRecordingStore } from '@/lib/recordingStore';
 import { supabase } from '@/lib/supabaseClient';
 import { shouldRecheckAuth } from '@/lib/authEvents';
+import { CONSENT_EVENT } from '@/lib/analyticsConsent';
 
 const AuthContext = createContext(null);
 const USE_SUPABASE = import.meta.env.VITE_BACKEND_MODE === 'supabase';
@@ -240,6 +241,22 @@ export const AuthProvider = ({ children }) => {
     const returnTo = encodeURIComponent(window.location.pathname + window.location.search);
     window.location.href = `/login?returnTo=${returnTo}`;
   };
+
+  // Analytics starts only once the visitor allows it (lib/analyticsConsent.js),
+  // and setIdentity above is a no-op until then. A student who allows it after
+  // signing in is identified at that moment rather than on the next visit.
+  useEffect(() => {
+    const onConsent = (event) => {
+      if (event.detail !== 'granted' || !user) return;
+      analytics.setIdentity(
+        user.id,
+        { email: user.email, name: user.full_name },
+        { signup_date: user.created_at },
+      );
+    };
+    window.addEventListener(CONSENT_EVENT, onConsent);
+    return () => window.removeEventListener(CONSENT_EVENT, onConsent);
+  }, [user]);
 
   return (
     <AuthContext.Provider value={{ 

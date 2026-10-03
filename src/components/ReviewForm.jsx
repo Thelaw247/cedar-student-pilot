@@ -121,6 +121,7 @@ export default function ReviewForm({ existing = null, fullName = '', onClose, on
             <div
               role="radiogroup"
               aria-labelledby={`${id}-rating`}
+              aria-describedby={errors.rating ? `${id}-rating-error` : undefined}
               onKeyDown={onStarsKey}
               onMouseLeave={() => setHover(0)}
               className="mt-1.5 flex items-center gap-0.5"
@@ -142,7 +143,7 @@ export default function ReviewForm({ existing = null, fullName = '', onClose, on
               ))}
               <span className="ml-2 text-xs font-medium text-muted-foreground" aria-hidden="true">{WORDS[shown]}</span>
             </div>
-            {errors.rating && <p className="mt-1 text-xs text-red-500">{errors.rating}</p>}
+            {errors.rating && <p id={`${id}-rating-error`} className="mt-1 text-xs text-destructive">{errors.rating}</p>}
           </div>
 
           <div>
@@ -154,10 +155,12 @@ export default function ReviewForm({ existing = null, fullName = '', onClose, on
               value={body}
               onChange={(e) => setBody(e.target.value)}
               placeholder="A sentence or two, in your own words"
+              aria-invalid={errors.body ? true : undefined}
+              aria-describedby={errors.body ? `${id}-body-error` : undefined}
               className={`${inputCls} mt-1.5 resize-none`}
             />
             <div className="mt-1 flex items-start justify-between gap-3 text-[11px]">
-              <span className="text-red-500">{errors.body}</span>
+              <span id={`${id}-body-error`} className="text-destructive">{errors.body}</span>
               <span className="tabular-nums text-muted-foreground">{body.length}/{REVIEW_LIMITS.body}</span>
             </div>
           </div>
@@ -171,7 +174,7 @@ export default function ReviewForm({ existing = null, fullName = '', onClose, on
             />
             <span className="text-sm">
               <span className="font-medium text-foreground">Show my review on praelecta.ca</span>
-              <span className="mt-0.5 block text-xs text-muted-foreground">With the name, course and school below. Optional — your rating helps either way.</span>
+              <span className="mt-0.5 block text-xs text-muted-foreground">With the name, course and school below. Optional: your rating helps either way.</span>
             </span>
           </label>
 
@@ -180,8 +183,10 @@ export default function ReviewForm({ existing = null, fullName = '', onClose, on
               <div className="sm:col-span-2">
                 <label htmlFor={`${id}-name`} className="text-xs font-medium text-muted-foreground">Name to show</label>
                 <input id={`${id}-name`} type="text" maxLength={REVIEW_LIMITS.display_name} value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value)} placeholder="First name" className={`${inputCls} mt-1.5`} />
-                {errors.display_name && <p className="mt-1 text-xs text-red-500">{errors.display_name}</p>}
+                  onChange={(e) => setDisplayName(e.target.value)} placeholder="First name" className={`${inputCls} mt-1.5`}
+                  aria-invalid={errors.display_name ? true : undefined}
+                  aria-describedby={errors.display_name ? `${id}-name-error` : undefined} />
+                {errors.display_name && <p id={`${id}-name-error`} className="mt-1 text-xs text-destructive">{errors.display_name}</p>}
               </div>
               <div>
                 <label htmlFor={`${id}-detail`} className="text-xs font-medium text-muted-foreground">Course or program <span className="font-normal">(optional)</span></label>

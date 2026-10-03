@@ -18,6 +18,7 @@ export default function ResetPassword() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [done, setDone] = useState(false);
 
   useEffect(() => {
     if (!useSupabase) return;
@@ -38,7 +39,10 @@ export default function ResetPassword() {
     setLoading(true);
     try {
       await base44.auth.resetPassword({ resetToken, newPassword });
-      window.location.href = "/login";
+      // It used to go straight to /login, with no word that anything had
+      // worked; with Supabase the reset link has already signed the student
+      // in, so the login page then bounced them on without saying so either.
+      setDone(true);
     } catch (err) {
       setError(err.message || "Failed to reset password");
     } finally {
@@ -46,10 +50,27 @@ export default function ResetPassword() {
     }
   };
 
+  if (done) {
+    // Supabase: the recovery link is a sign-in, so the student is in already.
+    // A full load rather than a route change, so the app reads that session
+    // fresh instead of the recovery state this page was opened in.
+    const next = useSupabase ? { href: "/today", label: "Continue to Praelecta" } : { href: "/login", label: "Sign in with your new password" };
+    return (
+      <AuthLayout icon={Lock} title="Password updated">
+        <p role="status" className="text-sm text-foreground text-center mb-5">
+          Your new password is saved. Use it the next time you sign in.
+        </p>
+        <Button asChild className="auth-cta w-full h-12 font-medium">
+          <a href={next.href}>{next.label}</a>
+        </Button>
+      </AuthLayout>
+    );
+  }
+
   if (!recoveryReady) {
     return (
-      <AuthLayout icon={Lock} title="Checking reset link" subtitle="Verifying your password recovery session">
-        <Loader2 className="w-6 h-6 animate-spin text-primary mx-auto" />
+      <AuthLayout icon={Lock} title="Checking reset link" subtitle="One moment.">
+        <Loader2 className="w-6 h-6 animate-spin text-primary mx-auto" aria-hidden="true" />
       </AuthLayout>
     );
   }
@@ -58,8 +79,8 @@ export default function ResetPassword() {
     return (
       <AuthLayout
         icon={AlertTriangle}
-        title="Invalid reset link"
-        subtitle="This password reset link is missing or invalid"
+        title="This reset link doesn't work"
+        subtitle="It has expired, was already used, or was cut short."
         footer={
           <Link to="/forgot-password" className="text-primary font-medium hover:underline">
             Request a new link
@@ -67,7 +88,7 @@ export default function ResetPassword() {
         }
       >
         <p className="text-sm text-foreground text-center">
-          The link you used appears to be incomplete. Please request a new password reset email.
+          Each reset link works once. Ask for a new one and use the newest email.
         </p>
       </AuthLayout>
     );
@@ -76,17 +97,16 @@ export default function ResetPassword() {
   return (
     <AuthLayout
       icon={Lock}
-      title="New password"
-      subtitle="Enter your new password below"
+      title="Choose a new password"
     >
       {error && (
-        <div className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
+        <div role="alert" className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
           {error}
         </div>
       )}
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="password">New Password</Label>
+          <Label htmlFor="password">New password</Label>
           <div className="relative">
             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" aria-hidden="true" />
             <Input
@@ -103,7 +123,7 @@ export default function ResetPassword() {
           </div>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="confirm">Confirm Password</Label>
+          <Label htmlFor="confirm">Confirm new password</Label>
           <div className="relative">
             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" aria-hidden="true" />
             <Input
@@ -121,11 +141,11 @@ export default function ResetPassword() {
         <Button type="submit" className="auth-cta w-full h-12 font-medium" disabled={loading}>
           {loading ? (
             <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Resetting...
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden="true" />
+              Saving…
             </>
           ) : (
-            "Reset password"
+            "Save new password"
           )}
         </Button>
       </form>

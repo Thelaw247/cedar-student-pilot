@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Menu, X } from 'lucide-react';
 import { BRAND_MARK_URL } from '@/lib/brand';
@@ -36,6 +36,14 @@ function NavLink({ link, className, onClick = undefined }) {
 export default function LandingNav() {
   const [menuOpen, setMenuOpen] = useState(false);
 
+  // Escape closes the phone menu, like every other pop-out on the site.
+  useEffect(() => {
+    if (!menuOpen) return undefined;
+    const onKey = (event) => { if (event.key === 'Escape') setMenuOpen(false); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [menuOpen]);
+
   return (
     <header className="fixed inset-x-0 top-0 z-50 px-3 pt-3 sm:px-6 sm:pt-4">
       <nav
@@ -57,14 +65,14 @@ export default function LandingNav() {
           <div className="flex items-center gap-1.5">
             <Link to="/login" className="hidden rounded-full px-3 py-1.5 text-sm font-medium text-foreground/80 transition-colors hover:bg-foreground/[0.06] hover:text-foreground sm:inline-flex">Sign in</Link>
             <Link to="/register" className="auth-cta rounded-full px-4 py-2 text-sm font-semibold text-primary-foreground">Start free</Link>
-            <button type="button" onClick={() => setMenuOpen((value) => !value)} className="inline-flex h-9 w-9 items-center justify-center rounded-full text-foreground/80 transition-colors hover:bg-foreground/[0.06] md:hidden" aria-label={menuOpen ? 'Close menu' : 'Open menu'} aria-expanded={menuOpen}>
-              {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            <button type="button" onClick={() => setMenuOpen((value) => !value)} className="inline-flex h-9 w-9 items-center justify-center rounded-full text-foreground/80 transition-colors hover:bg-foreground/[0.06] md:hidden" aria-label={menuOpen ? 'Close menu' : 'Open menu'} aria-expanded={menuOpen} aria-controls="site-menu">
+              {menuOpen ? <X className="h-5 w-5" aria-hidden="true" /> : <Menu className="h-5 w-5" aria-hidden="true" />}
             </button>
           </div>
         </div>
 
         {menuOpen && (
-          <div className="border-t border-border/70 px-2 pb-3 pt-2 md:hidden">
+          <div id="site-menu" className="border-t border-border/70 px-2 pb-3 pt-2 md:hidden">
             {links.map((link) => (
               <NavLink key={link.label} link={link} onClick={() => setMenuOpen(false)} className="block rounded-xl px-3 py-2.5 text-sm font-medium text-foreground/80 transition-colors hover:bg-foreground/[0.06]" />
             ))}

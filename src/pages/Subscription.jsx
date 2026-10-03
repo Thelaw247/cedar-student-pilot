@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { startCheckout as beginCheckout } from '@/lib/checkout';
-import { TIERS, TIER_ORDER, CREDIT_PACKS, CREDITS_PER_LECTURE, PLAN_FEATURES, planHas, semesterSaving, maxSemesterSavingPercent } from '@/lib/tiers';
+import { TIERS, TIER_ORDER, CREDIT_PACKS, PLAN_FEATURES, planHas, semesterSaving, maxSemesterSavingPercent, hoursFrom } from '@/lib/tiers';
 import { SUPPORT_EMAIL } from '@/lib/legal';
 import { Check, Loader2, ArrowLeft, Zap, Sparkles, AlertCircle } from 'lucide-react';
 
@@ -122,7 +122,8 @@ export default function Subscription() {
       )}
 
       {/* Tier grid — three paid cards; Unlimited anchors, Scholar carries the
-          "Most popular" emphasis, and Free lives as a plain-language exit row
+          "Recommended" emphasis (it said "Most popular" until Oct 2026, with
+          no data behind it), and Free lives as a plain-language exit row
           below rather than a fourth card competing for attention (MON-04 §4). */}
       <div className="grid gap-4 md:grid-cols-3 mb-6 max-w-4xl mx-auto">
         {TIER_ORDER.filter((id) => id !== 'free').map((id) => {
@@ -140,7 +141,7 @@ export default function Subscription() {
             >
               {featured && !isCurrent && (
                 <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full bg-primary text-primary-foreground text-[10px] font-semibold uppercase tracking-wide">
-                  Most popular
+                  Recommended
                 </span>
               )}
               {isCurrent && (
@@ -176,8 +177,7 @@ export default function Subscription() {
                 <p className="text-sm font-semibold">{tier.creditsPerMonth} credits</p>
                 <p className="text-[11px] text-muted-foreground">
                   {tier.lifetimeOnly ? 'one-off grant · ' : 'per month · '}
-                  ~{Math.floor(tier.creditsPerMonth / CREDITS_PER_LECTURE)} recorded lecture
-                  {Math.floor(tier.creditsPerMonth / CREDITS_PER_LECTURE) === 1 ? '' : 's'}
+                  ~{hoursFrom(tier.creditsPerMonth)} hours of lectures
                 </p>
               </div>
 
@@ -248,11 +248,12 @@ export default function Subscription() {
           tomorrow's midterm converts. */}
       <p className="text-center text-xs text-muted-foreground max-w-xl mx-auto mb-3">
         Staying on <span className="text-foreground font-medium">Free</span>? You keep the exam coverage map,
-        unlimited typed-note lectures, flashcards, analytics — and your {TIERS.free.creditsPerMonth} starter credits
-        ({Math.floor(TIERS.free.creditsPerMonth / CREDITS_PER_LECTURE)} recorded lectures).
+        unlimited typed-note lectures, flashcards and analytics, plus your {TIERS.free.creditsPerMonth} starter credits
+        (two lectures of up to 90 minutes).
       </p>
       <p className="text-center text-[11px] text-muted-foreground mb-12">
-        Cancel anytime · No hidden fees · Prices in CAD
+        Cancel anytime in Settings · No hidden fees · Prices in CAD ·{' '}
+        <Link to="/terms#refunds" className="underline hover:text-foreground">Refund policy</Link>
       </p>
 
       {/* Credit packs — deliberately the overflow, not the pitch (MON-04 §4):
@@ -265,7 +266,7 @@ export default function Subscription() {
           <h2 className="font-heading text-base font-bold">Just need a few credits?</h2>
         </div>
         <p className="text-xs text-muted-foreground mb-5">
-          One-off packs — no subscription, and{' '}
+          One-off packs with no subscription, and{' '}
           <span className="text-foreground font-medium">purchased credits never expire</span>. They cost more per
           credit than a plan (plans start around ${(TIERS.student.monthly / TIERS.student.creditsPerMonth).toFixed(2)}/credit),
           which is the price of no commitment.
@@ -280,7 +281,7 @@ export default function Subscription() {
                 {p.credits} credits · ${(p.price / p.credits).toFixed(3)}/credit
               </p>
               <p className="text-[11px] text-muted-foreground mb-4 flex-1">
-                ~{Math.floor(p.credits / CREDITS_PER_LECTURE)} recorded lectures
+                ~{hoursFrom(p.credits)} hours of lectures
               </p>
               <button
                 onClick={() => startCheckout({ pack: p.id }, p.id)}
@@ -297,7 +298,7 @@ export default function Subscription() {
       <div className="mt-8 flex items-start gap-2 text-xs text-muted-foreground max-w-2xl mx-auto">
         <Sparkles className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
         <p>
-          Credits are spent on AI processing — recording and transcribing a lecture, generating handbooks,
+          Credits are spent on AI processing: recording and transcribing a lecture, generating handbooks,
           predicting exam topics. Reading, searching and studying what you already have is always free.
           Subscription credits reset each period; purchased credits roll over forever.
         </p>

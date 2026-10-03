@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useId, useState } from 'react';
 import { base44 } from '@/api/base44Client';
+import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { GraduationCap, ChevronRight } from 'lucide-react';
 
 const ALL_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -19,6 +20,8 @@ function getTodayString() {
  * there via onAddClass rather than duplicating the class form.
  */
 export default function AddEventModal({ classes, onAddClass, onClose }) {
+  const id = useId();
+  useEscapeKey(onClose);
   const [repeat, setRepeat] = useState('none'); // 'none' | 'weekly'
   const [form, setForm] = useState({
     title: '',
@@ -85,8 +88,8 @@ export default function AddEventModal({ classes, onAddClass, onClose }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/30 glass" onClick={onClose}>
-      <div className="bg-card w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl border border-border p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:pb-6 animate-fade-in max-h-[90dvh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-        <h3 className="font-heading text-lg font-semibold mb-4">Add Event</h3>
+      <div role="dialog" aria-modal="true" aria-labelledby={`${id}-title`} className="bg-card w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl border border-border p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:pb-6 animate-fade-in max-h-[90dvh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <h3 id={`${id}-title`} className="font-heading text-lg font-semibold mb-4">Add Event</h3>
 
         {/* Route class creation to the Classes tab (single source of truth) */}
         <button onClick={onAddClass}
@@ -102,10 +105,10 @@ export default function AddEventModal({ classes, onAddClass, onClose }) {
         </button>
 
         <form onSubmit={handleSubmit} className="space-y-3">
-          <input type="text" placeholder="Event title (e.g. Work shift)" value={form.title}
+          <input type="text" aria-label="Event title" placeholder="Event title (e.g. Work shift)" value={form.title}
             onChange={e => setForm({ ...form, title: e.target.value })} className={inputCls} autoFocus />
 
-          <select value={form.type} onChange={e => setForm({ ...form, type: e.target.value })} className={inputCls}>
+          <select aria-label="Event type" value={form.type} onChange={e => setForm({ ...form, type: e.target.value })} className={inputCls}>
             <option value="custom">General</option>
             <option value="work">Work</option>
             <option value="study">Study block</option>
@@ -115,11 +118,11 @@ export default function AddEventModal({ classes, onAddClass, onClose }) {
 
           {/* One-time vs recurring */}
           <div className="flex gap-1 bg-muted rounded-lg p-1">
-            <button type="button" onClick={() => setRepeat('none')}
+            <button type="button" onClick={() => setRepeat('none')} aria-pressed={repeat === 'none'}
               className={`flex-1 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${repeat === 'none' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'}`}>
               One time
             </button>
-            <button type="button" onClick={() => setRepeat('weekly')}
+            <button type="button" onClick={() => setRepeat('weekly')} aria-pressed={repeat === 'weekly'}
               className={`flex-1 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${repeat === 'weekly' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'}`}>
               Repeats weekly
             </button>
@@ -127,8 +130,8 @@ export default function AddEventModal({ classes, onAddClass, onClose }) {
 
           {repeat === 'none' ? (
             <div>
-              <p className="text-xs font-medium text-muted-foreground mb-1.5">Date</p>
-              <input type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} className={inputCls} />
+              <p id={`${id}-date`} className="text-xs font-medium text-muted-foreground mb-1.5">Date</p>
+              <input type="date" aria-labelledby={`${id}-date`} value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} className={inputCls} />
             </div>
           ) : (
             <>
@@ -136,7 +139,7 @@ export default function AddEventModal({ classes, onAddClass, onClose }) {
                 <p className="text-xs font-medium text-muted-foreground mb-1.5">Repeats on</p>
                 <div className="flex gap-1.5 flex-wrap">
                   {ALL_DAYS.map(d => (
-                    <button key={d} type="button" onClick={() => toggleDay(d)}
+                    <button key={d} type="button" onClick={() => toggleDay(d)} aria-pressed={form.recurrence_days.includes(d)}
                       className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                         form.recurrence_days.includes(d) ? 'bg-primary text-primary-foreground' : 'border border-border text-muted-foreground hover:text-foreground'
                       }`}>
@@ -147,13 +150,13 @@ export default function AddEventModal({ classes, onAddClass, onClose }) {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <p className="text-xs font-medium text-muted-foreground mb-1.5">From date</p>
-                  <input type="date" value={form.recurrence_start_date}
+                  <p id={`${id}-from`} className="text-xs font-medium text-muted-foreground mb-1.5">From date</p>
+                  <input type="date" aria-labelledby={`${id}-from`} value={form.recurrence_start_date}
                     onChange={e => setForm({ ...form, recurrence_start_date: e.target.value })} className={inputCls} />
                 </div>
                 <div>
-                  <p className="text-xs font-medium text-muted-foreground mb-1.5">Until date</p>
-                  <input type="date" value={form.recurrence_end_date}
+                  <p id={`${id}-until`} className="text-xs font-medium text-muted-foreground mb-1.5">Until date</p>
+                  <input type="date" aria-labelledby={`${id}-until`} value={form.recurrence_end_date}
                     onChange={e => setForm({ ...form, recurrence_end_date: e.target.value })} className={inputCls} />
                 </div>
               </div>
@@ -163,16 +166,16 @@ export default function AddEventModal({ classes, onAddClass, onClose }) {
           {/* Times (apply to each occurrence) */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <p className="text-xs font-medium text-muted-foreground mb-1.5">Start time</p>
-              <input type="time" value={form.start_time} onChange={e => setForm({ ...form, start_time: e.target.value })} className={inputCls} />
+              <p id={`${id}-start`} className="text-xs font-medium text-muted-foreground mb-1.5">Start time</p>
+              <input type="time" aria-labelledby={`${id}-start`} value={form.start_time} onChange={e => setForm({ ...form, start_time: e.target.value })} className={inputCls} />
             </div>
             <div>
-              <p className="text-xs font-medium text-muted-foreground mb-1.5">End time</p>
-              <input type="time" value={form.end_time} onChange={e => setForm({ ...form, end_time: e.target.value })} className={inputCls} />
+              <p id={`${id}-end`} className="text-xs font-medium text-muted-foreground mb-1.5">End time</p>
+              <input type="time" aria-labelledby={`${id}-end`} value={form.end_time} onChange={e => setForm({ ...form, end_time: e.target.value })} className={inputCls} />
             </div>
           </div>
 
-          <textarea placeholder="Notes (optional)" value={form.notes}
+          <textarea aria-label="Notes" placeholder="Notes (optional)" value={form.notes}
             onChange={e => setForm({ ...form, notes: e.target.value })} className={`${inputCls} resize-none`} rows={2} />
 
           <div className="flex gap-2 pt-2">

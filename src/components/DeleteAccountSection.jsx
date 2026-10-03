@@ -115,10 +115,11 @@ export default function DeleteAccountSection() {
         </div>
       </div>
 
-      <label className="block text-xs font-medium text-muted-foreground mb-1.5">
+      <label htmlFor="delete-account-confirm" className="block text-xs font-medium text-muted-foreground mb-1.5">
         Type <span className="font-semibold text-foreground">{CONFIRM_WORD}</span> to confirm
       </label>
       <input
+        id="delete-account-confirm"
         type="text"
         value={confirmText}
         onChange={e => setConfirmText(e.target.value)}

@@ -53,7 +53,7 @@ export default function LectureTodos({ lecture, legacyActionItems }) {
           <ul className="space-y-1.5 mb-3">
             {[...open, ...done].map((t) => (
               <li key={t.id} className={`group flex items-start gap-2.5 rounded-lg px-2 py-1.5 -mx-2 hover:bg-muted/50 ${t.done ? 'opacity-60' : ''}`}>
-                <button type="button" role="checkbox" aria-checked={t.done} onClick={() => toggle(t)}
+                <button type="button" role="checkbox" aria-checked={t.done} aria-label={`Mark "${t.title}" done`} onClick={() => toggle(t)}
                   className={`w-5 h-5 rounded-md border flex items-center justify-center flex-shrink-0 mt-0.5 transition-colors ${t.done ? 'bg-primary border-primary text-primary-foreground' : 'border-border hover:border-primary'}`}>
                   {t.done && <Check className="w-3.5 h-3.5" strokeWidth={3} />}
                 </button>
@@ -74,7 +74,7 @@ export default function LectureTodos({ lecture, legacyActionItems }) {
           </ul>
         )}
         <form onSubmit={add} className="flex items-center gap-2">
-          <input value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="Add a to-do for this lecture…"
+          <input value={draft} onChange={(e) => setDraft(e.target.value)} aria-label="New to-do" placeholder="Add a to-do for this lecture…"
             className="flex-1 px-3 py-2 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40" />
           <button type="submit" disabled={!draft.trim() || adding}
             className="inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 disabled:opacity-50">

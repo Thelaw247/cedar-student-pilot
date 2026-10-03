@@ -12,7 +12,10 @@ export function Toaster() {
   const { toasts } = useToast();
 
   return (
-    <ToastProvider>
+    // The container is the live region: it stays mounted, and a region that
+    // exists before a toast lands in it is announced reliably. Not atomic, so
+    // a new toast is read on its own rather than with every one still shown.
+    <ToastProvider role="status" aria-live="polite" aria-atomic="false">
       {toasts.map(function ({ id, title, description, action, ...props }) {
         return (
           <Toast key={id} {...props}>

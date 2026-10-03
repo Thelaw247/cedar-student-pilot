@@ -34,7 +34,7 @@ export default function QuizViewer({ questions }) {
   const reset = () => { setIndex(0); setSelected(null); setRevealed(false); setScore(0); setAnswered(0); };
 
   return (
-    <div className="rounded-xl border border-border bg-card p-6">
+    <div className="rounded-xl border border-border bg-card p-6 ph-sensitive">
       <div className="flex items-center justify-between mb-4">
         <p className="text-xs text-muted-foreground tabular-nums">Question {index + 1} / {questions.length}</p>
         {answered > 0 && (

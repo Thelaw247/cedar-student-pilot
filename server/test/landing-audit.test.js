@@ -71,7 +71,9 @@ test('the hero is six words, one sentence, the product and two buttons, on one f
   assert.match(SECTIONS.RecordingFeature, /export function LectureResultCard/);
   assert.match(HERO, /to="\/register"/);
   assert.match(HERO, /href="#how-it-works"/, 'the second button scrolls to the steps');
-  assert.match(HERO, /Two full lectures free\. No card, nothing expires\./);
+  // The free tier in the words that are true of it: two lectures, the length
+  // the 30 free credits cover (server/lib/credits.js), and no card.
+  assert.match(HERO, /Two full lectures free, up to 90 minutes each, with notes and flashcards\. No card, nothing expires\./);
   // Nothing else in the first screen: no cards, no flow bar, no eyebrow, no
   // badge, no trust line — each has a section of its own now.
   assert.doesNotMatch(HERO, /coreFeatures|<PaymentTrustLine|<ProofFacts|<FounderLine|App Store/);
@@ -100,12 +102,15 @@ test('the fact strip is its own section, from the code that makes the facts true
   assert.match(PROOF, /id="facts"/);
   // Six hours is the recorder's own ceiling, not a marketing figure.
   assert.match(RECORDER, /MAX_TOTAL_SECONDS = 6 \* 60 \* 60/);
-  assert.match(PROOF, /Records up to 6 hours/);
+  assert.match(PROOF, /Records up to six hours/);
   // The price is read from tiers.js, never typed.
   assert.match(PROOF, /TIERS\.student\.semester\.toFixed\(2\)\} CAD for the whole semester/);
   assert.doesNotMatch(PROOF.replace(/\$\{[^}]*\}/g, ''), /\$\d+\.\d\d/, 'a typed price in the fact strip');
-  assert.match(PROOF, /Two full lectures free, no card/);
-  assert.match(PROOF, /Cancel in one tap/);
+  assert.match(PROOF, /Two lectures free \(up to 90 min\)/);
+  // Cancelling is Settings, then Stripe's billing portal: more than one tap,
+  // so the strip no longer says one.
+  assert.match(PROOF, /Cancel anytime in Settings/);
+  assert.doesNotMatch(PROOF, /one tap/i);
   // The founder line moved to the last section; it still falls back to
   // initials, never a broken image, like /about.
   assert.match(PROOF, /onError=\{\(\) => setMissing\(true\)\}/);
@@ -164,7 +169,10 @@ test('the feature grid reads lib/features.js, one line per tile, and links every
   for (const [, blurb] of GRID.matchAll(/blurb: '([^']+)'/g)) assert.ok(words(blurb) <= 25, `a tile blurb is ${words(blurb)} words`);
   assert.match(GRID, /to: '\/lecture-recorder#accuracy'/, 'the accuracy tile opens the promise on the recorder page');
   assert.match(SECTIONS.RecordingFeature, /id="accuracy"/);
-  assert.match(SECTIONS.RecordingFeature, /The notes come from the lecture, not from the internet\./);
+  // Concept cards link out to further reading, so the section no longer says
+  // nothing comes from outside the lecture; it says what can be checked.
+  assert.match(SECTIONS.RecordingFeature, /Every summary can be checked against what your prof said\./);
+  assert.doesNotMatch(SECTIONS.RecordingFeature, /not from the internet/);
   assert.match(SECTIONS.RecordingFeature, /\$\{TIERS\.student\.name\} plan/, 'the slides check is a Student-plan feature and must say so');
   assert.match(GRID, /to: '#download'/);
   assert.match(NAV, /href: '\/#features'/);

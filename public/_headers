@@ -13,7 +13,7 @@
 # silently kept every later frontend deploy from reaching users (1 Sep audit).
 # server/test/csp-api-host.test.js asserts the two files agree.
 /*
-  Content-Security-Policy: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' https://in.heycatch.ai; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https://media.base44.com https://i.ytimg.com https://*.r2.cloudflarestorage.com; connect-src 'self' https://in.heycatch.ai https://dyowooyijuxghwnwuxcr.supabase.co wss://dyowooyijuxghwnwuxcr.supabase.co https://api.praelecta.ca https://cedar-api-staging.onrender.com https://*.r2.cloudflarestorage.com; frame-src https://www.youtube.com https://www.youtube-nocookie.com; media-src 'self' blob: https://*.r2.cloudflarestorage.com; worker-src 'self' blob:; manifest-src 'self'; upgrade-insecure-requests
+  Content-Security-Policy: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' https://in.heycatch.ai; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob: https://media.base44.com https://i.ytimg.com https://*.r2.cloudflarestorage.com; connect-src 'self' https://in.heycatch.ai https://dyowooyijuxghwnwuxcr.supabase.co wss://dyowooyijuxghwnwuxcr.supabase.co https://api.praelecta.ca https://cedar-api-staging.onrender.com https://*.r2.cloudflarestorage.com; frame-src https://www.youtube.com https://www.youtube-nocookie.com; media-src 'self' blob: https://*.r2.cloudflarestorage.com; worker-src 'self' blob:; manifest-src 'self'; upgrade-insecure-requests
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
@@ -31,7 +31,7 @@ https://cedar-student-pilot.dewetluus.workers.dev/*
   Cache-Control: public, max-age=31536000, immutable
 
 # The hero's demo loop and its poster carry a version in the filename
-# (hero-demo-v1.mp4), so a new cut is a new name and these can be cached
+# (hero-demo-v2.mp4), so a new cut is a new name and these can be cached
 # as long as the bundle. Static assets here do NOT answer byte-range
 # requests (a Range request gets the whole file and a 200), which Safari
 # will not play a video from; LandingHero fetches the loop and plays it from

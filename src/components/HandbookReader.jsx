@@ -209,11 +209,11 @@ export default function HandbookReader({ classId, lectureIds = null, assignmentI
 
   // --- Handbook Reader ---
   return (
-    <div className="fixed inset-0 z-50 bg-background overflow-y-auto">
+    <div className="fixed inset-0 z-50 bg-background overflow-y-auto ph-sensitive">
       <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
+          <button onClick={onClose} aria-label="Close handbook" className="text-muted-foreground hover:text-foreground">
             <X className="w-5 h-5" />
           </button>
           <button onClick={() => setShowTOC(!showTOC)}
@@ -505,10 +505,10 @@ function QuizView({ questions, loading, answers, setAnswers, idx, setIdx, result
   const hasAnswer = answers[idx]?.trim();
 
   return (
-    <div className="fixed inset-0 z-50 bg-background overflow-y-auto">
+    <div className="fixed inset-0 z-50 bg-background overflow-y-auto ph-sensitive">
       <div className="max-w-md mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-6">
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} aria-label="Close quiz" className="text-muted-foreground hover:text-foreground"><X className="w-5 h-5" /></button>
           <span className="text-xs font-medium text-muted-foreground">Question {idx + 1} of {questions.length}</span>
           <div className="w-5" />
         </div>

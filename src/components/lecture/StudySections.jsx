@@ -24,10 +24,15 @@ import { resourceLinks, DIFFICULTY_LABEL, DIFFICULTY_CLASS } from './lectureStud
  *                   related concepts cross-link inside the page
  */
 
+// ph-sensitive: product analytics (lib/analyticsConsent.js) records the text
+// of what a student clicks, and inside these sections that text is the
+// lecture itself (concept names, formulas, outline lines). The class tells the
+// SDK to keep the click but drop its text, so lecture content never leaves
+// for analytics; the section headers outside it are still named.
 function SectionShell({ id, icon, title, meta, storageKey, children, defaultOpen = true }) {
   return (
     <Widget id={id} icon={icon} title={title} meta={meta} collapsible storageKey={storageKey} defaultOpen={defaultOpen} className="mb-4 scroll-mt-24" padded>
-      <div className="pt-1">{children}</div>
+      <div className="pt-1 ph-sensitive">{children}</div>
     </Widget>
   );
 }

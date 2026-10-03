@@ -183,7 +183,7 @@ export default function Classes() {
 
       <div className="relative mb-4">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <input type="text" placeholder="Search classes, instructors, and lectures…" value={search}
+        <input type="text" aria-label="Search classes and lectures" placeholder="Search classes, instructors, and lectures…" value={search}
           onChange={e => setSearch(e.target.value)}
           className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-primary/40" />
       </div>

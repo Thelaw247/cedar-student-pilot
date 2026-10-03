@@ -11,7 +11,7 @@
  * consent cannot drift apart.
  */
 
-export const LEGAL_VERSION = '2026-09-22';
+export const LEGAL_VERSION = '2026-10-03';
 
 /**
  * The address a user can actually reach a person at.
@@ -26,8 +26,8 @@ export const LEGAL_VERSION = '2026-09-22';
 export const SUPPORT_EMAIL = 'help@praelecta.ca';
 export const SUPPORT_MAILTO = `mailto:${SUPPORT_EMAIL}`;
 
-export const TERMS_EFFECTIVE_DATE = 'August 31, 2026';
-export const PRIVACY_EFFECTIVE_DATE = 'September 22, 2026';
+export const TERMS_EFFECTIVE_DATE = 'October 3, 2026';
+export const PRIVACY_EFFECTIVE_DATE = 'October 3, 2026';
 
 /**
  * The money-back guarantee, or none.
@@ -47,5 +47,5 @@ export const MONEY_BACK_DAYS = 0;
 
 /** The audit's own line, or null while there is no guarantee to state. */
 export const moneyBackGuarantee = () => (MONEY_BACK_DAYS > 0
-  ? `${MONEY_BACK_DAYS}-day money-back if it doesn't work for your class — no questions, no support ticket.`
+  ? `${MONEY_BACK_DAYS}-day money-back if it doesn't work for your class. No questions, no support ticket.`
   : null);

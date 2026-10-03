@@ -314,7 +314,10 @@ function RecordModal({ classId, cls, onClose }) {
       });
       setConsentConfirmed(true);
     } catch (e) {
-      // Non-fatal: the student has still actively attested here.
+      // Non-fatal: the student has still actively attested here, and a
+      // lecture hall with no signal must not stop the recording. Nothing was
+      // saved, so the class still reads unconfirmed and the question comes
+      // back on the next recording until the attestation is stored.
       setConsentConfirmed(true);
     }
     setSavingConsent(false);
@@ -322,7 +325,7 @@ function RecordModal({ classId, cls, onClose }) {
 
   const emailInstructorForPermission = () => {
     const className = cls?.name || 'your class';
-    const subject = encodeURIComponent(`Permission to record lectures — ${className}`);
+    const subject = encodeURIComponent(`Permission to record lectures: ${className}`);
     const body = encodeURIComponent(
       `Hi Professor ${cls?.instructor || ''},\n\n` +
       `I'd like to ask for your permission to make audio recordings of your ${className} lectures for my own personal study use only. ` +
@@ -427,19 +430,24 @@ function RecordModal({ classId, cls, onClose }) {
         ) : !consentConfirmed ? (
           <>
             <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-              <Shield className="w-8 h-8 text-primary" />
+              <Shield className="w-8 h-8 text-primary" aria-hidden="true" />
             </div>
             <h3 className="font-heading text-lg font-semibold mb-1">Before you record</h3>
             <p className="text-sm text-muted-foreground mb-4">
-              Most instructors are glad to allow it, but recording a lecture needs their permission first. Your recordings stay private to you — they're never shared with classmates or anyone else.
+              Most instructors are glad to allow it, but recording a lecture needs their permission first. Your recordings stay private to you. They&rsquo;re never shared with classmates or anyone else.
             </p>
 
+            {/* A styled checkbox, so it says so: role and state for screen
+                readers, which otherwise heard a button with no on or off. */}
             <button
+              type="button"
+              role="checkbox"
+              aria-checked={consentChecked}
               onClick={() => setConsentChecked(v => !v)}
               className={`w-full flex items-start gap-3 p-3 rounded-xl border text-left transition-colors mb-3 ${consentChecked ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/40'}`}
             >
               <span className={`mt-0.5 w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0 border transition-colors ${consentChecked ? 'bg-primary border-primary text-primary-foreground' : 'border-input'}`}>
-                {consentChecked && <Check className="w-3.5 h-3.5" strokeWidth={3} />}
+                {consentChecked && <Check className="w-3.5 h-3.5" strokeWidth={3} aria-hidden="true" />}
               </span>
               <span className="text-sm text-foreground">
                 I have my instructor's permission to record {cls?.name ? <span className="font-medium">{cls.name}</span> : 'this class'}, and I'll keep the recording for my own study use only.
@@ -451,14 +459,14 @@ function RecordModal({ classId, cls, onClose }) {
               disabled={!consentChecked || savingConsent}
               className="w-full py-3 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-2"
             >
-              {savingConsent ? <><Loader2 className="w-4 h-4 animate-spin" /> Confirming…</> : 'Confirm & continue'}
+              {savingConsent ? <><Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> Confirming…</> : 'Confirm & continue'}
             </button>
 
             <button
               onClick={emailInstructorForPermission}
               className="mt-2 w-full py-2.5 rounded-xl border border-border text-sm font-medium text-foreground hover:bg-muted flex items-center justify-center gap-2"
             >
-              <Mail className="w-4 h-4" /> Email my instructor to ask
+              <Mail className="w-4 h-4" aria-hidden="true" /> Email my instructor to ask
             </button>
 
             <button onClick={onClose} className="mt-2 text-sm text-muted-foreground hover:text-foreground">Cancel</button>

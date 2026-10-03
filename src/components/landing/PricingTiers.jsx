@@ -1,16 +1,21 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Check } from 'lucide-react';
-import { TIERS, TIER_ORDER, CREDITS_PER_LECTURE, PLAN_FEATURES, planHas, semesterSaving, maxSemesterSavingPercent } from '@/lib/tiers';
+import { TIERS, TIER_ORDER, PLAN_FEATURES, planHas, semesterSaving, maxSemesterSavingPercent, hoursFrom } from '@/lib/tiers';
 
 /**
  * The four plans as cards, on the public site.
  *
  * Every number comes from lib/tiers.js — the same record the app's own
  * subscription page and the Stripe checkout read — so the public price can
- * never drift from the charged one. Student carries the "Most popular"
+ * never drift from the charged one. Student carries the "Recommended"
  * badge: it is the natural first plan for someone who has not signed up yet
- * (the in-app page highlights Scholar, for people upgrading).
+ * (the in-app page highlights Scholar, for people upgrading). It said "Most
+ * popular" until Oct 2026, with no sign-up data behind it; a recommendation
+ * is ours to make, a popularity claim is not.
+ *
+ * Credits are shown as hours of lecture, not lectures: lectures vary in
+ * length (the median recorded so far is 72 minutes), an hour does not.
  *
  * `compact` is the homepage teaser: price, credits and the badge, with a link
  * to the full page. The full page adds the feature matrix row for row, so
@@ -19,18 +24,17 @@ import { TIERS, TIER_ORDER, CREDITS_PER_LECTURE, PLAN_FEATURES, planHas, semeste
 export const RECOMMENDED_TIER = 'student';
 
 const money = (n) => `$${n.toFixed(2)}`;
-const lecturesFrom = (credits) => Math.floor(credits / CREDITS_PER_LECTURE);
 
 export function BillingToggle({ period, onChange }) {
   const best = maxSemesterSavingPercent();
   return (
     <div className="inline-flex items-center gap-1 rounded-xl border border-border bg-card p-1">
-      <button type="button" onClick={() => onChange('semester')}
+      <button type="button" onClick={() => onChange('semester')} aria-pressed={period === 'semester'}
         className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${period === 'semester' ? 'bg-primary/10 text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
         Semester
         {best > 0 && <span className="ml-1.5 text-[10px] font-semibold uppercase text-emerald-500">Save up to {best}%</span>}
       </button>
-      <button type="button" onClick={() => onChange('monthly')}
+      <button type="button" onClick={() => onChange('monthly')} aria-pressed={period === 'monthly'}
         className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${period === 'monthly' ? 'bg-primary/10 text-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
         Monthly
       </button>
@@ -59,14 +63,14 @@ export default function PricingTiers({ compact = false, initialPeriod = 'semeste
           const recommended = id === RECOMMENDED_TIER;
           const free = tier.monthly === 0;
           const perMonth = period === 'semester' && saving ? Number(saving.perMonth) : tier.monthly;
-          const lectures = lecturesFrom(tier.creditsPerMonth);
+          const hours = hoursFrom(tier.creditsPerMonth);
 
           return (
             <div key={id}
               className={`relative flex flex-col rounded-[22px] border p-5 ${recommended ? 'border-primary/60 bg-card ring-1 ring-primary/25 shadow-[0_18px_55px_-35px_rgba(46,102,255,0.9)]' : 'border-border bg-card'}`}>
               {recommended && (
                 <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full bg-primary px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary-foreground">
-                  Most popular
+                  Recommended
                 </span>
               )}
               <p className="text-base font-bold text-foreground">{tier.name}</p>
@@ -87,7 +91,9 @@ export default function PricingTiers({ compact = false, initialPeriod = 'semeste
               <div className="mt-3 rounded-lg bg-muted px-3 py-2">
                 <p className="text-sm font-semibold text-foreground">{tier.creditsPerMonth} credits{tier.lifetimeOnly ? '' : ' a month'}</p>
                 <p className="text-[11px] text-muted-foreground">
-                  {tier.lifetimeOnly ? 'one-time · ' : ''}about {lectures} recorded lecture{lectures === 1 ? '' : 's'}{tier.lifetimeOnly ? '' : ' a month'}
+                  {tier.lifetimeOnly
+                    ? 'one-time · two lectures of up to 90 minutes'
+                    : `about ${hours} hours of lectures a month`}
                 </p>
               </div>
 
@@ -112,7 +118,7 @@ export default function PricingTiers({ compact = false, initialPeriod = 'semeste
 
               <Link to="/register"
                 className={`mt-4 inline-flex items-center justify-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors ${recommended ? 'auth-cta text-primary-foreground' : 'border border-border text-foreground hover:bg-muted'}`}>
-                {free ? 'Start free' : `Try free, then ${tier.name}`} <ArrowRight className="h-3.5 w-3.5" />
+                {free ? 'Record 2 lectures free' : `Try free, then ${tier.name}`} <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
               </Link>
             </div>
           );

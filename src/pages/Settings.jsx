@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useId } from 'react';
 import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { Sun, Moon, Bell, Sparkles, Clock, Palette, Check, AlertCircle, GraduationCap, BookOpen, Shield, User, Zap, LineChart, ArrowRight, LifeBuoy, Mail, CalendarRange, Star } from 'lucide-react';
+import { Sun, Moon, Bell, Sparkles, Palette, Check, GraduationCap, BookOpen, Shield, User, Zap, LineChart, ArrowRight, LifeBuoy, Mail, CalendarRange, Star } from 'lucide-react';
 import { getSetting, setSetting } from '@/lib/settings';
+import { CONSENT_EVENT, analyticsStarted, effectiveConsent, setConsent } from '@/lib/analyticsConsent';
 import ProfileSettings from '@/components/ProfileSettings';
 import DeleteAccountSection from '@/components/DeleteAccountSection';
 import SubscriptionSettings from '@/components/SubscriptionSettings';
@@ -88,20 +89,18 @@ export default function Settings() {
         </SettingsSection>
       )}
 
+      {/* Only switches that change something. Until Oct 2026 this page also
+          had class reminders, assignment-deadline reminders, auto summaries,
+          AI flashcards, high-quality audio and auto-transcribe: six switches
+          nothing in the app read, and a note promising reminder emails that
+          the server never checked this setting for. A switch that does
+          nothing is a promise the app does not keep. */}
       <SettingsSection icon={Bell} title="Notifications">
-        <Toggle label="Class reminders" description="Get notified before classes start" settingKey="classReminders" />
-        <Toggle label="Study session reminders" description="Alert before scheduled study blocks" settingKey="studySessionReminders" />
-        <Toggle label="Assignment deadlines" description="Reminders for upcoming due dates" settingKey="assignmentDeadlines" />
-        <div className="mt-3 rounded-lg bg-muted/50 p-3 flex items-start gap-2">
-          <AlertCircle className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0 mt-0.5" />
-          <p className="text-[11px] text-muted-foreground">When study session reminders are on, we also send email fallbacks if you haven't opened the app.</p>
-        </div>
+        <Toggle label="Study session reminders" description="A reminder in the app when a scheduled study block is about to start" settingKey="studySessionReminders" />
       </SettingsSection>
 
       <SettingsSection icon={Sparkles} title="AI Features">
-        <Toggle label="Auto-generate lecture summaries" description="Process recordings automatically" settingKey="autoGenerateSummaries" />
         <Toggle label="Auto-generate study schedules" description="Plan sessions when adding exams" settingKey="autoGenerateSchedules" />
-        <Toggle label="AI flashcards & quizzes" description="Create study material from lectures" settingKey="autoFlashcards" />
       </SettingsSection>
 
       <SettingsSection icon={GraduationCap} title="Study & Review Times">
@@ -119,13 +118,11 @@ export default function Settings() {
         <ConceptDecaySettings />
       </SettingsSection>
 
-      <SettingsSection icon={Clock} title="Recording">
-        <Toggle label="High quality audio" description="Larger files, better transcription" settingKey="highQualityAudio" />
-        <Toggle label="Auto-transcribe" description="Process immediately after recording" settingKey="autoTranscribe" />
-      </SettingsSection>
-
       <SettingsSection icon={Shield} title="Data & Privacy">
-        <DataExportSection />
+        <AnalyticsToggle />
+        <div className="mt-3 pt-3 border-t border-border">
+          <DataExportSection />
+        </div>
       </SettingsSection>
 
       {/* Plan, credits and purchases. Reads CreditBalance / UsageEvent, both
@@ -196,16 +193,59 @@ function Toggle({ label, description, settingKey }) {
     setOn(next);
     setSetting(settingKey, next);
   };
+  return <ToggleRow label={label} description={description} on={on} onToggle={toggle} />;
+}
+
+/** A labelled switch: screen readers hear its name, its description and whether it is on. */
+function ToggleRow({ label, description, on, onToggle }) {
+  const id = useId();
   return (
-    <div className="flex items-center justify-between py-2">
+    <div className="flex items-center justify-between gap-4 py-2">
       <div>
-        <p className="text-sm font-medium text-foreground">{label}</p>
-        <p className="text-xs text-muted-foreground">{description}</p>
+        <p id={`${id}-label`} className="text-sm font-medium text-foreground">{label}</p>
+        <p id={`${id}-description`} className="text-xs text-muted-foreground">{description}</p>
       </div>
-      <button onClick={toggle}
-        className={`relative w-11 h-6 rounded-full transition-colors ${on ? 'bg-primary' : 'bg-muted'}`}>
+      <button type="button" role="switch" aria-checked={on} aria-labelledby={`${id}-label`} aria-describedby={`${id}-description`} onClick={onToggle}
+        className={`relative w-11 h-6 flex-shrink-0 rounded-full transition-colors ${on ? 'bg-primary' : 'bg-muted'}`}>
         <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform ${on ? 'translate-x-5' : ''}`}></span>
       </button>
     </div>
+  );
+}
+
+/**
+ * The cookie banner's question, answerable again at any time. Turning it off
+ * reloads the page when analytics already started on it: the SDK has no
+ * stop call, and a reload is what ends the running copy (see
+ * lib/analyticsConsent.js).
+ */
+function AnalyticsToggle() {
+  const [on, setOn] = useState(() => effectiveConsent() === 'granted');
+  useEffect(() => {
+    const onChange = (event) => setOn(event.detail === 'granted');
+    window.addEventListener(CONSENT_EVENT, onChange);
+    return () => window.removeEventListener(CONSENT_EVENT, onChange);
+  }, []);
+  const toggle = () => {
+    if (on) {
+      const wasRunning = analyticsStarted();
+      setConsent('denied');
+      setOn(false);
+      if (wasRunning) window.location.reload();
+    } else {
+      setConsent('granted');
+      setOn(true);
+    }
+  };
+  return (
+    <>
+      <ToggleRow
+        label="Analytics cookie"
+        description="Lets us see which pages and buttons get used, so we can improve Praelecta. Off unless you turn it on."
+        on={on}
+        onToggle={toggle}
+      />
+      <Link to="/privacy#cookies" className="text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground">What it collects</Link>
+    </>
   );
 }

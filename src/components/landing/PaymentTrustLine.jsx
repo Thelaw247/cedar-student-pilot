@@ -5,7 +5,8 @@ import { moneyBackGuarantee } from '@/lib/legal';
 
 /**
  * The three billing facts a student wants before pressing a button that
- * might one day charge them: who takes the money, that leaving is one tap,
+ * might one day charge them: who takes the money, that they can cancel
+ * themselves in Settings,
  * and that a failed action costs nothing. Shown under the primary CTA and
  * in the pricing section, and linked straight to the refund terms so the
  * policy is one click from the button rather than buried on the terms page.
@@ -28,7 +29,7 @@ export default function PaymentTrustLine({ className = '' }) {
         </li>
         <li className="inline-flex items-center gap-1.5">
           <LogOut className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
-          Cancel anytime, in one tap
+          Cancel anytime in Settings
         </li>
         <li className="inline-flex items-center gap-1.5">
           <ShieldCheck className="h-3.5 w-3.5 text-primary" aria-hidden="true" />

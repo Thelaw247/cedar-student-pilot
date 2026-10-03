@@ -128,6 +128,7 @@ export default function ProfileSettings() {
             onClick={() => fileInputRef.current?.click()}
             disabled={photoBusy}
             title="Change photo"
+            aria-label="Change photo"
             className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center border-2 border-background hover:bg-primary/90 disabled:opacity-50"
           >
             {photoBusy ? <Loader2 className="w-3 h-3 animate-spin" /> : <Camera className="w-3 h-3" />}
@@ -156,11 +157,12 @@ export default function ProfileSettings() {
 
       {/* Display name */}
       <div>
-        <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Display name</label>
+        <label htmlFor="profile-display-name" className="text-xs font-medium text-muted-foreground mb-1.5 block">Display name</label>
         <div className="flex gap-2">
-          <input type="text" value={name} onChange={e => setName(e.target.value)}
+          <input id="profile-display-name" type="text" value={name} onChange={e => setName(e.target.value)}
             placeholder="Your name" className={field} />
-          <button onClick={saveName} disabled={!dirty || savingName || !name.trim()}
+          {/* Named outright: while saving, and just after, it shows only an icon. */}
+          <button onClick={saveName} disabled={!dirty || savingName || !name.trim()} aria-label="Save display name"
             className="px-3 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-40 flex-shrink-0">
             {savingName ? <Loader2 className="w-4 h-4 animate-spin" /> : nameSaved ? <Check className="w-4 h-4" /> : 'Save'}
           </button>
@@ -170,10 +172,10 @@ export default function ProfileSettings() {
 
       {/* Email — read only */}
       <div>
-        <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Email</label>
+        <label htmlFor="profile-email" className="text-xs font-medium text-muted-foreground mb-1.5 block">Email</label>
         <div className="relative">
           <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <input type="email" value={user?.email || ''} readOnly
+          <input id="profile-email" type="email" value={user?.email || ''} readOnly
             className={`${field} pl-10 opacity-60 cursor-not-allowed`} />
         </div>
         <p className="text-[11px] text-muted-foreground mt-1.5">
@@ -191,11 +193,11 @@ export default function ProfileSettings() {
         ) : (
           <div className="rounded-lg border border-border p-3 space-y-2">
             <p className="text-xs font-medium">Change password</p>
-            <input type="password" placeholder="Current password" autoComplete="current-password"
+            <input type="password" aria-label="Current password" placeholder="Current password" autoComplete="current-password"
               value={currentPw} onChange={e => setCurrentPw(e.target.value)} className={field} />
-            <input type="password" placeholder="New password (min 8 characters)" autoComplete="new-password"
+            <input type="password" aria-label="New password" placeholder="New password (min 8 characters)" autoComplete="new-password"
               value={newPw} onChange={e => setNewPw(e.target.value)} className={field} />
-            <input type="password" placeholder="Confirm new password" autoComplete="new-password"
+            <input type="password" aria-label="Confirm new password" placeholder="Confirm new password" autoComplete="new-password"
               value={confirmPw} onChange={e => setConfirmPw(e.target.value)} className={field} />
             {pwError && (
               <p className="text-[11px] text-destructive flex items-start gap-1.5">

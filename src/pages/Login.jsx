@@ -71,13 +71,13 @@ export default function Login() {
   return (
     <AuthLayout
       icon={LogIn}
-      title="Welcome back"
-      subtitle="Log in to your account"
+      title="Sign in"
+      subtitle="Your lectures and study plan are where you left them."
       footer={
         <>
-          Don't have an account?{" "}
+          New to Praelecta?{" "}
           <Link to={`/register${window.location.search}`} className="text-primary font-medium hover:underline">
-            Create one
+            Create a free account
           </Link>
         </>
       }
@@ -129,7 +129,7 @@ export default function Login() {
       )}
 
       {error && (
-        <div className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
+        <div role="alert" className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
           {error}
         </div>
       )}
@@ -176,11 +176,11 @@ export default function Login() {
         <Button type="submit" className="auth-cta w-full h-12 font-medium" disabled={loading}>
           {loading ? (
             <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Logging in...
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden="true" />
+              Signing in…
             </>
           ) : (
-            "Log in"
+            "Sign in"
           )}
         </Button>
       </form>

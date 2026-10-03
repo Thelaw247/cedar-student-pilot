@@ -1,35 +1,20 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import { analytics } from '@heycatch/sdk'
+import '@fontsource-variable/inter'
+import { startAnalyticsIfAllowed } from '@/lib/analyticsConsent'
 import App from '@/App.jsx'
 import '@/index.css'
 
-// HeyCatch product analytics (https://heycatch.ai/agents.md).
-//
-// Module scope in the entry file, before anything renders, with a static
-// import: that is what the install guide requires, and it is what lets the
-// SDK see the first page view. The project key is publishable by design —
-// it belongs in the bundle, the way the Supabase anon key does.
-//
-// tracingHosts names the API because it lives on its own host: requests to it
-// then carry the SDK's X-POSTHOG-* tracing headers (session, window and, since
-// the SDK's core updated itself on 2 Oct 2026, distinct id), which
-// server/lib/http.js must allow through CORS or the browser drops the request.
-// It allows any X-POSTHOG-* header by pattern for that reason
-// (server/test/analytics-install.test.js keeps the two in step). Nothing else is configured: no apiHost, no guards,
-// and no hand-instrumented UI events — autocapture covers those.
-analytics.init({
-  projectKey: 'hck_pk_DAwNG96mZXpjqzyKcLl-K5UIEoeRbPrB',
-  install: {
-    framework: 'vite-react',
-    // React's major. The guide asks for "the detected major" and does not say
-    // which half of vite-react to read; React is what the app is written in,
-    // Vite only builds it.
-    frameworkVersion: '18',
-    agent: 'claude-code',
-  },
-  tracingHosts: ['api.praelecta.ca'],
-})
+// Inter, self-hosted. It used to come from Google Fonts, which meant every
+// visitor's browser called Google before the page could draw a word.
+
+// HeyCatch product analytics (https://heycatch.ai/agents.md), started only for
+// a visitor who has allowed it in the cookie banner or in Settings. Module
+// scope in the entry file, before anything renders, so that visitor's first
+// page view is still seen; lib/analyticsConsent.js holds the config, the
+// stored answer and the reasons. Anyone who has not said yes is never
+// tracked, and every other analytics call is a no-op for them.
+startAnalyticsIfAllowed()
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <App />

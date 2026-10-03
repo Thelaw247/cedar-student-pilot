@@ -48,7 +48,7 @@ export function UndoToast({ toast, onUndo, onDismiss }) {
         >
           <Undo2 className="w-3.5 h-3.5" /> Undo
         </button>
-        <button onClick={onDismiss} className="text-background/60 hover:text-background ml-1">
+        <button onClick={onDismiss} aria-label="Dismiss" className="text-background/60 hover:text-background ml-1">
           <X className="w-3.5 h-3.5" />
         </button>
       </div>

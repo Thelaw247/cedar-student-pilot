@@ -13,7 +13,7 @@ import { ArrowRight } from 'lucide-react';
  * same destination, so the page reads as one offer made several times rather
  * than several offers.
  */
-export default function SectionCta({ label = 'Start free', note = 'Two full lectures free, no card.', to = '/register', className = '' }) {
+export default function SectionCta({ label = 'Record your first lecture free', note = 'Two full lectures free, up to 90 minutes each. No card.', to = '/register', className = '' }) {
   return (
     <div className={`flex flex-col items-center justify-center gap-3 sm:flex-row ${className}`}>
       <Link to={to} className="auth-cta inline-flex w-full items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold text-primary-foreground sm:w-auto">

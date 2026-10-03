@@ -48,10 +48,10 @@ export function ScheduleMock({ compact = false, className = '' }) {
   const dates = weekDates(new Date(), 1);
   const examDate = dates[4];
   const sessions = [
-    { id: 's1', class_id: 'demo-phys', title: 'PHYS 117 Midterm — Session 1', scheduled_date: dates[0], scheduled_time: '18:00', duration_minutes: 60, status: 'scheduled', priority: 'medium' },
-    { id: 's2', class_id: 'demo-phys', title: 'PHYS 117 Midterm — Session 2', scheduled_date: dates[1], scheduled_time: '19:30', duration_minutes: 60, status: 'scheduled', priority: 'medium' },
-    { id: 's3', class_id: 'demo-phys', title: 'PHYS 117 Midterm — Session 3', scheduled_date: dates[2], scheduled_time: '17:00', duration_minutes: 60, status: 'scheduled', priority: 'high' },
-    { id: 's4', class_id: 'demo-phys', title: 'PHYS 117 Midterm — Final review', scheduled_date: dates[3], scheduled_time: '19:00', duration_minutes: 45, status: 'scheduled', priority: 'high' },
+    { id: 's1', class_id: 'demo-phys', title: 'PHYS 117 Midterm: Session 1', scheduled_date: dates[0], scheduled_time: '18:00', duration_minutes: 60, status: 'scheduled', priority: 'medium' },
+    { id: 's2', class_id: 'demo-phys', title: 'PHYS 117 Midterm: Session 2', scheduled_date: dates[1], scheduled_time: '19:30', duration_minutes: 60, status: 'scheduled', priority: 'medium' },
+    { id: 's3', class_id: 'demo-phys', title: 'PHYS 117 Midterm: Session 3', scheduled_date: dates[2], scheduled_time: '17:00', duration_minutes: 60, status: 'scheduled', priority: 'high' },
+    { id: 's4', class_id: 'demo-phys', title: 'PHYS 117 Midterm: Final review', scheduled_date: dates[3], scheduled_time: '19:00', duration_minutes: 45, status: 'scheduled', priority: 'high' },
   ];
   const events = [
     { id: 'work', title: 'Work shift', type: 'work', date: dates[1], start_time: '16:30', end_time: '19:00', color: '#F59E0B' },
@@ -107,7 +107,7 @@ export default function RealProductPreview() {
               <span className="text-5xl font-black tracking-[-0.07em] text-primary/25">03</span>
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.14em] text-primary">Study-session booking</p>
-                <p className="mt-0.5 text-sm font-semibold text-muted-foreground">Knowing what to study is half of it. Finding the time is the other half.</p>
+                <p className="mt-0.5 text-sm font-semibold text-muted-foreground">Booked around your week.</p>
               </div>
             </div>
             <h2 className="mt-5 text-4xl font-bold leading-[1.04] tracking-[-0.05em] text-foreground sm:text-5xl">
@@ -119,11 +119,11 @@ export default function RealProductPreview() {
             {/* The outcome, stated: the relief a student is actually after
                 when they open a study app in week 10. */}
             <p className="mt-4 max-w-xl text-base font-semibold leading-7 text-foreground">
-              What you get is the feeling of being caught up before you are: fourteen lectures behind becomes four sessions with dates, and the exam stops sitting in your stomach.
+              A pile of lectures to catch up on becomes a few sessions with dates, so you know when the studying happens.
             </p>
 
             <div className="mt-7 rounded-2xl border border-primary/25 bg-card p-5">
-              <p className="text-xs font-bold uppercase tracking-[0.12em] text-primary">Why spread out, not crammed</p>
+              <p className="text-xs font-bold uppercase tracking-[0.12em] text-primary">Why we spread sessions out</p>
               <p className="mt-2 text-sm leading-6 text-muted-foreground">
                 Studying in a few separate sittings beats one long one for actually remembering it, and that finding has held up across decades of research. It is the rule we follow when we place your sessions.
               </p>
@@ -133,7 +133,7 @@ export default function RealProductPreview() {
             </div>
 
             <div className="mt-5 grid gap-3 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
-              <div className="rounded-xl border border-border bg-card p-4"><CalendarClock className="h-4 w-4 text-primary" /><p className="mt-3 text-sm font-semibold text-foreground">Split across days</p><p className="mt-1 text-xs leading-5 text-muted-foreground">A few short sessions in the days before, not one long night.</p></div>
+              <div className="rounded-xl border border-border bg-card p-4"><CalendarClock className="h-4 w-4 text-primary" /><p className="mt-3 text-sm font-semibold text-foreground">Split across days</p><p className="mt-1 text-xs leading-5 text-muted-foreground">A few short sessions in the days before the test.</p></div>
               <div className="rounded-xl border border-border bg-card p-4"><GraduationCap className="h-4 w-4 text-primary" /><p className="mt-3 text-sm font-semibold text-foreground">Works around your life</p><p className="mt-1 text-xs leading-5 text-muted-foreground">Your classes, work shifts and existing plans count as busy. We book around them.</p></div>
               <div className="rounded-xl border border-border bg-card p-4"><Clock3 className="h-4 w-4 text-primary" /><p className="mt-3 text-sm font-semibold text-foreground">A light review the night before</p><p className="mt-1 text-xs leading-5 text-muted-foreground">Exams and quizzes get a shorter final pass right before the date, so it is fresh.</p></div>
             </div>
@@ -141,7 +141,7 @@ export default function RealProductPreview() {
 
           <ScheduleMock />
         </div>
-        <SectionCta className="mt-10" label="Start free" note="Two full lectures free, no card. Study schedules are on the Scholar plan." />
+        <SectionCta className="mt-10" label="Record your first lecture free" note="Two full lectures free, up to 90 minutes each. Study schedules are on the Scholar plan." />
       </div>
     </section>
   );

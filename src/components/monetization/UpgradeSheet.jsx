@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { X, Check, Loader2 } from 'lucide-react';
-import { TIERS, TIER_ORDER, CREDIT_COSTS, CREDITS_PER_LECTURE, FEATURES, featureMinTierName } from '@/lib/tiers';
+import { TIERS, TIER_ORDER, CREDIT_COSTS, CREDITS_PER_HOUR, FEATURES, featureMinTierName, hoursFrom } from '@/lib/tiers';
 import { startCheckout } from '@/lib/checkout';
 import { useBalance } from '@/hooks/useBalance';
 import { track } from '@/lib/analytics';
@@ -16,21 +16,21 @@ import { track } from '@/lib/analytics';
 const ENTRY_COPY = {
   generic: { title: 'Do more with Praelecta', sub: 'Pick the plan that fits your semester.' },
   meter: { title: 'Your credits', sub: 'Credits power recording, handbooks and AI study tools. Plans refresh them every month.' },
-  'out-of-credits': { title: "You're out of credits", sub: 'Everything you recorded is safe — it processes the moment you top up.' },
+  'out-of-credits': { title: "You're out of credits", sub: 'Everything you recorded is safe. It processes the moment you top up.' },
   handbook: { title: 'Every class, its own handbook', sub: 'We write a living handbook from your own lectures, chapter by chapter.' },
-  recording: { title: 'Keep every lecture covered', sub: 'Student covers about 20 recorded lectures a month — every class, all semester.' },
+  recording: { title: 'Keep recording your lectures', sub: `Student records about ${hoursFrom(TIERS.student.creditsPerMonth)} hours of lectures a month, Scholar about ${hoursFrom(TIERS.scholar.creditsPerMonth)}.` },
   schedule: { title: 'Your week, already planned', sub: 'AI study schedules build themselves around your classes and deadlines.' },
   history: { title: 'See your whole semester', sub: 'Full proficiency history and every handbook ship with Scholar.' },
-  onboarding: { title: 'Start the semester covered', sub: 'Most students pick Student. Change or cancel anytime.' },
+  onboarding: { title: 'Start the semester covered', sub: 'Pick the plan that fits your course load. Change or cancel anytime in Settings.' },
 };
 
 // The onboarding goal (localStorage, set in Onboarding.jsx) upgrades the
 // generic entry to persona copy — the sheet speaks to the struggle the
 // student named on day one.
 const GOAL_SOURCES = {
-  'fast-prof': { title: 'Never miss a word again', sub: 'Student covers about 20 recorded, transcribed lectures a month.' },
+  'fast-prof': { title: 'Keep up with a fast professor', sub: `Student records and transcribes about ${hoursFrom(TIERS.student.creditsPerMonth)} hours of lectures a month.` },
   notes: { title: 'Just listen. We take the notes.', sub: 'Every plan turns lectures into transcripts, summaries and flashcards.' },
-  exams: { title: 'Walk into every exam covered', sub: 'AI reviews and practice ship with Student; exam topic prediction with Scholar.' },
+  exams: { title: 'Get ready for the exams that count', sub: 'AI reviews and practice ship with Student; exam topic prediction with Scholar.' },
   organized: { title: 'Your semester, already structured', sub: 'Smart rebooking ships with Student; AI study schedules with Scholar.' },
 };
 
@@ -51,7 +51,7 @@ export default function UpgradeSheet({ source = 'generic', feature = null, onClo
   const copy = lockInfo
     ? {
         title: lockInfo.label,
-        sub: `Unlocks with the ${featureMinTierName(feature)} plan${lockInfo.minTier === 'scholar' ? ' — the everything-unlocked tier' : ''}. Recording, summaries and flashcards stay free forever.`,
+        sub: `Unlocks with the ${featureMinTierName(feature)} plan${lockInfo.minTier === 'scholar' ? ', which includes every feature' : ''}. Recording, summaries and flashcards stay free forever.`,
       }
     : (source === 'generic' && storedGoalCopy()) || ENTRY_COPY[source] || ENTRY_COPY.generic;
   const highlightTier = lockInfo && lockInfo.minTier !== 'free' ? lockInfo.minTier : 'scholar';
@@ -99,7 +99,7 @@ export default function UpgradeSheet({ source = 'generic', feature = null, onClo
 
         {source === 'meter' && (
           <div className="rounded-xl bg-muted/50 px-4 py-3 mb-4 text-xs text-muted-foreground">
-            What credits buy: a recorded lecture ≈ {CREDITS_PER_LECTURE} · class handbook {CREDIT_COSTS.flat.handbook} ·
+            What credits buy: an hour of lecture {CREDITS_PER_HOUR} · class handbook {CREDIT_COSTS.flat.handbook} ·
             lecture review {CREDIT_COSTS.flat.lecture_review} · exam prediction {CREDIT_COSTS.flat.exam_prediction} ·
             study schedule {CREDIT_COSTS.flat.study_schedule}. Timetable import is always free.
           </div>
@@ -119,6 +119,7 @@ export default function UpgradeSheet({ source = 'generic', feature = null, onClo
                     key={p}
                     type="button"
                     onClick={() => setPeriod(p)}
+                    aria-pressed={period === p}
                     className={`px-3.5 py-1.5 rounded-full text-xs font-semibold capitalize transition-colors duration-micro ${
                       period === p ? 'bg-card text-foreground shadow-1' : 'text-muted-foreground hover:text-foreground'
                     }`}
@@ -144,7 +145,7 @@ export default function UpgradeSheet({ source = 'generic', feature = null, onClo
                   >
                     {isPopular && (
                       <span className="absolute -top-2.5 left-4 px-2 py-0.5 rounded-full bg-primary text-primary-foreground text-[10px] font-semibold uppercase tracking-wide">
-                        {lockInfo ? 'Unlocks this' : 'Most popular'}
+                        {lockInfo ? 'Unlocks this' : 'Recommended'}
                       </span>
                     )}
                     <div className="flex items-baseline justify-between gap-2">
@@ -197,7 +198,8 @@ export default function UpgradeSheet({ source = 'generic', feature = null, onClo
               </Link>
             </div>
             <p className="text-[11px] text-muted-foreground text-center mt-3">
-              Cancel anytime · No hidden fees · Prices in CAD
+              Cancel anytime in Settings · No hidden fees · Prices in CAD ·{' '}
+              <Link to="/terms#refunds" onClick={onClose} className="underline hover:text-foreground">Refund policy</Link>
             </p>
           </>
         )}

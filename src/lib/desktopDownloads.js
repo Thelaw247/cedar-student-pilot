@@ -6,7 +6,7 @@ const RELEASE_BASE = 'https://github.com/Thelaw247/cedar-student-pilot/releases/
 
 export const DESKTOP_DOWNLOADS = [
   { id: 'windows', label: 'Windows', note: 'Windows 10 or later · .exe installer', file: 'Praelecta-Setup.exe' },
-  { id: 'windows-zip', label: 'Windows (zip)', note: 'No installer — unzip and run', file: 'Praelecta-win.zip' },
+  { id: 'windows-zip', label: 'Windows (zip)', note: 'No installer: unzip and run', file: 'Praelecta-win.zip' },
   // Apple silicon first: it is what a Mac sold since 2020 runs, and a browser
   // cannot say which one it is on (Safari reports every Mac as Intel).
   { id: 'mac', label: 'Mac', note: 'Apple silicon (M1 or later) · macOS 13 or later', file: 'Praelecta-mac-arm64.dmg' },

@@ -22,6 +22,15 @@ const rawClient = createClient({
   appBaseUrl
 });
 
+// The SDK starts its own usage tracker inside createClient: a heartbeat every
+// 60 seconds, visibility and session-length events, all posted to
+// /api/apps/<id>/analytics/track/batch. On praelecta.ca that path is not a
+// Base44 backend, so every one was a wasted request from every open tab, and
+// a tracker the privacy policy does not describe. cleanup() stops it; there
+// is no option to keep it from starting, so the one start-up event it queues
+// during createClient may still go out once per page load.
+rawClient.analytics?.cleanup?.();
+
 // ── Per-user isolation: stamp `user_id` on every client create ───────────────
 //
 // Every user-data entity gates create on `data.user_id === {{user.id}}` (RLS)

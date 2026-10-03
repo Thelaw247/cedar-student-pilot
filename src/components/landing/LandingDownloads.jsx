@@ -106,8 +106,8 @@ export default function LandingDownloads() {
                     <span>
                       <span className="font-semibold text-foreground">If Windows or your antivirus warns you:</span> the app is not signed
                       with a paid certificate yet, and unsigned installers from a small publisher get flagged on sight. Choose
-                      &ldquo;More info&rdquo; then &ldquo;Run anyway&rdquo;, or download the <span className="font-semibold text-foreground">zip</span> instead — same app,
-                      no installer, far less likely to be blocked.{' '}
+                      &ldquo;More info&rdquo; then &ldquo;Run anyway&rdquo;, or download the <span className="font-semibold text-foreground">zip</span> instead: the same
+                      app with no installer, which security tools are less likely to stop.{' '}
                       <a href={DESKTOP_RELEASES_URL} target="_blank" rel="noreferrer" className="font-semibold text-primary hover:text-foreground">Checksums</a>
                     </span>
                   )}

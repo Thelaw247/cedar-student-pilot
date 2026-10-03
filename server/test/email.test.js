@@ -80,6 +80,16 @@ test('a lookalike domain does not slip through the suffix check', () => {
   }
 });
 
+test('a sender with a display name is read by its address', () => {
+  // The form Resend documents and the live service uses. The check used to
+  // split the whole string at '@' and compare "praelecta.ca>".
+  assert.equal(emailStatus({ ...GOOD, EMAIL_FROM_ADDRESS: 'Praelecta <noreply@praelecta.ca>' }).ok, true);
+  assert.equal(emailStatus({ ...GOOD, EMAIL_FROM_ADDRESS: '"Praelecta, study app" <hello@send.praelecta.ca>' }).ok, true);
+  assert.equal(emailStatus({ ...GOOD, EMAIL_FROM_ADDRESS: 'Praelecta <noreply@gmail.com>' }).ok, false);
+  assert.equal(emailStatus({ ...GOOD, EMAIL_FROM_ADDRESS: 'noreply@praelecta.ca <noreply@gmail.com>' }).ok, false,
+    'the display name must not stand in for the address');
+});
+
 test('the domain check is case-insensitive', () => {
   assert.equal(emailStatus({ ...GOOD, EMAIL_FROM_ADDRESS: 'NoReply@Praelecta.CA' }).ok, true);
 });

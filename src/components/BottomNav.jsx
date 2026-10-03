@@ -23,7 +23,7 @@ export default function BottomNav() {
   // the later element wins — this bar drew over their bottom button rows, so
   // "Add event" and "Cancel" tapped the nav instead.
   return (
-    <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-card/80 glass border-t border-border">
+    <nav data-bottom-nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-card/80 glass border-t border-border">
       <div className="flex items-center justify-around px-2 py-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
         {PRIMARY_NAV_ITEMS.map((item) => (
           <NavLink

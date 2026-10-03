@@ -7,7 +7,9 @@ import {
 import { TIERS, TIER_ORDER, CREDIT_PACKS, CREDIT_COSTS } from '@/lib/tiers';
 import { TERMS_EFFECTIVE_DATE, SUPPORT_EMAIL, SUPPORT_MAILTO, MONEY_BACK_DAYS, moneyBackGuarantee } from '@/lib/legal';
 import { PUBLIC_PAGES } from '@/lib/publicPages';
+import { FOUNDER } from '@/lib/founder';
 import { usePublicPageMeta } from '@/hooks/usePublicPageMeta';
+import { useAuth } from '@/lib/AuthContext';
 
 // Shown to users, and shared with lib/legal.js so the recorded consent
 // version and the date on this page cannot drift apart.
@@ -33,20 +35,22 @@ export default function Terms() {
   // so the router's own hash scroll can fire before the section exists; scroll
   // again once it is on the page.
   const { hash } = useLocation();
+  const { isAuthenticated } = useAuth();
   useEffect(() => {
     if (!hash) return;
-    document.getElementById(hash.slice(1))?.scrollIntoView({ behavior: 'smooth' });
+    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    document.getElementById(hash.slice(1))?.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth' });
   }, [hash]);
 
   return (
-    <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 lg:py-10 animate-fade-in">
-      <Link to="/settings" className="text-sm text-muted-foreground hover:text-foreground mb-4 inline-flex items-center gap-1">
-        <ChevronLeft className="w-4 h-4" /> Settings
+    <main id="main" className="max-w-2xl mx-auto px-4 sm:px-6 py-6 lg:py-10 animate-fade-in">
+      <Link to={isAuthenticated ? '/settings' : '/'} className="text-sm text-muted-foreground hover:text-foreground mb-4 inline-flex items-center gap-1">
+        <ChevronLeft className="w-4 h-4" aria-hidden="true" /> {isAuthenticated ? 'Settings' : 'Home'}
       </Link>
 
       <div className="flex items-start gap-3 mb-2">
         <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
-          <FileText className="w-6 h-6 text-primary" />
+          <FileText className="w-6 h-6 text-primary" aria-hidden="true" />
         </div>
         <div>
           <h1 className="font-heading text-2xl font-bold">Terms of Service</h1>
@@ -58,13 +62,14 @@ export default function Terms() {
         These are the terms you agree to by using Praelecta. They’re written to be read once and understood, not to
         hide anything in the middle. The short version: your recordings and notes are yours, you’re responsible for
         having permission to record, we charge what the pricing page says and never quietly more, and you can cancel
-        in two clicks without talking to anyone. For what we do with your data, see the{' '}
+        yourself from Settings without talking to anyone. Praelecta is run by {FOUNDER.name} in Saskatoon,
+        Saskatchewan, Canada. For what we do with your data, see the{' '}
         <Link to="/privacy" className="text-primary hover:underline">Privacy Policy</Link>.
       </p>
 
       <Section icon={UserCheck} title="Your account">
         <p>
-          You need an account to use Praelecta, and it belongs to one person — you. Keep your sign-in details to
+          You need an account to use Praelecta, and it belongs to one person: you. Keep your sign-in details to
           yourself; anything done through your account is treated as done by you. If you think someone else has access,
           change your password and tell us.
         </p>
@@ -83,12 +88,13 @@ export default function Terms() {
         </p>
         <p>
           The app asks you to confirm you have permission before your first recording in each class. That confirmation
-          is you telling us it’s allowed — we have no way to check, and we don’t. If permission is refused or
+          is you telling us it’s allowed. We have no way to check, and we don’t. If permission is refused or
           withdrawn, stop recording that class and delete what you’ve already captured.
         </p>
         <p>
-          Recordings are for your own study. Don’t republish, sell, or circulate a lecture recording or transcript —
-          that’s your instructor’s work, and in most places it’s theirs to control.
+          Recordings are for your own study. Don’t republish, sell, or circulate a lecture recording or transcript. It’s
+          your instructor’s work, and in most places it’s theirs to control. A recording can also pick up classmates
+          asking questions; their voices are theirs, which is one more reason a recording stays with you.
         </p>
       </Section>
 
@@ -142,12 +148,13 @@ export default function Terms() {
         </p>
         <p>
           <span className="font-medium text-foreground">Two things worth knowing about how credits behave.</span>{' '}
-          Monthly plan credits reset at the start of each billing month — they don’t roll over. Credits you bought in a
+          Monthly plan credits reset at the start of each billing month and don’t roll over. Credits you bought in a
           pack do not expire, and they survive a downgrade or cancellation. When you spend, plan credits are used first
           so the ones that expire go first, and the ones you paid extra for stay.
         </p>
         <p>
-          The Free plan’s {TIERS.free.creditsPerMonth} credits are a one-time grant, not a monthly allowance. The
+          The Free plan’s {TIERS.free.creditsPerMonth} credits are a one-time grant, not a monthly allowance, and cover
+          two lectures of up to 90 minutes each. The
           {' '}{TIERS.unlimited.name} plan is subject to fair use of{' '}
           {TIERS.unlimited.fairUseHoursPerSemester} recorded hours per semester; if you get near it we’ll contact you
           rather than cut you off.
@@ -156,14 +163,19 @@ export default function Terms() {
 
       <Section id="refunds" icon={RefreshCw} title="Renewal, cancellation and refunds">
         <p>
-          Plans renew automatically until you cancel — monthly plans every month, semester plans every four months.
+          Plans renew automatically until you cancel: monthly plans every month, semester plans every four months.
           The renewal price is the price you signed up at. We’ll email you before anything changes.
         </p>
         <p>
-          <span className="font-medium text-foreground">Cancelling takes two clicks</span>, in Settings → Subscription,
-          which opens your billing portal. No phone call, no email to support, no offer you have to decline three times
-          on the way out. Cancelling stops the next renewal and you keep everything you’ve paid for until the end of the
-          period you already bought. There is no cancellation fee.
+          <span className="font-medium text-foreground">You cancel yourself</span>, from Settings → Plan &amp; Credits →
+          Manage billing, which opens Stripe’s billing portal. No phone call, no email to support, no offer you have to
+          decline three times on the way out. Cancelling stops the next renewal and you keep everything you’ve paid for
+          until the end of the period you already bought. There is no cancellation fee.
+        </p>
+        <p>
+          Deleting your account is different: it cancels your plan straight away and removes your unused credits,
+          including ones from packs, without refunding them. If you want to keep what you’ve paid for until the period
+          ends, cancel first and delete later.
         </p>
         <p>
           Refunds: if something we charged you for didn’t work, tell us and we’ll refund it. Beyond that, nothing here
@@ -197,20 +209,26 @@ export default function Terms() {
       <Section icon={FileText} title="Your content stays yours">
         <p>
           Your recordings, transcripts, notes and study history belong to you. You give us only the permission we need
-          to actually run the service for you — to store your files, send audio and text to the AI providers that
+          to actually run the service for you: to store your files, send audio and text to the AI providers that
           transcribe and summarize it, and show the results back to you. That’s the whole licence, and it ends when you
           delete the content or your account.
         </p>
         <p>
           We don’t sell your content, don’t show it to other users, and don’t use it to advertise to you. You can export
-          everything or delete everything at any time from Settings → Data &amp; Privacy.
+          your data from Settings → Data &amp; Privacy, and delete your account and everything in it from
+          Settings → Account.
+        </p>
+        <p>
+          If you write a review of Praelecta and choose to show it, you let us show it on praelecta.ca, with the name,
+          course and school you entered, until you change it, take it down or delete it in Settings → Your review. We
+          only show reviews you’ve allowed, and we never edit your words.
         </p>
       </Section>
 
       <Section icon={Sparkles} title="What the AI can and can’t do">
         <p>
           Transcripts, summaries, flashcards, predicted exam topics and study schedules are generated automatically.
-          They are usually good and they are sometimes wrong — a misheard word, a missed point, a confident guess about
+          They are usually good and they are sometimes wrong: a misheard word, a missed point, a confident guess about
           what’s on the exam. Treat them as a study aid built from your lecture, not as an authority, and check anything
           that matters against your own notes and course materials.
         </p>
@@ -241,7 +259,7 @@ export default function Terms() {
       <Section icon={Server} title="Availability and changes">
         <p>
           We aim to keep Praelecta running and your data safe, but no online service is up every minute. Features may
-          be added, changed or withdrawn — subject to the grandfather promise above.
+          be added, changed or withdrawn, subject to the grandfather promise above.
         </p>
         <p>
           If we change these terms in a way that materially affects you, we’ll tell you before it takes effect and
@@ -256,8 +274,8 @@ export default function Terms() {
           uninterrupted, or that using it will improve your grades.
         </p>
         <p>
-          To the extent the law allows, we aren’t liable for indirect or consequential losses — a missed deadline, a
-          failed exam, lost study time — and our total liability to you is limited to what you paid us in the twelve
+          To the extent the law allows, we aren’t liable for indirect or consequential losses (a missed deadline, a
+          failed exam, lost study time), and our total liability to you is limited to what you paid us in the twelve
           months before the claim. Nothing here excludes liability that cannot legally be excluded, including under
           consumer protection law.
         </p>
@@ -283,7 +301,7 @@ export default function Terms() {
       <p className="text-center text-xs text-muted-foreground mt-8 mb-4">
         Praelecta • Terms of Service • {EFFECTIVE_DATE} • <Link to="/privacy" className="hover:text-foreground">Privacy Policy</Link>
       </p>
-    </div>
+    </main>
   );
 }
 
@@ -291,7 +309,7 @@ function Section({ id = undefined, icon: Icon, title, children }) {
   return (
     <div id={id} className="rounded-xl border border-border bg-card p-5 mb-4 scroll-mt-6">
       <div className="flex items-center gap-2 mb-3">
-        <Icon className="w-4 h-4 text-primary" strokeWidth={2} />
+        <Icon className="w-4 h-4 text-primary" strokeWidth={2} aria-hidden="true" />
         <h2 className="text-sm font-semibold">{title}</h2>
       </div>
       <div className="text-sm text-muted-foreground leading-relaxed space-y-2">

@@ -1,10 +1,13 @@
-import React, { useState } from 'react';
+import React, { useId, useState } from 'react';
 import GateNotice, { gateFromError } from '@/components/monetization/GateNotice';
 import { base44 } from '@/api/base44Client';
+import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { Loader2, X, ArrowRight, ArrowLeft, Check, Sparkles, Clock, ListChecks } from 'lucide-react';
 import { defaultCoverageScope } from '@/lib/assignmentScope';
 
 export default function ProjectAssignmentModal({ classId, className, onClose }) {
+  const id = useId();
+  useEscapeKey(onClose);
   const [step, setStep] = useState('form'); // form → fields → roadmap → done
   const [title, setTitle] = useState('');
   const [dueDate, setDueDate] = useState('');
@@ -117,12 +120,12 @@ export default function ProjectAssignmentModal({ classId, className, onClose }) 
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/30 glass" onClick={onClose}>
-      <div className="bg-card w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl border border-border p-6 animate-fade-in max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+      <div role="dialog" aria-modal="true" aria-labelledby={`${id}-title`} className="bg-card w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl border border-border p-6 animate-fade-in max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-heading text-lg font-semibold">
+          <h3 id={`${id}-title`} className="font-heading text-lg font-semibold">
             {step === 'form' ? 'New Project' : step === 'fields' ? 'Project Details' : step === 'roadmap' ? 'Your Roadmap' : 'Project Created!'}
           </h3>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
+          <button onClick={onClose} aria-label="Close" className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
         </div>
 
         {/* Step 1: Basic form */}
@@ -136,20 +139,20 @@ export default function ProjectAssignmentModal({ classId, className, onClose }) 
         {step === 'form' && (
           <div className="space-y-3">
             <div>
-              <p className="text-xs font-medium text-muted-foreground mb-1.5">Project Title</p>
-              <input type="text" placeholder="e.g. Renewable Energy Presentation" value={title}
+              <p id={`${id}-name`} className="text-xs font-medium text-muted-foreground mb-1.5">Project Title</p>
+              <input type="text" aria-labelledby={`${id}-name`} placeholder="e.g. Renewable Energy Presentation" value={title}
                 onChange={e => setTitle(e.target.value)}
                 className="w-full px-3 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40" autoFocus />
             </div>
             <div>
-              <p className="text-xs font-medium text-muted-foreground mb-1.5">Due Date</p>
-              <input type="date" value={dueDate}
+              <p id={`${id}-due`} className="text-xs font-medium text-muted-foreground mb-1.5">Due Date</p>
+              <input type="date" aria-labelledby={`${id}-due`} value={dueDate}
                 onChange={e => setDueDate(e.target.value)}
                 className="w-full px-3 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40" />
             </div>
             <div>
-              <p className="text-xs font-medium text-muted-foreground mb-1.5">What do you need to create?</p>
-              <textarea placeholder="e.g. Create a Google Slides presentation about renewable energy sources, or build a projectile motion simulator in Python" value={description}
+              <p id={`${id}-description`} className="text-xs font-medium text-muted-foreground mb-1.5">What do you need to create?</p>
+              <textarea aria-labelledby={`${id}-description`} placeholder="e.g. Create a Google Slides presentation about renewable energy sources, or build a projectile motion simulator in Python" value={description}
                 onChange={e => setDescription(e.target.value)}
                 className="w-full px-3 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 resize-none" rows={4} />
               <p className="text-[10px] text-muted-foreground mt-1">The AI will determine what additional info is needed based on your description.</p>
@@ -171,20 +174,20 @@ export default function ProjectAssignmentModal({ classId, className, onClose }) 
             {fields.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-4">No additional fields needed. Generate your roadmap directly.</p>
             ) : (
-              fields.map(f => (
+              fields.map((f, i) => (
                 <div key={f.key}>
-                  <p className="text-xs font-medium text-muted-foreground mb-1.5">
+                  <p id={`${id}-field-${i}`} className="text-xs font-medium text-muted-foreground mb-1.5">
                     {f.label}{f.required && <span className="text-destructive"> *</span>}
                   </p>
                   {f.type === 'choice' ? (
-                    <select value={fieldValues[f.key] || ''}
+                    <select aria-labelledby={`${id}-field-${i}`} value={fieldValues[f.key] || ''}
                       onChange={e => setFieldValues({ ...fieldValues, [f.key]: e.target.value })}
                       className="w-full px-3 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40">
                       <option value="">Select...</option>
                       {(f.options || []).map(o => <option key={o} value={o}>{o}</option>)}
                     </select>
                   ) : (
-                    <input type={f.type === 'number' ? 'number' : 'text'}
+                    <input type={f.type === 'number' ? 'number' : 'text'} aria-labelledby={`${id}-field-${i}`}
                       value={fieldValues[f.key] || ''}
                       onChange={e => setFieldValues({ ...fieldValues, [f.key]: e.target.value })}
                       className="w-full px-3 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40" />

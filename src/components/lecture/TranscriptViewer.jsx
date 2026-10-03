@@ -62,7 +62,9 @@ export default function TranscriptViewer({ lecture, jump, actions, cleanup }) {
     <Widget id="sec-transcript" icon={FileText} title="Transcript" meta={`${words.toLocaleString()} words${lecture.transcript_cleaned ? ' · cleaned up' : ''}`}
       action={actions ? <span onClick={(e) => e.stopPropagation()}>{actions}</span> : undefined}
       collapsible open={open} onOpenChange={setOpen} storageKey="lec-transcript" className="mb-4 scroll-mt-24" padded>
-      <div className="pt-1">
+      {/* ph-sensitive: clicks in the transcript reach analytics without their
+          text, so the transcript itself is never sent (see StudySections). */}
+      <div className="pt-1 ph-sensitive">
         <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-3">
           <label className="relative flex-1">
             <Search className="w-3.5 h-3.5 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />

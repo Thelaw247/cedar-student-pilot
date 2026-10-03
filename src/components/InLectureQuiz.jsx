@@ -215,11 +215,11 @@ export default function InLectureQuiz({ lecture, cls, onClose }) {
 
   // Question screen
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 glass flex items-center justify-center px-4 overflow-y-auto py-8">
+    <div className="fixed inset-0 z-50 bg-black/50 glass flex items-center justify-center px-4 overflow-y-auto py-8 ph-sensitive">
       <div className="bg-card rounded-2xl border border-border p-6 sm:p-8 max-w-md w-full animate-fade-in">
         {/* Header with timer */}
         <div className="flex items-center justify-between mb-6">
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
+          <button onClick={onClose} aria-label="Close quiz" className="text-muted-foreground hover:text-foreground">
             <X className="w-5 h-5" />
           </button>
           <p className="text-xs font-medium text-muted-foreground">

@@ -2,15 +2,12 @@ import { userStorageKey } from './currentUser.js';
 
 const settingsKey = () => userStorageKey('settings');
 
+// Only settings something reads. Six switches nothing used were removed in
+// Oct 2026 (see the note in pages/Settings.jsx); values a browser still has
+// stored for them are ignored.
 const DEFAULTS = {
-  classReminders: true,
   studySessionReminders: true,
-  assignmentDeadlines: true,
-  autoGenerateSummaries: true,
   autoGenerateSchedules: true,
-  autoFlashcards: true,
-  highQualityAudio: true,
-  autoTranscribe: true,
   learningMode: 'cumulative',
   conceptDecayRate: 'default',
 };

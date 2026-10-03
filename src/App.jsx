@@ -3,10 +3,10 @@ import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
 import { BrowserRouter as Router, Route, Routes, Navigate, useLocation } from 'react-router-dom';
-import PageNotFound from './lib/PageNotFound';
 import { AuthProvider } from '@/lib/AuthContext';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import ScrollToTop from './components/ScrollToTop';
+import CookieConsent from '@/components/CookieConsent';
 import Layout from '@/components/Layout';
 import ChunkReloadBoundary, { reloadOnceForChunkError } from '@/components/ChunkReloadBoundary';
 import { isRunningInDesktopApp } from '@/lib/desktopDownloads';
@@ -39,6 +39,9 @@ const Changelog = lazy(() => import('./pages/Changelog'));
 const Compare = lazy(() => import('./pages/Compare'));
 const Feature = lazy(() => import('./pages/Feature'));
 const Todos = lazy(() => import('./pages/Todos'));
+// Lazy like every other page: it renders inside the public site's frame
+// (MarketingShell), which the app's own first load does not need.
+const PageNotFound = lazy(() => import('./lib/PageNotFound'));
 
 const RouteFallback = () => (
   <div className="min-h-screen flex items-center justify-center bg-background" role="status" aria-live="polite">
@@ -230,6 +233,7 @@ function App() {
         <Router>
           <ScrollToTop />
           <AuthenticatedApp />
+          <CookieConsent />
         </Router>
         <Toaster />
       </QueryClientProvider>

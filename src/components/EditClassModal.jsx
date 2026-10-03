@@ -1,10 +1,13 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useId, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Loader2, Trash2, X, AlertTriangle } from 'lucide-react';
 import AutosaveIndicator from '@/components/AutosaveIndicator';
+import { useEscapeKey } from '@/hooks/useEscapeKey';
 
 const ALL_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EF4444', '#EC4899', '#14B8A6'];
+// The swatches have no text, so a screen reader needs these to tell them apart.
+const COLOR_NAMES = { '#3B82F6': 'Blue', '#10B981': 'Green', '#F59E0B': 'Amber', '#8B5CF6': 'Purple', '#EF4444': 'Red', '#EC4899': 'Pink', '#14B8A6': 'Teal' };
 
 const dayIndex = (d) => ALL_DAYS.indexOf(d);
 const sortByDay = (arr) => [...arr].sort((a, b) => dayIndex(a.day) - dayIndex(b.day));
@@ -19,6 +22,8 @@ function initialMode(classData) {
 }
 
 export default function EditClassModal({ classData = null, semesterId, onDeleteClass = null, onClose }) {
+  const id = useId();
+  useEscapeKey(onClose);
   const isEdit = !!classData;
 
   const buildForm = (data) => ({
@@ -225,10 +230,10 @@ export default function EditClassModal({ classData = null, semesterId, onDeleteC
 
   return (
     <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/30 glass" onClick={onClose}>
-      <div className="bg-card w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl border border-border p-6 animate-fade-in max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+      <div role="dialog" aria-modal="true" aria-labelledby={`${id}-title`} className="bg-card w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl border border-border p-6 animate-fade-in max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-heading text-lg font-semibold">{isEdit ? 'Edit Class' : 'Add Class'}</h3>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
+          <h3 id={`${id}-title`} className="font-heading text-lg font-semibold">{isEdit ? 'Edit Class' : 'Add Class'}</h3>
+          <button onClick={onClose} aria-label="Close" className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
         </div>
 
         {/* Delete confirmation replaces the form when active */}
@@ -253,18 +258,18 @@ export default function EditClassModal({ classData = null, semesterId, onDeleteC
           </div>
         ) : (
         <form onSubmit={handleSubmit} className="space-y-3">
-          <input type="text" placeholder="Course code" value={form.course_code || ''}
+          <input type="text" aria-label="Course code" placeholder="Course code" value={form.course_code || ''}
             onChange={e => setForm({ ...form, course_code: e.target.value })}
             className="w-full px-3 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40" />
-          <input type="text" placeholder="Class name" value={form.name || ''}
+          <input type="text" aria-label="Class name" placeholder="Class name" value={form.name || ''}
             onChange={e => setForm({ ...form, name: e.target.value })}
             className="w-full px-3 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40" autoFocus />
 
-          <input type="text" placeholder="Professor / Instructor" value={form.instructor || ''}
+          <input type="text" aria-label="Professor or instructor" placeholder="Professor / Instructor" value={form.instructor || ''}
             onChange={e => setForm({ ...form, instructor: e.target.value })}
             className="w-full px-3 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40" />
 
-          <input type="text" placeholder="Room / Location" value={form.room || ''}
+          <input type="text" aria-label="Room or location" placeholder="Room / Location" value={form.room || ''}
             onChange={e => setForm({ ...form, room: e.target.value })}
             className="w-full px-3 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40" />
 
@@ -272,15 +277,15 @@ export default function EditClassModal({ classData = null, semesterId, onDeleteC
           <div>
             <p className="text-xs font-medium text-muted-foreground mb-1.5">Schedule</p>
             <div className="flex gap-1 bg-muted rounded-lg p-1">
-              <button type="button" onClick={() => switchMode('same')}
+              <button type="button" onClick={() => switchMode('same')} aria-pressed={scheduleMode === 'same'}
                 className={`flex-1 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${scheduleMode === 'same' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'}`}>
                 Same time each day
               </button>
-              <button type="button" onClick={() => switchMode('perday')}
+              <button type="button" onClick={() => switchMode('perday')} aria-pressed={scheduleMode === 'perday'}
                 className={`flex-1 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${scheduleMode === 'perday' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'}`}>
                 Different times per day
               </button>
-              <button type="button" onClick={() => switchMode('rules')}
+              <button type="button" onClick={() => switchMode('rules')} aria-pressed={scheduleMode === 'rules'}
                 className={`flex-1 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${scheduleMode === 'rules' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'}`}>
                 Flexible dates
               </button>
@@ -294,7 +299,7 @@ export default function EditClassModal({ classData = null, semesterId, onDeleteC
               {ALL_DAYS.map(d => {
                 const active = scheduleMode === 'perday' ? meetingDays.includes(d) : (form.days_of_week || []).includes(d);
                 return (
-                  <button key={d} type="button" onClick={() => scheduleMode === 'perday' ? toggleDayPerDay(d) : toggleDaySame(d)}
+                  <button key={d} type="button" onClick={() => scheduleMode === 'perday' ? toggleDayPerDay(d) : toggleDaySame(d)} aria-pressed={active}
                     className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                       active ? 'bg-primary text-primary-foreground' : 'border border-border text-muted-foreground hover:text-foreground'
                     }`}>
@@ -309,14 +314,14 @@ export default function EditClassModal({ classData = null, semesterId, onDeleteC
           {scheduleMode === 'same' && (
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <p className="text-xs font-medium text-muted-foreground mb-1.5">Start time</p>
-                <input type="time" value={form.start_time || ''}
+                <p id={`${id}-start-time`} className="text-xs font-medium text-muted-foreground mb-1.5">Start time</p>
+                <input type="time" aria-labelledby={`${id}-start-time`} value={form.start_time || ''}
                   onChange={e => setForm({ ...form, start_time: e.target.value })}
                   className="w-full px-3 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40" />
               </div>
               <div>
-                <p className="text-xs font-medium text-muted-foreground mb-1.5">End time</p>
-                <input type="time" value={form.end_time || ''}
+                <p id={`${id}-end-time`} className="text-xs font-medium text-muted-foreground mb-1.5">End time</p>
+                <input type="time" aria-labelledby={`${id}-end-time`} value={form.end_time || ''}
                   onChange={e => setForm({ ...form, end_time: e.target.value })}
                   className="w-full px-3 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40" />
               </div>
@@ -336,11 +341,11 @@ export default function EditClassModal({ classData = null, semesterId, onDeleteC
                   {sortByDay(form.meetings || []).map(m => (
                     <div key={m.day} className="flex items-center gap-2">
                       <span className="w-10 text-xs font-medium text-foreground flex-shrink-0">{m.day}</span>
-                      <input type="time" value={m.start_time || ''}
+                      <input type="time" aria-label={`${m.day} start time`} value={m.start_time || ''}
                         onChange={e => updateMeetingTime(m.day, 'start_time', e.target.value)}
                         className="flex-1 px-2.5 py-2 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40" />
                       <span className="text-xs text-muted-foreground">to</span>
-                      <input type="time" value={m.end_time || ''}
+                      <input type="time" aria-label={`${m.day} end time`} value={m.end_time || ''}
                         onChange={e => updateMeetingTime(m.day, 'end_time', e.target.value)}
                         className="flex-1 px-2.5 py-2 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40" />
                     </div>
@@ -355,30 +360,32 @@ export default function EditClassModal({ classData = null, semesterId, onDeleteC
               <p className="text-xs font-medium text-muted-foreground">Schedule rules</p>
               {(form.meetings || []).map((meeting, index) => {
                 const specific = Boolean(meeting.specific_date);
+                // Every rule has the same fields, so each is named for its rule.
+                const rule = `Rule ${index + 1}`;
                 return (
                   <div key={index} className="rounded-lg border border-border bg-muted/20 p-3 space-y-2">
                     <div className="grid grid-cols-2 gap-2">
-                      <input type="text" placeholder="Component" value={meeting.component || ''}
+                      <input type="text" aria-label={`${rule} component`} placeholder="Component" value={meeting.component || ''}
                         onChange={e => updateRule(index, 'component', e.target.value)}
                         className="px-2.5 py-2 rounded-lg border border-input bg-background text-xs" />
-                      <select value={meeting.day || 'Mon'} onChange={e => updateRule(index, 'day', e.target.value)}
+                      <select aria-label={`${rule} day`} value={meeting.day || 'Mon'} onChange={e => updateRule(index, 'day', e.target.value)}
                         className="px-2.5 py-2 rounded-lg border border-input bg-background text-xs">
                         {ALL_DAYS.map(day => <option key={day} value={day}>{day}</option>)}
                       </select>
-                      <input type="time" value={meeting.start_time || ''} onChange={e => updateRule(index, 'start_time', e.target.value)}
+                      <input type="time" aria-label={`${rule} start time`} value={meeting.start_time || ''} onChange={e => updateRule(index, 'start_time', e.target.value)}
                         className="px-2.5 py-2 rounded-lg border border-input bg-background text-xs" />
-                      <input type="time" value={meeting.end_time || ''} onChange={e => updateRule(index, 'end_time', e.target.value)}
+                      <input type="time" aria-label={`${rule} end time`} value={meeting.end_time || ''} onChange={e => updateRule(index, 'end_time', e.target.value)}
                         className="px-2.5 py-2 rounded-lg border border-input bg-background text-xs" />
                     </div>
                     <div className="grid grid-cols-2 gap-2">
                       {specific ? (
-                        <input type="date" value={meeting.specific_date || ''} onChange={e => updateRule(index, 'specific_date', e.target.value)}
+                        <input type="date" aria-label={`${rule} date`} value={meeting.specific_date || ''} onChange={e => updateRule(index, 'specific_date', e.target.value)}
                           className="col-span-2 px-2.5 py-2 rounded-lg border border-input bg-background text-xs" />
                       ) : (
                         <>
-                          <input type="date" value={meeting.start_date || ''} onChange={e => updateRule(index, 'start_date', e.target.value)}
+                          <input type="date" aria-label={`${rule} start date`} value={meeting.start_date || ''} onChange={e => updateRule(index, 'start_date', e.target.value)}
                             className="px-2.5 py-2 rounded-lg border border-input bg-background text-xs" />
-                          <input type="date" value={meeting.end_date || ''} onChange={e => updateRule(index, 'end_date', e.target.value)}
+                          <input type="date" aria-label={`${rule} end date`} value={meeting.end_date || ''} onChange={e => updateRule(index, 'end_date', e.target.value)}
                             className="px-2.5 py-2 rounded-lg border border-input bg-background text-xs" />
                         </>
                       )}
@@ -398,14 +405,14 @@ export default function EditClassModal({ classData = null, semesterId, onDeleteC
           {/* Dates */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <p className="text-xs font-medium text-muted-foreground mb-1.5">Start date</p>
-              <input type="date" value={form.class_start_date || ''}
+              <p id={`${id}-start-date`} className="text-xs font-medium text-muted-foreground mb-1.5">Start date</p>
+              <input type="date" aria-labelledby={`${id}-start-date`} value={form.class_start_date || ''}
                 onChange={e => setForm({ ...form, class_start_date: e.target.value })}
                 className="w-full px-3 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40" />
             </div>
             <div>
-              <p className="text-xs font-medium text-muted-foreground mb-1.5">End date</p>
-              <input type="date" value={form.class_end_date || ''}
+              <p id={`${id}-end-date`} className="text-xs font-medium text-muted-foreground mb-1.5">End date</p>
+              <input type="date" aria-labelledby={`${id}-end-date`} value={form.class_end_date || ''}
                 onChange={e => setForm({ ...form, class_end_date: e.target.value })}
                 className="w-full px-3 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40" />
             </div>
@@ -417,6 +424,7 @@ export default function EditClassModal({ classData = null, semesterId, onDeleteC
             <div className="flex gap-2">
               {COLORS.map(c => (
                 <button key={c} type="button" onClick={() => setForm({ ...form, color: c })}
+                  aria-label={COLOR_NAMES[c]} aria-pressed={form.color === c}
                   className={`w-7 h-7 rounded-lg transition-all ${form.color === c ? 'ring-2 ring-offset-2 ring-offset-background ring-foreground' : ''}`}
                   style={{ backgroundColor: c }} />
               ))}
@@ -428,7 +436,7 @@ export default function EditClassModal({ classData = null, semesterId, onDeleteC
           {isEdit && <AutosaveIndicator status={autosaveStatus} className="block pt-3" />}
           <div className="flex gap-2 pt-3">
             {isEdit && (
-              <button type="button" onClick={() => setConfirmingDelete(true)}
+              <button type="button" onClick={() => setConfirmingDelete(true)} aria-label="Delete class"
                 className="inline-flex items-center justify-center px-3 py-2.5 rounded-lg border border-destructive/30 text-destructive text-sm font-medium hover:bg-destructive/10">
                 <Trash2 className="w-4 h-4" />
               </button>

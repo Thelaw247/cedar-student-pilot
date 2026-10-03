@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useId } from 'react';
 import { Command, Calendar, Mic, Search, ArrowLeft, HelpCircle } from 'lucide-react';
+import { useEscapeKey } from '@/hooks/useEscapeKey';
 
 const SHORTCUTS = [
   { keys: ['⌘', 'K'], label: 'Open command palette', icon: Command },
@@ -13,12 +14,14 @@ const SHORTCUTS = [
 ];
 
 export default function ShortcutsHelp({ open, onClose }) {
+  const id = useId();
+  useEscapeKey(onClose, open);
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/30 glass px-4" onClick={onClose}>
-      <div className="w-full max-w-md bg-card rounded-modal border border-border shadow-3 p-6 animate-fade-in" onClick={e => e.stopPropagation()}>
+      <div role="dialog" aria-modal="true" aria-labelledby={`${id}-title`} className="w-full max-w-md bg-card rounded-modal border border-border shadow-3 p-6 animate-fade-in" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-heading text-lg font-semibold">Keyboard Shortcuts</h3>
+          <h3 id={`${id}-title`} className="font-heading text-lg font-semibold">Keyboard Shortcuts</h3>
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground text-sm">Close</button>
         </div>
         <div className="space-y-1">

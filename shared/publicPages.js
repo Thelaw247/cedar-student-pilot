@@ -22,68 +22,68 @@ export const SITE_ORIGIN = 'https://praelecta.ca';
 
 const money = (n) => `$${n.toFixed(2)}`;
 
-export const LANDING_TITLE = 'Praelecta — AI Lecture Recording & Study Tool for Students';
+export const LANDING_TITLE = 'Praelecta | AI Lecture Recording & Study Tool for Students';
 // The same string index.html serves; a test keeps the two equal.
-export const LANDING_DESCRIPTION = 'Record your lecture — Praelecta turns it into a transcript, flashcards, practice questions and a study plan, automatically. Two lectures free.';
+export const LANDING_DESCRIPTION = 'Record your lecture and Praelecta turns it into a transcript, a summary and flashcards a few minutes later. Two full lectures free, no card.';
 
 export const PUBLIC_PAGES = {
   '/': { title: LANDING_TITLE, description: LANDING_DESCRIPTION },
   '/pricing': {
-    title: 'Pricing — Praelecta',
+    title: 'Pricing | Praelecta',
     description: `Praelecta pricing: two lectures free, then ${money(TIERS.student.monthly)}/month or ${money(TIERS.student.semester)}/semester. Credit packs, plan comparison, and semester savings.`,
   },
   '/about': {
-    title: 'About — Praelecta',
+    title: 'About | Praelecta',
     description: `Praelecta was built by ${FOUNDER.name}, an engineering student at the University of Saskatchewan, so every student can give the lecture their full attention.`,
   },
   '/changelog': {
-    title: 'What’s new — Praelecta',
+    title: 'What’s new | Praelecta',
     description: 'What shipped in Praelecta, newest first. Desktop apps, study tools, and lecture features, dated.',
   },
   '/privacy': {
-    title: 'Privacy policy — Praelecta',
+    title: 'Privacy policy | Praelecta',
     description: 'What Praelecta stores about you, which providers process your recordings and why, what is never done with them, and how to export or delete everything.',
   },
   '/terms': {
-    title: 'Terms of service — Praelecta',
-    description: 'Praelecta’s terms in plain words: what each plan includes, how credits work, cancelling in two clicks, refunds, and what the app will never do to you.',
+    title: 'Terms of service | Praelecta',
+    description: 'Praelecta’s terms in plain words: what each plan includes, how credits work, cancelling from Settings, refunds, and what the app will never do to you.',
   },
   '/vs/lemora': {
-    title: 'Praelecta vs Lemora — Praelecta',
+    title: 'Praelecta vs Lemora | Praelecta',
     description: 'Praelecta and Lemora both record the lecture and build the study material. The differences: test scoping, a study schedule that books itself, semester billing.',
   },
   '/vs/scholarly': {
-    title: 'Praelecta vs Scholarly — Praelecta',
-    description: 'Scholarly is a 25-tool workspace for documents; Praelecta is built around the lecture. Recording, flashcards, test scoping, scheduling and price, compared.',
+    title: 'Praelecta vs Scholarly | Praelecta',
+    description: 'Scholarly is a workspace of 25+ AI tools for documents; Praelecta is built around the lecture. Recording, flashcards, test scoping and price, compared.',
   },
   '/vs/studr': {
-    title: 'Praelecta vs Studr — Praelecta',
+    title: 'Praelecta vs Studr | Praelecta',
     description: 'Studr turns one upload into a study set with spaced repetition; Praelecta records the whole term and schedules the studying. Side by side, with prices.',
   },
   '/vs/studley': {
-    title: 'Praelecta vs Studley AI — Praelecta',
+    title: 'Praelecta vs Studley AI | Praelecta',
     description: 'Studley AI turns one upload into a study set with a tutor chat; Praelecta records the whole term, scopes the exam and books the studying. Compared, with prices.',
   },
   '/vs/turbo': {
-    title: 'Praelecta vs Turbo AI — Praelecta',
-    description: 'Turbo AI makes editable notes and activities from any file; Praelecta records the lecture, knows what the test covers and schedules the sessions. Compared, with prices.',
+    title: 'Praelecta vs Turbo AI | Praelecta',
+    description: 'Turbo AI makes notes and activities from any file; Praelecta records the lecture, scopes study to the test and schedules the sessions. Compared, with prices.',
   },
   // The feature pages (28 Sep 2026 audit): the long form of each homepage
   // section, on the URL a search for that feature should land on.
   '/lecture-recorder': {
-    title: 'AI lecture recorder for university classes — Praelecta',
-    description: 'Record a lecture of up to six hours and leave with the transcript, a plain-English summary, the formulas and every "this is on the exam" moment, filed under the course.',
+    title: 'AI lecture recorder for university classes | Praelecta',
+    description: 'Record a lecture of up to six hours and get the transcript, a plain-English summary, the formulas and the "this is on the exam" moments, filed by course.',
   },
   '/test-coverage': {
-    title: 'Study only what is on the test — Praelecta',
-    description: 'Tick the lectures your prof said the midterm covers. Flashcards, practice questions and reviews stay inside that slice, so nothing on the test is new to you.',
+    title: 'Study only what is on the test | Praelecta',
+    description: 'Tick the lectures your prof said the midterm covers. Flashcards, practice questions and reviews stay inside that slice, so you study what the test covers.',
   },
   '/study-schedule': {
-    title: 'AI study schedule around your classes and shifts — Praelecta',
+    title: 'AI study schedule around your classes and shifts | Praelecta',
     description: 'Give Praelecta the exam date and the study sessions are booked into real gaps around your classes, work shifts and deadlines, spread across the days before.',
   },
   '/study-system': {
-    title: 'Study tools built from your lectures — Praelecta',
+    title: 'Study tools built from your lectures | Praelecta',
     description: 'Flashcards, quizzes, practice tests, summary sheets, a class handbook and focus sessions, all made from the lectures you recorded, none of it rebuilt by hand.',
   },
 };

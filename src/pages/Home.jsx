@@ -283,7 +283,7 @@ export default function Home() {
         <div>
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-1">
-              <button onClick={() => setWeekOffset(w => w - 1)}
+              <button onClick={() => setWeekOffset(w => w - 1)} aria-label="Previous week"
                 className="w-8 h-8 rounded-lg border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
                 <ChevronLeft className="w-4 h-4" />
               </button>
@@ -292,7 +292,7 @@ export default function Home() {
                 className={`px-3 h-8 rounded-lg text-xs font-medium tabular-nums transition-colors ${weekOffset === 0 ? 'text-muted-foreground' : 'text-primary hover:bg-primary/10'}`}>
                 {formatWeekRange(weekDates(new Date(), weekOffset))}
               </button>
-              <button onClick={() => setWeekOffset(w => w + 1)}
+              <button onClick={() => setWeekOffset(w => w + 1)} aria-label="Next week"
                 className="w-8 h-8 rounded-lg border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
                 <ChevronRight className="w-4 h-4" />
               </button>

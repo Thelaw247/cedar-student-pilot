@@ -317,6 +317,7 @@ export default function SemesterSetup() {
             onClick={() => photoInputRef.current?.click()}
             disabled={photoBusy}
             title="Add photo"
+            aria-label="Add photo"
             className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center border-2 border-background hover:bg-primary/90 disabled:opacity-50"
           >
             {photoBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
@@ -325,8 +326,9 @@ export default function SemesterSetup() {
         </div>
 
         <div className="text-left mb-2">
-          <label className="text-xs font-medium text-muted-foreground mb-1.5 block">What should we call you?</label>
+          <label htmlFor="setup-name" className="text-xs font-medium text-muted-foreground mb-1.5 block">What should we call you?</label>
           <input
+            id="setup-name"
             type="text"
             value={welcomeName}
             onChange={(e) => setWelcomeName(e.target.value)}
@@ -341,9 +343,11 @@ export default function SemesterSetup() {
           </p>
         )}
 
+        {/* Named outright: while saving it shows only a spinner. */}
         <button
           onClick={continueFromWelcome}
           disabled={welcomeBusy}
+          aria-label="Continue"
           className="w-full mt-6 px-4 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-2"
         >
           {welcomeBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Continue <ChevronRight className="w-4 h-4" /></>}
@@ -434,13 +438,13 @@ export default function SemesterSetup() {
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
-          <input type="text" placeholder="Semester Name" value={semesterInfo.name}
+          <input type="text" aria-label="Semester name" placeholder="Semester Name" value={semesterInfo.name}
             onChange={e => setSemesterInfo({ ...semesterInfo, name: e.target.value })}
             className="sm:col-span-3 px-3 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40" />
-          <input type="date" value={semesterInfo.start_date}
+          <input type="date" aria-label="Semester start date" value={semesterInfo.start_date}
             onChange={e => setSemesterInfo({ ...semesterInfo, start_date: e.target.value })}
             className="px-3 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40" />
-          <input type="date" value={semesterInfo.end_date}
+          <input type="date" aria-label="Semester end date" value={semesterInfo.end_date}
             onChange={e => setSemesterInfo({ ...semesterInfo, end_date: e.target.value })}
             className="px-3 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40" />
           <div />
@@ -464,24 +468,24 @@ export default function SemesterSetup() {
                 </p>
               )}
               <div className="flex items-center gap-2">
-                <input type="color" value={cls.color || '#3B82F6'} onChange={e => updateClass(i, 'color', e.target.value)}
+                <input type="color" aria-label="Course color" value={cls.color || '#3B82F6'} onChange={e => updateClass(i, 'color', e.target.value)}
                   className="w-8 h-8 rounded-lg cursor-pointer border border-border" />
-                <input type="text" placeholder="Course code" value={cls.course_code || ''}
+                <input type="text" aria-label="Course code" placeholder="Course code" value={cls.course_code || ''}
                   onChange={e => updateClass(i, 'course_code', e.target.value)}
                   className="w-28 px-3 py-2 rounded-lg border border-input bg-background text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/40" />
-                <input type="text" placeholder="Course name" value={cls.name}
+                <input type="text" aria-label="Course name" placeholder="Course name" value={cls.name}
                   onChange={e => updateClass(i, 'name', e.target.value)}
                   className="flex-1 px-3 py-2 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40" />
-                <button onClick={() => setParsedClasses(parsedClasses.filter((_, idx) => idx !== i))}
+                <button onClick={() => setParsedClasses(parsedClasses.filter((_, idx) => idx !== i))} aria-label={`Remove ${cls.name || 'this course'}`}
                   className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10">
                   <X className="w-4 h-4" />
                 </button>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <input type="text" placeholder="Instructor" value={cls.instructor || ''}
+                <input type="text" aria-label="Instructor" placeholder="Instructor" value={cls.instructor || ''}
                   onChange={e => updateClass(i, 'instructor', e.target.value)}
                   className="px-3 py-2 rounded-lg border border-input bg-background text-xs focus:outline-none focus:ring-2 focus:ring-primary/40" />
-                <input type="text" placeholder="Default room" value={cls.room || ''}
+                <input type="text" aria-label="Default room" placeholder="Default room" value={cls.room || ''}
                   onChange={e => updateClass(i, 'room', e.target.value)}
                   className="px-3 py-2 rounded-lg border border-input bg-background text-xs focus:outline-none focus:ring-2 focus:ring-primary/40" />
               </div>
@@ -496,17 +500,17 @@ export default function SemesterSetup() {
                   return (
                     <div key={meetingIndex} className="rounded-lg border border-border bg-muted/20 p-3 space-y-2">
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                        <input type="text" placeholder="Component (Lecture/Lab)" value={meeting.component || ''}
+                        <input type="text" aria-label="Component" placeholder="Component (Lecture/Lab)" value={meeting.component || ''}
                           onChange={e => updateMeeting(i, meetingIndex, 'component', e.target.value)}
                           className="sm:col-span-2 px-2.5 py-2 rounded-md border border-input bg-background text-xs" />
-                        <select value={specific ? 'specific' : 'recurring'} onChange={e => {
+                        <select aria-label="Schedule type" value={specific ? 'specific' : 'recurring'} onChange={e => {
                           if (e.target.value === 'specific') updateMeeting(i, meetingIndex, 'specific_date', meeting.start_date || semesterInfo.start_date);
                           else updateMeeting(i, meetingIndex, 'specific_date', '');
                         }} className="px-2.5 py-2 rounded-md border border-input bg-background text-xs">
                           <option value="recurring">Recurring range</option>
                           <option value="specific">Specific date</option>
                         </select>
-                        <select value={meeting.day || 'Mon'} onChange={e => updateMeeting(i, meetingIndex, 'day', e.target.value)}
+                        <select aria-label="Day" value={meeting.day || 'Mon'} onChange={e => updateMeeting(i, meetingIndex, 'day', e.target.value)}
                           className="px-2.5 py-2 rounded-md border border-input bg-background text-xs">
                           {DAYS.map(day => <option key={day} value={day}>{day}</option>)}
                         </select>
@@ -537,7 +541,7 @@ export default function SemesterSetup() {
                         )}
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        <input type="text" placeholder="Room override (optional)" value={meeting.room || ''}
+                        <input type="text" aria-label="Room override" placeholder="Room override (optional)" value={meeting.room || ''}
                           onChange={e => updateMeeting(i, meetingIndex, 'room', e.target.value)}
                           className="px-2.5 py-2 rounded-md border border-input bg-background text-xs" />
                         <div className="flex items-center justify-end gap-2">

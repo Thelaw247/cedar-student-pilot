@@ -1,12 +1,15 @@
-import React, { useState } from 'react';
+import React, { useId, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { sessionStudyPath } from '@/lib/studyScope';
+import { useEscapeKey } from '@/hooks/useEscapeKey';
 import GateNotice, { gateFromError } from '@/components/monetization/GateNotice';
 import { Sparkles, CalendarClock, Zap, X, Loader2, Check, Calendar } from 'lucide-react';
 
 export default function RebookSessionModal({ session, className = '', onClose, onRebooked }) {
+  const id = useId();
   const navigate = useNavigate();
+  useEscapeKey(onClose);
   const [mode, setMode] = useState(null); // null = menu, 'ai' | 'manual' | 'done'
   const [aiResult, setAiResult] = useState(null);
   const [aiLoading, setAiLoading] = useState(false);
@@ -81,10 +84,10 @@ export default function RebookSessionModal({ session, className = '', onClose, o
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/30 glass" onClick={onClose}>
-      <div className="bg-card w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl border border-border p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:pb-6 animate-fade-in max-h-[90dvh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+      <div role="dialog" aria-modal="true" aria-labelledby={`${id}-title`} className="bg-card w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl border border-border p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:pb-6 animate-fade-in max-h-[90dvh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-1">
-          <h3 className="font-heading text-lg font-semibold">Rebook Study Session</h3>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
+          <h3 id={`${id}-title`} className="font-heading text-lg font-semibold">Rebook Study Session</h3>
+          <button onClick={onClose} aria-label="Close" className="text-muted-foreground hover:text-foreground">
             <X className="w-5 h-5" />
           </button>
         </div>

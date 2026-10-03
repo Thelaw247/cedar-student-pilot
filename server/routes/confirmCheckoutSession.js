@@ -35,9 +35,16 @@ router.post('/', requireAuth, async (req, res) => {
     }
 
     const balance = await getBalance(user.id);
+    // `purchase` is what this checkout bought, read from the Stripe price
+    // above, so the thank-you page can name it instead of a generic "credits
+    // added" (a plan is not a credit top-up).
+    const purchase = entitlement.kind === 'subscription'
+      ? { kind: 'subscription', tier: entitlement.tier, period: entitlement.period }
+      : { kind: 'pack', credits: entitlement.credits };
     res.json({
       ok: true, tier: balance.tier, available: availableCredits(balance),
       purchased: balance.purchased_credits || 0, subscription: balance.subscription_credits || 0,
+      purchase,
     });
   } catch (error) {
     console.error('[confirmCheckoutSession]', error.message);

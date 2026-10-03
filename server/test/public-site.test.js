@@ -94,7 +94,7 @@ test('the hero is the headline and one sentence, and the billing facts sit under
   // third fact (landing-audit.test.js) and the pricing page's whole point.
   assert.match(HERO, /Just listen\./, 'the headline: six words, the promise, who does the work');
   assert.match(HERO, /records the lecture/);
-  assert.match(HERO, /Two full lectures free\. No card, nothing expires\./);
+  assert.match(HERO, /Two full lectures free, up to 90 minutes each, with notes and flashcards\. No card, nothing expires\./);
   // Scope, stated: who it is not for — in the FAQ, where the question is asked.
   assert.ok(FAQ.some((f) => f.id === 'essays'));
   // Payment trust under the button a visitor presses having read the page.
@@ -117,7 +117,10 @@ test('the pricing surface shows every tier with a price, a default, the real sav
   assert.match(PRICING_PAGE, /<PaymentTrustLine/);
   assert.match(PRICING_PAGE, /<LandingProof/, 'the proof line sits above the prices');
   assert.match(TIERS_JSX, /export const RECOMMENDED_TIER = 'student'/);
-  assert.match(TIERS_JSX, /Most popular/);
+  // "Recommended", not "Most popular": the badge says what we suggest, and
+  // there is no count of subscribers behind a popularity claim.
+  assert.match(TIERS_JSX, /Recommended/);
+  assert.doesNotMatch(TIERS_JSX, /Most popular/);
   assert.match(TIERS_JSX, /TIER_ORDER\.map/, 'every tier, not a hand-picked subset');
   assert.match(TIERS_JSX, /save \{saving\.percent\}%/, 'the semester saving is shown as a percentage, derived');
   // No typed prices anywhere on the public pricing surfaces.
@@ -233,8 +236,8 @@ test('the privacy policy names every processor, and the code makes the Deepgram 
   // opt-out, so the request must carry it.
   assert.match(TRANSCRIPTION, /mip_opt_out: 'true'/);
   // A changed document is a new consent version, dated today.
-  assert.equal(PRIVACY_EFFECTIVE_DATE, 'September 22, 2026');
-  assert.equal(LEGAL_VERSION, '2026-09-22');
+  assert.equal(PRIVACY_EFFECTIVE_DATE, 'October 3, 2026');
+  assert.equal(LEGAL_VERSION, '2026-10-03');
 });
 
 // -------------------------------------------------------------- crawl surface
@@ -245,10 +248,19 @@ test('the sitemap lists every public page and only public pages, each with a rou
   // served <head> of its own is a page a crawler is told about, and vice versa.
   assert.deepEqual([...urls].sort(), [...PUBLIC_PATHS].sort());
   const robots = read('../../public/robots.txt');
+  // A Disallow rule is a prefix, and a trailing "$" pins it to the exact path:
+  // read the rules the way a crawler does, so a bare "Disallow: /study" (which
+  // would also hide /study-schedule and /study-system) fails here.
+  const rules = [...robots.matchAll(/^Disallow: (\S+)$/gm)].map((m) => m[1]);
+  const blocks = (rule, path) => (rule.endsWith('$') ? path === rule.slice(0, -1) : path.startsWith(rule));
   for (const path of urls) {
     assert.ok(path === '/' || APP.includes(`path="${path}"`), `${path} is in the sitemap but has no route`);
-    assert.doesNotMatch(robots, new RegExp(`^Disallow: ${path.replace('/', '\\/')}$`, 'm'), `${path} is disallowed in robots.txt`);
+    const rule = rules.find((r) => blocks(r, path));
+    assert.equal(rule, undefined, `${path} is blocked in robots.txt by "Disallow: ${rule}"`);
   }
+  // The sign-in callback and the study page are app screens, not pages.
+  assert.ok(rules.includes('/auth/'), 'robots.txt lets crawlers into /auth/callback');
+  assert.ok(rules.includes('/study$'), 'robots.txt lets crawlers into /study');
 });
 
 test('the changelog is dated, newest first, and reachable', () => {

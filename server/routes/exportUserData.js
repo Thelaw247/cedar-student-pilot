@@ -7,7 +7,11 @@ import { requireAuth } from '../middleware/requireAuth.js';
 
 const router = express.Router();
 
+// app_reviews and product_events joined in Oct 2026: the privacy policy
+// promises a full copy, and a review a student wrote, or the record of which
+// onboarding steps they took, is their data as much as a lecture is.
 const USER_TABLES = [
+  'app_reviews',
   'assignments',
   'calendar_events',
   'class_attendance',
@@ -22,6 +26,7 @@ const USER_TABLES = [
   'notes',
   'practice_questions',
   'processed_stripe_events',
+  'product_events',
   'semesters',
   'study_records',
   'study_session_reviews',
@@ -57,6 +62,12 @@ async function exportUserData(req, res) {
         email: req.user.email || null,
         created_at: req.user.created_at || null,
         profile: profileResult.rows[0] || null,
+        // Which version of the terms and privacy policy this account agreed
+        // to, and when (recorded at signup in the auth metadata).
+        consent: {
+          legal_version: req.user.user_metadata?.legal_version || null,
+          legal_accepted_at: req.user.user_metadata?.legal_accepted_at || null,
+        },
       },
       data,
     });

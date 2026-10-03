@@ -1,6 +1,10 @@
 {
+  "id": "/",
   "name": "Praelecta",
   "short_name": "Praelecta",
+  "description": "Record your lecture and get a transcript, a summary and flashcards a few minutes later.",
+  "start_url": "/today",
+  "scope": "/",
   "icons": [
     {
       "src": "/android-chrome-192x192.png",
