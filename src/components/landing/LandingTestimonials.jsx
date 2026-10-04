@@ -31,6 +31,17 @@ export const testimonialCaption = (t) => [t.name, t.course, t.school].filter(Boo
 /** A review from the API, in this section's shape. */
 export const fromReview = (r) => ({ name: r.name, course: r.detail, school: r.school, quote: r.quote, rating: r.rating });
 
+/**
+ * A quote as this section draws it: TESTIMONIALS, or a review through fromReview.
+ * @typedef {{ name: string, course?: string, school?: string, photo?: string, quote: string, rating?: number }} Testimonial
+ */
+
+/**
+ * The homepage passes nothing, and the section reads GET /public/reviews;
+ * `testimonials` and `stats`, when given, stand in for that answer.
+ *
+ * @param {{ testimonials?: Testimonial[], stats?: { count?: number, average?: number, reviews?: object[] } | null }} [props]
+ */
 export default function LandingTestimonials({ testimonials: given, stats: givenStats } = {}) {
   const fetched = usePublicReviews();
   const stats = givenStats !== undefined ? givenStats : fetched;

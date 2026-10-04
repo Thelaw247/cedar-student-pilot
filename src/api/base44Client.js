@@ -28,8 +28,9 @@ const rawClient = createClient({
 // Base44 backend, so every one was a wasted request from every open tab, and
 // a tracker the privacy policy does not describe. cleanup() stops it; there
 // is no option to keep it from starting, so the one start-up event it queues
-// during createClient may still go out once per page load.
-rawClient.analytics?.cleanup?.();
+// during createClient may still go out once per page load. The SDK's types
+// leave cleanup() out (it is on the module at runtime), hence the cast.
+/** @type {typeof rawClient.analytics & { cleanup?: () => void }} */ (rawClient.analytics)?.cleanup?.();
 
 // ── Per-user isolation: stamp `user_id` on every client create ───────────────
 //

@@ -35,6 +35,9 @@ const DAY_MS = 24 * 60 * 60 * 1000;
  * moment the product has done its job for them; a week in the app covers a
  * current student who has set up classes and a schedule but not recorded yet.
  * Someone who signed up five minutes ago is never asked.
+ *
+ * @param {{ lectures?: Array<{ status?: string }>, accountCreatedAt?: string, role?: string, now?: number }} [student]
+ *   `accountCreatedAt` is the user's `created_at`; `now` is for tests.
  */
 export function isReviewEligible({ lectures = [], accountCreatedAt, role, now = Date.now() } = {}) {
   if (role === 'admin') return false;

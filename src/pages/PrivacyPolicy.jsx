@@ -179,7 +179,7 @@ export default function PrivacyPolicy() {
   );
 }
 
-function Section({ icon: Icon, title, id, children }) {
+function Section({ icon: Icon, title, id = undefined, children }) {
   return (
     <section id={id} className="rounded-xl border border-border bg-card p-5 mb-4 scroll-mt-6">
       <div className="flex items-center gap-2 mb-3">

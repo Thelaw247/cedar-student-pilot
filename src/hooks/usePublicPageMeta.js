@@ -18,6 +18,11 @@ import { LANDING_DESCRIPTION, LANDING_TITLE } from '@/lib/publicPages';
  * `noindex` adds <meta name="robots" content="noindex"> for as long as the
  * page is mounted: the 404 page, which the host serves with a 200 because
  * the app is a single-page app, must not be indexed as a real page.
+ *
+ * Either string may be left out (the app shell and the auth screens set only
+ * a title); what is left out is not touched.
+ *
+ * @param {{ title?: string, description?: string, noindex?: boolean }} meta
  */
 export function usePublicPageMeta({ title, description, noindex = false }) {
   useEffect(() => {

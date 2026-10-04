@@ -49,7 +49,8 @@ export default function ReviewForm({ existing = null, fullName = '', onClose, on
   const [displayName, setDisplayName] = useDraft(`${draft}:display_name`, existing?.display_name || suggestedDisplayName(fullName));
   const [detail, setDetail] = useDraft(`${draft}:detail`, existing?.detail || '');
   const [school, setSchool] = useDraft(`${draft}:school`, existing?.school || '');
-  const [errors, setErrors] = useState({});
+  // Keyed by field, as validateReview returns them.
+  const [errors, setErrors] = useState(/** @type {{ rating?: string, body?: string, display_name?: string }} */ ({}));
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(null); // 'save' | 'delete' | null
   const [confirmDelete, setConfirmDelete] = useState(false);
