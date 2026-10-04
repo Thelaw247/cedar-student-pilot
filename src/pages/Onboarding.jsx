@@ -132,12 +132,19 @@ export default function Onboarding() {
     <div className="min-h-screen bg-background flex flex-col">
       <div className="flex-1 flex items-center justify-center px-4 py-10">
         <div className="w-full max-w-md">
-          {/* progress */}
+          {/* progress. The first dot is the account they just made, already
+              done: a run that starts part-way is finished more often than one
+              that starts from nothing (the endowed-progress effect), and it
+              is true, so it costs nothing. */}
           {!exitOffer && (
-            <div className="flex items-center justify-center gap-1.5 mb-8" role="img" aria-label={`Step ${step + 1} of ${STEPS}`}>
-              {Array.from({ length: STEPS }, (_, i) => (
-                <span key={i} className={`h-1.5 rounded-full transition-all duration-standard ease-standard ${i === step ? 'w-6 bg-primary' : i < step ? 'w-1.5 bg-primary/40' : 'w-1.5 bg-muted'}`} />
-              ))}
+            <div className="flex items-center justify-center gap-1.5 mb-8" role="img" aria-label={`Step ${step + 2} of ${STEPS + 1}: account made`}>
+              {Array.from({ length: STEPS + 1 }, (_, i) => {
+                const current = i === step + 1;
+                const done = i <= step;
+                return (
+                  <span key={i} className={`h-1.5 rounded-full transition-all duration-standard ease-standard ${current ? 'w-6 bg-primary' : done ? 'w-1.5 bg-primary/40' : 'w-1.5 bg-muted'}`} />
+                );
+              })}
             </div>
           )}
 
@@ -242,7 +249,7 @@ export default function Onboarding() {
                   {LOCKED_ON_FREE.map((f) => (
                     <li key={f.label} className="flex items-center gap-2 text-[11px] text-muted-foreground">
                       <Lock className="w-3 h-3 flex-shrink-0" /> {f.label}
-                      <span className="ml-auto text-[10px] font-semibold uppercase tracking-wide text-primary/80">{f.tier}</span>
+                      <span className="ml-auto text-[11px] font-medium text-primary/80">{f.tier}</span>
                     </li>
                   ))}
                 </ul>
@@ -267,8 +274,8 @@ export default function Onboarding() {
                   return (
                     <div key={id} className={`relative rounded-2xl border p-4 ${recommended ? 'border-primary/50 ring-1 ring-primary/25 bg-primary/[0.03]' : 'border-border bg-card'}`}>
                       {recommended && (
-                        <span className="absolute -top-2.5 left-4 px-2 py-0.5 rounded-full bg-primary text-primary-foreground text-[10px] font-semibold uppercase tracking-wide">
-                          Recommended · Every tool included
+                        <span className="absolute -top-2.5 left-4 px-2 py-0.5 rounded-full bg-primary text-primary-foreground text-[11px] font-semibold">
+                          Recommended · every tool included
                         </span>
                       )}
                       <div className="flex items-baseline justify-between gap-2">

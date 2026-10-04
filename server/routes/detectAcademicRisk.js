@@ -19,6 +19,11 @@ router.post('/', requireAuth, async (req, res) => {
 
     const { rows: semesters } = await pool.query('select * from semesters where user_id = $1 and is_active = true', [userId]);
     if (semesters.length === 0) return res.json({ risks: [], burnout_level: 'none' });
+    // "Not much study time this week" measures the last seven days. On a
+    // semester set up this week there is no such week: a student who
+    // imported a timetable with deadlines on day one met a red card on
+    // their first Today page for not having studied yet.
+    const semesterAgeDays = (Date.now() - new Date(semesters[0].created_at || Date.now()).getTime()) / 86400000;
 
     const { rows: classes } = await pool.query('select * from classes where semester_id = $1 and user_id = $2', [semesters[0].id, userId]);
     let allLectures = [], allAssignments = [], allSessions = [];
@@ -44,7 +49,7 @@ router.post('/', requireAuth, async (req, res) => {
 
     const recentStudyRecords = allStudyRecords.filter((r) => ds(r.date) >= sevenDaysAgo);
     const totalStudyMinutes = recentStudyRecords.reduce((sum, r) => sum + Math.floor((r.duration_seconds || 0) / 60), 0);
-    if (totalStudyMinutes < 60 && allAssignments.length > 0) {
+    if (totalStudyMinutes < 60 && allAssignments.length > 0 && semesterAgeDays >= 7) {
       risks.push({ type: 'low_engagement', severity: 'high', title: 'Not much study time this week', description: `About ${totalStudyMinutes} minutes in the last 7 days, with ${allAssignments.length} deadline${allAssignments.length !== 1 ? 's' : ''} coming up.`, action: 'Book a study session.' });
       burnoutScore += 3;
     }

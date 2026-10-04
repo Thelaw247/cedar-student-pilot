@@ -126,7 +126,7 @@ export default function UpgradeSheet({ source = 'generic', feature = null, onClo
                     }`}
                   >
                     {p}
-                    {p === 'semester' && <span className="ml-1 text-[10px] font-semibold text-emerald-600 uppercase">Save</span>}
+                    {p === 'semester' && <span className="ml-1 text-[11px] font-semibold text-emerald-600">saves</span>}
                   </button>
                 ))}
               </div>
@@ -145,7 +145,7 @@ export default function UpgradeSheet({ source = 'generic', feature = null, onClo
                     }`}
                   >
                     {isPopular && (
-                      <span className="absolute -top-2.5 left-4 px-2 py-0.5 rounded-full bg-primary text-primary-foreground text-[10px] font-semibold uppercase tracking-wide">
+                      <span className="absolute -top-2.5 left-4 px-2 py-0.5 rounded-full bg-primary text-primary-foreground text-[11px] font-semibold">
                         {lockInfo ? 'Unlocks this' : 'Recommended'}
                       </span>
                     )}
@@ -198,8 +198,11 @@ export default function UpgradeSheet({ source = 'generic', feature = null, onClo
                 Just need a few credits?
               </Link>
             </div>
+            {/* The honest reassurance strip: the risk is zero, not small; what
+                they made is theirs whatever they decide; and the checkout is
+                a name they know. */}
             <p className="text-[11px] text-muted-foreground text-center mt-3">
-              Cancel anytime in Settings · No hidden fees · Prices in CAD ·{' '}
+              Cancel in one tap in Settings · Everything you already made stays yours · Secure checkout by Stripe · Prices in CAD ·{' '}
               <PaywallLegalLinks onNavigate={onClose} />
             </p>
           </>

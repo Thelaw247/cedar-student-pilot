@@ -31,6 +31,9 @@ import { LECTURE_COMPLETE, LECTURE_PENDING, LECTURE_PROCESSING, PROCESSING_STALE
 import { classifySaveError, describeSaveError } from '@/lib/saveErrors';
 import { toast } from '@/components/ui/use-toast';
 
+// Once per browser: the first finished lecture gets its moment, no other.
+const FIRST_LECTURE_KEY = 'cedar-first-lecture-seen';
+
 export default function LectureDetail() {
   const { lectureId } = useParams();
   const navigate = useNavigate();
@@ -72,6 +75,28 @@ export default function LectureDetail() {
     try { localStorage.setItem(`cedar-lec-upsell-${lectureId}`, '1'); } catch { /* cosmetic */ }
     setUpsellDismissed(true);
   };
+  // The first lecture that comes back finished is the moment the app has
+  // kept its promise, and until 4 Oct 2026 the page showed it no differently
+  // from the fiftieth. One card, once per account, on the first finished
+  // lecture only: what came out of one tap on Record, that it stays theirs,
+  // and the one next step. Remembered in this browser; a student who never
+  // opens that lecture here simply never sees it.
+  const [firstLecture, setFirstLecture] = useState(false);
+  useEffect(() => {
+    if (!lecture || lecture.status !== LECTURE_COMPLETE || !lecture.ai_title) return undefined;
+    try { if (localStorage.getItem(FIRST_LECTURE_KEY)) return undefined; } catch { return undefined; }
+    let cancelled = false;
+    base44.entities.Lecture.filter({ status: LECTURE_COMPLETE }, undefined, 2).then((finished) => {
+      if (cancelled) return;
+      if (finished.length === 1 && finished[0].id === lectureId) {
+        setFirstLecture(true);
+        try { localStorage.setItem(FIRST_LECTURE_KEY, '1'); } catch { /* cosmetic */ }
+      }
+    }).catch(() => {});
+    return () => { cancelled = true; };
+    // Runs when the lecture finishes, not on every poll of a finished one.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lecture?.status, lecture?.ai_title, lectureId]);
   const [deleting, setDeleting] = useState(false);
   // Re-submitting a recording whose processing failed or never started.
   const [retrying, setRetrying] = useState(false);
@@ -435,6 +460,30 @@ export default function LectureDetail() {
           </div>
         </div>
       </div>
+
+      {/* The first finished lecture, once (see firstLecture above). */}
+      {firstLecture && (
+        <div className="rounded-2xl border border-primary/25 bg-primary/[0.04] p-4 mb-6 flex items-start gap-3 animate-fade-in">
+          <Sparkles className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-foreground">Your first lecture is in.</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              One tap on Record became a transcript, a summary
+              {(enrichment?.concepts?.length || lecture.ai_concepts?.length) ? ` and ${enrichment?.concepts?.length || lecture.ai_concepts?.length} key concepts` : ' and the key concepts'}.
+              Every lecture you record gets the same, and it all stays yours.
+            </p>
+            <div className="flex flex-wrap gap-2 mt-2.5">
+              <Link to={studyPath({ tab: 'now', classId: lecture.class_id || '', lectureIds: [lectureId] })}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-button bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors duration-micro">
+                <Brain className="w-3.5 h-3.5" /> Study this lecture
+              </Link>
+              <button type="button" onClick={() => setFirstLecture(false)} className="px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground">
+                Got it
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* AI Estimated banner */}
       {lecture.is_ai_estimated && (

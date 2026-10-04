@@ -36,6 +36,7 @@ export default function TodayIntelligenceCard({
   assignments,
   studySessions,
   onRecalculateComplete,
+  firstWeek = false,
 }) {
   const [rebookSession, setRebookSession] = useState(null);
   // Per-day dismissals (lib/dismiss): a dismissed-but-still-true problem
@@ -58,7 +59,7 @@ export default function TodayIntelligenceCard({
   return (
     <div className="mb-4 space-y-3">
       {/* Hero: what's happening right now / next */}
-      <UpNextCard todayClasses={todayClasses} events={events || []} />
+      <UpNextCard todayClasses={todayClasses} events={events || []} firstWeek={firstWeek} />
 
       {(showExamWeek || showBehind) && (
         <div className="overflow-hidden rounded-2xl border border-border bg-card divide-y divide-border">

@@ -142,12 +142,15 @@ widgetization + urgency-semantics fix + dead AIInsightCard removed +
 UserNotRegisteredError retokened.
 
 Still open from the Design Blueprint ledger (deliberately deferred):
-- The two celebration moments (day-complete spring is partial: the ring
-  closes animated; no toast yet; first-lecture-processed moment unbuilt).
+- The day-complete celebration is partial: the ring closes animated; no
+  toast yet. (The first-lecture moment shipped 4 Oct 2026: a "lecture is
+  ready" toast from the recording island, and a one-time card on the first
+  finished lecture, LectureDetail.jsx.)
 - Sheet unification (one bottom-sheet/modal component) — modals still use
   their existing per-file markup, styled consistently but not shared.
-- Contextual notification opt-in (UpNextCard still asks on mount — kept to
-  avoid a silent feature regression; needs a designed toggle).
+- Notification opt-in moved to Settings → Notifications ("Between classes",
+  4 Oct 2026): the browser prompt opens from the switch, never on arrival;
+  a browser that had already said yes keeps its notifications.
 - FocusMode component split (tokens fixed; the 700-line file stands).
 - Timeline auto-scroll-to-now (skipped: it would yank the page past the
   hero widgets on load; revisit if the day view becomes its own screen).

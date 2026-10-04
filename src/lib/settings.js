@@ -7,6 +7,10 @@ const settingsKey = () => userStorageKey('settings');
 // stored for them are ignored.
 const DEFAULTS = {
   studySessionReminders: true,
+  // Browser notifications when a class ends. Off until the student turns it
+  // on in Settings; a browser that already granted the permission before
+  // this switch existed (Oct 2026) keeps its notifications (UpNextCard).
+  classChangeNotifications: null,
   autoGenerateSchedules: true,
   learningMode: 'cumulative',
   conceptDecayRate: 'default',

@@ -16,6 +16,17 @@ import { PUBLIC_PAGES } from '@/lib/publicPages';
 export const CHANGELOG = [
   {
     date: '2026-10-04',
+    title: 'Your first lecture, announced',
+    items: [
+      'When a lecture finishes processing, a small notice says so wherever you are in the app, with a button that opens it. The first lecture you ever finish gets a card of its own: what came out of one tap on Record, that it stays yours, and the one next step.',
+      'The study page with nothing in it shows one next step (add your classes, or record a lecture in this one) instead of a row of greyed-out tools.',
+      'On Today, until your first recording, the next class says when to press Record. The browser no longer asks for notification permission the moment Today opens; a switch in Settings → Notifications ("Between classes") asks for it when you turn it on.',
+      'A brand-new semester no longer gets a red "not much study time this week" card in its first week.',
+      'The welcome steps count the account you just made as the first step done, and the plan sheet says in one line that cancelling is one tap, that everything you made stays yours, and that checkout is by Stripe.',
+    ],
+  },
+  {
+    date: '2026-10-04',
     title: 'Faster to open, fewer words in the way',
     items: [
       'The Study page opens in a fraction of the time. It used to ask the server for each class one at a time; now it asks once for everything, and the practice tools no longer wait for the deadlines list before they appear.',

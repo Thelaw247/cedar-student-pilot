@@ -3,22 +3,30 @@ import { Link } from 'react-router-dom';
 import { GraduationCap, Calendar, CheckCircle2, Users } from 'lucide-react';
 import { formatTime, formatCountdown, parseTimeToMinutes } from '@/lib/time';
 import { classTint, classColor } from '@/lib/color';
+import { getSetting } from '@/lib/settings';
 
 const SOCIAL_TYPES = ['custom', 'work', 'appointment'];
 
-export default function UpNextCard({ todayClasses, events }) {
+/**
+ * Whether the browser may be told when a class ends. The switch lives in
+ * Settings → Notifications and asks the browser for permission when it is
+ * turned on, there, where the student can see what they are allowing. This
+ * card used to ask on its own the first time Today opened: a permission
+ * prompt before the page had shown anything, on an account minutes old. A
+ * browser that said yes back then keeps what it had (the switch unset).
+ */
+export function classChangeNotificationsOn() {
+  if (typeof window === 'undefined' || !('Notification' in window) || Notification.permission !== 'granted') return false;
+  return getSetting('classChangeNotifications') !== false;
+}
+
+export default function UpNextCard({ todayClasses, events, firstWeek = false }) {
   const [now, setNow] = useState(new Date());
   const notifiedRef = useRef(new Set());
 
   useEffect(() => {
     const interval = setInterval(() => setNow(new Date()), 30000);
     return () => clearInterval(interval);
-  }, []);
-
-  useEffect(() => {
-    if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission().catch(() => {});
-    }
   }, []);
 
   const nowMin = now.getHours() * 60 + now.getMinutes();
@@ -51,7 +59,7 @@ export default function UpNextCard({ todayClasses, events }) {
 
   // Notification: fire when a class ends
   useEffect(() => {
-    if (!('Notification' in window) || Notification.permission !== 'granted') return;
+    if (!classChangeNotificationsOn()) return;
 
     const justEnded = allClasses.filter(c => {
       const minutesSinceEnd = nowMin - c.endMin;
@@ -75,12 +83,12 @@ export default function UpNextCard({ todayClasses, events }) {
             .sort((a, b) => a.startMin - b.startMin)[0];
 
           if (socialNext) {
-            new Notification('All classes done for today!', {
+            new Notification('All classes done for today', {
               body: `Next up: ${socialNext.title} at ${formatTime(socialNext.start_time)}`,
             });
           } else {
-            new Notification('All classes done for today!', {
-              body: "You're finished for today. Enjoy your evening!",
+            new Notification('All classes done for today', {
+              body: 'Nothing else on the timetable. Enjoy the evening.',
             });
           }
         }
@@ -111,6 +119,12 @@ export default function UpNextCard({ todayClasses, events }) {
             <p className="text-[11px] text-muted-foreground truncate">
               {formatTime(nextClass.start_time)}{nextClass.room ? ` · ${nextClass.room}` : ''}
             </p>
+            {/* Until the first recording exists, the card says when to press
+                the button: a plan with a cue ("when X, do Y") is followed far
+                more often than an intention without one. */}
+            {firstWeek && (
+              <p className="text-[11px] text-primary mt-1">Press Record when it starts. The notes make themselves.</p>
+            )}
           </div>
         </div>
       </Link>
@@ -123,8 +137,8 @@ export default function UpNextCard({ todayClasses, events }) {
             <CheckCircle2 className="w-6 h-6 text-emerald-600" strokeWidth={1.5} />
           </div>
           <div>
-            <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-500">All classes done for today!</p>
-            <p className="text-[11px] text-muted-foreground">Great job getting through your day.</p>
+            <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-500">All classes done for today</p>
+            <p className="text-[11px] text-muted-foreground">Nothing else on the timetable.</p>
           </div>
         </div>
         {nextSocialEvent && (

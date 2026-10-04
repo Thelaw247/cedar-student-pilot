@@ -303,6 +303,7 @@ export default function Home() {
             assignments={assignments}
             studySessions={studySessions}
             onRecalculateComplete={loadData}
+            firstWeek={lectures.length === 0}
           />
           <RiskIndicatorCard />
 

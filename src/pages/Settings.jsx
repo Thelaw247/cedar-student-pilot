@@ -111,6 +111,7 @@ export default function Settings() {
           nothing is a promise the app does not keep. */}
       <SettingsSection icon={Bell} title="Notifications">
         <Toggle label="Study session reminders" description="A reminder in the app when a scheduled study block is about to start" settingKey="studySessionReminders" />
+        <ClassChangeToggle />
       </SettingsSection>
 
       <SettingsSection icon={Sparkles} title="Study planning">
@@ -211,6 +212,51 @@ function ToggleRow({ label, description, on, onToggle }) {
         <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform ${on ? 'translate-x-5' : ''}`}></span>
       </button>
     </div>
+  );
+}
+
+/**
+ * Browser notifications when a class ends (components/UpNextCard.jsx). The
+ * browser's own permission prompt opens from here, when the switch is turned
+ * on, so the student sees what they are allowing and why. Today used to ask
+ * for it on its own the first time it opened. A browser that already said
+ * yes before this switch existed shows as on.
+ */
+function ClassChangeToggle() {
+  const supported = typeof window !== 'undefined' && 'Notification' in window;
+  const [on, setOn] = useState(() => supported && Notification.permission === 'granted' && getSetting('classChangeNotifications') !== false);
+  const [blocked, setBlocked] = useState(() => supported && Notification.permission === 'denied');
+  const toggle = async () => {
+    if (on) {
+      setSetting('classChangeNotifications', false);
+      setOn(false);
+      return;
+    }
+    let permission = Notification.permission;
+    if (permission === 'default') {
+      try { permission = await Notification.requestPermission(); } catch { permission = 'denied'; }
+    }
+    if (permission === 'granted') {
+      setSetting('classChangeNotifications', true);
+      setOn(true);
+      setBlocked(false);
+    } else {
+      setBlocked(permission === 'denied');
+    }
+  };
+  if (!supported) return null;
+  return (
+    <>
+      <ToggleRow
+        label="Between classes"
+        description="A notification when a class ends, with what comes next"
+        on={on}
+        onToggle={toggle}
+      />
+      {blocked && !on && (
+        <p className="text-xs text-muted-foreground">Your browser is blocking notifications for Praelecta. Allow them in the browser's site settings, then turn this on.</p>
+      )}
+    </>
   );
 }
 

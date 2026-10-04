@@ -1,6 +1,8 @@
 import React, { useRef, useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Pause, Play, Square, Loader2, FileText, AlertTriangle, ChevronDown, Pencil, Paperclip, X } from 'lucide-react';
 import { useRecording } from '@/recording/RecordingContext';
+import { toast } from '@/components/ui/use-toast';
 import { MATERIAL_ACCEPT } from '@/components/lecture/LectureMaterials';
 import { formatClock } from '@/lib/time';
 import { SUPPORT_EMAIL, SUPPORT_MAILTO } from '@/lib/legal';
@@ -54,6 +56,7 @@ function StagedMaterials({ rec, compact = false }) {
  */
 export default function RecordingIsland() {
   const rec = useRecording();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   // How many saves have failed in a row on this recording. After two, the
@@ -69,11 +72,33 @@ export default function RecordingIsland() {
   // automatically on the server the moment processing finishes (same day as
   // the lecture, next day if that's full) — see scheduleLectureReview in
   // server/routes/processLectureRecording.js. There is no client-side prompt
-  // to show for it any more, so the island just closes the session the
-  // instant that state arrives instead of opening a blocking modal.
+  // to show for it any more, so the island closes the session the instant
+  // that state arrives instead of opening a blocking modal.
+  //
+  // It does say so, though. The island used to vanish without a word when
+  // the lecture came back, and a student who had moved on to another page
+  // had no idea the notes were ready: the one moment the app has delivered
+  // something passed in silence. A toast names the lecture and opens it,
+  // unless that page is already on screen, where it updates by itself.
   useEffect(() => {
-    if (rec.reviewLectureId) rec.dismissReview();
-  }, [rec.reviewLectureId, rec.dismissReview]);
+    if (!rec.reviewLectureId) return;
+    const lectureId = rec.reviewLectureId;
+    const className = rec.cls?.name;
+    rec.dismissReview();
+    if (window.location.pathname === `/lectures/${lectureId}`) return;
+    let handle = null;
+    handle = toast({
+      title: 'Your lecture is ready',
+      description: `${className ? `${className}: ` : ''}transcript, summary and key concepts are in.`,
+      duration: 12000,
+      action: (
+        <button type="button" onClick={() => { navigate(`/lectures/${lectureId}`); handle?.dismiss(); }}
+          className="inline-flex h-8 shrink-0 items-center justify-center rounded-md border border-border bg-transparent px-3 text-sm font-medium transition-colors hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
+          Open
+        </button>
+      ),
+    });
+  }, [rec.reviewLectureId, rec.cls, rec.dismissReview, navigate]);
 
   if (!rec.active || rec.reviewLectureId) return null;
 

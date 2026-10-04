@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Mic, GraduationCap } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
+import EmptyState from '@/components/EmptyState';
 import FlashcardViewer from '@/components/FlashcardViewer';
 import QuizViewer from '@/components/QuizViewer';
 import LectureScopePicker, { resolveScopeIds, explicitScopeIds } from '@/components/LectureScopePicker';
@@ -44,6 +47,7 @@ function readClass(id) {
 }
 
 export default function PracticePanel({ initialClassId = '', initialLectureIds = null, onScopeChange = null, allLectures = null }) {
+  const navigate = useNavigate();
   const studySession = useStudySession();
   const [classes, setClasses] = useState([]);
   const [selectedClass, setSelectedClass] = useState(initialClassId || '');
@@ -155,6 +159,22 @@ export default function PracticePanel({ initialClassId = '', initialLectureIds =
         </div>
       )}
 
+      {/* Nothing to work on yet: one card and one next step, instead of
+          five greyed tiles and a toolbox that each explain, in their own
+          words, why they cannot run. A brand-new account opened the study
+          page and met exactly that. */}
+      {(!selectedClass || lectures.length === 0) ? (
+        classes.length === 0 ? (
+          <EmptyState icon={GraduationCap} title="Add your classes first"
+            description="Your lectures, flashcards and quizzes live under your classes. A timetable sets them all up at once."
+            action={{ label: 'Set up your classes', icon: GraduationCap, onClick: () => navigate('/classes') }} />
+        ) : (
+          <EmptyState icon={Mic} title={`Nothing to study in ${classes.find((c) => c.id === selectedClass)?.name || 'this class'} yet`}
+            description="Record a lecture and its quiz, handbook, flashcards and practice questions appear here."
+            action={{ label: 'Record a lecture', icon: Mic, onClick: () => navigate(`/classes/${selectedClass}?record=1`) }} />
+        )
+      ) : (
+      <>
       {/* Start something now — quiz, handbook, paper guide. */}
       <StudyShelf
         classId={selectedClass}
@@ -207,6 +227,8 @@ export default function PracticePanel({ initialClassId = '', initialLectureIds =
           <h2 className="font-heading text-sm font-semibold text-muted-foreground mb-3">Saved questions ({existingQuestions.length})</h2>
           <QuizViewer questions={existingQuestions} />
         </div>
+      )}
+      </>
       )}
     </div>
   );
