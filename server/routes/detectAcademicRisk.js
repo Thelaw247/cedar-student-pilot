@@ -33,17 +33,19 @@ router.post('/', requireAuth, async (req, res) => {
     const risks = [];
     let burnoutScore = 0;
     const ds = (d) => (d instanceof Date ? d.toISOString().split('T')[0] : d);
+    // "Oct 9": these sentences are read on the Today page, not in a log.
+    const shortDate = (d) => new Date(`${ds(d)}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
     const missedLectures = allLectures.filter((l) => l.is_missed);
     if (missedLectures.length > 0) {
-      risks.push({ type: 'missed_lectures', severity: missedLectures.length > 3 ? 'high' : 'medium', title: `${missedLectures.length} missed lecture${missedLectures.length !== 1 ? 's' : ''}`, description: 'You have missed lectures that may contain exam-relevant content. Consider generating AI summaries for these.', action: 'Generate missed lecture summaries from your class study tools.' });
+      risks.push({ type: 'missed_lectures', severity: missedLectures.length > 3 ? 'high' : 'medium', title: `${missedLectures.length} missed lecture${missedLectures.length !== 1 ? 's' : ''}`, description: `${missedLectures.length === 1 ? 'It' : 'They'} may have covered things that come up on the exam. Each class page can write up an estimate of what you missed.`, action: 'Open the class and ask for a summary of what you missed.' });
       burnoutScore += missedLectures.length * 2;
     }
 
     const recentStudyRecords = allStudyRecords.filter((r) => ds(r.date) >= sevenDaysAgo);
     const totalStudyMinutes = recentStudyRecords.reduce((sum, r) => sum + Math.floor((r.duration_seconds || 0) / 60), 0);
     if (totalStudyMinutes < 60 && allAssignments.length > 0) {
-      risks.push({ type: 'low_engagement', severity: 'high', title: 'Low study engagement this week', description: `You've only studied ${totalStudyMinutes} minutes in the last 7 days. You have ${allAssignments.length} assignments coming up.`, action: 'Schedule a study session to catch up.' });
+      risks.push({ type: 'low_engagement', severity: 'high', title: 'Not much study time this week', description: `About ${totalStudyMinutes} minutes in the last 7 days, with ${allAssignments.length} deadline${allAssignments.length !== 1 ? 's' : ''} coming up.`, action: 'Book a study session.' });
       burnoutScore += 3;
     }
 
@@ -52,7 +54,7 @@ router.post('/', requireAuth, async (req, res) => {
     if (upcomingDeadlines.length > 0) {
       const scheduled = allSessions.filter((s) => s.status === 'scheduled' && ds(s.scheduled_date) >= today);
       if (scheduled.length === 0) {
-        risks.push({ type: 'no_study_planned', severity: 'medium', title: `${upcomingDeadlines.length} upcoming deadline${upcomingDeadlines.length !== 1 ? 's' : ''} with no study sessions`, description: `You have "${upcomingDeadlines[0].title}" due ${ds(upcomingDeadlines[0].due_date)} but no study sessions scheduled.`, action: 'Generate a study plan from your assignments.' });
+        risks.push({ type: 'no_study_planned', severity: 'medium', title: `${upcomingDeadlines.length} deadline${upcomingDeadlines.length !== 1 ? 's' : ''} this week with nothing booked`, description: `"${upcomingDeadlines[0].title}" is due ${shortDate(upcomingDeadlines[0].due_date)} and no study sessions are scheduled yet.`, action: 'Make a study plan from your deadlines.' });
         burnoutScore += 2;
       }
     }
@@ -61,14 +63,14 @@ router.post('/', requireAuth, async (req, res) => {
     if (recentReviews.length > 0) {
       const avgProficiency = recentReviews.reduce((sum, r) => sum + (r.proficiency_score || 0), 0) / recentReviews.length;
       if (avgProficiency < 50) {
-        risks.push({ type: 'low_proficiency', severity: 'high', title: `Low quiz performance (${Math.round(avgProficiency)}% avg)`, description: 'Your recent review scores suggest gaps in understanding. The system will increase review frequency for these topics.', action: 'Review the lectures associated with your lowest-scoring topics.' });
+        risks.push({ type: 'low_proficiency', severity: 'high', title: `Quiz scores are low (${Math.round(avgProficiency)}% on average)`, description: 'Your recent review scores point to a few gaps. Going back over those lectures is the quickest fix.', action: 'Review the lectures behind your lowest scores.' });
         burnoutScore += 3;
       }
     }
 
     const behindSessions = allSessions.filter((s) => s.status === 'scheduled' && ds(s.scheduled_date) < today);
     if (behindSessions.length > 2) {
-      risks.push({ type: 'behind_schedule', severity: 'medium', title: `${behindSessions.length} missed study sessions`, description: 'You have multiple study sessions that were scheduled but not completed. Consider recalculating your plan.', action: 'Use the "Recalculate" button on your home page to reschedule.' });
+      risks.push({ type: 'behind_schedule', severity: 'medium', title: `${behindSessions.length} study sessions missed`, description: 'They were booked but never happened. Rebooking them from the study page gets the plan back on track.', action: 'Rebook them from the study page.' });
       burnoutScore += 2;
     }
 
@@ -83,9 +85,9 @@ router.post('/', requireAuth, async (req, res) => {
     if (todayMeetingCount > 4) burnoutScore += 2;
 
     let burnoutLevel = 'none', burnoutAdvice = '';
-    if (burnoutScore >= 12) { burnoutLevel = 'high'; burnoutAdvice = 'You are showing signs of high study load. Consider taking a rest day and reducing study intensity.'; }
-    else if (burnoutScore >= 7) { burnoutLevel = 'moderate'; burnoutAdvice = 'Your study load is moderate. Make sure to take regular breaks and maintain sleep schedule.'; }
-    else if (burnoutScore >= 3) { burnoutLevel = 'low'; burnoutAdvice = 'You are managing well. Keep up consistent study habits.'; }
+    if (burnoutScore >= 12) { burnoutLevel = 'high'; burnoutAdvice = 'That is a heavy study load. A rest day, and shorter sessions after it, will do more for you than pushing on.'; }
+    else if (burnoutScore >= 7) { burnoutLevel = 'moderate'; burnoutAdvice = 'A steady load. Keep taking breaks and protect your sleep.'; }
+    else if (burnoutScore >= 3) { burnoutLevel = 'low'; burnoutAdvice = 'You are managing well. Keep the routine going.'; }
 
     res.json({
       risks, burnout_level: burnoutLevel, burnout_score: burnoutScore, burnout_advice: burnoutAdvice,

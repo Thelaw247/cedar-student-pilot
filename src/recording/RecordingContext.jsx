@@ -63,10 +63,10 @@ async function waitForLectureProcessing(lectureId) {
       // The server writes why it gave the lecture back (see
       // lectures.processing_error); that sentence is what gets classified,
       // so a per-hour quota reads as "wait", not as "try again".
-      throw new Error(lecture.processing_error || "Processing didn't finish. Your recording is saved — tap Save & Process to try again.");
+      throw new Error(lecture.processing_error || "Processing didn't finish. Your recording is saved. Tap Save & Process to try again.");
     }
   }
-  throw new Error('Processing is taking unusually long. Your recording is saved — please try again shortly.');
+  throw new Error('Processing is taking unusually long. Your recording is saved. Please try again shortly.');
 }
 
 const RecordingContext = createContext(null);
@@ -338,7 +338,7 @@ export function RecordingProvider({ children }) {
       seconds: secondsRef.current, micSilent: micSilentRef.current,
     });
     const why = reason ? ` (${reason})` : '';
-    setSaveError(`Recording stopped — your phone or browser interrupted it${why}. Everything up to that point is safe. Tap Save & Process to keep it.`);
+    setSaveError(`Recording stopped: your phone or browser interrupted it${why}. Everything up to that point is safe. Tap Save & Process to keep it.`);
     finalizeRecording({ interrupted: true });
   };
 
@@ -386,7 +386,7 @@ export function RecordingProvider({ children }) {
       setRecording(false);
       setPaused(false);
       await keepSegmentForRetry(failedBlob, { seconds: secondsRef.current, parts: uploadedPartsRef.current });
-      failSave(new Error(`A recording segment could not be uploaded (${e?.message || 'no reason given'}). It is safe on this device — check your connection and try again.`));
+      failSave(new Error(`A recording segment could not be uploaded (${e?.message || 'no reason given'}). It is safe on this device. Check your connection and try again.`));
       setReadyToSave(true);
     } finally {
       rotatingRef.current = false;
@@ -422,7 +422,7 @@ export function RecordingProvider({ children }) {
       setReadyToSave(true);
     } catch (e) {
       await keepSegmentForRetry(lastBlob, { seconds: secondsRef.current, parts: uploadedPartsRef.current });
-      failSave(new Error(`Could not finish uploading the last part of this recording (${e?.message || 'no reason given'}). Your audio is safe on this device — try again.`));
+      failSave(new Error(`Could not finish uploading the last part of this recording (${e?.message || 'no reason given'}). Your audio is safe on this device. Try again.`));
       setReadyToSave(true);
     }
     setUploadingSegment(false);

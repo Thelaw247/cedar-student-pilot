@@ -1,12 +1,11 @@
 import React, { createContext, useState, useContext, useEffect, useCallback, useRef } from 'react';
-import { analytics } from '@heycatch/sdk';
 import { base44 } from '@/api/base44Client';
 import { getAppPublicSettings, hasAppToken } from '@/lib/base44PublicSettings';
 import { clearLegacyUserStorage, clearOtherUserStorage, clearUserStorage, getCachedUserId, setCachedUserId } from '@/lib/currentUser';
 import { clearAllRecordings, clearOtherRecordings, initializeRecordingStore } from '@/lib/recordingStore';
 import { supabase } from '@/lib/supabaseClient';
 import { shouldRecheckAuth } from '@/lib/authEvents';
-import { CONSENT_EVENT } from '@/lib/analyticsConsent';
+import { CONSENT_EVENT, analytics } from '@/lib/analyticsConsent';
 import { clearAllDrafts } from '@/hooks/useDraft';
 
 const AuthContext = createContext(null);

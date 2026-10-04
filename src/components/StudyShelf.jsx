@@ -81,7 +81,7 @@ export default function StudyShelf({
 
   return (
     <div className="mb-8">
-      <h2 className="font-heading text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-3">Study the lectures you picked</h2>
+      <h2 className="font-heading text-sm font-semibold text-muted-foreground mb-3">Study the lectures you picked</h2>
 
       <div className="grid grid-cols-2 gap-3 mb-5">
         <Tile
@@ -176,7 +176,7 @@ function Tile({ icon: Icon, tint, title, desc, lockedTierName = null, onLock = n
         className="text-left p-4 rounded-xl border border-border bg-muted/40 hover:bg-muted transition-colors duration-micro">
         <Lock className="w-5 h-5 mb-2 text-muted-foreground" />
         <p className="text-sm font-medium text-muted-foreground">{title}</p>
-        <p className="text-xs text-muted-foreground mt-0.5">Unlocks with {lockedTierName} — tap to upgrade</p>
+        <p className="text-xs text-muted-foreground mt-0.5">Unlocks with {lockedTierName}. Tap to upgrade</p>
       </button>
     );
   }

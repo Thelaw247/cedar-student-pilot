@@ -1,4 +1,6 @@
 import React from 'react';
+import { formatShortDate } from '@/lib/time';
+import { lectureTitle } from '@/lib/lectureTitle';
 import { Check } from 'lucide-react';
 
 /**
@@ -67,8 +69,8 @@ export default function LectureScopePicker({ lectures = [], selectedIds = [], on
                 {on && <Check className="w-3 h-3 text-primary-foreground" strokeWidth={3} />}
               </span>
               <span className="flex-1 min-w-0">
-                <span className="block text-sm text-foreground truncate">{l.ai_title || `Lecture — ${l.date}`}</span>
-                <span className="block text-[11px] text-muted-foreground">{l.date}</span>
+                <span className="block text-sm text-foreground truncate">{lectureTitle(l)}</span>
+                <span className="block text-[11px] text-muted-foreground">{formatShortDate(l.date, { weekday: true })}</span>
               </span>
             </button>
           );

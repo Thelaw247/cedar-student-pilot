@@ -82,10 +82,29 @@ function applySort(query, sort) {
   return query.order(column, { ascending: !desc });
 }
 
+/**
+ * `.match()` for the scalar fields and `.in()` for any given as an array, so
+ * one request can read the rows of every class at once ({ class_id: [a, b,
+ * c] }) instead of one request per class. Pages that walked their classes in
+ * a loop took two to four round trips per class, in series; the study page
+ * took eight to sixteen seconds to open on a phone that way.
+ */
+function applyMatch(query, match = {}) {
+  const exact = {};
+  for (const [column, value] of Object.entries(match)) {
+    if (Array.isArray(value)) query = query.in(column, value);
+    else exact[column] = value;
+  }
+  return Object.keys(exact).length ? query.match(exact) : query;
+}
+
 function makeEntity(tableName, entityName) {
   return {
     async filter(match = {}, sort, limit) {
-      let q = supabase.from(tableName).select('*').match(match);
+      // An empty "any of" list (a student with no classes yet) matches
+      // nothing, so it is answered here without a request.
+      if (Object.values(match).some((value) => Array.isArray(value) && value.length === 0)) return [];
+      let q = applyMatch(supabase.from(tableName).select('*'), match);
       q = applySort(q, sort);
       if (limit) q = q.limit(limit);
       const { data, error } = await q;

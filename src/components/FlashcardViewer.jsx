@@ -61,7 +61,7 @@ export default function FlashcardViewer({ flashcards }) {
           <div className="absolute inset-0 rounded-xl bg-background border border-border flex items-center justify-center p-6 [backface-visibility:hidden] overflow-hidden">
             <span className="absolute left-0 top-3 bottom-3 w-[3px] rounded-full bg-primary" />
             <div className="text-center">
-              <p className="text-[11px] text-muted-foreground uppercase tracking-wide mb-2">Question</p>
+              <p className="text-xs text-muted-foreground mb-2">Question</p>
               <p className="text-base font-medium text-foreground">{card.front}</p>
               <p className="text-[11px] text-muted-foreground mt-3">Tap to flip</p>
             </div>
@@ -69,7 +69,7 @@ export default function FlashcardViewer({ flashcards }) {
           <div className="absolute inset-0 rounded-xl bg-background border border-border flex items-center justify-center p-6 [backface-visibility:hidden] [transform:rotateY(180deg)] overflow-hidden">
             <span className="absolute left-0 top-3 bottom-3 w-[3px] rounded-full bg-emerald-500" />
             <div className="text-center">
-              <p className="text-[11px] text-emerald-600 uppercase tracking-wide mb-2">Answer</p>
+              <p className="text-xs text-emerald-600 mb-2">Answer</p>
               <p className="text-sm text-foreground">{card.back}</p>
               <p className="text-[11px] text-muted-foreground mt-3">Tap to flip back</p>
             </div>

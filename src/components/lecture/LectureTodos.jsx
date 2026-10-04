@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { formatShortDate } from '@/lib/time';
 import { Link } from 'react-router-dom';
 import { ListChecks, Plus, Check, Trash2, ArrowRight } from 'lucide-react';
 import Widget from '@/components/ui/Widget';
@@ -36,7 +37,7 @@ export default function LectureTodos({ lecture, legacyActionItems }) {
 
   return (
     <Widget id="sec-todos" icon={ListChecks} title="To-do from this lecture" collapsible storageKey="lec-actions"
-      meta={todos.length ? `${open.length} open · ${done.length} done` : showLegacy ? `${legacyActionItems.length} action items` : 'Nothing assigned yet — add your own'}
+      meta={todos.length ? `${open.length} open · ${done.length} done` : showLegacy ? `${legacyActionItems.length} action items` : 'Nothing assigned yet. Add your own'}
       action={<Link to="/todos" onClick={(e) => e.stopPropagation()} className="text-[11px] font-medium text-primary hover:underline inline-flex items-center gap-1">All to-dos <ArrowRight className="w-3 h-3" /></Link>}
       className="mb-4 scroll-mt-24" padded>
       <div className="pt-1">
@@ -62,7 +63,7 @@ export default function LectureTodos({ lecture, legacyActionItems }) {
                   <p className="text-[11px] text-muted-foreground">
                     {TODO_KIND_LABEL[t.kind] || 'Task'}
                     {t.detail ? ` · ${t.detail}` : ''}
-                    {t.due_date ? ` · due ${t.due_date}` : ''}
+                    {t.due_date ? ` · due ${formatShortDate(t.due_date)}` : ''}
                   </p>
                 </div>
                 <button type="button" onClick={() => remove(t.id)} aria-label="Delete to-do"

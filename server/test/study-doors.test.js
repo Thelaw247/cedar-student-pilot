@@ -90,7 +90,7 @@ test('the rail stops offering what other controls already do', () => {
   // The + button is where those doors live, and it still has all three.
   const HOME = read('../../src/pages/Home.jsx');
   assert.match(HOME, /<FloatingActionButton actions=\{\[/);
-  for (const label of ['Add Event', 'Add Exam', 'Add Class']) {
+  for (const label of ['Add event', 'Add exam', 'Add class']) {
     assert.match(HOME, new RegExp(`label: '${label}'`), `the + button lost ${label}`);
   }
 });

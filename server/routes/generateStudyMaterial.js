@@ -139,7 +139,7 @@ router.post('/', requireAuth, async (req, res) => {
       if (dropped > 0) console.warn(`[study-material] dropped ${dropped} malformed question(s) of ${material.questions?.length ?? 0}`);
       if (questions.length === 0) {
         await logUsage({ user_id: userId, feature: 'study_material', tier_at_time: gate.balance?.tier, success: false });
-        return res.status(502).json({ error: 'The model returned no usable questions. Try again — you have not been charged.' });
+        return res.status(502).json({ error: 'No usable questions came back. Try again; you have not been charged.' });
       }
       // One shape for both destinations. What comes back in the response is
       // the row that was stored, not the validator's internal shape, so the

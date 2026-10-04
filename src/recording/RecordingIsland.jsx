@@ -136,7 +136,7 @@ export default function RecordingIsland() {
                 {stuck && (
                   <p className="text-[11px] text-white/60 mt-1.5">
                     Still failing after {failedTries} tries. Your audio stays safe on this device
-                    {rec.canProcessLater ? ' — leave it with Process later and come back,' : ','} or email{' '}
+                    {rec.canProcessLater ? '. Leave it with Process later and come back,' : ','} or email{' '}
                     <a href={`${SUPPORT_MAILTO}?subject=${encodeURIComponent('Recording will not save')}${rec.pendingLectureId ? `&body=${encodeURIComponent(`Lecture id: ${rec.pendingLectureId}`)}` : ''}`} className="underline text-white/80 hover:text-white">{SUPPORT_EMAIL}</a>
                     {rec.pendingLectureId ? ` with the code ${rec.pendingLectureId.slice(0, 8)}` : ''}.
                   </p>
@@ -161,7 +161,7 @@ export default function RecordingIsland() {
           )}
           {rec.recoveredOnBoot && !failure && (
             <p className="text-[11px] text-white/70 mb-3">
-              This recording was interrupted — a refresh, a closed tab, or the browser reclaiming the page.
+              This recording was interrupted by a refresh, a closed tab, or the browser reclaiming the page.
               The audio is safe on this device. Save it to finish.
             </p>
           )}
@@ -263,7 +263,7 @@ export default function RecordingIsland() {
             )}
             {rec.micSilent && (
               <p className="text-[11px] text-amber-400/90 mb-2 flex items-center gap-1.5">
-                <AlertTriangle className="w-3 h-3 flex-shrink-0" /> The microphone stopped sending audio — the timer is paused until it comes back.
+                <AlertTriangle className="w-3 h-3 flex-shrink-0" /> The microphone stopped sending audio. The timer is paused until it comes back.
               </p>
             )}
             <label className="text-[11px] font-medium text-white/60 flex items-center gap-1.5 mb-1.5">

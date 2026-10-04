@@ -105,7 +105,7 @@ export default function FocusMode() {
       {assignment?.rubric?.length > 0 && (
         <div className="text-left mb-6 w-full max-w-sm rounded-xl border border-border bg-card p-4">
           <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">
-            {assignment.title} — rubric
+            {assignment.title}: rubric
           </p>
           <div className="space-y-1.5">
             {assignment.rubric.map((item, i) => (

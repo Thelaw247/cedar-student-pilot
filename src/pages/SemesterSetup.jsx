@@ -253,7 +253,7 @@ export default function SemesterSetup() {
     const meeting = source.meetings[meetingIndex];
     if (!meeting || source.meetings.length < 2) return;
     const remaining = source.meetings.filter((_, index) => index !== meetingIndex);
-    const splitName = meeting.component ? `${source.name} — ${meeting.component}` : `${source.name} — Separate schedule`;
+    const splitName = meeting.component ? `${source.name} (${meeting.component})` : `${source.name} (separate schedule)`;
     const next = [...parsedClasses];
     next[classIndex] = { ...source, meetings: remaining };
     // The split-off part is a new course. In a re-import the source may carry
@@ -279,7 +279,7 @@ export default function SemesterSetup() {
     if (!f) return;
     setWelcomeError(null);
     if (!f.type.startsWith('image/')) { setWelcomeError('Please choose an image file.'); return; }
-    if (f.size > MAX_PHOTO_BYTES) { setWelcomeError('Photo is too large — please choose one under 5MB.'); return; }
+    if (f.size > MAX_PHOTO_BYTES) { setWelcomeError('Photo is too large. Please choose one under 5 MB.'); return; }
     setPhotoBusy(true);
     try {
       const { file_url } = await base44.integrations.Core.UploadFile({ file: f, purpose: 'avatar' });
@@ -386,7 +386,7 @@ export default function SemesterSetup() {
         {updatingSemesterId ? (
           <>
             <h1 className="font-heading text-2xl sm:text-3xl font-bold mb-2">Update Your Schedule</h1>
-            <p className="text-muted-foreground text-sm mb-2">Upload the new timetable{semesterInfo.name ? ` for ${semesterInfo.name}` : ''}. Courses you already have are updated in place — your lectures, recordings and files stay exactly where they are.</p>
+            <p className="text-muted-foreground text-sm mb-2">Upload the new timetable{semesterInfo.name ? ` for ${semesterInfo.name}` : ''}. Courses you already have are updated in place. Your lectures, recordings and files stay exactly where they are.</p>
             <p className="text-xs text-muted-foreground mb-8">{existingLoaded ? `${existingClasses.length} course${existingClasses.length === 1 ? '' : 's'} in this semester now. Nothing is deleted by an update.` : 'Loading your current courses…'}</p>
           </>
         ) : (
@@ -475,7 +475,7 @@ export default function SemesterSetup() {
           {parsedClasses.map((cls, i) => (
             <div key={i} className="rounded-xl border border-border bg-card p-4 space-y-3">
               {updatingSemesterId && (
-                <p className="text-[10px] font-semibold uppercase tracking-wide">
+                <p className="text-xs font-medium">
                   {cls.id
                     ? <span className="text-emerald-600">Updates {existingClasses.find((c) => c.id === cls.id)?.course_code || existingClasses.find((c) => c.id === cls.id)?.name || 'an existing course'}</span>
                     : <span className="text-primary">New course</span>}
@@ -506,8 +506,8 @@ export default function SemesterSetup() {
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Schedule rules</p>
-                  {cls.source_entry_count > 1 && <span className="text-[10px] text-primary">{cls.source_entry_count} source rows merged</span>}
+                  <p className="text-xs font-semibold text-muted-foreground">When it meets</p>
+                  {cls.source_entry_count > 1 && <span className="text-[11px] text-primary">{cls.source_entry_count} timetable rows combined</span>}
                 </div>
                 {(cls.meetings || []).map((meeting, meetingIndex) => {
                   const specific = Boolean(meeting.specific_date);
@@ -589,7 +589,7 @@ export default function SemesterSetup() {
             confirmation says what goes with it — never a side effect here. */}
         {updatingSemesterId && kept.length > 0 && (
           <div className="rounded-xl border border-border bg-muted/20 px-4 py-3 mb-6">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Not in this timetable — kept as they are</p>
+            <p className="text-xs font-medium text-muted-foreground mb-1">Not in this timetable, kept as they are</p>
             <p className="text-sm text-foreground">{kept.map((c) => c.course_code ? `${c.course_code} · ${c.name}` : c.name).join(', ')}</p>
             <p className="text-[11px] text-muted-foreground mt-1">To remove one, delete it from its class page afterwards.</p>
           </div>

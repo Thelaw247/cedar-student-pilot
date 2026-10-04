@@ -143,7 +143,7 @@ export default function StudyToolbox({ classId, resolveLectureIds, resolveMateri
       {!practiceAllowed ? (
         <button type="button" onClick={practiceLock}
           className="w-full py-3 rounded-xl bg-muted text-muted-foreground text-sm font-medium hover:text-foreground transition-colors flex items-center justify-center gap-2 mb-6">
-          <Lock className="w-4 h-4" /> Upgrade to use — practice generation ships with {practiceTierName}
+          <Lock className="w-4 h-4" /> Practice questions ship with {practiceTierName}. Upgrade to use them
         </button>
       ) : (
       <button type="button" onClick={generate} disabled={generating || !classId}
@@ -157,7 +157,7 @@ export default function StudyToolbox({ classId, resolveLectureIds, resolveMateri
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-3">
             <Sparkles className="w-4 h-4 text-primary" />
-            <h2 className="font-heading text-sm font-semibold uppercase tracking-wide text-muted-foreground">Just Generated</h2>
+            <h2 className="font-heading text-sm font-semibold text-muted-foreground">Just made</h2>
           </div>
           {/* The server names the files it actually read: one chosen without
               readable text is left out, and the student should see that. */}

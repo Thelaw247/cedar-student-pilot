@@ -86,9 +86,9 @@ export default function TodayIntelligenceCard({
             <div className="flex items-center gap-2.5 px-4 py-2.5 bg-rose-500/5">
               <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0" />
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold text-rose-700 dark:text-rose-500">You're behind</p>
+                <p className="text-xs font-semibold text-rose-700 dark:text-rose-500">Missed study</p>
                 <p className="text-[11px] text-muted-foreground">
-                  {behindSessions.length} missed session{behindSessions.length !== 1 ? 's' : ''} to reschedule
+                  {behindSessions.length} study session{behindSessions.length !== 1 ? 's' : ''} to rebook
                 </p>
               </div>
               <button onClick={() => setRebookSession(behindSessions[0])}

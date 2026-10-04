@@ -211,7 +211,7 @@ export default function OwnerAnalytics() {
                         fault. Only a real failure is amber. */}
                     {c.failures > 0 && <span className="ml-1 text-xs text-amber-600">({c.failures} failed)</span>}
                     {c.refusals > 0 && (
-                      <span className="ml-1 text-xs text-muted-foreground" title="Blocked by the paywall — tier or credits. Not an error.">
+                      <span className="ml-1 text-xs text-muted-foreground" title="Blocked by the paywall (tier or credits). Not an error.">
                         ({c.refusals} paywall {c.refusals === 1 ? 'stop' : 'stops'})
                       </span>
                     )}

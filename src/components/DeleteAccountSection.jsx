@@ -90,7 +90,7 @@ export default function DeleteAccountSection() {
         <p className="text-sm text-muted-foreground mb-3">Permanently delete your account and everything in it. Any active subscription is cancelled. This can’t be undone.</p>
         <button onClick={() => { setConfirming(true); setDeleteError(''); }}
           className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-destructive/30 bg-destructive/5 text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors">
-          <Trash2 className="w-4 h-4" /> Delete My Account
+          <Trash2 className="w-4 h-4" /> Delete my account
         </button>
       </>
     );
@@ -107,7 +107,7 @@ export default function DeleteAccountSection() {
             <li>• Classes, semesters, schedule and calendar events</li>
             <li>• Your credit balance, including any credits you paid for</li>
             <li>• Cached handbooks and all usage history</li>
-            <li>• The account itself — this email will no longer sign in</li>
+            <li>• The account itself: this email will no longer sign in</li>
           </ul>
           <p className="text-xs text-muted-foreground mt-2">
             Any active subscription is cancelled immediately. <span className="font-medium text-foreground">No refund is issued</span>, and purchased credits are not recoverable. Export a copy first if you want to keep anything.

@@ -1,7 +1,17 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { formatShortDate } from '@/lib/time';
 import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { Loader2, FileText, GraduationCap } from 'lucide-react';
+
+// Where in the lecture the words were found, said the way a student would.
+const MATCH_LABELS = {
+  transcript: 'in the transcript',
+  summary: 'in the summary',
+  concepts: 'in the key ideas',
+  vocabulary: 'in the terms',
+};
+const matchLabel = (type) => MATCH_LABELS[type] || '';
 
 /**
  * Lecture content search results for a given query. Controlled by a parent
@@ -41,7 +51,7 @@ export default function LectureSearch({ query = '', heading = 'In your lectures'
 
   return (
     <div className="mt-4 space-y-2 animate-fade-in">
-      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-1">{heading}</p>
+      <p className="text-xs font-semibold text-muted-foreground px-1">{heading}</p>
       {loading ? (
         <div className="flex items-center justify-center py-6">
           <Loader2 className="w-5 h-5 text-muted-foreground animate-spin" />
@@ -59,7 +69,7 @@ export default function LectureSearch({ query = '', heading = 'In your lectures'
               </div>
               <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mb-1.5">
                 <GraduationCap className="w-3 h-3" />
-                {r.class_name} · {r.date} · <span className="uppercase">{r.match_type}</span>
+                {[r.class_name, formatShortDate(r.date), matchLabel(r.match_type)].filter(Boolean).join(' · ')}
               </div>
               <p className="text-xs text-muted-foreground line-clamp-2">{r.snippet}</p>
             </Link>

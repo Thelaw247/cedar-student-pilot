@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { lectureTitle } from '@/lib/lectureTitle';
 import { Link } from 'react-router-dom';
 import { Paperclip, Upload, Download, Trash2, Loader2, FileText, ShieldCheck, RefreshCw, AlertTriangle, BookOpen } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
@@ -136,13 +137,13 @@ export default function LectureMaterials({ lecture = null, cls = null, lectures 
   const lectureLabel = (m) => {
     if (!m.lecture_id) return null;
     const l = lectureById.get(m.lecture_id);
-    return l ? (l.ai_title || `Lecture — ${l.date}`) : 'a lecture';
+    return l ? lectureTitle(l) : 'a lecture';
   };
 
   const meta = classScope
     ? (materials.length
-      ? `${materials.length} file${materials.length === 1 ? '' : 's'} · ${readyCount} readable for practice questions`
-      : 'Syllabus, past exams, formula sheets — files for the whole course')
+      ? `${materials.length} file${materials.length === 1 ? '' : 's'} · ${readyCount} ready for practice questions`
+      : 'Syllabus, past exams, formula sheets: files for the whole course')
     : (materials.length
       ? `${materials.length} file${materials.length === 1 ? '' : 's'} · ${readyCount} used to verify this page`
       : 'Attach slides or handouts to verify formulas and definitions');
@@ -167,8 +168,8 @@ export default function LectureMaterials({ lecture = null, cls = null, lectures 
                         <> · from <Link to={`/lectures/${m.lecture_id}`} className="text-primary hover:underline">{from}</Link></>
                       )}
                       {m.extraction_status === 'ready' && !classScope && <span className="inline-flex items-center gap-1 ml-2 text-emerald-600"><ShieldCheck className="w-3 h-3" /> used for verification</span>}
-                      {m.extraction_status === 'ready' && classScope && <span className="inline-flex items-center gap-1 ml-2 text-emerald-600"><ShieldCheck className="w-3 h-3" /> readable</span>}
-                      {m.extraction_status === 'failed' && <span className="inline-flex items-center gap-1 ml-2 text-amber-600"><AlertTriangle className="w-3 h-3" /> no readable text (scanned?) — kept for download only</span>}
+                      {m.extraction_status === 'ready' && classScope && <span className="inline-flex items-center gap-1 ml-2 text-emerald-600"><ShieldCheck className="w-3 h-3" /> ready for questions</span>}
+                      {m.extraction_status === 'failed' && <span className="inline-flex items-center gap-1 ml-2 text-amber-600"><AlertTriangle className="w-3 h-3" /> no text found (a scan?), kept for download only</span>}
                       {m.extraction_status === 'unsupported' && <span className="ml-2 text-amber-600">kept for download only</span>}
                     </p>
                   </div>
@@ -192,7 +193,7 @@ export default function LectureMaterials({ lecture = null, cls = null, lectures 
                   className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90">
                   <Upload className="w-3.5 h-3.5" /> {classScope ? 'Add a course file' : 'Attach slides, handouts or notes'}
                 </button>
-                <p className="text-[11px] text-muted-foreground mt-2">PDF, text or Markdown · 20 MB max · 1 credit per PDF · or drop here</p>
+                <p className="text-[11px] text-muted-foreground mt-2">PDF or text files up to 20 MB · 1 credit per PDF<span className="hidden sm:inline"> · or drop a file here</span></p>
               </>
             )}
           </div>

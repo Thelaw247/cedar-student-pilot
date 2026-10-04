@@ -4,7 +4,8 @@ import { base44 } from '@/api/base44Client';
 import { fetchWithCache } from '@/hooks/useEntityData';
 import { enqueueOperation } from '@/lib/syncQueue';
 import { announceDataChange } from '@/lib/dataChanged';
-import { GraduationCap, Check, X, Loader2, Clock, AlertTriangle } from 'lucide-react';
+import { GraduationCap, Check, X, Loader2, AlertTriangle } from 'lucide-react';
+import { formatShortDate, formatTime } from '@/lib/time';
 // Which sessions may be asked about lives in src/lib/attendance.js, where it
 // is unit-tested. The rule that moved it there: a session is only askable if
 // it ended after the class was added — an imported timetable used to produce
@@ -13,11 +14,6 @@ import { GraduationCap, Check, X, Loader2, Clock, AlertTriangle } from 'lucide-r
 import { findPastUnconfirmedSessions } from '@/lib/attendance';
 import { classTint, classColor } from '@/lib/color';
 import { useRecording } from '@/recording/RecordingContext';
-
-function formatDate(dateStr) {
-  const d = new Date(dateStr + 'T00:00:00');
-  return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-}
 
 // "Ask me later" means later, not the next time this component mounts.
 // Switching Today → Weekly → Today used to bring the question straight back,
@@ -40,7 +36,7 @@ export function describeAttendanceError(e) {
     return { kind: 'signed_out', text: 'Your session has ended. Sign in again, then answer this.' };
   }
   if (/failed to fetch|load failed|networkerror|network request failed|timeout/.test(text) || status === 0) {
-    return { kind: 'network', text: "Couldn't reach the server. Check your connection and tap again — your answer is only saved once it goes through." };
+    return { kind: 'network', text: "Couldn't reach the server. Check your connection and tap again. Your answer is only saved once it goes through." };
   }
   // The error's own text is the database's (a constraint, a policy name), and
   // the caller logs it; the student gets a sentence.
@@ -55,11 +51,10 @@ export default function AttendancePrompt() {
   const [submitting, setSubmitting] = useState(null);
   const [error, setError] = useState(null);
   const [dismissed, setDismissed] = useState(wasDismissedThisSession);
-  // A full-screen scrim at z-50 sits over the recording pill at z-40. On
-  // 8 Sep 2026 that is what buried an interrupted recording the app had
-  // already found and was offering to save: the one screen that could give
-  // the lecture back was underneath the one asking whether the student had
-  // been in the room. Attendance can wait a visit; audio cannot.
+  // Housekeeping waits behind a recording. When this was a full-screen scrim
+  // it buried an interrupted recording the app was offering to save (8 Sep
+  // 2026); it is a card in the page now, but a student with a session on
+  // screen still has one thing to do, and this is not it.
   const { active: sessionActive } = useRecording();
 
   const loadPending = useCallback(async () => {
@@ -135,67 +130,66 @@ export default function AttendancePrompt() {
 
   const remaining = pending.length - index;
 
+  // A card in the page, not a pop-up over it. The question used to arrive as
+  // a full-screen modal the moment the Today page opened, before the day's
+  // schedule had been seen: the first thing many students met every morning
+  // was a quiz about yesterday. It sits here with the day's other questions,
+  // answerable in one tap and ignorable at no cost.
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 glass p-4">
-      <div className="bg-card w-full max-w-sm rounded-2xl border border-border p-6 animate-fade-in text-center max-h-[90dvh] overflow-y-auto">
-        <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4"
+    <div className="rounded-xl border border-border bg-card p-4 mb-4 animate-fade-in">
+      <div className="flex items-start gap-3">
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
           style={{ backgroundColor: classTint(current.classObj.color) || 'hsl(var(--primary) / 0.1)', color: classColor(current.classObj.color) }}>
-          <GraduationCap className="w-7 h-7" strokeWidth={1.5} />
+          <GraduationCap className="w-5 h-5" strokeWidth={1.5} />
         </div>
-
-        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">
-          Attendance Check
-        </p>
-        <h3 className="font-heading text-lg font-semibold text-foreground mb-1">
-          {current.classObj.name}
-        </h3>
-        <div className="flex items-center justify-center gap-1.5 text-sm text-muted-foreground mb-2">
-          <Clock className="w-3.5 h-3.5" /> {formatDate(current.date)}
-          {current.classObj.start_time && <span>• {current.classObj.start_time}</span>}
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-foreground">
+            Were you at {current.classObj.name}?
+          </p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {formatShortDate(current.date, { weekday: true })}
+            {current.classObj.start_time ? ` at ${formatTime(current.classObj.start_time)}` : ''}
+            {remaining > 1 ? ` · ${remaining - 1} more to answer` : ''}
+          </p>
         </div>
-        <p className="text-sm text-muted-foreground mb-6">
-          You didn't check in for this class. Did you attend?
-        </p>
+      </div>
 
-        {error && (
-          <div role="alert" className="mb-4 flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 text-left text-xs leading-5 text-foreground">
-            <AlertTriangle className="mt-0.5 h-4 w-4 flex-none text-amber-500" aria-hidden="true" />
-            <span>
-              {error.text}
-              {error.kind === 'signed_out' && (
-                <> <Link to="/login" className="font-semibold text-primary hover:text-foreground">Sign in</Link></>
-              )}
-            </span>
-          </div>
-        )}
-
-        <div className="flex gap-2">
-          <button
-            onClick={() => handleResponse(false)}
-            disabled={!!submitting}
-            aria-busy={submitting === 'no'}
-            className="flex-1 inline-flex min-h-[44px] items-center justify-center gap-1.5 py-3 rounded-xl border border-border text-sm font-medium text-muted-foreground hover:bg-muted transition-colors disabled:opacity-50"
-          >
-            {submitting === 'no' ? <Loader2 className="w-4 h-4 animate-spin" /> : <X className="w-4 h-4" />} No
-          </button>
-          <button
-            onClick={() => handleResponse(true)}
-            disabled={!!submitting}
-            aria-busy={submitting === 'yes'}
-            className="flex-1 inline-flex min-h-[44px] items-center justify-center gap-1.5 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
-          >
-            {submitting === 'yes' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-            {submitting === 'yes' ? 'Saving…' : 'Yes'}
-          </button>
+      {error && (
+        <div role="alert" className="mt-3 flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 text-left text-xs leading-5 text-foreground">
+          <AlertTriangle className="mt-0.5 h-4 w-4 flex-none text-amber-500" aria-hidden="true" />
+          <span>
+            {error.text}
+            {error.kind === 'signed_out' && (
+              <> <Link to="/login" className="font-semibold text-primary hover:text-foreground">Sign in</Link></>
+            )}
+          </span>
         </div>
+      )}
 
+      <div className="flex flex-wrap items-center gap-2 mt-3">
+        <button
+          onClick={() => handleResponse(true)}
+          disabled={!!submitting}
+          aria-busy={submitting === 'yes'}
+          className="inline-flex min-h-[44px] items-center justify-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
+        >
+          {submitting === 'yes' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+          {submitting === 'yes' ? 'Saving…' : 'Yes'}
+        </button>
+        <button
+          onClick={() => handleResponse(false)}
+          disabled={!!submitting}
+          aria-busy={submitting === 'no'}
+          className="inline-flex min-h-[44px] items-center justify-center gap-1.5 px-4 py-2 rounded-lg border border-border text-xs font-medium text-muted-foreground hover:bg-muted transition-colors disabled:opacity-50"
+        >
+          {submitting === 'no' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <X className="w-3.5 h-3.5" />} No
+        </button>
         {/* Always here. Gated on `remaining > 1`, a single pending session had
             no third door: the student had to answer a question about a class
-            they might not remember, on a screen they did not ask for. A full
-            44px tall, so a thumb lands on it. */}
+            they might not remember. 44px tall, so a thumb lands on it. */}
         <button type="button" onClick={handleDismissAll}
-          className="mt-2 inline-flex min-h-[44px] items-center justify-center px-4 text-xs text-muted-foreground hover:text-foreground transition-colors">
-          {remaining > 1 ? `${remaining - 1} more pending — ask me later` : 'Ask me later'}
+          className="inline-flex min-h-[44px] items-center justify-center px-4 text-xs text-muted-foreground hover:text-foreground transition-colors">
+          Ask me later
         </button>
       </div>
     </div>

@@ -85,8 +85,8 @@ export default function DailyProgressRing({ classes, events, studySessions, atte
     : complete
       ? 'Day complete'
       : percentage >= 50
-        ? `${doneItems} of ${totalItems} done — on track`
-        : `${doneItems} of ${totalItems} done — keep going`;
+        ? `${doneItems} of ${totalItems} done, on track`
+        : `${doneItems} of ${totalItems} done, keep going`;
 
   const breakdown = [
     totalClasses > 0 && `${doneClasses}/${totalClasses} classes`,
@@ -117,7 +117,7 @@ export default function DailyProgressRing({ classes, events, studySessions, atte
         </div>
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Today's progress</p>
+        <p className="text-xs font-medium text-muted-foreground">Today's progress</p>
         <p className="text-sm font-semibold text-foreground mt-0.5">{verdict}</p>
         {breakdown && (
           <p className="text-[11px] text-muted-foreground tabular-nums mt-0.5">{breakdown}</p>

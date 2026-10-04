@@ -361,7 +361,7 @@ export default function MusicPlayer({ onClose }) {
                 </div>
               ) : customTracks.length === 0 ? (
                 <p className="text-xs text-muted-foreground text-center py-6 px-4">
-                  Add your favorite YouTube tracks — lofi fruits, chill edits, or anything else — by pasting the URL above.
+                  Paste a YouTube link above to add your own tracks: lofi, chill edits, or anything else.
                 </p>
               ) : (
                 <div className="space-y-1 max-h-40 overflow-y-auto scrollbar-hide">

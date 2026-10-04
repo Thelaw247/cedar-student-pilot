@@ -120,7 +120,7 @@ export default function DeadlineCoverage({
 
       {dated.length === 0 ? (
         <p className="text-xs text-muted-foreground">
-          No lectures recorded for this class yet — whatever you choose here fills in as you record.
+          No lectures recorded for this class yet. Whatever you choose here fills in as you record.
         </p>
       ) : (
         <>
@@ -131,7 +131,7 @@ export default function DeadlineCoverage({
           <LectureScopePicker lectures={dated} selectedIds={selectedIds} onChange={handlePick} />
           <p className="text-[11px] text-muted-foreground mt-1.5">
             {scope === 'none'
-              ? `Not tied to any of this class's ${dated.length} lecture${dated.length === 1 ? '' : 's'} — tick one to change that.`
+              ? `Not tied to any of this class's ${dated.length} lecture${dated.length === 1 ? '' : 's'}. Tick one to change that.`
               : <>
                 {coveredIds.length} of {dated.length} lecture{dated.length === 1 ? '' : 's'}
                 {covered.length > 0 && ` · ${covered[0].date} → ${covered[covered.length - 1].date}`}

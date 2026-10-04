@@ -60,8 +60,8 @@ export default function ReviewScheduleSection() {
   return (
     <div>
       <p className="text-sm text-muted-foreground mb-3">
-        Set the time (or times) of day that work best for you. Lecture reviews and study sessions are booked
-        as soon as possible, but only inside a window around one of these times — never anywhere else in the day.
+        The times of day that suit you. Reviews and study sessions are booked as soon as possible,
+        and only around one of these times, never elsewhere in the day.
       </p>
 
       {!loaded ? (
@@ -100,7 +100,7 @@ export default function ReviewScheduleSection() {
           </div>
 
           {times.length === 0 && (
-            <p className="text-xs text-muted-foreground mt-2">No preferred times set — sessions default to a late-afternoon/evening window.</p>
+            <p className="text-xs text-muted-foreground mt-2">No times set yet, so sessions go in the late afternoon or evening.</p>
           )}
         </>
       )}

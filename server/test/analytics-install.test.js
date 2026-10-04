@@ -56,11 +56,23 @@ test('init runs only for a visitor who said yes, from one place, before the app 
   // Since Oct 2026 the cookie banner asks first. The SDK has no opt-out call,
   // so "no" is enforced by never calling init, and every other call
   // (setIdentity, resetIdentity, trackEvent) is a no-op until it runs.
-  assert.match(CONSENT, /^import \{ analytics \} from '@heycatch\/sdk';$/m, 'a static import, not a lazy one');
+  //
+  // The SDK is a quarter of the main bundle and most visitors never say yes,
+  // so it is downloaded on demand from startAnalytics, the one place init is
+  // called (4 Oct 2026). Nothing else may import it: the app goes through the
+  // forwarding object analyticsConsent.js exports, which queues calls made
+  // while the chunk is still arriving and drops them without consent.
+  assert.doesNotMatch(CONSENT, /^import .*'@heycatch\/sdk'/m, 'a static import puts the SDK back in the first download');
+  assert.match(CONSENT, /import\('@heycatch\/sdk'\)\.then\(\(module\) => \{\s*module\.analytics\.init\(ANALYTICS_CONFIG\);/, 'init runs as soon as the chunk lands');
   assert.equal(CONSENT.match(/analytics\.init\(/g)?.length, 1, 'init is called from one place');
+  assert.match(CONSENT, /else if \(started\) pending\.push\(\[method, args\]\);/, 'a call made while the SDK loads is lost');
+  assert.match(CONSENT, /for \(const \[method, args\] of pending\.splice\(0\)\) module\.analytics\[method\]\(\.\.\.args\);/, 'queued calls are not replayed');
   for (const [name, src] of [['main.jsx', MAIN], ['AuthContext.jsx', AUTH], ['Register.jsx', REGISTER]]) {
     assert.doesNotMatch(src, /analytics\.init\(/, `${name} starts analytics around the consent check`);
+    assert.doesNotMatch(src, /from ['"]@heycatch\/sdk['"]/, `${name} imports the SDK itself; it must go through analyticsConsent.js`);
   }
+  assert.match(AUTH, /import \{ CONSENT_EVENT, analytics \} from '@\/lib\/analyticsConsent';/);
+  assert.match(REGISTER, /import \{ analytics \} from "@\/lib\/analyticsConsent";/);
   assert.match(CONSENT, /export function startAnalyticsIfAllowed\(\) \{\s*if \(readConsent\(\) === 'granted'\) startAnalytics\(\);/,
     'init runs without a stored yes');
   // Global Privacy Control is an answer: no, until its owner says otherwise.
@@ -144,7 +156,6 @@ test('every single-character path is a 302 to the homepage with its campaign', (
 });
 
 test('the browser says who the person is, and stops saying it on sign-out', () => {
-  assert.match(AUTH, /import \{ analytics \} from '@heycatch\/sdk';/);
   const body = AUTH.slice(AUTH.indexOf('const checkUserAuth = useCallback'), AUTH.indexOf('const clearOfflineData'));
   const check = body.slice(0, body.indexOf('} catch (error) {'));
   assert.match(check, /analytics\.setIdentity\(\s*currentUser\.id,/, 'the signed-in user is never identified');

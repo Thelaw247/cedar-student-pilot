@@ -67,7 +67,7 @@ export function OverviewSection({ lecture, enrichment }) {
       )}
       {takeaways.length > 0 && (
         <div className="mt-4">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-2">Remember these</p>
+          <p className="text-xs font-semibold text-muted-foreground mb-2">Remember these</p>
           <ol className="space-y-1.5">
             {takeaways.map((t, i) => (
               <li key={i} className="flex items-start gap-2.5 text-sm text-foreground">
@@ -318,8 +318,8 @@ export function ExamRadarSection({ radar, legacyMentions, onJump }) {
   if (!list.length) return null;
   const high = list.filter((x) => x.importance === 'high').length;
   return (
-    <SectionShell id="sec-exam" icon={AlertCircle} title="Exam radar" storageKey="lec-exams"
-      meta={high ? `${list.length} notes · ${high} flagged high priority` : `${list.length} notes about assessment`}>
+    <SectionShell id="sec-exam" icon={AlertCircle} title="Exam hints" storageKey="lec-exams"
+      meta={`${list.length} ${list.length === 1 ? 'hint' : 'hints'} about the exam${high ? ` · ${high} high priority` : ''}`}>
       <div className="space-y-2">
         {list.map((x, i) => (
           <div key={i} className={`rounded-lg border px-3 py-2.5 ${IMPORTANCE_CLASS[x.importance] || IMPORTANCE_CLASS.medium}`}>
@@ -329,7 +329,7 @@ export function ExamRadarSection({ radar, legacyMentions, onJump }) {
                 <p className="text-[13px] leading-relaxed">{x.note}</p>
                 {!x.legacy && <AnchorButton item={x} onJump={onJump} className="mt-1" />}
               </div>
-              <span className="text-[10px] font-semibold uppercase flex-shrink-0">{x.importance}</span>
+              <span className="text-[11px] font-medium flex-shrink-0">{x.importance === 'high' ? 'High priority' : x.importance === 'low' ? 'Low priority' : 'Worth noting'}</span>
             </div>
           </div>
         ))}
@@ -345,7 +345,7 @@ export function InsightsSection({ misconceptions, questions }) {
       meta={[misconceptions?.length ? `${misconceptions.length} common mistakes` : null, questions?.length ? `${questions.length} questions to ask` : null].filter(Boolean).join(' · ')}>
       {misconceptions?.length > 0 && (
         <div className="mb-4">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-2">Easy to get wrong</p>
+          <p className="text-xs font-semibold text-muted-foreground mb-2">Easy to get wrong</p>
           <ul className="space-y-1.5">
             {misconceptions.map((m, i) => (
               <li key={i} className="flex items-start gap-2 text-[13px] text-foreground/85"><span className="text-rose-500 mt-0.5">✗</span>{m}</li>
@@ -355,7 +355,7 @@ export function InsightsSection({ misconceptions, questions }) {
       )}
       {questions?.length > 0 && (
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-2">Worth asking your prof or TA</p>
+          <p className="text-xs font-semibold text-muted-foreground mb-2">Worth asking your prof or TA</p>
           <ul className="space-y-1.5">
             {questions.map((q, i) => (
               <li key={i} className="flex items-start gap-2 text-[13px] text-foreground/85"><HelpCircle className="w-3.5 h-3.5 text-primary mt-0.5 flex-shrink-0" />{q}</li>

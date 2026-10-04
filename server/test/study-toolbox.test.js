@@ -67,7 +67,7 @@ test('three things to build, and the tier gate lives with them', () => {
   // The lock is part of the tool, not part of the page around it.
   assert.match(TOOLBOX, /useFeatureGate\('study_material'\)/);
   assert.doesNotMatch(PANEL, /useFeatureGate/);
-  assert.match(TOOLBOX, /Upgrade to use — practice generation ships with/);
+  assert.match(TOOLBOX, /Practice questions ship with \{practiceTierName\}\. Upgrade to use them/);
 });
 
 test('the caller owns the scope, and is asked for it at the moment of generating', () => {
@@ -101,8 +101,8 @@ test('the panel still shows what was saved, and refreshes after a run', () => {
   assert.match(PANEL, /await studySession\.markOpened\(ids\)/);
   // Saved material is the panel's, not the toolbox's — a focus session has no
   // use for a wall of every card the class has ever produced.
-  assert.match(PANEL, /Saved Flashcards/);
-  assert.match(PANEL, /Saved Questions/);
+  assert.match(PANEL, /Saved flashcards/);
+  assert.match(PANEL, /Saved questions/);
   assert.doesNotMatch(TOOLBOX, /Saved/);
 });
 

@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { onDataChange } from '@/lib/dataChanged';
 import { fetchWithCache } from '@/hooks/useEntityData';
+import { cacheGet } from '@/lib/cache';
 import UserMenuButton from '@/components/UserMenuButton';
 import CreditMeter from '@/components/monetization/CreditMeter';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
@@ -32,6 +33,28 @@ function getTodayString() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+/**
+ * The day as this browser last saw it, or null when any part is missing.
+ *
+ * Every read below goes through fetchWithCache, which keeps its answers in
+ * localStorage for five minutes. A student coming back to Today used to
+ * watch the skeleton for two round trips anyway; now the page is drawn from
+ * that copy at once and refreshed underneath. Same keys as the live reads,
+ * so the two can never disagree about what was cached.
+ */
+function readCachedDay() {
+  const semesters = cacheGet('Semester', 'filter', [{ is_active: true }]);
+  if (!semesters) return null;
+  const classes = semesters.length > 0 ? cacheGet('Class', 'filter', [{ semester_id: semesters[0].id }]) : [];
+  const events = cacheGet('CalendarEvent', 'list', []);
+  const assignments = cacheGet('Assignment', 'list', []);
+  const sessions = cacheGet('StudySession', 'list', []);
+  const attendance = cacheGet('ClassAttendance', 'list', ['-date', 200]);
+  const lectures = cacheGet('Lecture', 'list', ['-date', 200]);
+  if (!classes || !events || !assignments || !sessions || !attendance || !lectures) return null;
+  return { semesters, classes, events, assignments, sessions, attendance, lectures };
+}
+
 export default function Home() {
   const navigate = useNavigate();
   const [tab, setTab] = useState('today');
@@ -53,13 +76,37 @@ export default function Home() {
     onNewEvent: () => setShowAddEvent(true),
   });
 
+  const drawnRef = useRef(false);
+  const applyDay = useCallback((day) => {
+    if (day.semesters.length > 0) setActiveSemester(day.semesters[0]);
+    setClasses(day.classes);
+    setEvents(day.events);
+    setAssignments(day.assignments);
+    setStudySessions(day.sessions);
+    setAttendance(day.attendance);
+    setLectures(day.lectures);
+  }, []);
+
   // A background refetch must not blank the screen someone is reading. The
-  // spinner belongs to the first load.
+  // spinner belongs to the first load, and only to a first load with nothing
+  // cached: a returning student sees yesterday's copy at once (readCachedDay)
+  // while this fetches the real thing.
   const loadData = useCallback(async ({ quiet = false } = {}) => {
-    if (!quiet) setLoading(true);
+    // The cached copy is for arriving; after a save or a delete the page is
+    // already drawn, and redrawing it from a copy that predates the change
+    // would show the old row for a moment.
+    if (!quiet && !drawnRef.current) {
+      const cached = readCachedDay();
+      if (cached) {
+        applyDay(cached);
+        setLoading(false);
+      } else {
+        setLoading(true);
+      }
+    }
+    drawnRef.current = true;
     try {
       const semesters = await fetchWithCache('Semester', 'filter', [{ is_active: true }]);
-      if (semesters.length > 0) setActiveSemester(semesters[0]);
 
       // Load ALL events (not just today's): the Weekly view and recurring
       // events both need the full set to expand across any week.
@@ -77,17 +124,12 @@ export default function Home() {
         fetchWithCache('Lecture', 'list', ['-date', 200]),
       ]);
 
-      setClasses(allClasses);
-      setEvents(allEvents);
-      setAssignments(allAssignments);
-      setStudySessions(allSessions);
-      setAttendance(allAttendance);
-      setLectures(allLectures);
+      applyDay({ semesters, classes: allClasses, events: allEvents, assignments: allAssignments, sessions: allSessions, attendance: allAttendance, lectures: allLectures });
     } catch (e) {
       console.error(e);
     }
     setLoading(false);
-  }, []);
+  }, [applyDay]);
 
   useEffect(() => { loadData(); }, [loadData]);
 
@@ -195,7 +237,7 @@ export default function Home() {
         </p>
         <Link to="/setup" className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-xl font-medium text-sm hover:bg-primary/90 transition-colors">
           <Plus className="w-4 h-4" />
-          Set Up Semester
+          Set up semester
         </Link>
       </div>
     );
@@ -245,9 +287,6 @@ export default function Home() {
           <AutoPrintPrompt />
           <AttendancePrompt />
           <DetectedDeadlines lectures={lectures} assignments={assignments} onChanged={() => loadData({ quiet: true })} />
-          {/* The ask for a review: a card among the other questions, never a
-              pop-up, and only for a current student (components/ReviewPrompt). */}
-          <ReviewPrompt lectures={lectures} />
 
           <DailyProgressRing
             classes={todayClasses}
@@ -268,13 +307,22 @@ export default function Home() {
           <RiskIndicatorCard />
 
           <div className="flex items-center justify-between mb-3 mt-6">
-            <h2 className="font-heading text-sm font-semibold text-muted-foreground uppercase tracking-wide">Today's schedule</h2>
+            <h2 className="font-heading text-sm font-semibold text-muted-foreground">Today's schedule</h2>
             <button onClick={() => setShowAddEvent(true)}
               className="hidden sm:inline-flex items-center gap-1.5 bg-primary text-primary-foreground px-3 py-2 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors">
               <Plus className="w-4 h-4" /> Add event
             </button>
           </div>
           <Timeline items={allItems} onAddEvent={() => setShowAddEvent(true)} onDeleteItem={(item) => handleDeleteEvent(item.id, item.source)} />
+
+          {/* The ask for a review: a card after the day's own business, never
+              a pop-up, and only for a current student (components/ReviewPrompt).
+              It sat above the schedule until 4 Oct 2026, where the one thing
+              that asks something of the student came before anything that
+              gave them something. */}
+          <div className="mt-6">
+            <ReviewPrompt lectures={lectures} />
+          </div>
         </div>
       )}
 
@@ -327,9 +375,9 @@ export default function Home() {
       <UndoToast toast={toast} onUndo={handleUndo} onDismiss={dismiss} />
 
       <FloatingActionButton actions={[
-        { label: 'Add Event', icon: Calendar, onClick: () => setShowAddEvent(true) },
-        { label: 'Add Exam', icon: AlertCircle, onClick: () => setShowAddExamOrStudy(true) },
-        { label: 'Add Class', icon: GraduationCap, onClick: () => navigate('/classes?add=1') },
+        { label: 'Add event', icon: Calendar, onClick: () => setShowAddEvent(true) },
+        { label: 'Add exam', icon: AlertCircle, onClick: () => setShowAddExamOrStudy(true) },
+        { label: 'Add class', icon: GraduationCap, onClick: () => navigate('/classes?add=1') },
       ]} />
     </div>
   );

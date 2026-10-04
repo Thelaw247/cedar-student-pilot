@@ -66,7 +66,7 @@ async function scheduleLectureReview({ userId, lectureId, classId, lectureDate, 
     [userId, classId, lectureId, placement.date, placement.time, placement.duration_minutes, `Review: ${lectureTitle || 'this lecture'}`,
       placement.date === lectureDate
         ? 'Auto-scheduled for the day of the lecture.'
-        : `Auto-scheduled for ${placement.date} — the lecture day was already booked.`],
+        : `Booked for ${placement.date} because the lecture day was already full.`],
   );
 }
 
@@ -492,11 +492,11 @@ async function releaseLecture(lectureId, userId, reason = '') {
 export function describeProcessingFailure(error) {
   const text = String(error?.message || error || '');
   if (/per hour|ASPH|rate limit|too many requests/i.test(text)) {
-    return 'Transcription rate limit reached for this hour. The recording is safe — try again in about an hour.';
+    return 'Transcription hit its rate limit for this hour. The recording is safe. Try again in about an hour.';
   }
   if (/24 MB|six hours/i.test(text)) return text.slice(0, 300);
   if (/Gemini 5\d\d|high demand|UNAVAILABLE|overloaded/i.test(text)) {
-    return 'The AI service was overloaded. The recording is safe — try again in a few minutes.';
+    return 'The AI service was overloaded. The recording is safe. Try again in a few minutes.';
   }
   if (/insufficient credits/i.test(text)) return 'Not enough credits to process this recording.';
   return text.slice(0, 300) || 'Processing failed.';

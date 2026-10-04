@@ -245,7 +245,7 @@ export default function EditClassModal({ classData = null, semesterId, onDeleteC
     <div className="sheet-overlay fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/30 glass" onClick={onClose}>
       <div role="dialog" aria-modal="true" aria-labelledby={`${id}-title`} className="bg-card w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl border border-border p-6 animate-fade-in max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
-          <h3 id={`${id}-title`} className="font-heading text-lg font-semibold">{isEdit ? 'Edit Class' : 'Add Class'}</h3>
+          <h3 id={`${id}-title`} className="font-heading text-lg font-semibold">{isEdit ? 'Edit class' : 'Add class'}</h3>
           <button onClick={onClose} aria-label="Close" className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
         </div>
 
@@ -464,7 +464,7 @@ export default function EditClassModal({ classData = null, semesterId, onDeleteC
               <>
                 <button type="button" onClick={onClose} className="flex-1 px-4 py-2.5 rounded-lg border border-border text-sm font-medium text-muted-foreground hover:bg-muted">Cancel</button>
                 <button type="submit" disabled={saving || !form.name} className="flex-1 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-2">
-                  {saving ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</> : 'Add Class'}
+                  {saving ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</> : 'Add class'}
                 </button>
               </>
             )}

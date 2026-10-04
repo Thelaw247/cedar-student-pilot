@@ -178,7 +178,7 @@ export default function InLectureQuiz({ lecture, cls, onClose }) {
 
           {/* Per-concept breakdown */}
           <div className="rounded-xl border border-border bg-muted/30 p-4 mb-6">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Concept Breakdown</p>
+            <p className="text-xs font-semibold text-muted-foreground mb-3">By concept</p>
             <div className="space-y-2">
               {Object.entries(conceptBreakdown).map(([concept, r]) => {
                 const passed = r.correct === r.total;
@@ -199,7 +199,7 @@ export default function InLectureQuiz({ lecture, cls, onClose }) {
 
           <div className="flex gap-2">
             <button onClick={onClose} className="flex-1 py-3 rounded-xl border border-border text-sm font-medium text-muted-foreground hover:bg-muted">
-              Done — Back to Lecture
+              Done, back to the lecture
             </button>
             <button
               onClick={() => navigate(`/lecture-review/lecture/${lecture.id}`)}

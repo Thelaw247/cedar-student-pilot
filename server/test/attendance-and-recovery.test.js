@@ -106,7 +106,7 @@ test('the deliberate way in still exists, and still says what it does', () => {
   // Removing the automatic path must not remove the feature: a student who
   // genuinely missed a class asks for the estimate by name.
   assert.match(CLASS_DETAIL, /<MissedLectureConfirmModal/);
-  assert.match(CLASS_DETAIL, /doesn't reflect what was actually taught/);
+  assert.match(CLASS_DETAIL, /a guess at what was taught, not a record of it/);
   assert.match(CLASS_DETAIL, /guidance_notes: notes\.trim\(\) \|\| undefined/);
   // Filed against the day the student is looking at. toISOString rolls over at
   // 18:00 in Saskatoon, so a Tuesday-evening estimate landed on Wednesday and

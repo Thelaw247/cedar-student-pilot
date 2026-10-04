@@ -44,6 +44,26 @@ export function todayString(d = new Date()) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+/**
+ * "2026-09-27" -> "Sep 27"; a date in another year -> "Sep 27, 2025"; with
+ * `weekday` -> "Sat, Sep 27". For every place a lecture, deadline or session
+ * date is shown: students read "Sep 27" at a glance and "2026-09-27" twice.
+ * Accepts the app's "YYYY-MM-DD" strings, ISO timestamps and Dates; a plain
+ * date is read as local midnight so it never slips a day near UTC. Empty or
+ * unreadable input -> "" (an unreadable string comes back as it was).
+ */
+export function formatShortDate(value, { weekday = false, now = new Date() } = {}) {
+  if (!value) return '';
+  const d = value instanceof Date
+    ? value
+    : new Date(/^\d{4}-\d{2}-\d{2}$/.test(value) ? `${value}T00:00:00` : value);
+  if (Number.isNaN(d.getTime())) return typeof value === 'string' ? value : '';
+  const options = { month: 'short', day: 'numeric' };
+  if (weekday) options.weekday = 'short';
+  if (d.getFullYear() !== now.getFullYear()) options.year = 'numeric';
+  return d.toLocaleDateString('en-US', options);
+}
+
 /** ['2026-08-24', ..., '2026-08-30'] -> "Aug 24 – 30" (or "Aug 31 – Sep 6"). */
 export function formatWeekRange(dates) {
   if (!dates?.length) return '';

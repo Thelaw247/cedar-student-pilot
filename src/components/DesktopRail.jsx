@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { lectureTitle } from '@/lib/lectureTitle';
 import { onDataChange } from '@/lib/dataChanged';
 import { Link } from 'react-router-dom';
 import { useTodaySchedule } from '@/hooks/useTodaySchedule';
@@ -95,7 +96,7 @@ export default function DesktopRail() {
     <aside className="hidden xl:flex w-72 flex-shrink-0 flex-col gap-4 border-l border-border px-4 py-5 h-screen sticky top-0 overflow-y-auto">
       {/* Rest of today */}
       <div>
-        <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">
+        <p className="text-xs font-semibold text-muted-foreground mb-2 px-1">
           Rest of today
         </p>
         {!loaded ? (
@@ -136,7 +137,7 @@ export default function DesktopRail() {
       {/* Due soon — the next deadlines without a trip through the planner */}
       {dueSoon.length > 0 && (
         <div>
-          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">
+          <p className="text-xs font-semibold text-muted-foreground mb-2 px-1">
             Due soon
           </p>
           <div className="space-y-1.5">
@@ -168,7 +169,7 @@ export default function DesktopRail() {
       {/* Recent lectures — back into yesterday's material in one tap */}
       {recentLectures.length > 0 && (
         <div>
-          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">
+          <p className="text-xs font-semibold text-muted-foreground mb-2 px-1">
             Recent lectures
           </p>
           <div className="space-y-1.5">
@@ -187,7 +188,7 @@ export default function DesktopRail() {
                     <FileText className="w-4 h-4" strokeWidth={1.5} />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs font-medium text-foreground truncate">{l.ai_title || `Lecture — ${l.date}`}</p>
+                    <p className="text-xs font-medium text-foreground truncate">{lectureTitle(l)}</p>
                     <p className="text-[11px] text-muted-foreground truncate">{cls?.name || l.date}</p>
                   </div>
                 </Link>

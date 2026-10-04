@@ -137,7 +137,7 @@ test('a tier refusal is a tile you can press, not a wall you walk into', () => {
   // read before the tap now, and the locked tile opens the upgrade sheet.
   assert.match(SHELF, /useFeatureGate\('handbook'\)/);
   assert.match(SHELF, /useFeatureGate\('lecture_review'\)/);
-  assert.match(SHELF, /Unlocks with \{lockedTierName\} — tap to upgrade/);
+  assert.match(SHELF, /Unlocks with \{lockedTierName\}\. Tap to upgrade/);
   assert.match(SHELF, /onClick=\{onLock\}/);
   // The paper guide calls generateClassHandbook too, so it shares that gate
   // rather than being offered on a plan that cannot run it.
@@ -167,6 +167,8 @@ test('the page hands the shelf the lectures it already loaded', () => {
   // The planner fetches every lecture in the semester for the coverage
   // checklist. Fetching them a second time inside the shelf would be a
   // needless query on a tab students open constantly.
-  assert.match(PLANNER, /allLectures=\{lectures\}/);
+  // null while the planner is still loading, so the shelf never says "no
+  // lectures today" about a list that has not arrived.
+  assert.match(PLANNER, /allLectures=\{loading \? null : lectures\}/);
   assert.doesNotMatch(SHELF, /base44/, 'the shelf fetches data of its own');
 });

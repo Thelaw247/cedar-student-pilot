@@ -66,6 +66,25 @@ research behind every choice is in the printed series document DSN-03
 
 Changed values → update this file and DSN-03's successor in the same commit.
 
+## Words and dates (audit of Oct 4, 2026)
+
+- Dates a student reads go through `formatShortDate()` in `shared/time.js`
+  ("Sep 27", "Sun, Sep 27", the year only when it is not this year); clock
+  times through `formatTime()` ("8:30 AM"). Raw "2026-09-27" and "08:30"
+  never reach a screen.
+- A lecture is called by `lectureTitle()` (`shared/lectureTitle.js`): its
+  own title, or "Lecture on Sep 27" until it has one. One copy, every list.
+- Section headings and labels are sentence case at `text-xs`/`text-sm`
+  `font-semibold text-muted-foreground`; no `uppercase tracking-wide`
+  eyebrows in app screens. Buttons and headings are sentence case
+  ("Add class", "Quick quiz", "My notes").
+- App copy has no em dashes: a full stop, a comma, a colon or brackets
+  instead. Plain words over product words ("Exam hints", not "Exam radar";
+  "How soon a lecture needs reviewing", not "Concept decay rate").
+- Questions for the student (attendance, a review, a detected deadline) are
+  cards in the Today page, after the greeting and before or after the
+  schedule, never pop-ups over it.
+
 ## The widget grammar (UI redesign, Aug 2026)
 
 Full rationale and the per-page fix ledger live in the Design Blueprint

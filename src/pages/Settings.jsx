@@ -45,14 +45,28 @@ export default function Settings() {
     <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 lg:py-10 animate-fade-in">
       <h1 className="font-heading text-2xl sm:text-3xl font-bold mb-6">Settings</h1>
 
+      {/* Plan, credits and purchases. Reads CreditBalance / UsageEvent, both
+          RLS-scoped to the signed-in user. */}
+      <SettingsSection icon={Zap} title="Plan and credits">
+        <SubscriptionSettings />
+      </SettingsSection>
+
+      {/* Profile: name, email, password, sign out, delete account. */}
+      <SettingsSection icon={User} title="Account">
+        <ProfileSettings />
+        <div className="mt-5 pt-4 border-t border-border">
+          <DeleteAccountSection />
+        </div>
+      </SettingsSection>
+
       <SettingsSection icon={Palette} title="Appearance">
         <div className="space-y-2">
           <button onClick={() => toggleTheme(false)}
             className={`w-full flex items-center gap-3 p-3 rounded-lg border transition-colors ${!isDark ? 'border-primary bg-primary/5' : 'border-border'}`}>
             <Sun className="w-5 h-5 text-amber-500" />
             <div className="text-left flex-1">
-              <p className="text-sm font-medium">Light Mode</p>
-              <p className="text-xs text-muted-foreground">Blue and white — focus-optimized</p>
+              <p className="text-sm font-medium">Light</p>
+              <p className="text-xs text-muted-foreground">White pages, blue accents</p>
             </div>
             {!isDark && <Check className="w-4 h-4 text-primary" />}
           </button>
@@ -60,8 +74,8 @@ export default function Settings() {
             className={`w-full flex items-center gap-3 p-3 rounded-lg border transition-colors ${isDark ? 'border-primary bg-primary/5' : 'border-border'}`}>
             <Moon className="w-5 h-5 text-indigo-500" />
             <div className="text-left flex-1">
-              <p className="text-sm font-medium">Dark Mode</p>
-              <p className="text-xs text-muted-foreground">Black and white — for night studying</p>
+              <p className="text-sm font-medium">Dark</p>
+              <p className="text-xs text-muted-foreground">Easier on the eyes at night</p>
             </div>
             {isDark && <Check className="w-4 h-4 text-primary" />}
           </button>
@@ -99,11 +113,11 @@ export default function Settings() {
         <Toggle label="Study session reminders" description="A reminder in the app when a scheduled study block is about to start" settingKey="studySessionReminders" />
       </SettingsSection>
 
-      <SettingsSection icon={Sparkles} title="AI Features">
-        <Toggle label="Auto-generate study schedules" description="Plan sessions when adding exams" settingKey="autoGenerateSchedules" />
+      <SettingsSection icon={Sparkles} title="Study planning">
+        <Toggle label="Plan study sessions for new exams" description="When you add an exam, study sessions are booked for it right away" settingKey="autoGenerateSchedules" />
       </SettingsSection>
 
-      <SettingsSection icon={GraduationCap} title="Study & Review Times">
+      <SettingsSection icon={GraduationCap} title="Study and review times" defaultOpen={false}>
         <ReviewScheduleSection />
       </SettingsSection>
 
@@ -113,29 +127,15 @@ export default function Settings() {
         <SemestersSection />
       </SettingsSection>
 
-      <SettingsSection icon={BookOpen} title="Learning Mode">
+      <SettingsSection icon={BookOpen} title="How reviews are chosen" defaultOpen={false}>
         <LearningModeToggle />
         <ConceptDecaySettings />
       </SettingsSection>
 
-      <SettingsSection icon={Shield} title="Data & Privacy">
+      <SettingsSection icon={Shield} title="Data and privacy">
         <AnalyticsToggle />
         <div className="mt-3 pt-3 border-t border-border">
           <DataExportSection />
-        </div>
-      </SettingsSection>
-
-      {/* Plan, credits and purchases. Reads CreditBalance / UsageEvent, both
-          RLS-scoped to the signed-in user. */}
-      <SettingsSection icon={Zap} title="Plan & Credits">
-        <SubscriptionSettings />
-      </SettingsSection>
-
-      {/* Profile: name, email, password, sign out, delete account. */}
-      <SettingsSection icon={User} title="Account">
-        <ProfileSettings />
-        <div className="mt-5 pt-4 border-t border-border">
-          <DeleteAccountSection />
         </div>
       </SettingsSection>
 
@@ -169,18 +169,19 @@ export default function Settings() {
         </div>
       </SettingsSection>
 
-      <p className="text-center text-xs text-muted-foreground mt-8 mb-4">Praelecta • v1.0</p>
+      <p className="text-center text-xs text-muted-foreground mt-8 mb-4">Praelecta</p>
     </div>
   );
 }
 
-function SettingsSection({ icon, title, children }) {
+function SettingsSection({ icon, title, children, defaultOpen = true }) {
   // Widget grammar: every group collapses and the choice is remembered per
   // user (storageKey derived from the title), so a long settings page reads
-  // as a scannable index instead of a wall.
+  // as a scannable index instead of a wall. The sections most students never
+  // touch (review timing, how reviews are chosen) start closed.
   const storageKey = `set-${String(title).toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
   return (
-    <Widget icon={icon} title={title} collapsible storageKey={storageKey} className="mb-4" padded>
+    <Widget icon={icon} title={title} collapsible storageKey={storageKey} defaultOpen={defaultOpen} className="mb-4" padded>
       <div className="pt-2">{children}</div>
     </Widget>
   );

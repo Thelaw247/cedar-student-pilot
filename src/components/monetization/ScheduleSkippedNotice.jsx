@@ -53,8 +53,8 @@ export default function ScheduleSkippedNotice({ typeLabel = 'assignment', assign
           No study sessions were booked, because you&rsquo;re on {tierOf(tier).name}.
         </p>
         <p className="text-xs text-muted-foreground mt-1">
-          Planning the work backwards from a deadline — sessions spread one a day, around your classes
-          and your preferred study times — ships with {requiredTierName}. Upgrade and this {typeLabel}&rsquo;s
+          Planning the work backwards from a deadline (sessions spread one a day, around your classes
+          and your preferred study times) ships with {requiredTierName}. Upgrade and this {typeLabel}&rsquo;s
           sessions are booked straight away.
         </p>
       </div>

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { formatShortDate } from '@/lib/time';
 import { base44 } from '@/api/base44Client';
 import { Check, Clock, Trash2, Loader2, AlertTriangle, Calendar } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
@@ -150,7 +151,7 @@ export default function ProjectSessionEndModal({ assignmentId, onClose }) {
                     <div className="flex-1 min-w-0">
                       <h4 className="text-sm font-medium text-foreground truncate">{s.title}</h4>
                       <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-                        <span>{s.date}</span>
+                        <span>{formatShortDate(s.date)}</span>
                         {s.time && <span>• {s.time}</span>}
                         <span>• {s.duration_minutes}m</span>
                       </div>

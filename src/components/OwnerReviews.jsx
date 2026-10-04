@@ -65,7 +65,7 @@ export default function OwnerReviews() {
               </p>
             )}
             <div className="mt-3 flex items-center gap-2">
-              {!r.may_publish && <span className="text-xs text-muted-foreground">Private — the student did not ask for it to be shown.</span>}
+              {!r.may_publish && <span className="text-xs text-muted-foreground">Private. The student did not ask for it to be shown.</span>}
               {r.may_publish && !r.approved_at && (
                 <button type="button" disabled={busyId === r.id} onClick={() => decide(r.id, true)}
                   className="min-h-[36px] rounded-lg bg-primary px-3 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50">

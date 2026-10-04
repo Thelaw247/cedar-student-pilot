@@ -106,6 +106,7 @@ Cross-cutting protections every new route, form or table is expected to keep. `s
 - **Forms survive the back button.** `src/hooks/useDraft.js` is `useState` kept in `sessionStorage` until the form is saved or closed; drafts are cleared at sign-out.
 - **The keyboard never covers the field.** `src/hooks/useOnScreenKeyboard.js` (mounted in `Layout`) publishes the visible part of the screen; overlays with the `sheet-overlay` class, the recording island and the bottom nav fit around the keyboard (`src/index.css`).
 - **The Data API grants only what the browser uses.** Every table has row-level security, and a table created by a migration revokes Supabase's default `anon`/`authenticated` privileges unless the browser needs them.
+- **One request per table, not per class.** `entity.filter({ class_id: [a, b, c] })` reads every class's rows in one request (`src/lib/cedarClient.js` turns an array into `.in()`); a page never fetches in a loop over classes, and independent reads go through `Promise.all`. The analytics SDK is a separate chunk fetched only after consent (`src/lib/analyticsConsent.js`), and Today paints from its five-minute cache before refetching (`src/pages/Home.jsx`).
 
 ## Deployment
 

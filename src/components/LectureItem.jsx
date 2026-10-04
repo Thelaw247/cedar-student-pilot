@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { formatShortDate } from '@/lib/time';
+import { lectureTitle } from '@/lib/lectureTitle';
 import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { FileText, AlertCircle, Calendar, Check, UserCheck, ChevronDown, Loader2 } from 'lucide-react';
@@ -47,15 +49,15 @@ export default function LectureItem({ lecture, defaultInstructor, onUpdate, deca
           {lecture.is_missed ? <AlertCircle className="w-5 h-5 text-muted-foreground" /> : <FileText className="w-5 h-5 text-primary" />}
         </div>
         <div className="flex-1 min-w-0">
-          <h3 className="text-sm font-medium text-foreground truncate">{lecture.ai_title || `Lecture — ${lecture.date}`}</h3>
+          <h3 className="text-sm font-medium text-foreground truncate">{lectureTitle(lecture)}</h3>
           <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-            <Calendar className="w-3 h-3" /> {lecture.date}
+            <Calendar className="w-3 h-3" /> {formatShortDate(lecture.date, { weekday: true })}
             {lecture.duration_seconds > 0 && <span>• {Math.floor(lecture.duration_seconds / 60)} min</span>}
-            {lecture.status === 'processing' && <span className="text-amber-600">• Processing...</span>}
+            {lecture.status === 'processing' && <span className="text-amber-600">• Processing</span>}
             {lecture.status === 'pending' && lecture.recording_url && !lecture.ai_title && (
-              <span className="text-amber-600">• Not processed yet — open to process</span>
+              <span className="text-amber-600">• Not processed yet. Open it to process</span>
             )}
-            {lecture.is_ai_estimated && <span className="text-amber-600">• AI Estimated</span>}
+            {lecture.is_ai_estimated && <span className="text-amber-600">• Estimated, not recorded</span>}
           </div>
           {decayState && (
             <div className="mt-1.5">

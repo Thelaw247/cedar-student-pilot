@@ -26,7 +26,7 @@ import { ratingSummary } from '@/lib/reviews';
 /**
  * The demo loop: forty-six seconds of a real account, recorded from the
  * live app and cut in the order the page tells the story — a recorded
- * lecture that is already notes, formulas and an exam radar; two lectures
+ * lecture that is already notes, formulas and exam hints; two lectures
  * ticked on the study page and the tools following; the day and the week
  * the studying was booked into. Muted, looping, 16:9, under 2.5 MB, with
  * one control: a pause button, because anything that moves for more than
@@ -40,7 +40,7 @@ import { ratingSummary } from '@/lib/reviews';
  */
 export const HERO_DEMO_VIDEO = '/hero-demo-v2.mp4';
 export const HERO_DEMO_POSTER = '/hero-demo-v2.jpg';
-const HERO_DEMO_ALT = 'Praelecta in use: a recorded lecture already turned into notes, formulas and an exam radar; two lectures ticked for studying; the week with the sessions booked in.';
+const HERO_DEMO_ALT = 'Praelecta in use: a recorded lecture already turned into notes, formulas and exam hints; two lectures ticked for studying; the week with the sessions booked in.';
 
 const REDUCED_MOTION = '(prefers-reduced-motion: reduce)';
 

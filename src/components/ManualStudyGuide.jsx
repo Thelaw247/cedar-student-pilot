@@ -159,7 +159,7 @@ export default function ManualStudyGuide({ classId, studyMode = null, lectureIds
                     {ch.definitions.map((d, j) => (
                       <div key={j} className="text-sm">
                         <span className="font-medium text-foreground">{d.term}</span>
-                        <span className="text-muted-foreground"> — {d.definition}</span>
+                        <span className="text-muted-foreground">: {d.definition}</span>
                       </div>
                     ))}
                   </div>
@@ -192,7 +192,7 @@ export default function ManualStudyGuide({ classId, studyMode = null, lectureIds
         </div>
 
         <button onClick={onClose} className="w-full py-3 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90">
-          Done — Back to Timer
+          Done, back to the timer
         </button>
       </div>
     </div>

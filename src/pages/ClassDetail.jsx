@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { formatShortDate, formatTime as formatClockTime } from '@/lib/time';
+import { lectureTitle } from '@/lib/lectureTitle';
 import { useParams, Link, useSearchParams } from 'react-router-dom';
 import CoverageChecklist from '@/components/CoverageChecklist';
 import GateNotice, { gateFromError } from '@/components/monetization/GateNotice';
@@ -104,7 +106,7 @@ export default function ClassDetail() {
           <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-xs text-muted-foreground">
             {cls.instructor && <span>{cls.instructor}</span>}
             {cls.room && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{cls.room}</span>}
-            {cls.start_time && <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{cls.start_time}–{cls.end_time}</span>}
+            {cls.start_time && <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{formatClockTime(cls.start_time)}{cls.end_time ? ` to ${formatClockTime(cls.end_time)}` : ''}</span>}
             {cls.days_of_week && <span>{cls.days_of_week.join(', ')}</span>}
           </div>
         </div>
@@ -224,12 +226,6 @@ function LectureTab({ lectures, coverage, classId, cls, onUpdate, autoRecord, on
         </div>
       )}
 
-      {/* The professor's files for the whole course — syllabus, past exams,
-          formula sheets — plus every file attached to a lecture, in one
-          place. Same widget as the lecture page's materials, in class scope;
-          what the practice-question generator can build from. */}
-      <LectureMaterials cls={cls} lectures={lectures} />
-
       {lectures.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border p-12 text-center">
           <Mic className="w-8 h-8 text-muted-foreground mx-auto mb-3" strokeWidth={1.5} />
@@ -246,12 +242,21 @@ function LectureTab({ lectures, coverage, classId, cls, onUpdate, autoRecord, on
           lectures={filteredLectures}
           coverageMap={coverageMap}
           allClassLectures={lectures}
-          cls={cls}
           defaultInstructor={cls?.instructor}
           onUpdate={onUpdate}
           searchQuery={searchQuery}
         />
       )}
+
+      {/* The professor's files for the whole course (syllabus, past exams,
+          formula sheets) plus every file attached to a lecture, in one place.
+          Same widget as the lecture page's materials, in class scope; what the
+          practice-question generator can build from. Below the lectures since
+          4 Oct 2026: the lectures are what this page is for, and on a phone
+          the files card pushed the first one below the fold. */}
+      <div className="mt-4">
+        <LectureMaterials cls={cls} lectures={lectures} />
+      </div>
 
       {showRecord && <RecordModal classId={classId} cls={cls} onClose={() => { setShowRecord(false); onUpdate(); }} />}
     </div>
@@ -404,7 +409,7 @@ function RecordModal({ classId, cls, onClose }) {
             </div>
             <h3 className="font-heading text-lg font-semibold mb-1">A recording is already running</h3>
             <p className="text-sm text-muted-foreground mb-6">
-              There's an active recording session for {busyName}. Finish or discard it from the recording pill first — only one lecture can record at a time.
+              There's an active recording session for {busyName}. Finish or discard it from the recording pill first. Only one lecture can record at a time.
             </p>
             <button onClick={onClose} className="w-full py-3 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90">Got it</button>
           </>
@@ -414,7 +419,7 @@ function RecordModal({ classId, cls, onClose }) {
               <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
               <div className="flex-1">
                 <p className="text-sm font-medium text-amber-700 dark:text-amber-500">Unsaved recording found</p>
-                <p className="text-xs text-muted-foreground mt-1">A recording for this class (about {formatTime(recovery.seconds || 0)}) didn't finish saving last time. The audio is safe — you can save it now.</p>
+                <p className="text-xs text-muted-foreground mt-1">A recording for this class (about {formatTime(recovery.seconds || 0)}) didn't finish saving last time. The audio is safe, and you can save it now.</p>
                 <div className="flex gap-2 mt-3">
                   <button onClick={recoverAndSave}
                     className="flex-1 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90">
@@ -478,8 +483,8 @@ function RecordModal({ classId, cls, onClose }) {
               <Mic className="w-8 h-8 text-primary" />
             </div>
             <h3 className="font-heading text-lg font-semibold mb-1">Record Lecture</h3>
-            <p className="text-sm text-muted-foreground mb-2">Recording keeps running while you use the rest of the app — the pill at the bottom is your timer, pause, and notes.</p>
-            <p className="text-xs text-muted-foreground mb-2">Long lectures are split into segments automatically behind the scenes — just keep recording for up to 6 hours in one session.</p>
+            <p className="text-sm text-muted-foreground mb-2">Recording keeps running while you use the rest of the app. The pill at the bottom is your timer, pause, and notes.</p>
+            <p className="text-xs text-muted-foreground mb-2">Long lectures are saved in parts as you go. Just keep recording, for up to 6 hours in one session.</p>
             {osBlocksMic && !micError && (
               <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 mb-3 text-left">
                 <p className="text-xs font-medium text-amber-700 dark:text-amber-500">Your computer is blocking the microphone for apps</p>
@@ -607,7 +612,7 @@ function AssignmentTab({ assignments, lectures = [], coverage = [], classId, cls
                   </span>
                 )}
               </div>
-              <p className="text-xs text-muted-foreground mt-0.5">Due {a.due_date}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Due {formatShortDate(a.due_date, { weekday: true })}</p>
               {a.type === 'project' && a.description && (
                 <p className="text-xs text-muted-foreground mt-1.5 line-clamp-2">{a.description}</p>
               )}
@@ -699,7 +704,7 @@ function AssignmentTab({ assignments, lectures = [], coverage = [], classId, cls
       ) : activeAssignments.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border p-8 text-center">
           <Check className="w-6 h-6 text-emerald-600 mx-auto mb-2" strokeWidth={1.5} />
-          <p className="text-sm text-muted-foreground">You're all caught up — no active assignments.</p>
+          <p className="text-sm text-muted-foreground">You're all caught up. No open deadlines.</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -833,7 +838,7 @@ function MissedLectureConfirmModal({ classId, onClose, onGenerated }) {
         <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 mb-4 flex items-start gap-2">
           <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
           <p className="text-xs text-amber-700 dark:text-amber-500">
-            This creates a new lecture entry with AI-estimated content based on your previous lectures — it doesn't reflect what was actually taught. It'll be clearly labelled as AI-estimated.
+            This adds a lecture with an estimated summary based on your earlier lectures. It is a guess at what was taught, not a record of it, and it is labelled as an estimate.
           </p>
         </div>
 
@@ -882,7 +887,7 @@ function HandbookTab({ cls, lectures }) {
   // tease built from their OWN chapter list — their value sells the upgrade.
   if (!hasFeature(tier, 'handbook')) {
     const teaseChapters = lecturesWithContent.length > 0
-      ? lecturesWithContent.slice(0, 4).map((lec, i) => ({ n: i + 1, title: lec.ai_title || `Lecture — ${lec.date}` }))
+      ? lecturesWithContent.slice(0, 4).map((lec, i) => ({ n: i + 1, title: lectureTitle(lec) }))
       : [
           { n: 1, title: 'Course foundations and key terms' },
           { n: 2, title: 'Core concepts, week by week' },
@@ -891,7 +896,7 @@ function HandbookTab({ cls, lectures }) {
     return (
       <LockedFeature
         title={`The ${cls.name} handbook`}
-        description="We write a living handbook for this class from your own lectures — every chapter in your professor's words, updated as you record."
+        description="A handbook for this class written from your own lectures: every chapter in your professor's words, updated as you record."
         source="handbook"
         requiredTierName="Scholar"
         ctaLabel="See plans"
@@ -940,8 +945,8 @@ function HandbookTab({ cls, lectures }) {
               {lecturesWithContent.slice(0, 5).map((lec, i) => (
                 <div key={i} className="flex items-center gap-2 text-xs">
                   <span className="text-muted-foreground tabular-nums w-5">{String(i + 1).padStart(2, '0')}</span>
-                  <span className="text-foreground truncate flex-1">{lec.ai_title || `Lecture — ${lec.date}`}</span>
-                  <span className="text-muted-foreground">{lec.date}</span>
+                  <span className="text-foreground truncate flex-1">{lectureTitle(lec)}</span>
+                  <span className="text-muted-foreground">{formatShortDate(lec.date)}</span>
                 </div>
               ))}
               {lecturesWithContent.length > 5 && (

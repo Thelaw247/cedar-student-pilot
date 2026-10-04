@@ -3,9 +3,9 @@ import { getSetting, setSetting } from '@/lib/settings';
 import { Check, Zap, Clock, TrendingDown } from 'lucide-react';
 
 const OPTIONS = [
-  { key: 'fast', icon: Zap, label: 'Fast', subtitle: 'Decays in 1–2 weeks' },
-  { key: 'default', icon: Clock, label: 'Default', subtitle: 'Decays in 2–4 weeks' },
-  { key: 'slow', icon: TrendingDown, label: 'Slow', subtitle: 'Decays in 3–6 weeks' },
+  { key: 'fast', icon: Zap, label: 'Soon', subtitle: 'A lecture needs a review after 1 to 2 weeks' },
+  { key: 'default', icon: Clock, label: 'Usual', subtitle: 'After 2 to 4 weeks' },
+  { key: 'slow', icon: TrendingDown, label: 'Later', subtitle: 'After 3 to 6 weeks' },
 ];
 
 export default function ConceptDecaySettings() {
@@ -18,9 +18,9 @@ export default function ConceptDecaySettings() {
 
   return (
     <div className="mt-4 pt-4 border-t border-border">
-      <p className="text-sm font-medium text-foreground mb-1">Concept Decay Rate</p>
+      <p className="text-sm font-medium text-foreground mb-1">How soon a lecture needs reviewing</p>
       <p className="text-xs text-muted-foreground mb-3">
-        How quickly your lecture proficiency fades when you haven't reviewed. Older lectures decay faster.
+        How long after a lecture the app starts nudging you to review it. Older lectures come up sooner either way.
       </p>
       <div className="space-y-2">
         {OPTIONS.map(opt => {

@@ -79,7 +79,7 @@ router.post('/', requireAuth, async (req, res) => {
     });
   } catch (error) {
     console.error('[enrich-lecture]', error?.message || error);
-    return res.status(500).json({ error: 'The analysis could not be completed. Nothing was changed — try again in a few minutes.' });
+    return res.status(500).json({ error: 'The analysis could not be completed. Nothing was changed. Try again in a few minutes.' });
   }
 });
 

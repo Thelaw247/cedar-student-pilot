@@ -29,7 +29,7 @@ router.post('/', requireAuth, async (req, res) => {
       // Finishing copy on hosted Checkout (branding pass, Aug 2026): the
       // same honest reassurance the app shows beside every price. Stays
       // accurate for both modes — the pack line is set below.
-      'custom_text[submit][message]': 'Cancel anytime — you keep your plan until the period ends. Prices in CAD.',
+      'custom_text[submit][message]': 'Cancel anytime. You keep your plan until the period ends. Prices in CAD.',
       // Show the "Add promotion code" field on hosted Checkout. Without this
       // Stripe hides it entirely, so a coupon created in the dashboard has no
       // way in and a student who was given a code cannot use it. Codes are
@@ -67,7 +67,7 @@ router.post('/', requireAuth, async (req, res) => {
         'metadata[cedar_pack]': pack,
         'metadata[cedar_credits]': String(p.credits),
         // One-time purchase — the subscription reassurance would be wrong here.
-        'custom_text[submit][message]': 'One-time purchase — credits never expire. Prices in CAD.',
+        'custom_text[submit][message]': 'One-time purchase. Credits never expire. Prices in CAD.',
       });
     } else {
       return res.status(400).json({ error: 'Provide a tier or a pack' });

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { formatShortDate } from '@/lib/time';
 import { base44 } from '@/api/base44Client';
 import { Sparkles } from 'lucide-react';
 import { announceDataChange } from '@/lib/dataChanged';
@@ -105,10 +106,10 @@ export default function DetectedDeadlines({ lectures = [], assignments = [], onC
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-foreground">
-                Heard {label === 'exam' || label === 'assignment' ? 'an' : 'a'} {label} in your {lecture.date} lecture
+                Heard {label === 'exam' || label === 'assignment' ? 'an' : 'a'} {label} in your lecture on {formatShortDate(lecture.date)}
               </p>
               <p className="text-xs text-muted-foreground mt-0.5">
-                &ldquo;{item.title}&rdquo; — due {item.due_date}. Add it to your deadlines?
+                &ldquo;{item.title}&rdquo;, due {formatShortDate(item.due_date, { weekday: true })}. Add it to your deadlines?
               </p>
               <div className="flex items-center gap-2 mt-2">
                 <button type="button" onClick={() => setAdding(entry)}

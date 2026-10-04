@@ -2,7 +2,6 @@ import React, { useState, useMemo } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import LectureItem from '@/components/LectureItem';
 import { getDecayState, getWorstState, DECAY_STATES } from '@/lib/conceptDecay';
-import { classColor } from '@/lib/color';
 
 function getMondayOfWeek(dateStr) {
   const d = new Date(dateStr + 'T00:00:00');
@@ -17,8 +16,9 @@ function formatWeekLabel(monday) {
   return `Week of ${months[monday.getMonth()]} ${monday.getDate()}`;
 }
 
-export default function WeekGroupedLectures({ lectures, coverageMap, allClassLectures, cls, defaultInstructor, onUpdate, searchQuery }) {
-  const [internalExpanded, setInternalExpanded] = useState(new Set());
+export default function WeekGroupedLectures({ lectures, coverageMap, allClassLectures, defaultInstructor, onUpdate, searchQuery }) {
+  // Weeks the student has opened or closed by hand: weekKey → open?
+  const [toggled, setToggled] = useState(() => new Map());
 
   // Group lectures by ISO week (Monday of the week)
   const weekGroups = useMemo(() => {
@@ -32,11 +32,9 @@ export default function WeekGroupedLectures({ lectures, coverageMap, allClassLec
     return Object.entries(groups).sort((a, b) => b[0].localeCompare(a[0]));
   }, [lectures]);
 
-  // Auto-expand if only one week exists
-  const autoExpanded = useMemo(() => {
-    if (weekGroups.length === 1) return new Set([weekGroups[0][0]]);
-    return new Set();
-  }, [weekGroups]);
+  // The latest week starts open: it holds the lecture a student most likely
+  // came for, and a page of closed rows made every visit start with a tap.
+  const latestWeekKey = weekGroups[0]?.[0];
 
   // When searching, auto-expand weeks that contain matching lectures
   const searchExpanded = useMemo(() => {
@@ -61,14 +59,14 @@ export default function WeekGroupedLectures({ lectures, coverageMap, allClassLec
   }, [weekGroups, searchQuery]);
 
   const isExpanded = (weekKey) => {
-    return autoExpanded.has(weekKey) || searchExpanded.has(weekKey) || internalExpanded.has(weekKey);
+    if (searchExpanded.has(weekKey)) return true;
+    if (toggled.has(weekKey)) return toggled.get(weekKey);
+    return weekKey === latestWeekKey;
   };
 
   const toggleWeek = (weekKey) => {
-    const next = new Set(internalExpanded);
-    if (next.has(weekKey)) next.delete(weekKey);
-    else next.add(weekKey);
-    setInternalExpanded(next);
+    const open = isExpanded(weekKey);
+    setToggled((prev) => new Map(prev).set(weekKey, !open));
   };
 
   return (
@@ -97,8 +95,8 @@ export default function WeekGroupedLectures({ lectures, coverageMap, allClassLec
           >
             <button
               onClick={() => toggleWeek(weekKey)}
+              aria-expanded={expanded}
               className="w-full flex items-center gap-3 p-3.5 hover:bg-muted/30 transition-colors text-left"
-              style={expanded ? { borderLeft: `3px solid ${classColor(cls?.color)}` } : {}}
             >
               <div className="flex-shrink-0">
                 {expanded

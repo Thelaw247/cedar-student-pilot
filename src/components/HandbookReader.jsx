@@ -307,7 +307,7 @@ export default function HandbookReader({ classId, lectureIds = null, assignmentI
                 <span className="text-[10px] font-semibold text-primary uppercase tracking-widest">Added by AI to fill gaps</span>
               </div>
               <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">{chapter.ai_expansion}</p>
-              <p className="text-[10px] text-muted-foreground mt-2 italic">Supplementary context — not your professor's words. Double-check against the lecture.</p>
+              <p className="text-[10px] text-muted-foreground mt-2 italic">Added context, not your professor's words. Double-check it against the lecture.</p>
             </div>
           )}
 
@@ -328,7 +328,7 @@ export default function HandbookReader({ classId, lectureIds = null, assignmentI
               {chapter.definitions.map((d, i) => (
                 <div key={i} className="text-sm">
                   <span className="font-medium text-foreground">{d.term}</span>
-                  <span className="text-muted-foreground"> — {d.definition}</span>
+                  <span className="text-muted-foreground">: {d.definition}</span>
                 </div>
               ))}
             </div>

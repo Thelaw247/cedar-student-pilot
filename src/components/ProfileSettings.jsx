@@ -46,7 +46,7 @@ export default function ProfileSettings() {
       return;
     }
     if (file.size > MAX_PHOTO_BYTES) {
-      setPhotoError('Photo is too large — please choose one under 5MB.');
+      setPhotoError('Photo is too large. Please choose one under 5 MB.');
       return;
     }
     setPhotoBusy(true);

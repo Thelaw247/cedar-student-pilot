@@ -88,7 +88,7 @@ export default function QuizReview({ questions, answers, className = '' }) {
         </div>
       ) : (
         <div className="mb-5 rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4 text-center">
-          <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-500">Nothing missed — every answer was right.</p>
+          <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-500">Nothing missed. Every answer was right.</p>
           <p className="text-xs text-muted-foreground mt-1">Come back to this material in a few days to make it stick.</p>
         </div>
       )}

@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { lectureTitle } from '@/lib/lectureTitle';
+import { formatShortDate } from '@/lib/time';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { onDataChange } from '@/lib/dataChanged';
@@ -356,17 +358,17 @@ export default function LectureDetail() {
         <Link to={cls ? `/classes/${cls.id}` : '/classes'} className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1">
           <ChevronLeft className="w-4 h-4" /> {cls?.name || 'Classes'}
         </Link>
-        <div className="flex items-center gap-2 flex-wrap justify-end">
+        <div className="flex items-center gap-2 flex-wrap sm:justify-end">
           {lecture?.ai_summary && (
             quizGate.allowed ? (
               <button onClick={() => setShowQuiz(true)}
                 className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors">
-                <Zap className="w-3.5 h-3.5" /> Quick Quiz
+                <Zap className="w-3.5 h-3.5" /> Quick quiz
               </button>
             ) : (
               <button onClick={quizGate.lock} title={`Quick quizzes ship with ${quizGate.requiredTierName}`}
                 className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-muted text-muted-foreground text-xs font-medium hover:text-foreground transition-colors">
-                <Lock className="w-3.5 h-3.5" /> Quick Quiz
+                <Lock className="w-3.5 h-3.5" /> Quick quiz
               </button>
             )
           )}
@@ -424,44 +426,21 @@ export default function LectureDetail() {
           <FileText className="w-6 h-6 text-primary" />
         </div>
         <div className="flex-1">
-          <h1 className="font-heading text-xl font-bold">{lecture.ai_title || `Lecture — ${lecture.date}`}</h1>
+          <h1 className="font-heading text-xl font-bold">{lectureTitle(lecture)}</h1>
           <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1 text-xs text-muted-foreground">
-            <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{lecture.date}</span>
+            <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{formatShortDate(lecture.date, { weekday: true })}</span>
             {lecture.duration_seconds > 0 && <span>• {Math.floor(lecture.duration_seconds / 60)} min</span>}
-            {lecture.is_ai_estimated && <span className="flex items-center gap-1 text-amber-600"><AlertCircle className="w-3 h-3" /> AI Estimated</span>}
-            {lecture.status === 'processing' && <span className="text-amber-600">• AI Processing...</span>}
+            {lecture.is_ai_estimated && <span className="flex items-center gap-1 text-amber-600"><AlertCircle className="w-3 h-3" /> Estimated, not recorded</span>}
+            {lecture.status === 'processing' && <span className="text-amber-600">• Still processing</span>}
           </div>
         </div>
       </div>
-
-      {/* Post-value upsell — Free tier, completed lecture, dismissible */}
-      {tier === 'free' && lecture.status === LECTURE_COMPLETE && lecture.ai_title && !upsellDismissed && (
-        <div className="rounded-2xl border border-primary/25 bg-primary/[0.04] p-4 mb-6 flex items-start gap-3">
-          <Sparkles className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-          <div className="flex-1">
-            <p className="text-sm font-medium text-foreground">This lecture is fully covered — transcript, summary and key concepts.</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Students on the Student plan cover about 20 lectures like this every month.</p>
-            <div className="flex gap-2 mt-2.5">
-              <button
-                type="button"
-                onClick={() => openUpgrade({ source: 'recording' })}
-                className="px-3 py-1.5 rounded-button bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors duration-micro"
-              >
-                See plans
-              </button>
-              <button type="button" onClick={dismissUpsell} className="px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground">
-                Not now
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* AI Estimated banner */}
       {lecture.is_ai_estimated && (
         <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 mb-6 flex items-start gap-2">
           <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
-          <p className="text-xs text-amber-700 dark:text-amber-500">This lecture was not recorded. The summary below is AI-generated based on previous lectures and course context. It may not reflect what was actually covered in class.</p>
+          <p className="text-xs text-amber-700 dark:text-amber-500">This lecture was not recorded. The summary below is an estimate based on your earlier lectures and the course, so it may not match what was covered in class.</p>
         </div>
       )}
 
@@ -481,7 +460,7 @@ export default function LectureDetail() {
                 {lecture.processing_error
                   ? `Last attempt: ${lecture.processing_error}`
                   : processingStalled
-                    ? 'The server did not finish this one. Your audio is safely stored — pick it up again from here.'
+                    ? 'The server did not finish this one. Your audio is safely stored. Pick it up again from here.'
                     : 'The audio is safely stored. Start processing to get the transcript, summary, and flashcards.'}
               </p>
               <button onClick={retryProcessing} disabled={retrying}
@@ -515,7 +494,7 @@ export default function LectureDetail() {
             <Loader2 className="w-4 h-4 animate-spin text-primary" />
             <p className="text-sm font-semibold text-foreground">Transcribing and summarizing…</p>
           </div>
-          <p className="text-[11px] text-muted-foreground mb-3">Usually under a minute for a typical lecture — this page updates by itself.</p>
+          <p className="text-[11px] text-muted-foreground mb-3">Usually under a minute for a typical lecture. This page updates by itself.</p>
           <div className="animate-pulse space-y-2">
             <div className="h-3 bg-muted rounded w-full" />
             <div className="h-3 bg-muted rounded w-11/12" />
@@ -528,7 +507,7 @@ export default function LectureDetail() {
       {awaitingEnrichment && (
         <div className="rounded-xl border border-primary/25 bg-primary/[0.04] px-4 py-3 mb-4 flex items-center gap-2.5">
           <Loader2 className="w-4 h-4 animate-spin text-primary flex-shrink-0" />
-          <p className="text-[13px] text-foreground">Building the full study page — outline, concept cards, formulas, examples and to-dos are on their way.</p>
+          <p className="text-[13px] text-foreground">Building the full study page: outline, concept cards, formulas, examples and to-dos are on their way.</p>
         </div>
       )}
 
@@ -579,8 +558,32 @@ export default function LectureDetail() {
         />
       )}
 
+      {/* Free plan, finished lecture: one card, below the material it describes,
+          dismissible per lecture. */}
+      {tier === 'free' && lecture.status === LECTURE_COMPLETE && lecture.ai_title && !upsellDismissed && (
+        <div className="rounded-2xl border border-primary/25 bg-primary/[0.04] p-4 mb-4 flex items-start gap-3">
+          <Sparkles className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+          <div className="flex-1">
+            <p className="text-sm font-medium text-foreground">This lecture is fully covered: transcript, summary and key concepts.</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Students on the Student plan cover about 20 lectures like this every month.</p>
+            <div className="flex gap-2 mt-2.5">
+              <button
+                type="button"
+                onClick={() => openUpgrade({ source: 'recording' })}
+                className="px-3 py-1.5 rounded-button bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors duration-micro"
+              >
+                See plans
+              </button>
+              <button type="button" onClick={dismissUpsell} className="px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground">
+                Not now
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Notes */}
-      <Section icon={FileText} title="My Notes" id="sec-notes">
+      <Section icon={FileText} title="My notes" id="sec-notes">
         <textarea
           value={note}
           onChange={e => setNote(e.target.value)}

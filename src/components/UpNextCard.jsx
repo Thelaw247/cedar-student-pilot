@@ -104,8 +104,8 @@ export default function UpNextCard({ todayClasses, events }) {
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <span className="text-[10px] font-semibold text-primary uppercase tracking-wide">Up Next</span>
-              <span className="text-[10px] font-bold text-primary tabular-nums bg-primary/10 px-1.5 py-0.5 rounded">{formatCountdown(minutesUntil)}</span>
+              <span className="text-xs font-medium text-primary">Up next</span>
+              <span className="text-[11px] font-semibold text-primary tabular-nums bg-primary/10 px-1.5 py-0.5 rounded">{formatCountdown(minutesUntil)}</span>
             </div>
             <p className="text-sm font-semibold text-foreground truncate">{nextClass.name}</p>
             <p className="text-[11px] text-muted-foreground truncate">
@@ -149,8 +149,8 @@ export default function UpNextCard({ todayClasses, events }) {
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <span className="text-[10px] font-semibold text-primary uppercase tracking-wide">Up Next</span>
-              <span className="text-[10px] font-bold text-primary tabular-nums bg-primary/10 px-1.5 py-0.5 rounded">{formatCountdown(nextEvent.startMin - nowMin)}</span>
+              <span className="text-xs font-medium text-primary">Up next</span>
+              <span className="text-[11px] font-semibold text-primary tabular-nums bg-primary/10 px-1.5 py-0.5 rounded">{formatCountdown(nextEvent.startMin - nowMin)}</span>
             </div>
             <p className="text-sm font-semibold text-foreground truncate">{nextEvent.title}</p>
             <p className="text-[11px] text-muted-foreground">{formatTime(nextEvent.start_time)}</p>

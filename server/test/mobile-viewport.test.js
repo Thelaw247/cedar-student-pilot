@@ -61,7 +61,8 @@ test('every modal panel can scroll', () => {
     '../../src/components/AddEventModal.jsx',
     '../../src/components/AddExamOrStudyModal.jsx',
     '../../src/components/AssignmentEditModal.jsx',
-    '../../src/components/AttendancePrompt.jsx',
+    // AttendancePrompt left this list when it became a card in the Today
+    // page rather than a pop-up over it (see attendance-and-recovery).
     '../../src/components/RebookSessionModal.jsx',
     '../../src/pages/ClassDetail.jsx',
     // The session modals — interval end, saved, project end — moved out of

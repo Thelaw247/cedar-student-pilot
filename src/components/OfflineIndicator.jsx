@@ -55,7 +55,7 @@ export default function OfflineIndicator() {
       <div className="fixed bottom-20 lg:bottom-4 left-1/2 -translate-x-1/2 z-40 animate-fade-in">
         <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-600 text-white shadow-lg text-xs font-medium">
           <Check className="w-3.5 h-3.5" />
-          Synced — all changes saved.
+          Synced. All changes saved.
         </div>
       </div>
     );
@@ -67,7 +67,7 @@ export default function OfflineIndicator() {
       <div className="fixed bottom-20 lg:bottom-4 left-1/2 -translate-x-1/2 z-40 animate-fade-in">
         <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/95 text-white shadow-lg text-xs font-medium">
           <WifiOff className="w-3.5 h-3.5" />
-          Offline — {pendingCount} change{pendingCount !== 1 ? 's' : ''} queued
+          Offline. {pendingCount} change{pendingCount !== 1 ? 's' : ''} waiting to sync
         </div>
       </div>
     );
@@ -79,7 +79,7 @@ export default function OfflineIndicator() {
       <div className="fixed bottom-20 lg:bottom-4 left-1/2 -translate-x-1/2 z-40 animate-fade-in">
         <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/90 text-white shadow-lg text-xs font-medium">
           <WifiOff className="w-3.5 h-3.5" />
-          You're offline — viewing cached data.
+          You're offline. Showing what was loaded last.
         </div>
       </div>
     );

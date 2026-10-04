@@ -15,6 +15,19 @@ import { PUBLIC_PAGES } from '@/lib/publicPages';
  */
 export const CHANGELOG = [
   {
+    date: '2026-10-04',
+    title: 'Faster to open, fewer words in the way',
+    items: [
+      'The Study page opens in a fraction of the time. It used to ask the server for each class one at a time; now it asks once for everything, and the practice tools no longer wait for the deadlines list before they appear.',
+      'Today draws itself from what it showed you last and refreshes underneath, so coming back to it is instant. The app itself is a quarter smaller to download: analytics code is only fetched if you have said yes to it.',
+      'The attendance question is a card on Today instead of a pop-up over it, and the review ask comes after your schedule, not before it.',
+      'Dates read like dates everywhere: “Sun, Sep 27” instead of “2026-09-27”. A lecture that has no title yet is called “Lecture on Sep 27”, and class times show as “8:30 AM”.',
+      'On a class page the latest week starts open and the course files sit below the lectures. On a lecture page the plan card sits below the notes it describes, the print and email buttons fit a phone, and “Exam radar” is “Exam hints”.',
+      'Settings leads with your plan and your account, and the sections most people never touch start closed. Most of the app’s labels and notices were rewritten in plain words, in sentence case, with the dashes gone.',
+      'The class list no longer spills off the side of a phone screen.',
+    ],
+  },
+  {
     date: '2026-10-03',
     title: 'Nothing lost, nothing charged twice',
     items: [

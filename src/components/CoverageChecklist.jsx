@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { lectureTitle } from '@/lib/lectureTitle';
 import { Check, ChevronDown, ChevronRight, Circle } from 'lucide-react';
 import FreshnessBadge from '@/components/FreshnessBadge';
 import { getDecayState } from '@/lib/conceptDecay';
@@ -97,7 +98,7 @@ export default function CoverageChecklist({
                   : <Circle className="w-0 h-0" />}
               </span>
               <span className={`text-xs truncate ${covered ? 'text-foreground' : 'text-muted-foreground'}`}>
-                {lecture.ai_title || `Lecture — ${lecture.date}`}
+                {lectureTitle(lecture)}
               </span>
               {/* Only where there is something to say. An unreviewed lecture is
                   already marked by its empty circle; a second grey chip beside

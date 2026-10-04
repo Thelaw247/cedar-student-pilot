@@ -25,7 +25,7 @@ export default function AddExamOrStudyModal({ classes, onClose }) {
                 <FileText className="w-5 h-5 text-rose-600" />
               </div>
               <div>
-                <p className="text-sm font-medium text-foreground">Add Exam / Assignment</p>
+                <p className="text-sm font-medium text-foreground">Add exam or assignment</p>
                 <p className="text-xs text-muted-foreground">Creates a deadline and generates an AI study plan</p>
               </div>
             </button>
@@ -34,7 +34,7 @@ export default function AddExamOrStudyModal({ classes, onClose }) {
                 <BookOpen className="w-5 h-5 text-amber-600" />
               </div>
               <div>
-                <p className="text-sm font-medium text-foreground">Add Study Block</p>
+                <p className="text-sm font-medium text-foreground">Add study block</p>
                 <p className="text-xs text-muted-foreground">Schedule a single study session</p>
               </div>
             </button>
@@ -107,7 +107,7 @@ function StudyForm({ classes, onBack, onClose }) {
       <div role="dialog" aria-modal="true" aria-labelledby={`${id}-title`} className="bg-card w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl border border-border p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:pb-6 animate-fade-in max-h-[90dvh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="flex items-center gap-3 mb-4">
           <button onClick={onBack} aria-label="Back" className="text-muted-foreground hover:text-foreground"><ChevronLeft className="w-5 h-5" /></button>
-          <h3 id={`${id}-title`} className="font-heading text-lg font-semibold">Add Study Block</h3>
+          <h3 id={`${id}-title`} className="font-heading text-lg font-semibold">Add study block</h3>
         </div>
         <form onSubmit={handleSubmit} className="space-y-3">
           <select aria-label="Class" value={form.class_id} onChange={e => setForm({ ...form, class_id: e.target.value })}

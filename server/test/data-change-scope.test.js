@@ -81,11 +81,17 @@ test('a background refetch never blanks a page being read', () => {
   // The second half of the fix. Even for a change a page DOES care about — a
   // recording finishing — replacing it with a spinner loses the scroll
   // position and every open section.
-  for (const [name, src] of [['LectureDetail', LECTURE], ['ClassDetail', CLASS], ['Home', HOME]]) {
+  for (const [name, src] of [['LectureDetail', LECTURE], ['ClassDetail', CLASS]]) {
     assert.match(src, /const loadData = useCallback\(async \(\{ quiet = false \} = \{\}\) => \{\s*\n\s*if \(!quiet\) setLoading\(true\);/,
       `${name} still shows its full-page spinner on a background refetch`);
     assert.match(src, /onDataChange\(\(\) => loadData\(\{ quiet: true \}\)/, `${name} refetches loudly`);
   }
+  // Home paints from its cache first and spins only on a cold first load; a
+  // quiet refetch never touches the loader either way.
+  assert.match(HOME, /const loadData = useCallback\(async \(\{ quiet = false \} = \{\}\) => \{\s*\n(\s*\/\/[^\n]*\n)*\s*if \(!quiet && !drawnRef\.current\) \{/,
+    'Home still shows its full-page spinner on a background refetch');
+  assert.equal((HOME.match(/setLoading\(true\)/g) || []).length, 1, 'Home sets its loader somewhere other than the cold first load');
+  assert.match(HOME, /onDataChange\(\(\) => loadData\(\{ quiet: true \}\)/, 'Home refetches loudly');
 });
 
 test('every surface declares what it reads', () => {

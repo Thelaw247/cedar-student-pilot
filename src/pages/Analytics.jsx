@@ -37,16 +37,12 @@ export default function Analytics() {
       if (semesters.length > 0) {
         const cls = await base44.entities.Class.filter({ semester_id: semesters[0].id });
         setClasses(cls);
-        const allLectures = [];
-        const allCoverage = [];
-        for (const c of cls) {
-          const [lecs, cov] = await Promise.all([
-            base44.entities.Lecture.filter({ class_id: c.id }),
-            base44.entities.KnowledgeCoverage.filter({ class_id: c.id }),
-          ]);
-          allLectures.push(...lecs);
-          allCoverage.push(...cov);
-        }
+        // One request per table for every class, not one per class.
+        const classIds = cls.map((c) => c.id);
+        const [allLectures, allCoverage] = await Promise.all([
+          base44.entities.Lecture.filter({ class_id: classIds }),
+          base44.entities.KnowledgeCoverage.filter({ class_id: classIds }),
+        ]);
         setLectures(allLectures);
         setCoverage(allCoverage);
       }
@@ -299,7 +295,7 @@ export default function Analytics() {
         <>
           <div className="flex items-center gap-2 mb-3 mt-8">
             <Brain className="w-4 h-4 text-primary" />
-            <h2 className="font-heading text-sm font-semibold text-muted-foreground uppercase tracking-wide">Knowledge & Proficiency</h2>
+            <h2 className="font-heading text-sm font-semibold text-muted-foreground">Knowledge and proficiency</h2>
           </div>
 
           {/* Per-class filter — scope the rings and growth chart to one class,
@@ -359,7 +355,7 @@ export default function Analytics() {
               {growthData.length > 1 && (
                 <div className="rounded-xl border border-border bg-card p-5 mb-4">
                   <h3 className="text-sm font-semibold mb-1">Knowledge Growth Over Sessions</h3>
-                  <p className="text-xs text-muted-foreground mb-4">Coverage and proficiency across review sessions{selectedClass ? ` — ${selectedClass.name}` : ''}</p>
+                  <p className="text-xs text-muted-foreground mb-4">Coverage and proficiency across review sessions{selectedClass ? ` for ${selectedClass.name}` : ''}</p>
                   <ResponsiveContainer width="100%" height={160}>
                     <BarChart data={growthData}>
                       <XAxis dataKey="session" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />

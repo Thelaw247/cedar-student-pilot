@@ -6,11 +6,10 @@ import ReviewForm from '@/components/ReviewForm';
 import { Check, Star } from 'lucide-react';
 
 /**
- * The in-app ask for a review: a quiet card on Today, among the other
- * questions the app has for the student (attendance, detected deadlines).
+ * The in-app ask for a review: a quiet card on Today, after the day's
+ * schedule, among the other questions the app has for the student.
  *
- * A card, not a pop-up: the attendance question is already a full-screen
- * dialog, and a second one stacked on it would be a demand, not a request.
+ * A card, not a pop-up: a dialog would be a demand, not a request.
  * Shown to a current student — one with a processed lecture, or a week in
  * the app (shared/reviews.js) — who has neither reviewed nor declined, and
  * never to the founder. Three answers, all one tap: rate it now, not now
@@ -79,7 +78,7 @@ export default function ReviewPrompt({ lectures = [] }) {
           <Check className="h-4 w-4 text-emerald-500" aria-hidden="true" />
         </div>
         <p className="text-sm text-foreground">
-          Thank you — that helps other students decide.{' '}
+          Thank you. That helps other students decide.{' '}
           <span className="text-muted-foreground">
             {published ? 'It will appear on praelecta.ca once it has been checked.' : 'Your rating counts toward the average on praelecta.ca.'} You can change it any time in Settings.
           </span>

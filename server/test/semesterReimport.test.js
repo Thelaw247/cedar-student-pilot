@@ -174,7 +174,7 @@ test('the setup screen sends semester_id and ids only in update mode, and never 
   assert.match(SETUP, /\.\.\.\(updatingSemesterId && id \? \{ id \} : \{\}\),/);
   assert.match(SETUP, /matchParsedToExisting\(classes, existingClasses\)/);
   assert.match(SETUP, /unclaimedClasses\(parsedClasses, existingClasses\)/);
-  assert.match(SETUP, /Not in this timetable — kept as they are/);
+  assert.match(SETUP, /Not in this timetable, kept as they are/);
   assert.doesNotMatch(SETUP, /Class\.delete|Semester\.delete/, 'the setup screen deletes something');
   // A split-off course is new: it must not carry the source's id.
   assert.match(SETUP, /const \{ id: _existingId, \.\.\.withoutId \} = source;/);

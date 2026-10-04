@@ -309,8 +309,8 @@ export default function AssignmentEditModal({ assignment, onClose, onUpdate }) {
         {/* Rubric / guidelines — travels with the assignment, shown as a
             checklist inside any study session booked for it (Focus Mode). */}
         <div className="mt-5 pt-4 border-t border-border">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-            Rubric / guidelines
+          <p className="text-xs font-semibold text-muted-foreground mb-2">
+            Rubric or guidelines
           </p>
           <p className="text-xs text-muted-foreground mb-3">
             Add the grading criteria or requirements for this {typeLabel}. They'll show as a checklist whenever you study for it.
@@ -341,8 +341,8 @@ export default function AssignmentEditModal({ assignment, onClose, onUpdate }) {
 
         {/* Work sessions */}
         <div className="mt-5 pt-4 border-t border-border">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-            {isProject ? 'Roadmap work sessions' : 'Study sessions'}
+          <p className="text-xs font-semibold text-muted-foreground mb-2">
+            {isProject ? 'Work sessions' : 'Study sessions'}
           </p>
 
           {loadingSessions ? (
@@ -358,7 +358,7 @@ export default function AssignmentEditModal({ assignment, onClose, onUpdate }) {
                 </button>
               ) : (
                 <button type="button" onClick={scheduleGate.lock} className={LOCKED_BUTTON_CLASS}>
-                  <Lock className="w-3 h-3" strokeWidth={2.5} /> Plan study sessions — {scheduleGate.requiredTierName} and up
+                  <Lock className="w-3 h-3" strokeWidth={2.5} /> Plan study sessions, from {scheduleGate.requiredTierName}
                 </button>
               )}
               {planError && <p className="text-xs text-destructive mt-2">{planError}</p>}

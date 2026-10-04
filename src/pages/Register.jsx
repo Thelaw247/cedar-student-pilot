@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { analytics } from "@heycatch/sdk";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +14,7 @@ import { toast } from "@/components/ui/use-toast";
 import { safeReturnTo } from "@/lib/authReturnTo";
 import { LEGAL_VERSION } from "@/lib/legal";
 import { useAuth } from "@/lib/AuthContext";
+import { analytics } from "@/lib/analyticsConsent";
 
 const USE_SUPABASE = import.meta.env.VITE_BACKEND_MODE === "supabase";
 // MUST equal Supabase Auth → "Email OTP Length". The email the student receives

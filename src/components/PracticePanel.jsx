@@ -33,6 +33,16 @@ import { useStudySession } from '@/study/StudySessionContext';
  * runners on the shelf take lectures, so the file choice stays here and is
  * not part of the scope reported to the URL.
  */
+/** A class's lectures, files, saved flashcards and saved questions, together. */
+function readClass(id) {
+  return Promise.all([
+    base44.entities.Lecture.filter({ class_id: id }, 'date'),
+    base44.entities.LectureMaterial.filter({ class_id: id }),
+    base44.entities.Flashcard.filter({ class_id: id }),
+    base44.entities.PracticeQuestion.filter({ class_id: id }),
+  ]);
+}
+
 export default function PracticePanel({ initialClassId = '', initialLectureIds = null, onScopeChange = null, allLectures = null }) {
   const studySession = useStudySession();
   const [classes, setClasses] = useState([]);
@@ -45,6 +55,16 @@ export default function PracticePanel({ initialClassId = '', initialLectureIds =
   const [existingQuestions, setExistingQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // Everything the panel shows for one class, in one round trip: the four
+  // reads used to run one after the other.
+  const showClass = useCallback(async (id) => {
+    const [lecs, mats, fc, pq] = await readClass(id);
+    setLectures(lecs);
+    setMaterials(mats);
+    setExistingFlashcards(fc);
+    setExistingQuestions(pq);
+  }, []);
+
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
@@ -54,19 +74,11 @@ export default function PracticePanel({ initialClassId = '', initialLectureIds =
         setClasses(cls);
         const targetId = initialClassId || (cls.length > 0 ? cls[0].id : '');
         setSelectedClass(targetId);
-        if (targetId) {
-          const lecs = await base44.entities.Lecture.filter({ class_id: targetId }, 'date');
-          setLectures(lecs);
-          setMaterials(await base44.entities.LectureMaterial.filter({ class_id: targetId }));
-          const fc = await base44.entities.Flashcard.filter({ class_id: targetId });
-          setExistingFlashcards(fc);
-          const pq = await base44.entities.PracticeQuestion.filter({ class_id: targetId });
-          setExistingQuestions(pq);
-        }
+        if (targetId) await showClass(targetId);
       }
     } catch (e) { console.error(e); }
     setLoading(false);
-  }, [initialClassId]);
+  }, [initialClassId, showClass]);
 
   useEffect(() => { loadData(); }, [loadData]);
 
@@ -75,15 +87,7 @@ export default function PracticePanel({ initialClassId = '', initialLectureIds =
     setScopeIds([]); // reset scope to whole class when switching class
     setMaterialIds([]); // and the file choice to none: another class, other files
     if (onScopeChange) onScopeChange({ classId: id, lectureIds: [] });
-    if (id) {
-      const lecs = await base44.entities.Lecture.filter({ class_id: id }, 'date');
-      setLectures(lecs);
-      setMaterials(await base44.entities.LectureMaterial.filter({ class_id: id }));
-      const fc = await base44.entities.Flashcard.filter({ class_id: id });
-      setExistingFlashcards(fc);
-      const pq = await base44.entities.PracticeQuestion.filter({ class_id: id });
-      setExistingQuestions(pq);
-    }
+    if (id) await showClass(id);
   };
 
   // The panel owns the scope; the toolbox asks for it at the moment it
@@ -162,7 +166,7 @@ export default function PracticePanel({ initialClassId = '', initialLectureIds =
       />
 
       {/* Build something that stays — saved to the class, below. */}
-      <h2 className="font-heading text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-3">Make study material</h2>
+      <h2 className="font-heading text-sm font-semibold text-muted-foreground mb-3">Make study material</h2>
 
       {/* The professor's files, if the class has any the model could read.
           Chosen per run, none by default: a syllabus folded into every set
@@ -194,13 +198,13 @@ export default function PracticePanel({ initialClassId = '', initialLectureIds =
       {/* Existing materials */}
       {existingFlashcards.length > 0 && (
         <div className="mb-6">
-          <h2 className="font-heading text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-3">Saved Flashcards ({existingFlashcards.length})</h2>
+          <h2 className="font-heading text-sm font-semibold text-muted-foreground mb-3">Saved flashcards ({existingFlashcards.length})</h2>
           <FlashcardViewer flashcards={existingFlashcards} />
         </div>
       )}
       {existingQuestions.length > 0 && (
         <div>
-          <h2 className="font-heading text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-3">Saved Questions ({existingQuestions.length})</h2>
+          <h2 className="font-heading text-sm font-semibold text-muted-foreground mb-3">Saved questions ({existingQuestions.length})</h2>
           <QuizViewer questions={existingQuestions} />
         </div>
       )}

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { formatShortDate, formatTime } from '@/lib/time';
 import { base44 } from '@/api/base44Client';
 import { GraduationCap, Calendar, Clock, Check, X, Headphones, Plus, CalendarClock, Pencil } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -64,24 +65,23 @@ export default function StudyPlanner() {
       if (semesters.length > 0) {
         const cls = await base44.entities.Class.filter({ semester_id: semesters[0].id });
         setClasses(cls);
-        const allAssignments = [];
-        const allSessions = [];
-        const allLectures = [];
-        const allCoverage = [];
-        for (const c of cls) {
-          const asgns = await base44.entities.Assignment.filter({ class_id: c.id });
-          allAssignments.push(...asgns);
-          const sess = await base44.entities.StudySession.filter({ class_id: c.id }, 'scheduled_date');
-          allSessions.push(...sess);
+        // Three round trips, whatever the number of classes. This used to
+        // fetch four tables per class, one after the other: with five classes
+        // that was twenty-two requests in a row, and eight to sixteen seconds
+        // before the page showed anything.
+        const classIds = cls.map((c) => c.id);
+        const [allAssignments, allSessions, allLectures, allCoverage] = await Promise.all([
+          base44.entities.Assignment.filter({ class_id: classIds }),
+          base44.entities.StudySession.filter({ class_id: classIds }, 'scheduled_date'),
           // The two halves of the coverage checklist: what a deadline resolves
           // to, and which of those have been reviewed.
-          allLectures.push(...await base44.entities.Lecture.filter({ class_id: c.id }, 'date'));
-          allCoverage.push(...await base44.entities.KnowledgeCoverage.filter({ class_id: c.id }));
-        }
+          base44.entities.Lecture.filter({ class_id: classIds }, 'date'),
+          base44.entities.KnowledgeCoverage.filter({ class_id: classIds }),
+        ]);
         setAssignments(allAssignments);
         setLectures(allLectures);
         setCoverage(allCoverage);
-        setSessions(allSessions.sort((a, b) => (a.scheduled_date || '').localeCompare(b.scheduled_date || '')));
+        setSessions([...allSessions].sort((a, b) => (a.scheduled_date || '').localeCompare(b.scheduled_date || '')));
       }
     } catch (e) { console.error(e); }
     setLoading(false);
@@ -217,7 +217,7 @@ export default function StudyPlanner() {
       <div className="flex items-center justify-between mb-4">
         <div>
           <h1 className="font-heading text-2xl sm:text-3xl font-bold">Study</h1>
-          <p className="text-muted-foreground text-sm mt-0.5">Every tool, on the lectures you pick &mdash; and what is due, and when</p>
+          <p className="text-muted-foreground text-sm mt-0.5">Every tool, on the lectures you pick, and what is due when</p>
         </div>
         {tab === 'schedule' && (
           <button onClick={() => setShowAdd(true)}
@@ -241,19 +241,22 @@ export default function StudyPlanner() {
         />
       </div>
 
-      {loading ? (
+      {/* The study panel loads its own class and lectures, so it mounts at
+          once and does not wait for the deadlines above to arrive first: the
+          two loads used to run one after the other. */}
+      {tab === 'now' ? (
+        <PracticePanel
+          initialClassId={deepClassId}
+          initialLectureIds={deepLectureIds.length ? deepLectureIds : null}
+          onScopeChange={setScope}
+          allLectures={loading ? null : lectures}
+        />
+      ) : loading ? (
         <div className="animate-pulse space-y-3 py-2">
           <div className="h-24 bg-muted rounded-xl" />
           <div className="h-16 bg-muted rounded-xl" />
           <div className="h-16 bg-muted rounded-xl" />
         </div>
-      ) : tab === 'now' ? (
-        <PracticePanel
-          initialClassId={deepClassId}
-          initialLectureIds={deepLectureIds.length ? deepLectureIds : null}
-          onScopeChange={setScope}
-          allLectures={lectures}
-        />
       ) : (
         <div>
           {/* The review tools used to sit here, above the deadlines, with a
@@ -263,7 +266,7 @@ export default function StudyPlanner() {
           {/* Upcoming deadlines */}
           {deadlineAssignments.length > 0 && (
             <div className="mb-8">
-              <h2 className="font-heading text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Upcoming Deadlines</h2>
+              <h2 className="font-heading text-sm font-semibold text-muted-foreground mb-3">Upcoming deadlines</h2>
               <div className="space-y-2">
                 {deadlineAssignments.map(a => {
                   const cls = classMap[a.class_id];
@@ -301,7 +304,7 @@ export default function StudyPlanner() {
                               <span className="text-[11px] font-medium px-1.5 py-0.5 rounded bg-muted text-muted-foreground flex-shrink-0">Project</span>
                             )}
                           </div>
-                          <p className="text-xs text-muted-foreground">{cls?.name} • Due {a.due_date}</p>
+                          <p className="text-xs text-muted-foreground">{cls?.name ? `${cls.name} · ` : ''}Due {formatShortDate(a.due_date, { weekday: true })}</p>
                         </div>
                         <span className={`text-xs font-semibold px-2 py-1 rounded-md flex-shrink-0 ${pastDue ? 'bg-rose-500/10 text-rose-600' : daysUntil <= 3 ? 'bg-amber-500/10 text-amber-600' : 'bg-muted text-muted-foreground'}`}>
                           {pastDue ? 'Past due' : daysUntil <= 0 ? 'Today' : `${daysUntil}d`}
@@ -357,7 +360,7 @@ export default function StudyPlanner() {
 
           {/* Study sessions */}
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="font-heading text-sm font-semibold text-muted-foreground uppercase tracking-wide">Study Sessions</h2>
+            <h2 className="font-heading text-sm font-semibold text-muted-foreground">Study sessions</h2>
             <span className="text-xs text-muted-foreground">{completed.length}/{sessions.length} done</span>
           </div>
 
@@ -420,8 +423,8 @@ export default function StudyPlanner() {
                         {sessionDescription(s) && <p className="text-sm text-muted-foreground mt-1.5">{sessionDescription(s)}</p>}
                         <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm text-muted-foreground mt-2">
                           <span className="inline-flex items-center gap-1.5 min-w-0"><GraduationCap className="w-3.5 h-3.5 flex-shrink-0" /> <span className="truncate">{cls?.name || '—'}</span></span>
-                          <span className="inline-flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5 flex-shrink-0" /> {s.scheduled_date}</span>
-                          {s.scheduled_time && <span className="inline-flex items-center gap-1.5"><Clock className="w-3.5 h-3.5 flex-shrink-0" /> {s.scheduled_time}</span>}
+                          <span className="inline-flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5 flex-shrink-0" /> {formatShortDate(s.scheduled_date, { weekday: true })}</span>
+                          {s.scheduled_time && <span className="inline-flex items-center gap-1.5"><Clock className="w-3.5 h-3.5 flex-shrink-0" /> {formatTime(s.scheduled_time)}</span>}
                           {s.duration_minutes && <span className="inline-flex items-center gap-1.5"><Headphones className="w-3.5 h-3.5 flex-shrink-0" /> {s.duration_minutes} min</span>}
                         </div>
                       </div>

@@ -39,7 +39,7 @@ export default function DataExportSection() {
     <div>
       {/* Export */}
       {/* Says what the file holds, in the privacy policy's words (Your controls). */}
-      <p className="text-sm text-muted-foreground mb-3">Download your account data as a JSON file: lectures, transcripts, notes, schedule, study history, credits, your review and the record of what you agreed to.</p>
+      <p className="text-sm text-muted-foreground mb-3">Download everything in your account as one file: lectures, transcripts, notes, schedule, study history, credits, your review and the record of what you agreed to.</p>
       <button onClick={handleExport} disabled={exporting}
         className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50">
         {exporting ? <><Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> Exporting…</> : <><Download className="w-4 h-4" aria-hidden="true" /> Export my data</>}

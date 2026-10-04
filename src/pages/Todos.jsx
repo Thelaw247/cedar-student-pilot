@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { lectureTitle } from '@/lib/lectureTitle';
 import { Link } from 'react-router-dom';
 import { ListChecks, Plus, Check, Trash2, CalendarDays, Mic, ChevronDown, Filter } from 'lucide-react';
 import Widget from '@/components/ui/Widget';
@@ -172,7 +173,7 @@ function TodoRow({ todo, cls, lecture, tone = '', today, onToggle, onRemove, onU
           {cls && <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full" style={{ backgroundColor: classColor(cls.color) }} />{cls.name}</span>}
           {lecture && (
             <Link to={`/lectures/${lecture.id}`} className="inline-flex items-center gap-1 text-primary hover:underline">
-              <Mic className="w-3 h-3" /> {lecture.ai_title || `Lecture ${lecture.date}`}
+              <Mic className="w-3 h-3" /> {lectureTitle(lecture)}
             </Link>
           )}
           {todo.detail && <span>{todo.detail}</span>}

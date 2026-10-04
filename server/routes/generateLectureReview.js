@@ -166,7 +166,7 @@ Return a JSON object with:
         review_questions: [], teaching_flow: result.teaching_flow || [],
         lecture_count: sorted.length, lecture_dates: sorted.map((l) => l.date),
         lecture_titles: sorted.map((l) => l.ai_title || `Lecture — ${l.date}`),
-        message: "Couldn't generate review questions from this content — please try again.",
+        message: "Couldn't write review questions from this content. Please try again.",
       });
     }
 

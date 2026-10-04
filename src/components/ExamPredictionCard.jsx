@@ -120,12 +120,12 @@ export default function ExamPredictionCard({ classId }) {
 
         {pred.gaps && pred.gaps.length > 0 && (
           <div className="mt-3 p-2.5 rounded-lg bg-muted/50">
-            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-1 flex items-center gap-1">
-              <Lightbulb className="w-3 h-3" /> Coverage gaps
+            <p className="text-xs font-semibold text-muted-foreground mb-1 flex items-center gap-1">
+              <Lightbulb className="w-3 h-3" /> Not covered yet
             </p>
             <ul className="space-y-0.5">
               {pred.gaps.map((g, i) => (
-                <li key={i} className="text-[11px] text-muted-foreground">— {g}</li>
+                <li key={i} className="text-[11px] text-muted-foreground">• {g}</li>
               ))}
             </ul>
           </div>

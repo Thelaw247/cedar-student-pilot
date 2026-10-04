@@ -159,7 +159,7 @@ export function TranscriptCleanup({ lecture, cleanGate, cleaning, cleanError, cl
         <p className="text-[11px] text-muted-foreground mt-2">
           Cleaned in {cleanResult.calls} pass{cleanResult.calls === 1 ? '' : 'es'}
           {cleanResult.delta > 0 ? ` · ${cleanResult.delta.toLocaleString()} characters changed` : ' · the transcript was already clean'}
-          . The original is kept — you can restore it below.
+          . The original is kept, and you can restore it below.
         </p>
       )}
       {lecture.transcript_cleaned && lecture.transcript_raw && (

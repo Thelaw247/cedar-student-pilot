@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { formatShortDate } from '@/lib/time';
+import { lectureTitle } from '@/lib/lectureTitle';
 import { useNavigate } from 'react-router-dom';
 import { Search, Clock, GraduationCap, BookOpen, FileText, Mic, Calendar, ListChecks } from 'lucide-react';
 import { fetchWithCache } from '@/hooks/useEntityData';
@@ -73,16 +75,16 @@ export default function CommandPalette({ classes: classesProp = null, lectures: 
 
     const actions = [];
     if (q.includes('record') || q.includes('lecture')) actions.push({ label: 'Start Recording', icon: Mic, type: 'action', run: () => { onStartRecording?.(); setOpen(false); } });
-    if (q.includes('event') || q.includes('add')) actions.push({ label: 'Add Event', icon: Calendar, type: 'action', run: () => { navigate('/today'); setOpen(false); } });
+    if (q.includes('event') || q.includes('add')) actions.push({ label: 'Add event', icon: Calendar, type: 'action', run: () => { navigate('/today'); setOpen(false); } });
 
     const found = searchPalette(query, { classes, lectures, assignments });
 
     const matchedClasses = found.classes
       .map(c => ({ label: c.name, sub: c.course_code || c.instructor || 'Class', icon: GraduationCap, type: 'class', run: () => { navigate(`/classes/${c.id}`); setOpen(false); } }));
     const matchedLectures = found.lectures
-      .map(l => ({ label: l.ai_title || `Lecture ${l.date}`, sub: [classNameFor(classes, l.class_id), l.date].filter(Boolean).join(' · '), icon: BookOpen, type: 'lecture', run: () => { navigate(`/lectures/${l.id}`); setOpen(false); } }));
+      .map(l => ({ label: lectureTitle(l), sub: [classNameFor(classes, l.class_id), formatShortDate(l.date)].filter(Boolean).join(' · '), icon: BookOpen, type: 'lecture', run: () => { navigate(`/lectures/${l.id}`); setOpen(false); } }));
     const matchedAssignments = found.assignments
-      .map(a => ({ label: a.title, sub: `Due ${a.due_date}`, icon: FileText, type: 'assignment', run: () => { navigate(`/classes/${a.class_id}`); setOpen(false); } }));
+      .map(a => ({ label: a.title, sub: `Due ${formatShortDate(a.due_date)}`, icon: FileText, type: 'assignment', run: () => { navigate(`/classes/${a.class_id}`); setOpen(false); } }));
 
     return { actions, items: [...matchedClasses, ...matchedLectures, ...matchedAssignments] };
   }, [query, classes, lectures, assignments, navigate, onStartRecording]);
@@ -135,7 +137,7 @@ export default function CommandPalette({ classes: classesProp = null, lectures: 
             </div>
           ) : (
             <div className="space-y-0.5">
-              {!query.trim() && <p className="px-4 py-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Quick Actions</p>}
+              {!query.trim() && <p className="px-4 py-1 text-xs font-semibold text-muted-foreground">Quick actions</p>}
               {displayed.map((item, i) => (
                 <button
                   key={i}

@@ -1,4 +1,5 @@
 import React from 'react';
+import { lectureTitle } from '@/lib/lectureTitle';
 import { Check, FileText } from 'lucide-react';
 
 /**
@@ -32,7 +33,7 @@ export default function MaterialScopePicker({ materials = [], lectures = [], sel
   const from = (m) => {
     if (!m.lecture_id) return null;
     const l = lectureById.get(m.lecture_id);
-    return l ? (l.ai_title || `Lecture — ${l.date}`) : 'a lecture';
+    return l ? lectureTitle(l) : 'a lecture';
   };
 
   const toggle = (id) => onChange(chosen.has(id) ? selectedIds.filter((x) => x !== id) : [...selectedIds, id]);

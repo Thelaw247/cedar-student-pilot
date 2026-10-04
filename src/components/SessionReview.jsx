@@ -178,7 +178,7 @@ export default function SessionReview({
 
           {/* Main score */}
           <div className="rounded-2xl border border-border bg-card p-6 mb-4 text-center">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Overall Score</p>
+            <p className="text-xs font-medium text-muted-foreground mb-2">Overall score</p>
             <p className={`font-heading text-5xl font-bold ${scoreColor}`}>{results.overall_score}<span className="text-2xl">%</span></p>
             <p className="text-sm text-muted-foreground mt-2">
               {correctCount}/{totalCount} questions correct
@@ -260,7 +260,7 @@ export default function SessionReview({
 
           <button onClick={onClose}
             className="w-full py-3 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90">
-            Done — View Analytics
+            Done, see progress
           </button>
         </div>
       </div>
@@ -337,7 +337,7 @@ export default function SessionReview({
             </div>
             <h2 className="font-heading text-xl font-bold mb-1">Self-Assessment</h2>
             <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-              Rate your proficiency on each topic. Be honest — this helps identify knowledge gaps.
+              Rate how well you know each topic. Be honest: this is how the gaps get found.
             </p>
           </div>
 

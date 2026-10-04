@@ -4,7 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { Plus, Search, GraduationCap, Pencil, CalendarDays, ChevronLeft, ChevronRight, Upload } from 'lucide-react';
 import Segmented from '@/components/ui/Segmented';
 import { weekDates } from '@/lib/eventSchedule';
-import { formatWeekRange } from '@/lib/time';
+import { formatWeekRange, formatTime } from '@/lib/time';
 import Widget from '@/components/ui/Widget';
 import IconChip from '@/components/ui/IconChip';
 import LectureSearch from '@/components/LectureSearch';
@@ -16,18 +16,19 @@ import { getClassMeetings } from '@/lib/classSchedule';
 function scheduleSummary(c) {
   const meetings = getClassMeetings(c);
   if (meetings.length === 0) return 'No schedule set';
-  if (meetings.some(m => m.specific_date || m.start_date || m.end_date)) {
-    return `${meetings.length} schedule rule${meetings.length !== 1 ? 's' : ''}`;
+  // The weekly shape only: a one-off session (a makeup class, a review on a
+  // set date) is on the grid's By week view, not in this one line.
+  const weekly = meetings.filter(m => !m.specific_date && !(Array.isArray(m.specific_dates) && m.specific_dates.length > 0));
+  const shape = weekly.length > 0 ? weekly : meetings;
+  const days = [...new Set(shape.map(m => m.day))].join(', ');
+  // One start time all week reads "Mon, Wed, Fri · 8:30 AM"; the grid has
+  // the rest. Different times on different days say so.
+  const starts = new Set(shape.map(m => m.start_time || ''));
+  if (starts.size === 1) {
+    const start = formatTime(shape[0].start_time);
+    return start ? `${days} · ${start}` : days;
   }
-  // If every meeting shares the same time, show "Mon, Wed · 9:00–10:00".
-  const times = new Set(meetings.map(m => `${m.start_time}-${m.end_time}`));
-  const days = [...new Set(meetings.map(m => m.day))].join(', ');
-  if (times.size === 1) {
-    const { start_time, end_time } = meetings[0];
-    return `${days} · ${start_time || '?'}–${end_time || '?'}`;
-  }
-  // Otherwise the times differ per day — summarize as "varies by day".
-  return `${days} · varies by day`;
+  return `${days} · times vary by day`;
 }
 
 export default function Classes() {
@@ -123,7 +124,7 @@ export default function Classes() {
           <p className="text-muted-foreground text-sm mt-0.5">{classes.length} course{classes.length !== 1 ? 's' : ''} this semester{activeSemester?.name ? ` · ${activeSemester.name}` : ''}</p>
         </div>
         <button onClick={() => setShowAdd(true)} className="inline-flex items-center gap-1.5 bg-primary text-primary-foreground px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-primary/90">
-          <Plus className="w-4 h-4" /> Add Class
+          <Plus className="w-4 h-4" /> Add class
         </button>
       </div>
       {/* Schedule changed? Re-import updates this semester's courses in place
@@ -189,7 +190,7 @@ export default function Classes() {
       </div>
 
       {searching && (
-        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-1 mb-2">Classes</p>
+        <p className="text-xs font-semibold text-muted-foreground px-1 mb-2">Classes</p>
       )}
 
       {filtered.length === 0 ? (
@@ -207,7 +208,7 @@ export default function Classes() {
           </div>
         )
       ) : (
-        <div className="grid gap-3">
+        <div className="grid grid-cols-1 gap-3">
           {filtered.map(c => (
             <div key={c.id} className="group flex items-center gap-3.5 rounded-xl border border-border bg-card shadow-1 p-4 hover:shadow-2 transition-all duration-micro">
               <Link to={`/classes/${c.id}`} className="flex items-center gap-3.5 flex-1 min-w-0">

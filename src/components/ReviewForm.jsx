@@ -30,7 +30,7 @@ export function describeReviewError(e) {
   }
   if (/failed to fetch|load failed|networkerror|network request failed|timeout/.test(text)
     || (typeof navigator !== 'undefined' && navigator.onLine === false)) {
-    return { kind: 'network', text: "Couldn't reach the server. Check your connection and send again — nothing is saved until it goes through." };
+    return { kind: 'network', text: "Couldn't reach the server. Check your connection and send again. Nothing is saved until it goes through." };
   }
   // The error's own text is the database's, and the caller logs it.
   return { kind: 'unknown', text: 'This could not be saved. Try again in a moment.' };

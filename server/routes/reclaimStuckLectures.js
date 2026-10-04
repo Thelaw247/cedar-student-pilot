@@ -35,7 +35,7 @@ function tokensMatch(a, b) {
 // What the lecture page shows next to the retry button. It says what happened
 // and that the audio is safe, because the student's first thought on seeing a
 // failed lecture is that the recording is gone.
-export const RECLAIM_REASON = 'Processing stopped unexpectedly — the server restarted before it finished. '
+export const RECLAIM_REASON = 'Processing stopped unexpectedly: the server restarted before it finished. '
   + 'Your recording is safe. Press Process recording to pick it up again.';
 
 router.post('/', async (req, res) => {

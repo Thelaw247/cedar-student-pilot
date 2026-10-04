@@ -1,4 +1,5 @@
 import React, { useId, useState } from 'react';
+import { formatShortDate, formatTime } from '@/lib/time';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { sessionStudyPath } from '@/lib/studyScope';
@@ -97,7 +98,7 @@ export default function RebookSessionModal({ session, className = '', onClose, o
         {/* Original session info */}
         <div className="rounded-lg bg-muted/50 px-3 py-2 mb-5 flex items-center gap-2 text-xs text-muted-foreground">
           <Calendar className="w-3.5 h-3.5 flex-shrink-0" />
-          <span>Was: {session.scheduled_date}{session.scheduled_time ? ` at ${session.scheduled_time}` : ''}</span>
+          <span>Was {formatShortDate(session.scheduled_date, { weekday: true })}{session.scheduled_time ? ` at ${formatTime(session.scheduled_time)}` : ''}</span>
         </div>
 
         {gate && <GateNotice gate={gate} source="smart-rebook" className="mb-3" />}

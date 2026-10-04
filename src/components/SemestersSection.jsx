@@ -1,9 +1,22 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { formatShortDate } from '@/lib/time';
 import { Link } from 'react-router-dom';
 import { Loader2, Trash2, CalendarRange } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { invalidateEntity } from '@/lib/cache';
 import { announceDataChange } from '@/lib/dataChanged';
+
+// "Sep 2 – Dec 18, 2025". Semesters pile up over the years, so the year is
+// always shown, once when both ends share it.
+function semesterRange(s) {
+  if (!s.start_date && !s.end_date) return 'No dates set';
+  if (!s.start_date || !s.end_date) return formatShortDate(s.start_date || s.end_date);
+  const start = new Date(`${s.start_date.slice(0, 10)}T00:00:00`);
+  const end = new Date(`${s.end_date.slice(0, 10)}T00:00:00`);
+  // `now` is the date the year is compared against: the start carries its
+  // year only when the semester spans a new year, the end always does.
+  return `${formatShortDate(start, { now: end })} – ${formatShortDate(end, { now: new Date(0) })}`;
+}
 
 /**
  * Every semester the student has, with the one the app is showing marked.
@@ -92,7 +105,7 @@ export default function SemestersSection() {
   return (
     <div>
       <p className="text-xs text-muted-foreground mb-3">
-        The app shows one semester at a time — the active one. Importing a timetable from{' '}
+        The app shows one semester at a time, the current one. Importing a timetable from{' '}
         <Link to="/setup" className="text-primary hover:underline">Set up semester</Link> creates a new active semester; older ones stay here until you delete them.
       </p>
 
@@ -119,11 +132,11 @@ export default function SemestersSection() {
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="text-sm font-medium text-foreground truncate">{s.name}</p>
                       {s.is_active && (
-                        <span className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600">Active</span>
+                        <span className="text-[11px] font-medium px-1.5 py-0.5 rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">Current</span>
                       )}
                     </div>
                     <p className="text-[11px] text-muted-foreground mt-0.5 tabular-nums">
-                      {s.start_date} → {s.end_date} · {summary}
+                      {semesterRange(s)} · {summary}
                     </p>
                   </div>
                   {!isConfirming && (
@@ -139,7 +152,7 @@ export default function SemestersSection() {
                   <div className="mt-3 rounded-lg border border-destructive/30 bg-destructive/5 p-3">
                     <p className="text-xs font-medium text-destructive">Delete "{s.name}" permanently?</p>
                     <p className="text-[11px] text-muted-foreground mt-1">
-                      This removes {summary} — flashcards, questions, attendance and study sessions for those classes go with them.
+                      This removes {summary}. Flashcards, questions, attendance and study sessions for those classes go with them.
                       {s.is_active && semesters.length > 1 && ' Your most recent other semester becomes the active one.'}
                       {' '}This can’t be undone.
                     </p>

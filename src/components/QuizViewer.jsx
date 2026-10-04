@@ -74,7 +74,7 @@ export default function QuizViewer({ questions }) {
             </button>
           ) : (
             <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-4">
-              <p className="text-[10px] text-emerald-600 uppercase tracking-wide mb-1">Answer</p>
+              <p className="text-xs text-emerald-600 mb-1">Answer</p>
               <p className="text-sm text-foreground">{q.answer}</p>
             </div>
           )}

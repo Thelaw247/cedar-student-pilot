@@ -28,7 +28,7 @@ export default function AutosaveIndicator({ status, className = '' }) {
   }
   return (
     <span className={`inline-flex items-center gap-1.5 text-[11px] text-destructive ${className}`}>
-      <AlertCircle className="w-3 h-3" /> Couldn’t save — check your connection
+      <AlertCircle className="w-3 h-3" /> Couldn’t save. Check your connection
     </span>
   );
 }

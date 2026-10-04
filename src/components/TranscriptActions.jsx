@@ -66,24 +66,32 @@ export default function TranscriptActions({ lecture }) {
     setEmailing(false);
   };
 
+  // These sit in the Transcript header beside its title and word count. On a
+  // phone that row has no room for two labelled buttons, so the labels show
+  // from the sm breakpoint up and the icons carry the meaning below it, with
+  // the label kept as the accessible name.
+  const emailLabel = emailSent ? 'Sent to you' : 'Email me a copy';
   return (
     <div className="flex items-center gap-2">
       <button
         onClick={handlePrint}
         disabled={printing}
-        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-card text-xs font-medium text-foreground hover:bg-muted transition-colors disabled:opacity-50"
+        aria-label="Print"
+        title="Print"
+        className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg border border-border bg-card text-xs font-medium text-foreground hover:bg-muted transition-colors disabled:opacity-50"
       >
         {printing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Printer className="w-3.5 h-3.5" />}
-        Print
+        <span className="hidden sm:inline">Print</span>
       </button>
       <button
         onClick={handleEmail}
         disabled={emailing}
+        aria-label={emailLabel}
         title={user?.email ? `Email a copy to ${user.email}` : 'Email a copy to your account'}
-        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-card text-xs font-medium text-foreground hover:bg-muted transition-colors disabled:opacity-50"
+        className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg border border-border bg-card text-xs font-medium text-foreground hover:bg-muted transition-colors disabled:opacity-50"
       >
         {emailSent ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : emailing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Mail className="w-3.5 h-3.5" />}
-        {emailSent ? 'Sent to you' : 'Email me a copy'}
+        <span className="hidden sm:inline">{emailLabel}</span>
       </button>
       {emailError && <p className="text-[11px] text-destructive">{emailError}</p>}
     </div>
