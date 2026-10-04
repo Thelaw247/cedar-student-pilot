@@ -123,7 +123,7 @@ export default function AuthCallback() {
           Confirmation links expire, and each one can only be used once. Signing in with the
           email and password you chose works too — the link is only there to save you the typing.
         </p>
-        <Button className="w-full h-12 font-medium" onClick={() => navigate('/login', { replace: true })}>
+        <Button className="auth-cta w-full h-12 font-medium" onClick={() => navigate('/login', { replace: true })}>
           Go to sign in
         </Button>
       </AuthLayout>

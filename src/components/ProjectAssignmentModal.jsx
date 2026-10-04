@@ -263,7 +263,7 @@ export default function ProjectAssignmentModal({ classId, className, onClose }) 
         {step === 'done' && (
           <div className="text-center py-8">
             <div className="w-14 h-14 rounded-full bg-emerald-500/10 flex items-center justify-center mx-auto mb-4">
-              <Check className="w-7 h-7 text-emerald-600" />
+              <Check className="w-7 h-7 text-emerald-700 dark:text-emerald-500" />
             </div>
             <h3 className="font-heading text-lg font-semibold mb-1">Project Created!</h3>
             <p className="text-sm text-muted-foreground">{roadmap.length} work sessions scheduled before {dueDate}.</p>

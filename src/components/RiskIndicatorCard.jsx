@@ -13,9 +13,9 @@ const riskIcons = {
 };
 
 const severityColors = {
-  high: 'border-rose-500/30 bg-rose-500/5 text-rose-600',
-  medium: 'border-amber-500/30 bg-amber-500/5 text-amber-600',
-  low: 'border-blue-500/30 bg-blue-500/5 text-blue-600',
+  high: 'border-rose-500/30 bg-rose-500/5 text-rose-700 dark:text-rose-400',
+  medium: 'border-amber-500/30 bg-amber-500/5 text-amber-700 dark:text-amber-500',
+  low: 'border-blue-500/30 bg-blue-500/5 text-blue-600 dark:text-blue-400',
 };
 
 // Each risk routes to the existing tool that resolves it — no new screens.
@@ -111,7 +111,7 @@ export default function RiskIndicatorCard() {
         <div className={`rounded-xl border p-3 ${data.burnout_level === 'high' ? 'border-rose-500/30 bg-rose-500/5' : 'border-amber-500/30 bg-amber-500/5'}`}>
           <div className="flex items-start gap-2.5">
             <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${data.burnout_level === 'high' ? 'bg-rose-500/10' : 'bg-amber-500/10'}`}>
-              <Flame className={`w-4 h-4 ${data.burnout_level === 'high' ? 'text-rose-600' : 'text-amber-600'}`} />
+              <Flame className={`w-4 h-4 ${data.burnout_level === 'high' ? 'text-rose-700 dark:text-rose-400' : 'text-amber-700 dark:text-amber-500'}`} />
             </div>
             <div className="flex-1">
               <p className={`text-sm font-semibold ${data.burnout_level === 'high' ? 'text-rose-700 dark:text-rose-500' : 'text-amber-700 dark:text-amber-500'}`}>
@@ -120,13 +120,13 @@ export default function RiskIndicatorCard() {
               <p className="text-[11px] text-muted-foreground mt-0.5">{data.burnout_advice}</p>
               <button
                 onClick={() => navigate('/study?tab=schedule')}
-                className={`mt-2 inline-flex min-h-[40px] items-center gap-1 text-[11px] font-semibold px-3 py-2 rounded-lg transition-colors ${data.burnout_level === 'high' ? 'text-rose-600 bg-rose-500/10 hover:bg-rose-500/20' : 'text-amber-600 bg-amber-500/10 hover:bg-amber-500/20'}`}
+                className={`mt-2 inline-flex min-h-[40px] items-center gap-1 text-[11px] font-semibold px-3 py-2 rounded-lg transition-colors ${data.burnout_level === 'high' ? 'text-rose-700 dark:text-rose-400 bg-rose-500/10 hover:bg-rose-500/20' : 'text-amber-700 dark:text-amber-500 bg-amber-500/10 hover:bg-amber-500/20'}`}
               >
                 Rebalance my plan <ChevronRight className="w-3 h-3" />
               </button>
             </div>
             <button onClick={() => dismiss(burnoutKey)} aria-label="Dismiss"
-              className={`flex-shrink-0 p-3 -m-3 opacity-60 hover:opacity-100 ${data.burnout_level === 'high' ? 'text-rose-600' : 'text-amber-600'}`}>
+              className={`flex-shrink-0 p-3 -m-3 opacity-60 hover:opacity-100 ${data.burnout_level === 'high' ? 'text-rose-700 dark:text-rose-400' : 'text-amber-700 dark:text-amber-500'}`}>
               <X className="w-3.5 h-3.5" />
             </button>
           </div>

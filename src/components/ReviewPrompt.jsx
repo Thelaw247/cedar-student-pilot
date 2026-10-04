@@ -76,7 +76,7 @@ export default function ReviewPrompt({ lectures = [] }) {
     return (
       <div role="status" className="mb-4 flex items-start gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3 animate-fade-in">
         <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-emerald-500/10">
-          <Check className="h-4 w-4 text-emerald-500" aria-hidden="true" />
+          <Check className="h-4 w-4 text-emerald-700 dark:text-emerald-500" aria-hidden="true" />
         </div>
         <p className="text-sm text-foreground">
           Thank you — that helps other students decide.{' '}
@@ -92,7 +92,7 @@ export default function ReviewPrompt({ lectures = [] }) {
     <>
       <div className="mb-4 flex items-start gap-3 rounded-xl border border-amber-400/30 bg-amber-400/5 p-3 animate-fade-in">
         <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-amber-400/15">
-          <Star className="h-4 w-4 fill-amber-400 text-amber-500" aria-hidden="true" />
+          <Star className="h-4 w-4 fill-amber-400 text-amber-600" aria-hidden="true" />
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-foreground">Would you do a quick review of Praelecta?</p>

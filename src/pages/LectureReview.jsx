@@ -168,7 +168,7 @@ export default function LectureReview() {
           {hbClasses.map((c) => (
             <button key={c.classId} type="button" onClick={() => setHbPick(c)}
               className="w-full rounded-xl border border-border bg-card p-4 text-left hover:border-primary/30 hover:shadow-2 transition-all duration-micro flex items-center gap-3">
-              <span className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center flex-shrink-0">
+              <span className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-700 dark:text-amber-500 flex items-center justify-center flex-shrink-0">
                 <BookOpen className="w-5 h-5" />
               </span>
               <span className="flex-1 min-w-0">
@@ -301,9 +301,9 @@ export default function LectureReview() {
           </p>
           {current.flow_position && (
             <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-md uppercase ${
-              current.flow_position === 'start' ? 'bg-blue-500/10 text-blue-600' :
-              current.flow_position === 'end' ? 'bg-purple-500/10 text-purple-600' :
-              'bg-amber-500/10 text-amber-600'
+              current.flow_position === 'start' ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400' :
+              current.flow_position === 'end' ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400' :
+              'bg-amber-500/10 text-amber-700 dark:text-amber-500'
             }`}>
               {current.flow_position} of lecture{current.lecture_index ? ` ${current.lecture_index}` : ''}
             </span>

@@ -26,7 +26,7 @@ export default function NavStudyClock({ to }) {
     <span
       title={`${Math.floor(t.studySeconds / 60)} of ${s.goalMinutes} minutes`}
       className={`ml-auto inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold tabular-nums ${
-        onBreak ? 'bg-emerald-500/10 text-emerald-600' : 'bg-primary/10 text-primary'
+        onBreak ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-500' : 'bg-primary/10 text-primary'
       }`}
     >
       <span className={`w-1.5 h-1.5 rounded-full ${s.phase === 'paused' ? 'bg-current' : 'bg-current animate-pulse'}`} />

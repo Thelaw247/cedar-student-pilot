@@ -36,7 +36,7 @@ export const DIFFICULTY_LABEL = { core: 'Core', supporting: 'Supporting', advanc
 export const DIFFICULTY_CLASS = {
   core: 'bg-primary/10 text-primary',
   supporting: 'bg-muted text-muted-foreground',
-  advanced: 'bg-purple-500/10 text-purple-600',
+  advanced: 'bg-purple-500/10 text-purple-600 dark:text-purple-400',
 };
 
 export const TODO_KIND_LABEL = { task: 'Task', read: 'Reading', practice: 'Practice', submit: 'Submit', review: 'Review', prepare: 'Prepare' };

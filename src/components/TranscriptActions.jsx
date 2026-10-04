@@ -82,7 +82,7 @@ export default function TranscriptActions({ lecture }) {
         title={user?.email ? `Email a copy to ${user.email}` : 'Email a copy to your account'}
         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-card text-xs font-medium text-foreground hover:bg-muted transition-colors disabled:opacity-50"
       >
-        {emailSent ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : emailing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Mail className="w-3.5 h-3.5" />}
+        {emailSent ? <Check className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-500" /> : emailing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Mail className="w-3.5 h-3.5" />}
         {emailSent ? 'Sent to you' : 'Email me a copy'}
       </button>
       {emailError && <p className="text-[11px] text-destructive">{emailError}</p>}

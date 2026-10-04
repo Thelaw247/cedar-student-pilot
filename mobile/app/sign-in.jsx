@@ -60,7 +60,7 @@ export default function SignIn() {
           disabled={busy || !email || !password}
           style={({ pressed }) => [styles.cta, (busy || !email || !password) && styles.ctaDisabled, pressed && styles.ctaPressed]}
         >
-          {busy ? <ActivityIndicator color={colors.primaryForeground} /> : <Text style={styles.ctaText}>Sign in</Text>}
+          {busy ? <ActivityIndicator color={colors.ctaForeground} /> : <Text style={styles.ctaText}>Sign in</Text>}
         </Pressable>
       </View>
     </KeyboardAvoidingView>
@@ -79,11 +79,11 @@ const styles = StyleSheet.create({
     color: colors.foreground, ...type.body,
   },
   cta: {
-    marginTop: spacing.xl, height: 50, borderRadius: radius.md, backgroundColor: colors.primary,
+    marginTop: spacing.xl, height: 50, borderRadius: radius.md, backgroundColor: colors.cta,
     alignItems: 'center', justifyContent: 'center',
   },
-  ctaPressed: { backgroundColor: colors.primaryPressed },
+  ctaPressed: { backgroundColor: colors.ctaPressed },
   ctaDisabled: { opacity: 0.5 },
-  ctaText: { ...type.body, fontWeight: '600', color: colors.primaryForeground },
+  ctaText: { ...type.body, fontWeight: '600', color: colors.ctaForeground },
   error: { ...type.small, color: colors.destructive, marginBottom: spacing.sm },
 });

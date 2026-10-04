@@ -126,7 +126,7 @@ export default function UpgradeSheet({ source = 'generic', feature = null, onClo
                     }`}
                   >
                     {p}
-                    {p === 'semester' && <span className="ml-1 text-[10px] font-semibold text-emerald-600 uppercase">Save</span>}
+                    {p === 'semester' && <span className="ml-1 text-[10px] font-semibold text-emerald-700 dark:text-emerald-500 uppercase">Save</span>}
                   </button>
                 ))}
               </div>

@@ -9,6 +9,11 @@ import { Star, StarHalf } from 'lucide-react';
  * The shapes round to the nearest half star, never up to a whole one: a 4.7
  * average draws four and a half stars, not five, so the picture never says
  * more than the number beside it.
+ *
+ * Filled stars keep the amber-400 fill and take an amber-600 edge: amber-400
+ * alone measured 1.7:1 on a white card, under the 3:1 a meaningful shape
+ * needs, and the edge brings the outline to 3.2:1 there (5.4:1 on the dark
+ * surfaces) without turning the gold brown (Oct 2026 contrast pass).
  */
 export default function Stars({ rating, className = 'h-4 w-4' }) {
   const value = Math.max(0, Math.min(5, Number(rating) || 0));
@@ -20,8 +25,8 @@ export default function Stars({ rating, className = 'h-4 w-4' }) {
         const half = !full && halves === n * 2 - 1;
         return (
           <span key={n} className="relative inline-flex" aria-hidden="true">
-            <Star className={`${className} ${full ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground/30'}`} />
-            {half && <StarHalf className={`${className} absolute inset-0 fill-amber-400 text-amber-400`} />}
+            <Star className={`${className} ${full ? 'fill-amber-400 text-amber-600' : 'text-muted-foreground/30'}`} />
+            {half && <StarHalf className={`${className} absolute inset-0 fill-amber-400 text-amber-600`} />}
           </span>
         );
       })}

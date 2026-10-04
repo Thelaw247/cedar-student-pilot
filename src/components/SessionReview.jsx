@@ -163,7 +163,7 @@ export default function SessionReview({
   if (phase === 'results' && results) {
     const correctCount = results.evaluatedQuestions.filter(q => q.is_correct).length;
     const totalCount = results.evaluatedQuestions.length;
-    const scoreColor = results.overall_score >= 75 ? 'text-emerald-600' : results.overall_score >= 50 ? 'text-amber-600' : 'text-rose-600';
+    const scoreColor = results.overall_score >= 75 ? 'text-emerald-700 dark:text-emerald-500' : results.overall_score >= 50 ? 'text-amber-700 dark:text-amber-500' : 'text-rose-700 dark:text-rose-400';
 
     return (
       <div className="fixed inset-0 z-50 bg-background overflow-y-auto ph-sensitive">
@@ -188,8 +188,8 @@ export default function SessionReview({
           {/* Score breakdown */}
           <div className="grid grid-cols-3 gap-3 mb-6">
             <ScoreCard icon={Target} label="Proficiency" value={results.proficiency_score} color="text-primary" />
-            <ScoreCard icon={BookOpen} label="Coverage" value={results.coverage_percentage} color="text-emerald-600" />
-            <ScoreCard icon={TrendingUp} label="In-Depth" value={results.in_depth_score} color="text-amber-600" />
+            <ScoreCard icon={BookOpen} label="Coverage" value={results.coverage_percentage} color="text-emerald-700 dark:text-emerald-500" />
+            <ScoreCard icon={TrendingUp} label="In-Depth" value={results.in_depth_score} color="text-amber-700 dark:text-amber-500" />
           </div>
 
           {/* Coverage progress */}
@@ -244,7 +244,7 @@ export default function SessionReview({
                     <span className="text-xs text-foreground">{s.topic}</span>
                     <div className="flex items-center gap-2">
                       {s.covered ? (
-                        <span className="text-xs text-emerald-600">Covered</span>
+                        <span className="text-xs text-emerald-700 dark:text-emerald-500">Covered</span>
                       ) : (
                         <span className="text-xs text-muted-foreground">Not covered</span>
                       )}
@@ -293,7 +293,7 @@ export default function SessionReview({
           </div>
 
           {q.concept && (
-            <span className="text-[10px] font-semibold px-2 py-1 rounded-md uppercase mb-3 inline-block bg-blue-500/10 text-blue-600">
+            <span className="text-[10px] font-semibold px-2 py-1 rounded-md uppercase mb-3 inline-block bg-blue-500/10 text-blue-600 dark:text-blue-400">
               {q.concept}
             </span>
           )}

@@ -185,7 +185,7 @@ export default function InLectureQuiz({ lecture, cls, onClose }) {
                 return (
                   <div key={concept} className="flex items-center justify-between text-sm">
                     <span className="text-foreground truncate flex-1">{concept}</span>
-                    <span className={`text-xs font-medium ${passed ? 'text-emerald-600' : 'text-rose-600'}`}>
+                    <span className={`text-xs font-medium ${passed ? 'text-emerald-700 dark:text-emerald-500' : 'text-rose-700 dark:text-rose-400'}`}>
                       {r.correct}/{r.total} {passed ? '✓' : '✗'}
                     </span>
                   </div>
@@ -241,7 +241,7 @@ export default function InLectureQuiz({ lecture, cls, onClose }) {
 
         {/* Flow position indicator */}
         {current.flow_position && (
-          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md uppercase mb-3 inline-block bg-blue-500/10 text-blue-600">
+          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md uppercase mb-3 inline-block bg-blue-500/10 text-blue-600 dark:text-blue-400">
             {current.flow_position} of lecture
           </span>
         )}

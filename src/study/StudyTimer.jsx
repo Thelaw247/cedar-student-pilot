@@ -199,13 +199,13 @@ export default function StudyTimer({ variant = 'strip', className = '' }) {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 glass">
           <div className="bg-card rounded-2xl border border-border p-8 max-w-sm text-center animate-fade-in mx-4 max-h-[90dvh] overflow-y-auto">
             <div className="w-14 h-14 rounded-full bg-amber-500/10 flex items-center justify-center mx-auto mb-4">
-              <Check className="w-7 h-7 text-amber-600" />
+              <Check className="w-7 h-7 text-amber-700 dark:text-amber-500" />
             </div>
             <h3 className="font-heading text-lg font-semibold mb-2">Study interval complete</h3>
             <p className="text-sm text-muted-foreground mb-6">Say &ldquo;break&rdquo; to take a break, or &ldquo;keep going&rdquo; to continue studying.</p>
             <div className="flex gap-2">
               <button onClick={s.takeBreak}
-                className="flex-1 px-4 py-2.5 rounded-lg bg-emerald-500/10 text-emerald-600 border border-emerald-500/30 text-sm font-medium hover:bg-emerald-500/20">
+                className="flex-1 px-4 py-2.5 rounded-lg bg-emerald-500/10 text-emerald-700 dark:text-emerald-500 border border-emerald-500/30 text-sm font-medium hover:bg-emerald-500/20">
                 Take break
               </button>
               <button onClick={s.keepGoing}
@@ -226,7 +226,7 @@ export default function StudyTimer({ variant = 'strip', className = '' }) {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 glass">
           <div className="bg-card rounded-2xl border border-border p-8 max-w-sm text-center animate-fade-in mx-4 max-h-[90dvh] overflow-y-auto">
             <div className="w-14 h-14 rounded-full bg-emerald-500/10 flex items-center justify-center mx-auto mb-4">
-              <Check className="w-7 h-7 text-emerald-600" />
+              <Check className="w-7 h-7 text-emerald-700 dark:text-emerald-500" />
             </div>
             <h3 className="font-heading text-lg font-semibold mb-2">Session saved</h3>
             <p className="text-sm text-muted-foreground mb-6">

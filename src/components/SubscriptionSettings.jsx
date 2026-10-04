@@ -117,7 +117,7 @@ export default function SubscriptionSettings() {
 
         <div className={`rounded-lg p-3 ${empty ? 'bg-destructive/5 border border-destructive/20' : low ? 'bg-amber-500/5 border border-amber-500/20' : 'bg-muted/50'}`}>
           <div className="flex items-baseline gap-2">
-            <Zap className={`w-4 h-4 ${empty ? 'text-destructive' : low ? 'text-amber-600' : 'text-primary'}`} />
+            <Zap className={`w-4 h-4 ${empty ? 'text-destructive' : low ? 'text-amber-700 dark:text-amber-500' : 'text-primary'}`} />
             <span className="font-heading text-2xl font-bold tabular-nums">{available}</span>
             <span className="text-xs text-muted-foreground">credits left</span>
           </div>

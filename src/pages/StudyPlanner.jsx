@@ -17,9 +17,9 @@ import { useStudySession } from '@/study/StudySessionContext';
 import { toast } from '@/components/ui/use-toast';
 
 const priorityColors = {
-  high: 'bg-rose-500/10 text-rose-600 border-rose-500/20',
-  medium: 'bg-amber-500/10 text-amber-600 border-amber-500/20',
-  low: 'bg-blue-500/10 text-blue-600 border-blue-500/20',
+  high: 'bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-500/20',
+  medium: 'bg-amber-500/10 text-amber-700 dark:text-amber-500 border-amber-500/20',
+  low: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20',
 };
 
 const statusIcons = { scheduled: Clock, completed: Check, skipped: X };
@@ -303,7 +303,7 @@ export default function StudyPlanner() {
                           </div>
                           <p className="text-xs text-muted-foreground">{cls?.name} • Due {a.due_date}</p>
                         </div>
-                        <span className={`text-xs font-semibold px-2 py-1 rounded-md flex-shrink-0 ${pastDue ? 'bg-rose-500/10 text-rose-600' : daysUntil <= 3 ? 'bg-amber-500/10 text-amber-600' : 'bg-muted text-muted-foreground'}`}>
+                        <span className={`text-xs font-semibold px-2 py-1 rounded-md flex-shrink-0 ${pastDue ? 'bg-rose-500/10 text-rose-700 dark:text-rose-400' : daysUntil <= 3 ? 'bg-amber-500/10 text-amber-700 dark:text-amber-500' : 'bg-muted text-muted-foreground'}`}>
                           {pastDue ? 'Past due' : daysUntil <= 0 ? 'Today' : `${daysUntil}d`}
                         </span>
                         {/* Edit — opens the same AssignmentEditModal used in Classes,
@@ -408,12 +408,12 @@ export default function StudyPlanner() {
                               description at all — and prep sessions now
                               describe the lectures they cover. */}
                           {s.session_type === 'project' ? (
-                            <span className="text-[11px] font-medium px-2 py-0.5 rounded bg-purple-500/10 text-purple-600 border border-purple-500/20">Project</span>
+                            <span className="text-[11px] font-medium px-2 py-0.5 rounded bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">Project</span>
                           ) : s.session_type === 'review' && (
                             <span className="text-[11px] font-medium px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">Review</span>
                           )}
                           {overdue && (
-                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded bg-amber-500/10 text-amber-600 border border-amber-500/20">Past due</span>
+                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded bg-amber-500/10 text-amber-700 dark:text-amber-500 border border-amber-500/20">Past due</span>
                           )}
                         </div>
                         {/* The description sits under the title — never as the title. */}

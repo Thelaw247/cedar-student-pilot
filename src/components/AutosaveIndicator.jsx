@@ -10,7 +10,8 @@ import { Loader2, Check, AlertCircle } from 'lucide-react';
  */
 export default function AutosaveIndicator({ status, className = '' }) {
   if (status === 'idle') {
-    return <span className={`text-[11px] text-muted-foreground/60 ${className}`}>Changes save automatically</span>;
+    // Quiet by colour, not by fading: at 60% opacity this line measured 2.3:1.
+    return <span className={`text-[11px] text-muted-foreground ${className}`}>Changes save automatically</span>;
   }
   if (status === 'saving') {
     return (
@@ -21,7 +22,7 @@ export default function AutosaveIndicator({ status, className = '' }) {
   }
   if (status === 'saved') {
     return (
-      <span className={`inline-flex items-center gap-1.5 text-[11px] text-emerald-600 ${className}`}>
+      <span className={`inline-flex items-center gap-1.5 text-[11px] text-emerald-700 dark:text-emerald-500 ${className}`}>
         <Check className="w-3 h-3" /> Saved
       </span>
     );

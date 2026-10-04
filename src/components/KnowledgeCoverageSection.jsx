@@ -110,7 +110,7 @@ export default function KnowledgeCoverageSection({ classes, coverage = [], lectu
                             return (
                               <>
                                 {lecObj?.is_ai_estimated && (
-                                  <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-md bg-amber-500/10 text-amber-600 border border-amber-500/20">
+                                  <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-md bg-amber-500/10 text-amber-700 dark:text-amber-500 border border-amber-500/20">
                                     <AlertCircle className="w-2.5 h-2.5" /> AI Estimated
                                   </span>
                                 )}
@@ -141,8 +141,8 @@ export default function KnowledgeCoverageSection({ classes, coverage = [], lectu
                             <span key={concept}
                               className={`inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded-md ${
                                 isMastered
-                                  ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20'
-                                  : 'bg-rose-500/10 text-rose-600 border border-rose-500/20'
+                                  ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-500 border border-emerald-500/20'
+                                  : 'bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-500/20'
                               }`}>
                               {isMastered ? <CheckCircle2 className="w-2.5 h-2.5" /> : <AlertCircle className="w-2.5 h-2.5" />}
                               {concept}
@@ -161,7 +161,7 @@ export default function KnowledgeCoverageSection({ classes, coverage = [], lectu
                       </div>
 
                       {gaps.length > 0 && (
-                        <p className="text-[10px] text-rose-600 mt-2">
+                        <p className="text-[10px] text-rose-700 dark:text-rose-400 mt-2">
                           {gaps.length} concept{gaps.length !== 1 ? 's' : ''} need review
                         </p>
                       )}

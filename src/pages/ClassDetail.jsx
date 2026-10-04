@@ -411,7 +411,7 @@ function RecordModal({ classId, cls, onClose }) {
         ) : recovery ? (
           <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 text-left">
             <div className="flex items-start gap-2">
-              <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+              <AlertTriangle className="w-4 h-4 text-amber-700 dark:text-amber-500 mt-0.5 flex-shrink-0" />
               <div className="flex-1">
                 <p className="text-sm font-medium text-amber-700 dark:text-amber-500">Unsaved recording found</p>
                 <p className="text-xs text-muted-foreground mt-1">A recording for this class (about {formatTime(recovery.seconds || 0)}) didn't finish saving last time. The audio is safe — you can save it now.</p>
@@ -505,7 +505,7 @@ function RecordModal({ classId, cls, onClose }) {
             )}
             {cls?.recording_consent_date && (
               <p className="text-[11px] text-muted-foreground mb-6 inline-flex items-center gap-1">
-                <Shield className="w-3 h-3 text-emerald-600" /> Permission confirmed for this class
+                <Shield className="w-3 h-3 text-emerald-700 dark:text-emerald-500" /> Permission confirmed for this class
               </p>
             )}
             <button onClick={begin} disabled={starting}
@@ -531,10 +531,10 @@ function AssignmentTab({ assignments, lectures = [], coverage = [], classId, cls
   const cardRefs = useRef({});
 
   const typeColors = {
-    exam: 'bg-rose-500/10 text-rose-600',
-    quiz: 'bg-amber-500/10 text-amber-600',
-    project: 'bg-purple-500/10 text-purple-600',
-    assignment: 'bg-blue-500/10 text-blue-600',
+    exam: 'bg-rose-500/10 text-rose-700 dark:text-rose-400',
+    quiz: 'bg-amber-500/10 text-amber-700 dark:text-amber-500',
+    project: 'bg-purple-500/10 text-purple-600 dark:text-purple-400',
+    assignment: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
   };
 
   // Local, not UTC — toISOString rolls the date over at 18:00 here, so every
@@ -592,7 +592,7 @@ function AssignmentTab({ assignments, lectures = [], coverage = [], classId, cls
               <div className="flex items-center gap-2 flex-wrap">
                 <h3 className="text-sm font-medium text-foreground">{a.title}</h3>
                 {completed && (
-                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600">
+                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-500">
                     <CheckCircle2 className="w-2.5 h-2.5" /> Completed
                   </span>
                 )}
@@ -602,7 +602,7 @@ function AssignmentTab({ assignments, lectures = [], coverage = [], classId, cls
                   </span>
                 )}
                 {pastDue && (
-                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-amber-500/10 text-amber-600">
+                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-amber-500/10 text-amber-700 dark:text-amber-500">
                     <AlertTriangle className="w-2.5 h-2.5" /> Past due
                   </span>
                 )}
@@ -698,7 +698,7 @@ function AssignmentTab({ assignments, lectures = [], coverage = [], classId, cls
         </div>
       ) : activeAssignments.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border p-8 text-center">
-          <Check className="w-6 h-6 text-emerald-600 mx-auto mb-2" strokeWidth={1.5} />
+          <Check className="w-6 h-6 text-emerald-700 dark:text-emerald-500 mx-auto mb-2" strokeWidth={1.5} />
           <p className="text-sm text-muted-foreground">You're all caught up — no active assignments.</p>
         </div>
       ) : (
@@ -766,7 +766,7 @@ function StudyTab({ classId, cls, lectures, onUpdate }) {
       <div className="rounded-xl border border-dashed border-border p-5">
         <div className="flex items-start gap-3">
           <div className="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center flex-shrink-0">
-            <AlertCircle className="w-5 h-5 text-amber-600" />
+            <AlertCircle className="w-5 h-5 text-amber-700 dark:text-amber-500" />
           </div>
           <div className="flex-1">
             <h3 className="text-sm font-medium text-foreground">Missed a Lecture?</h3>
@@ -831,7 +831,7 @@ function MissedLectureConfirmModal({ classId, onClose, onGenerated }) {
         </div>
 
         <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 mb-4 flex items-start gap-2">
-          <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+          <AlertTriangle className="w-4 h-4 text-amber-700 dark:text-amber-500 mt-0.5 flex-shrink-0" />
           <p className="text-xs text-amber-700 dark:text-amber-500">
             This creates a new lecture entry with AI-estimated content based on your previous lectures — it doesn't reflect what was actually taught. It'll be clearly labelled as AI-estimated.
           </p>
