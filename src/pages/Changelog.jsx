@@ -15,6 +15,17 @@ import { PUBLIC_PAGES } from '@/lib/publicPages';
  */
 export const CHANGELOG = [
   {
+    date: '2026-10-05',
+    title: 'The study page starts with the reason',
+    items: [
+      'Under the class you picked, a card says what is next for it: the nearest exam or deadline with the days left, how many of its lectures you have reviewed, and the sitting you booked, with one tap to select the lectures still to do and one to start the booked session on the clock.',
+      'Each lecture in the list says when you last reviewed it. A long list shows the latest eight and folds the start of the term behind one tap, instead of a box that scrolls inside the page.',
+      'Quiz me is the one tool that leads: full width, with the selection written on it (“On all 5 lectures”), and the handbook and paper guide as a pair beneath it. Today’s lectures and This week say how many lectures they would cover.',
+      'Making flashcards, practice questions or a summary sheet is one box: pick one, press Make, and a line under the button says what it will read. While it runs it says what it is doing, and when it is done it says how many it made and that they are saved. A summary sheet says it is shown here only.',
+      'Starting a booked session from anywhere now sets the lecture list to that session’s lectures, so the clock, the list and the quiz agree.',
+    ],
+  },
+  {
     date: '2026-10-04',
     title: 'Your first lecture, announced',
     items: [

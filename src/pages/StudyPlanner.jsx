@@ -243,13 +243,19 @@ export default function StudyPlanner() {
 
       {/* The study panel loads its own class and lectures, so it mounts at
           once and does not wait for the deadlines above to arrive first: the
-          two loads used to run one after the other. */}
+          two loads used to run one after the other. What this page loads for
+          the Schedule tab (deadlines, booked sessions, what has been
+          reviewed) is handed down as it arrives, so the panel can say what
+          is next for the class on screen without a request of its own. */}
       {tab === 'now' ? (
         <PracticePanel
           initialClassId={deepClassId}
           initialLectureIds={deepLectureIds.length ? deepLectureIds : null}
           onScopeChange={setScope}
           allLectures={loading ? null : lectures}
+          deadlines={loading ? null : deadlineAssignments}
+          sessions={loading ? null : upcoming}
+          coverage={loading ? null : coverage}
         />
       ) : loading ? (
         <div className="animate-pulse space-y-3 py-2">

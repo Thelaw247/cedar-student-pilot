@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Loader2, Sparkles, Layers, ClipboardList, FileText, Lock } from 'lucide-react';
+import { Loader2, Sparkles, Layers, ClipboardList, FileText, Lock, Check } from 'lucide-react';
 import FlashcardViewer from '@/components/FlashcardViewer';
 import QuizViewer from '@/components/QuizViewer';
 import { useFeatureGate } from '@/components/monetization/useFeatureGate';
@@ -55,6 +55,23 @@ export function describeSources(lectureCount, fileCount) {
 }
 
 /**
+ * The sentence a finished run ends on: what was made, from what, and
+ * whether it stays. Flashcards and questions are rows in the class; the
+ * summary sheet is not stored anywhere, so it says so, rather than letting
+ * the student find out when they come back for it.
+ */
+export function madeLine(type, material, sources) {
+  const n = type === 'flashcards' ? material?.flashcards?.length
+    : type === 'practice_test' ? material?.questions?.length
+      : null;
+  if (type === 'summary_sheet') return `Written from ${sources}. Shown here only, so copy what you want to keep.`;
+  const what = type === 'flashcards' ? 'flashcard' : 'question';
+  if (typeof n !== 'number') return `Made from ${sources} and saved to this class.`;
+  if (n === 0) return `No usable ${what}s came back from ${sources}.`;
+  return `${n} ${what}${n === 1 ? '' : 's'} from ${sources}, saved to this class.`;
+}
+
+/**
  * Three things to build, not four.
  *
  * "Quiz" and "Practice Test" were one tool twice: the same prompt, the same
@@ -78,6 +95,10 @@ export default function StudyToolbox({ classId, resolveLectureIds, resolveMateri
   const [selectedType, setSelectedType] = useState('flashcards');
   const [generating, setGenerating] = useState(false);
   const [result, setResult] = useState(null);
+  // What the last run read, fixed at the moment it ran: the picker above may
+  // have changed since, and the finished line describes the material on
+  // screen, not the next run.
+  const [madeFrom, setMadeFrom] = useState('');
 
   // Material generated for one class is not material for the next one.
   useEffect(() => { setResult(null); }, [scopeKey]);
@@ -89,6 +110,7 @@ export default function StudyToolbox({ classId, resolveLectureIds, resolveMateri
     if (ids === null && materialIds.length === 0) { setResult({ error: 'Select at least one lecture or course file (or choose Select all).' }); return; }
     setGenerating(true);
     setResult(null);
+    setMadeFrom(describeSources(sourceCount, fileCount));
     try {
       const response = await base44.functions.invoke('generateStudyMaterial', {
         class_id: classId,
@@ -120,45 +142,80 @@ export default function StudyToolbox({ classId, resolveLectureIds, resolveMateri
     setGenerating(false);
   };
 
+  const chosen = materialTypes.find(t => t.id === selectedType) || materialTypes[0];
+  const chosenLabel = chosen.label.toLowerCase();
+  const sources = describeSources(sourceCount, fileCount);
+  const hasSources = sourceCount > 0 || fileCount > 0;
+
   return (
     <div>
-      {/* Material type selector */}
-      {/* Three tiles, so three columns from the width that fits them — two
-          columns would leave the third alone in a half-width row. */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
-        {materialTypes.map(t => {
-          const Icon = t.icon;
-          return (
-            <button key={t.id} type="button" onClick={() => setSelectedType(t.id)}
-              className={`text-left p-4 rounded-xl border transition-all ${selectedType === t.id ? 'border-primary bg-primary/5' : 'border-border bg-card hover:border-primary/30'}`}>
-              <Icon className={`w-5 h-5 mb-2 ${selectedType === t.id ? 'text-primary' : 'text-muted-foreground'}`} />
-              <p className="text-sm font-medium text-foreground">{t.label}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">{t.description}</p>
-            </button>
-          );
-        })}
-      </div>
+      {/* One choice and one button, in one box: a radio group, not three
+          cards competing with the three tiles above. Three columns from the
+          width that fits them; one column on a phone, where three stacked
+          rows read as a list, which is what they are. */}
+      <div className="rounded-xl border border-border bg-card mb-6 overflow-hidden">
+        <div role="radiogroup" aria-label="What to make" className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-border">
+          {materialTypes.map(t => {
+            const Icon = t.icon;
+            const on = selectedType === t.id;
+            return (
+              <button key={t.id} type="button" onClick={() => setSelectedType(t.id)}
+                role="radio" aria-checked={on}
+                className={`flex items-start gap-3 text-left p-3.5 sm:p-4 transition-colors duration-micro focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring ${on ? 'bg-primary/[0.06] dark:bg-primary/10' : 'hover:bg-muted/60 active:bg-muted'}`}>
+                <span className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${on ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
+                  <Icon className="w-[18px] h-[18px]" strokeWidth={1.75} />
+                </span>
+                <span className="flex-1 min-w-0">
+                  <span className="flex items-center gap-1.5">
+                    <span className="text-sm font-medium text-foreground">{t.label}</span>
+                    {on && <Check className="w-3.5 h-3.5 text-primary" strokeWidth={2.5} aria-hidden="true" />}
+                  </span>
+                  <span className="block text-xs text-muted-foreground mt-0.5">{t.description}</span>
+                </span>
+              </button>
+            );
+          })}
+        </div>
 
-      {/* Generate button — grey lock below Student (server re-enforces) */}
-      {!practiceAllowed ? (
-        <button type="button" onClick={practiceLock}
-          className="w-full py-3 rounded-xl bg-muted text-muted-foreground text-sm font-medium hover:text-foreground transition-colors flex items-center justify-center gap-2 mb-6">
-          <Lock className="w-4 h-4" /> Practice questions ship with {practiceTierName}. Upgrade to use them
-        </button>
-      ) : (
-      <button type="button" onClick={generate} disabled={generating || !classId}
-        className="w-full py-3 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-2 mb-6">
-        {generating ? <><Loader2 className="w-4 h-4 animate-spin" /> Generating from {describeSources(sourceCount, fileCount)}...</> : <><Sparkles className="w-4 h-4" /> Generate {(materialTypes.find(t => t.id === selectedType)?.label || '').toLowerCase()}</>}
-      </button>
-      )}
+        <div className="p-3.5 sm:p-4 border-t border-border">
+          {/* Make button — grey lock below Student (server re-enforces) */}
+          {!practiceAllowed ? (
+            <button type="button" onClick={practiceLock}
+              className="w-full py-3 rounded-xl bg-muted text-muted-foreground text-sm font-medium hover:text-foreground transition-colors flex items-center justify-center gap-2">
+              <Lock className="w-4 h-4" /> Practice questions ship with {practiceTierName}. Upgrade to use them
+            </button>
+          ) : (
+            <>
+              <button type="button" onClick={generate} disabled={generating || !classId}
+                className="w-full py-3 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 active:scale-[0.99] disabled:opacity-50 transition-all duration-micro flex items-center justify-center gap-2">
+                {generating
+                  ? <><Loader2 className="w-4 h-4 animate-spin" /> Reading {madeFrom || sources}…</>
+                  : <><Sparkles className="w-4 h-4" /> Make {chosenLabel}</>}
+              </button>
+              {/* The button says what; this line says from what, so the
+                  selection made at the top of the page is confirmed at the
+                  moment it is used. While it runs, the line names the work
+                  being done, which is the real work: read, then write. */}
+              <p className="text-[11px] text-muted-foreground text-center mt-2 tabular-nums">
+                {generating ? `Then writing your ${chosenLabel}` : hasSources ? `From ${sources}` : 'Select at least one lecture above'}
+              </p>
+            </>
+          )}
+        </div>
+      </div>
 
       {/* Generated result */}
       {result && !result.error && (
         <div className="mb-8">
-          <div className="flex items-center gap-2 mb-3">
+          <div className="flex items-center gap-2 mb-1">
             <Sparkles className="w-4 h-4 text-primary" />
             <h2 className="font-heading text-sm font-semibold text-muted-foreground">Just made</h2>
           </div>
+          {/* The run ends on a sentence of facts: how many, and whether they
+              stay. The summary sheet is the honest exception: it is shown
+              here and nowhere else, and the student should hear that before
+              they navigate away from it. */}
+          <p className="text-xs text-muted-foreground mb-3">{madeLine(result.material_type || selectedType, result.material, madeFrom)}</p>
           {/* The server names the files it actually read: one chosen without
               readable text is left out, and the student should see that. */}
           {Array.isArray(result.materials_used) && result.materials_used.length > 0 && (

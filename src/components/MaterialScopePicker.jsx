@@ -58,14 +58,15 @@ export default function MaterialScopePicker({ materials = [], lectures = [], sel
         </div>
       </div>
 
-      <div className="space-y-1.5 max-h-64 overflow-y-auto rounded-lg border border-border p-2 bg-card">
+      <div className="space-y-1 max-h-64 overflow-y-auto rounded-lg border border-border p-2 bg-card">
         {readable.map((m) => {
           const on = chosen.has(m.id);
           const lecture = from(m);
           return (
             <button key={m.id} type="button" onClick={() => toggle(m.id)}
-              className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-left hover:bg-muted transition-colors">
-              <span className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 transition-colors ${on ? 'bg-primary border-primary' : 'border-border'}`}>
+              role="checkbox" aria-checked={on}
+              className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-left hover:bg-muted active:bg-muted transition-colors duration-micro">
+              <span className={`w-[18px] h-[18px] rounded border flex items-center justify-center flex-shrink-0 transition-colors duration-micro ${on ? 'bg-primary border-primary' : 'border-border bg-background'}`}>
                 {on && <Check className="w-3 h-3 text-primary-foreground" strokeWidth={3} />}
               </span>
               <FileText className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />

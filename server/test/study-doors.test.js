@@ -112,6 +112,7 @@ test('every caller uses that one decision rather than making its own', () => {
   const callers = files.filter((f) => /sessionStudyPath\(/.test(source(f)) && String(f) !== 'lib/studyScope.js');
   assert.deepEqual(callers.sort(), [
     'components/RebookSessionModal.jsx',
+    'components/StudyNextUp.jsx',
     'components/StudySessionNotifier.jsx',
     'pages/StudyPlanner.jsx',
   ]);

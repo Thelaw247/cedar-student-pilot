@@ -33,9 +33,37 @@ export function windowBlockReason(lectures, from, to, label) {
   if (inWindow.length === 0) return `No lectures ${label}`;
   // Lectures exist but none of them has anything to build questions from —
   // still a wall, and a different one, so it says which.
-  const ready = inWindow.filter((l) => l.transcript || l.ai_summary || (l.ai_concepts || []).length > 0);
+  const ready = inWindow.filter(isReady);
   if (ready.length === 0) {
     return `${inWindow.length} lecture${inWindow.length === 1 ? '' : 's'} ${label}, still processing`;
   }
   return null;
+}
+
+/** A lecture the runner can build questions from. */
+function isReady(l) {
+  return !!(l.transcript || l.ai_summary || (l.ai_concepts || []).length > 0);
+}
+
+/**
+ * How many lectures a by-date review would actually cover, so a live tile
+ * can say "3 lectures from the past 7 days" rather than "everything". Only
+ * the ones with something to ask about are counted: a lecture still
+ * processing is in the window and not in the quiz.
+ * null when the caller does not know the lectures, so the tile keeps its
+ * general wording rather than a number it cannot stand behind.
+ */
+export function windowCount(lectures, from, to) {
+  if (!Array.isArray(lectures)) return null;
+  return lectures.filter((l) => l && l.date && l.date >= from && l.date <= to && isReady(l)).length;
+}
+
+/**
+ * The selection, written on the quiz tile, so the tile answers the question
+ * the picker above it raised: "which lectures will this run on?".
+ */
+export function scopeSummary({ lectureIds = [], wholeClass = false, lectureCount = 0 }) {
+  if (lectureCount === 0 || lectureIds.length === 0) return null;
+  if (wholeClass) return lectureCount === 1 ? 'On the only lecture so far' : `On all ${lectureCount} lectures`;
+  return `On ${lectureIds.length} of ${lectureCount} lectures`;
 }

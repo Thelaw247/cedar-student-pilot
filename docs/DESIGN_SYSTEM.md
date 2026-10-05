@@ -85,6 +85,37 @@ Changed values → update this file and DSN-03's successor in the same commit.
   cards in the Today page, after the greeting and before or after the
   schedule, never pop-ups over it.
 
+## A page of tools leads with the reason (Study page, Oct 5, 2026)
+
+The pattern, so the next tool page gets it without re-deriving it:
+
+- **The reason before the tools.** The first thing under the selection is
+  why the student is here, read off rows the page already loads
+  (`StudyNextUp`: the nearest deadline with the days left, "1 of 5
+  lectures reviewed", the booked sitting). A card with nothing true to say
+  is not rendered; it never invents urgency, a timer or a streak.
+- **One tile leads.** Among equal tools, the one that does the most for the
+  least time is the hero: full width, `border-primary/40 bg-primary/[0.06]`
+  (`dark:bg-primary/10`), a brand icon chip, a chevron, and the selection
+  written on it ("On all 5 lectures"). The rest are a pair or a row of
+  neutral tiles beneath it. Never two highlighted tiles on one shelf, and
+  never a third tile orphaned in a two-column grid.
+- **Side-by-side tiles are `flex flex-col items-start`.** A `<button>` the
+  grid stretches centres its content, so the shorter tile floats; pin it.
+- **A choice and its button share one box.** A radio group (`role="radio"`,
+  tinted row when chosen, check mark) with the action under it, and a
+  caption under the action that says what it will read ("From 5 lectures
+  and 1 file"). While it runs the caption names the real work; when it is
+  done, a sentence of facts (how many, saved where, or "shown here only").
+- **Rows carry their status.** A list the student chooses from says when
+  each item was last touched ("Reviewed Sep 22") and says nothing on the
+  ones never touched; absence is the mark. Long lists show the latest
+  eight and fold the rest behind "Show the N earlier lectures" rather than
+  scrolling inside the page.
+- **Counts, not adjectives.** "3 lectures from the past 7 days", "5
+  lectures, Sep 8 to Oct 2 · 1 reviewed", "in 15 days". A number the page
+  cannot stand behind (rows still loading) is left out, not shown as 0.
+
 ## The widget grammar (UI redesign, Aug 2026)
 
 Full rationale and the per-page fix ledger live in the Design Blueprint

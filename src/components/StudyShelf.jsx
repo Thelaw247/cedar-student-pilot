@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, ClipboardList, ListChecks, CalendarDays, CalendarRange, Lock } from 'lucide-react';
+import { BookOpen, ClipboardList, ListChecks, CalendarDays, CalendarRange, Lock, ChevronRight } from 'lucide-react';
 import { useFeatureGate } from '@/components/monetization/useFeatureGate';
 import HandbookReader from '@/components/HandbookReader';
 import ManualStudyGuide from '@/components/ManualStudyGuide';
 import { localDay, daysAgo } from '@/lib/localDay';
-import { scopeBlockReason, windowBlockReason } from '@/lib/studyShelf';
+import { scopeBlockReason, windowBlockReason, windowCount, scopeSummary } from '@/lib/studyShelf';
 import { useStudySession } from '@/study/StudySessionContext';
 
 /**
@@ -19,6 +19,14 @@ import { useStudySession } from '@/study/StudySessionContext';
  *
  * So the fork is gone and the second picker is gone. The scope is chosen once,
  * above; every tile here works on it.
+ *
+ * ONE TILE LEADS. Quiz me is the full-width one, tinted, with the selection
+ * written on it ("On all 5 lectures"); the handbook and the paper guide sit
+ * as a pair beneath it. Three equal tiles in a two-column grid left the
+ * third alone in a half-empty row, and gave a student three equal answers to
+ * "what now?". Testing yourself is the one that does the most for the least
+ * time, so it is the one the eye lands on; the other two are a glance away,
+ * not demoted out of reach.
  *
  * The two kinds of tool are deliberately kept apart, because they are not the
  * same act:
@@ -73,6 +81,13 @@ export default function StudyShelf({
   const scopeReason = scopeBlockReason({ classId, lectureCount, lectureIds, hasClasses });
   const today = localDay();
   const weekFrom = daysAgo(7);
+  const onQuiz = scopeSummary({ lectureIds, wholeClass, lectureCount });
+
+  // The by-date tiles say how many lectures they would cover when the page
+  // knows, and keep their general wording when it does not.
+  const todayCount = windowCount(allLectures, today, today);
+  const weekCount = windowCount(allLectures, weekFrom, today);
+  const counted = (n, suffix, fallback) => (n === null || n === 0 ? fallback : `${n} lecture${n === 1 ? '' : 's'} ${suffix}`);
 
   // The handbook and guide read the scope the way their backend does: an
   // absent list means the whole class, which is a different (already cached)
@@ -83,16 +98,20 @@ export default function StudyShelf({
     <div className="mb-8">
       <h2 className="font-heading text-sm font-semibold text-muted-foreground mb-3">Study the lectures you picked</h2>
 
-      <div className="grid grid-cols-2 gap-3 mb-5">
+      <div className="mb-3">
         <Tile
-          icon={ListChecks} tint="text-emerald-600"
+          hero
+          icon={ListChecks} tint="text-primary"
           title="Quiz me"
-          desc="Question by question, in teaching order"
+          desc="Find out what stuck, question by question, in teaching order"
+          meta={onQuiz}
           lockedTierName={review.allowed ? null : review.requiredTierName}
           onLock={review.lock}
           disabledReason={scopeReason}
           onClick={() => navigate(`/lecture-review?ids=${lectureIds.join(',')}&mode=quiz`)}
         />
+      </div>
+      <div className="grid grid-cols-2 gap-3 mb-6">
         <Tile
           icon={BookOpen} tint="text-amber-600"
           title="Handbook"
@@ -123,7 +142,7 @@ export default function StudyShelf({
         <Tile
           icon={CalendarDays} tint="text-blue-600"
           title="Today's lectures"
-          desc="Everything recorded today"
+          desc={counted(todayCount, 'recorded today', 'Everything recorded today')}
           lockedTierName={review.allowed ? null : review.requiredTierName}
           onLock={review.lock}
           disabledReason={windowBlockReason(allLectures, today, today, 'dated today')}
@@ -132,7 +151,7 @@ export default function StudyShelf({
         <Tile
           icon={CalendarRange} tint="text-purple-600"
           title="This week"
-          desc="Everything from the past 7 days"
+          desc={counted(weekCount, 'from the past 7 days', 'Everything from the past 7 days')}
           lockedTierName={review.allowed ? null : review.requiredTierName}
           onLock={review.lock}
           disabledReason={windowBlockReason(allLectures, weekFrom, today, 'in the past 7 days')}
@@ -168,31 +187,85 @@ export default function StudyShelf({
  * never hidden (they would go looking for it) and never live-until-tapped
  * (that is the dead end). A tier lock is the one greyed state that is still
  * pressable, because there is something to press: the upgrade sheet.
+ *
+ * `hero` is the one tile that leads: full width, tinted toward the brand, the
+ * selection written on it, an arrow where the eye expects one. Every state
+ * keeps the width, so the shelf never changes shape when a lock or a reason
+ * appears.
  */
-function Tile({ icon: Icon, tint, title, desc, lockedTierName = null, onLock = null, disabledReason = null, onClick }) {
+function Tile({ icon: Icon, tint, title, desc, meta = null, hero = false, lockedTierName = null, onLock = null, disabledReason = null, onClick }) {
+  // A button centres its content vertically once the grid stretches it, so
+  // the shorter of two side-by-side tiles used to float down; both are
+  // columns pinned to the top instead.
+  const shape = hero ? 'w-full flex items-center gap-3.5 p-4 sm:p-5 rounded-xl text-left' : 'flex flex-col items-start text-left p-4 rounded-xl';
   if (lockedTierName) {
     return (
       <button type="button" onClick={onLock}
-        className="text-left p-4 rounded-xl border border-border bg-muted/40 hover:bg-muted transition-colors duration-micro">
-        <Lock className="w-5 h-5 mb-2 text-muted-foreground" />
-        <p className="text-sm font-medium text-muted-foreground">{title}</p>
-        <p className="text-xs text-muted-foreground mt-0.5">Unlocks with {lockedTierName}. Tap to upgrade</p>
+        className={`${shape} border border-border bg-muted/40 hover:bg-muted active:bg-muted transition-colors duration-micro`}>
+        {hero ? (
+          <>
+            <span className="w-11 h-11 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+              <Lock className="w-5 h-5 text-muted-foreground" />
+            </span>
+            <span className="flex-1 min-w-0">
+              <span className="block text-base font-semibold text-muted-foreground">{title}</span>
+              <span className="block text-xs text-muted-foreground mt-0.5">Unlocks with {lockedTierName}. Tap to upgrade</span>
+            </span>
+            <ChevronRight className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+          </>
+        ) : (
+          <>
+            <Lock className="w-5 h-5 mb-2 text-muted-foreground" />
+            <p className="text-sm font-medium text-muted-foreground">{title}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Unlocks with {lockedTierName}. Tap to upgrade</p>
+          </>
+        )}
       </button>
     );
   }
   if (disabledReason) {
     return (
       <div aria-disabled="true"
-        className="text-left p-4 rounded-xl border border-dashed border-border bg-muted/20 opacity-70 cursor-not-allowed">
-        <Icon className="w-5 h-5 mb-2 text-muted-foreground" />
-        <p className="text-sm font-medium text-muted-foreground">{title}</p>
-        <p className="text-xs text-muted-foreground mt-0.5">{disabledReason}</p>
+        className={`${shape} border border-dashed border-border bg-muted/20 opacity-70 cursor-not-allowed`}>
+        {hero ? (
+          <>
+            <span className="w-11 h-11 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+              <Icon className="w-5 h-5 text-muted-foreground" />
+            </span>
+            <span className="flex-1 min-w-0">
+              <span className="block text-base font-semibold text-muted-foreground">{title}</span>
+              <span className="block text-xs text-muted-foreground mt-0.5">{disabledReason}</span>
+            </span>
+          </>
+        ) : (
+          <>
+            <Icon className="w-5 h-5 mb-2 text-muted-foreground" />
+            <p className="text-sm font-medium text-muted-foreground">{title}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{disabledReason}</p>
+          </>
+        )}
       </div>
+    );
+  }
+  if (hero) {
+    return (
+      <button type="button" onClick={onClick}
+        className={`${shape} border border-primary/40 bg-primary/[0.06] dark:bg-primary/10 hover:border-primary/60 hover:shadow-2 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.995] transition-all duration-micro`}>
+        <span className="w-11 h-11 rounded-lg bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
+          <Icon className="w-5 h-5" strokeWidth={1.75} />
+        </span>
+        <span className="flex-1 min-w-0">
+          <span className="block font-heading text-base font-semibold text-foreground">{title}</span>
+          <span className="block text-xs text-muted-foreground mt-0.5">{desc}</span>
+          {meta && <span className="block text-xs font-medium text-primary mt-1.5 tabular-nums">{meta}</span>}
+        </span>
+        <ChevronRight className="w-5 h-5 text-primary flex-shrink-0" />
+      </button>
     );
   }
   return (
     <button type="button" onClick={onClick}
-      className="text-left p-4 rounded-xl border border-border bg-card hover:border-primary/30 hover:shadow-2 hover:-translate-y-0.5 transition-all duration-micro">
+      className={`${shape} border border-border bg-card hover:border-primary/30 hover:shadow-2 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] transition-all duration-micro`}>
       <Icon className={`w-5 h-5 mb-2 ${tint}`} />
       <p className="text-sm font-medium text-foreground">{title}</p>
       <p className="text-xs text-muted-foreground mt-0.5">{desc}</p>
