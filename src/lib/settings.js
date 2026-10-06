@@ -14,6 +14,9 @@ const DEFAULTS = {
   autoGenerateSchedules: true,
   learningMode: 'cumulative',
   conceptDecayRate: 'default',
+  // How fast a recording plays back, remembered across lectures: a student
+  // who listens at 1.5x listens at 1.5x (components/lecture/RecordingPlayer).
+  playbackRate: 1,
 };
 
 export function getSettings() {

@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { lectureTitle } from '@/lib/lectureTitle';
 import { Link } from 'react-router-dom';
-import { Paperclip, Upload, Download, Trash2, Loader2, FileText, ShieldCheck, RefreshCw, AlertTriangle, BookOpen } from 'lucide-react';
+import { Paperclip, Upload, Download, Trash2, Loader2, FileText, ShieldCheck, RefreshCw, AlertTriangle, BookOpen, Link2 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import Widget from '@/components/ui/Widget';
 import { fetchWithCache } from '@/hooks/useEntityData';
@@ -40,6 +40,12 @@ export default function LectureMaterials({ lecture = null, cls = null, lectures 
   const [notice, setNotice] = useState(null);
   const [gate, setGate] = useState(null);
   const inputRef = useRef(null);
+  // A link instead of a file: the field is folded until asked for, so the
+  // dropzone stays one button for the common case.
+  const [linkOpen, setLinkOpen] = useState(false);
+  const [link, setLink] = useState('');
+  const [fetching, setFetching] = useState(false);
+  const linkRef = useRef(null);
 
   const load = useCallback(async () => {
     try {
@@ -86,6 +92,40 @@ export default function LectureMaterials({ lecture = null, cls = null, lectures 
     e.preventDefault();
     const files = [...(e.dataTransfer?.files || [])];
     if (files.length) uploadFiles(files);
+  };
+
+  // The server fetches the link, checks what came back (a real PDF with
+  // nothing hostile inside, or real text), keeps it and reads it like an
+  // upload. Every refusal is a sentence from the server, shown as it is.
+  const importLink = async (e) => {
+    e?.preventDefault?.();
+    const value = link.trim();
+    if (!value || fetching) return;
+    setError(null);
+    setNotice(null);
+    setGate(null);
+    setFetching(true);
+    try {
+      const result = await base44.materials.importFromUrl(classScope ? { class_id: scopeId } : scopeId, value);
+      invalidateEntity('LectureMaterial');
+      await load();
+      setLink('');
+      setLinkOpen(false);
+      const name = result?.material?.file_name || 'The file';
+      setNotice(result?.material?.extraction_status === 'ready'
+        ? `${name} added and read.`
+        : `${name} added. No text could be read from it, so it is kept for download only.`);
+    } catch (err) {
+      const g = gateFromError(err);
+      if (g) setGate(g);
+      else setError(err?.response?.data?.error || err?.response?.data?.message || err?.message || 'Could not fetch that link.');
+    }
+    setFetching(false);
+  };
+
+  const openLink = () => {
+    setLinkOpen(true);
+    setTimeout(() => linkRef.current?.focus(), 0);
   };
 
   const download = async (m) => {
@@ -187,12 +227,45 @@ export default function LectureMaterials({ lecture = null, cls = null, lectures 
             <input ref={inputRef} type="file" accept={MATERIAL_ACCEPT} multiple className="hidden" onChange={onPick} />
             {uploading ? (
               <p className="text-sm text-muted-foreground inline-flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Uploading {uploading}…</p>
+            ) : fetching ? (
+              <p className="text-sm text-muted-foreground inline-flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Fetching the file and checking it…</p>
+            ) : linkOpen ? (
+              <form onSubmit={importLink} className="text-left">
+                <label htmlFor={`material-link-${scopeId}`} className="text-xs font-medium text-muted-foreground block mb-1.5">Link to the file</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    ref={linkRef}
+                    id={`material-link-${scopeId}`}
+                    type="url"
+                    inputMode="url"
+                    autoComplete="off"
+                    value={link}
+                    onChange={(e) => setLink(e.target.value)}
+                    placeholder="https://… a PDF, or a Drive, Dropbox or OneDrive share link"
+                    className="flex-1 min-w-0 px-3 py-2 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  />
+                  <button type="submit" disabled={!link.trim()}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 min-h-[40px] rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 active:scale-[0.98] transition-all duration-micro disabled:opacity-50 flex-shrink-0">
+                    <Link2 className="w-3.5 h-3.5" /> Fetch
+                  </button>
+                </div>
+                <div className="flex flex-wrap items-center justify-between gap-2 mt-2">
+                  <p className="text-[11px] text-muted-foreground">Fetched by us, checked for anything a PDF should not carry, then read like an upload. Same 1 credit per PDF.</p>
+                  <button type="button" onClick={() => { setLinkOpen(false); setLink(''); }} className="text-[11px] text-muted-foreground hover:text-foreground py-2 -my-2 px-1 -mx-1">Cancel</button>
+                </div>
+              </form>
             ) : (
               <>
-                <button type="button" onClick={() => inputRef.current?.click()}
-                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90">
-                  <Upload className="w-3.5 h-3.5" /> {classScope ? 'Add a course file' : 'Attach slides, handouts or notes'}
-                </button>
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                  <button type="button" onClick={() => inputRef.current?.click()}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 min-h-[40px] rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 active:scale-[0.98] transition-all duration-micro">
+                    <Upload className="w-3.5 h-3.5" /> {classScope ? 'Add a course file' : 'Attach slides, handouts or notes'}
+                  </button>
+                  <button type="button" onClick={openLink}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 min-h-[40px] rounded-lg border border-border text-xs font-medium text-foreground hover:bg-muted active:scale-[0.98] transition-all duration-micro">
+                    <Link2 className="w-3.5 h-3.5" /> Add from a link
+                  </button>
+                </div>
                 <p className="text-[11px] text-muted-foreground mt-2">PDF or text files up to 20 MB · 1 credit per PDF<span className="hidden sm:inline"> · or drop a file here</span></p>
               </>
             )}

@@ -10,8 +10,12 @@ import {
   createMaterialDownloadUrl,
   createMaterialUpload,
   deleteMaterialObject,
+  storeFetchedMaterial,
   validateMaterialUpload,
 } from '../lib/lectureMaterials.js';
+import { normalizeMaterialLink, materialFileName } from '../lib/materialLinks.js';
+import { fetchPublicFile } from '../lib/safeFetch.js';
+import { classifyFetchedMaterial } from '../lib/materialSafety.js';
 
 // Professor-supplied materials attached to a lecture, or to the class itself.
 // Same presign / PUT / confirm pattern as recordings (routes/files.js); the
@@ -112,6 +116,53 @@ router.post('/upload-url', requireAuth, async (req, res) => {
   }
 });
 
+/**
+ * Write the row and settle the credit, for a file that arrived either way
+ * (uploaded and confirmed, or fetched from a link). The row is saved first;
+ * a PDF read that produced text costs 1 credit, logged with its true
+ * provider cost in one settle. A credit-contention race after the work is
+ * done must not fail the student: the cost is logged uncharged instead.
+ */
+async function saveMaterial({ userId, target, fileName, confirmed, gate, llmUsage, started }) {
+  const extracted = confirmed.extraction_status === 'ready';
+  const row = (await pool.query(
+    `insert into lecture_materials
+       (user_id, lecture_id, class_id, file_name, content_type, size_bytes, storage_ref, extracted_text, page_count, extraction_status)
+     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+     returning id, lecture_id, class_id, file_name, content_type, size_bytes, page_count, extraction_status, created_at, updated_at`,
+    [userId, target.lecture_id, target.class_id, fileName, confirmed.content_type, confirmed.size_bytes, confirmed.storage_ref,
+      confirmed.extracted_text, confirmed.page_count, confirmed.extraction_status],
+  )).rows[0];
+
+  if (gate && extracted && llmUsage.geminiCalls > 0) {
+    try {
+      await settleFeature(gate, { feature: 'material_extract', llmUsage, extra: { lecture_id: target.lecture_id, class_id: target.class_id } });
+    } catch (e) {
+      console.error('[materials] settle failed (material saved, not charged):', e?.message || e);
+      await logUsage({
+        user_id: userId, feature: 'material_extract', lecture_id: target.lecture_id, class_id: target.class_id, provider: 'gemini',
+        model: Object.keys(llmUsage.models).join(', '), call_count: llmUsage.geminiCalls,
+        input_tokens: llmUsage.inputTokens, output_tokens: llmUsage.outputTokens,
+        cedar_credits_charged: 0, cost_cad: llmUsage.costCad, tier_at_time: gate?.balance?.tier || 'free',
+        success: true, latency_ms: Date.now() - started,
+      }).catch(() => {});
+    }
+  } else if (llmUsage.geminiCalls > 0) {
+    // A model call happened but nothing billable resulted (an empty or failed
+    // PDF read — the student got no text). Log the cost so the margin model
+    // still sees it; charge nothing.
+    const balance = await getBalance(userId).catch(() => ({ tier: 'free' }));
+    await logUsage({
+      user_id: userId, feature: 'material_extract', lecture_id: target.lecture_id, class_id: target.class_id, provider: 'gemini',
+      model: Object.keys(llmUsage.models).join(', '), call_count: llmUsage.geminiCalls,
+      input_tokens: llmUsage.inputTokens, output_tokens: llmUsage.outputTokens,
+      cedar_credits_charged: 0, cost_cad: llmUsage.costCad, tier_at_time: balance.tier,
+      success: extracted, latency_ms: Date.now() - started,
+    });
+  }
+  return row;
+}
+
 router.post('/confirm', requireAuth, async (req, res) => {
   try {
     const userId = req.user.id;
@@ -122,56 +173,68 @@ router.post('/confirm', requireAuth, async (req, res) => {
     });
     // Check-before-work: tier for every material, plus one credit for a PDF.
     // Re-checked here and not only at /upload-url so a direct call to confirm
-    // cannot skip the gate. The credit is settled AFTER the row is saved, below.
+    // cannot skip the gate. The credit is settled AFTER the row is saved
+    // (saveMaterial).
     const gate = await gateMaterial(userId, contentType, target, res);
     if (!gate.ok) return;
 
     const llmUsage = createLlmUsage();
     const started = Date.now();
     const confirmed = await confirmMaterialUpload(userId, req.body?.key, llmUsage);
-    const extracted = confirmed.extraction_status === 'ready';
-    const row = (await pool.query(
-      `insert into lecture_materials
-         (user_id, lecture_id, class_id, file_name, content_type, size_bytes, storage_ref, extracted_text, page_count, extraction_status)
-       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-       returning id, lecture_id, class_id, file_name, content_type, size_bytes, page_count, extraction_status, created_at, updated_at`,
-      [userId, target.lecture_id, target.class_id, fileName, confirmed.content_type, confirmed.size_bytes, confirmed.storage_ref,
-        confirmed.extracted_text, confirmed.page_count, confirmed.extraction_status],
-    )).rows[0];
-
-    // Charge-after-success: the material row is saved. A PDF read that produced
-    // text costs 1 credit, logged with its true provider cost in one settle.
-    if (gate.gate && extracted && llmUsage.geminiCalls > 0) {
-      try {
-        await settleFeature(gate.gate, { feature: 'material_extract', llmUsage, extra: { lecture_id: target.lecture_id, class_id: target.class_id } });
-      } catch (e) {
-        // The file is saved and usable; a rare credit-contention race must not
-        // fail the upload. Log the cost uncharged rather than erroring on the
-        // student after the work is done.
-        console.error('[materials] settle failed (material saved, not charged):', e?.message || e);
-        await logUsage({
-          user_id: userId, feature: 'material_extract', lecture_id: target.lecture_id, class_id: target.class_id, provider: 'gemini',
-          model: Object.keys(llmUsage.models).join(', '), call_count: llmUsage.geminiCalls,
-          input_tokens: llmUsage.inputTokens, output_tokens: llmUsage.outputTokens,
-          cedar_credits_charged: 0, cost_cad: llmUsage.costCad, tier_at_time: gate.gate?.balance?.tier || 'free',
-          success: true, latency_ms: Date.now() - started,
-        }).catch(() => {});
-      }
-    } else if (llmUsage.geminiCalls > 0) {
-      // A model call happened but nothing billable resulted (an empty or failed
-      // PDF read — the student got no text). Log the cost so the margin model
-      // still sees it; charge nothing.
-      const balance = await getBalance(userId).catch(() => ({ tier: 'free' }));
-      await logUsage({
-        user_id: userId, feature: 'material_extract', lecture_id: target.lecture_id, class_id: target.class_id, provider: 'gemini',
-        model: Object.keys(llmUsage.models).join(', '), call_count: llmUsage.geminiCalls,
-        input_tokens: llmUsage.inputTokens, output_tokens: llmUsage.outputTokens,
-        cedar_credits_charged: 0, cost_cad: llmUsage.costCad, tier_at_time: balance.tier,
-        success: confirmed.extraction_status === 'ready', latency_ms: Date.now() - started,
-      });
-    }
-
+    const row = await saveMaterial({ userId, target, fileName, confirmed, gate: gate.gate, llmUsage, started });
     res.status(201).json({ material: row, extracted_chars: confirmed.extracted_text?.length || 0 });
+  } catch (error) {
+    clientError(error, res);
+  }
+});
+
+// A link may be fetched this many times per student per window. Fetching an
+// address someone else chose is work this server does on their behalf, and
+// the tier and the per-class cap bound it per account; this bounds the rate.
+const IMPORT_WINDOW_MS = 10 * 60 * 1000;
+const IMPORTS_PER_WINDOW = 12;
+const importsByUser = new Map();
+export function takeImportSlot(userId, now = Date.now()) {
+  const recent = (importsByUser.get(userId) || []).filter((t) => now - t < IMPORT_WINDOW_MS);
+  if (recent.length >= IMPORTS_PER_WINDOW) { importsByUser.set(userId, recent); return false; }
+  recent.push(now);
+  importsByUser.set(userId, recent);
+  return true;
+}
+
+/**
+ * A file from a link: the address is normalised (a Drive, Dropbox or
+ * OneDrive share becomes its download form), fetched by the server with
+ * the checks in lib/safeFetch.js, judged by its bytes (lib/materialSafety.js:
+ * a real PDF with nothing hostile inside, or real text), then kept and read
+ * exactly as an upload would be. Same tier, same credit for a PDF, same cap
+ * per class or lecture.
+ */
+router.post('/from-url', requireAuth, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const target = await resolveTarget(userId, req.body);
+    if (!target) return res.status(404).json({ error: req.body?.class_id && !req.body?.lecture_id ? 'Class not found' : 'Lecture not found' });
+    const link = normalizeMaterialLink(req.body?.url);
+    // Fail fast, before any fetch: the tier (a PDF's credit is checked once
+    // the type is known, below) and the cap.
+    const tier = await requireTier(userId, 'material_extract', res, { lecture_id: target.lecture_id, class_id: target.class_id });
+    if (!tier.ok) return;
+    const full = await targetIsFull(target);
+    if (full) return res.status(409).json({ error: full });
+    if (!takeImportSlot(userId)) return res.status(429).json({ error: 'That is a lot of links at once. Give it a few minutes and try again.' });
+
+    const fetched = await fetchPublicFile(link.url);
+    const { contentType } = classifyFetchedMaterial(fetched.buffer, { declaredType: fetched.contentType, finalUrl: fetched.finalUrl });
+    const fileName = materialFileName({ contentDisposition: fetched.contentDisposition, finalUrl: fetched.finalUrl, contentType });
+    const gate = await gateMaterial(userId, contentType, target, res);
+    if (!gate.ok) return;
+
+    const llmUsage = createLlmUsage();
+    const started = Date.now();
+    const stored = await storeFetchedMaterial(userId, fetched.buffer, contentType, llmUsage);
+    const row = await saveMaterial({ userId, target, fileName, confirmed: stored, gate: gate.gate, llmUsage, started });
+    res.status(201).json({ material: row, extracted_chars: stored.extracted_text?.length || 0, source: link.kind });
   } catch (error) {
     clientError(error, res);
   }

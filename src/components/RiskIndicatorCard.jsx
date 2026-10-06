@@ -18,6 +18,19 @@ const severityColors = {
   low: 'border-blue-500/30 bg-blue-500/5 text-blue-600',
 };
 
+/**
+ * Red is for what is going wrong in the course: lectures missed, scores
+ * low. Not studying enough, or not having booked anything, is a nudge about
+ * the week ahead, and it reads in amber whatever the server's severity says.
+ * The same card in rose, stacked under a rose "missed study" line, made the
+ * first screen of the day two alarms about studying.
+ */
+const NUDGE_TYPES = new Set(['low_engagement', 'no_study_planned', 'behind_schedule']);
+function toneFor(risk) {
+  if (NUDGE_TYPES.has(risk.type)) return severityColors.medium;
+  return severityColors[risk.severity] || severityColors.medium;
+}
+
 // Each risk routes to the existing tool that resolves it — no new screens.
 // missed_lectures → Classes (each class's study tools generate missed-lecture
 // summaries); the planner handles scheduling, rescheduling, and review.
@@ -79,7 +92,7 @@ export default function RiskIndicatorCard() {
       {visibleRisks.map((risk, i) => {
         const key = `risk-${risk.type || i}`;
         const Icon = riskIcons[risk.type] || AlertTriangle;
-        const colorClass = severityColors[risk.severity] || severityColors.medium;
+        const colorClass = toneFor(risk);
         const action = riskActions[risk.type] || fallbackAction;
         return (
           <div key={key} className={`rounded-xl border p-3 ${colorClass}`}>

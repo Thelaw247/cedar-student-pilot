@@ -364,6 +364,18 @@ const materials = {
       body: { ...scope, key: prepared.data.key, file_name: fileName, content_type: contentType },
     })).data;
   },
+  /**
+   * A file from a link the student pasted. The server fetches it (with the
+   * checks in server/lib/safeFetch.js and materialSafety.js), keeps it and
+   * reads it like an upload. Same target shapes as upload().
+   */
+  async importFromUrl(target, url) {
+    const scope = typeof target === 'string' ? { lecture_id: target } : { ...(target?.lecture_id ? { lecture_id: target.lecture_id } : {}), ...(target?.class_id && !target?.lecture_id ? { class_id: target.class_id } : {}) };
+    if (!scope.lecture_id && !scope.class_id) throw new TypeError('A lecture or class to attach the file to is required');
+    const link = String(url || '').trim();
+    if (!link) throw new TypeError('Paste a link to the file first.');
+    return (await apiRequest('/lecture-materials/from-url', { method: 'POST', body: { ...scope, url: link } })).data;
+  },
   async getDownloadUrl(materialId) {
     return (await apiRequest(`/lecture-materials/download-url?id=${encodeURIComponent(materialId)}`)).data;
   },

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { BookOpen, Coffee, Sparkles } from 'lucide-react';
+import { formatCountdown } from '@/lib/time';
 
 const SUGGESTIONS = [
   { icon: BookOpen, text: "Review yesterday's lecture", link: '/classes', color: 'text-blue-500' },
@@ -23,7 +24,8 @@ export default function EmptyTimeSuggestion({ gapStart, gapEnd, startMin, hourHe
     <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground group-hover:text-primary transition-colors">
       <Icon className={`w-3 h-3 ${suggestion.color}`} strokeWidth={2} />
       {suggestion.text}
-      <span className="text-muted-foreground/40 ml-0.5">· {gapMinutes}m free</span>
+      {/* "2h 10m free", through the one clock helper, not "130m free". */}
+      <span className="text-muted-foreground/60 ml-0.5">· {formatCountdown(gapMinutes)} free</span>
     </div>
   );
 

@@ -32,6 +32,19 @@ export function formatCountdown(minutes) {
   return m === 0 ? `${h}h` : `${h}h ${m}m`;
 }
 
+/**
+ * "17:30" + 50 minutes -> "18:20"; null when the session has no time or no
+ * length. A booked study session has a length, so its block on a timeline
+ * can have an end, like a class.
+ */
+export function sessionEndTime(session) {
+  const start = parseTimeToMinutes(session?.scheduled_time);
+  const minutes = Number(session?.duration_minutes);
+  if (start == null || !Number.isFinite(minutes) || minutes <= 0) return null;
+  const end = Math.min(start + Math.round(minutes), 24 * 60 - 1);
+  return `${String(Math.floor(end / 60)).padStart(2, '0')}:${String(end % 60).padStart(2, '0')}`;
+}
+
 /** 767 (seconds) -> "12:47". Used by recording + focus timers. */
 export function formatClock(totalSeconds) {
   const s = Math.max(0, Math.floor(totalSeconds));

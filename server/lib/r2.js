@@ -285,18 +285,33 @@ export async function confirmAvatarUpload(userId, rawKey) {
   return { key, storage_ref: storageRef(key), size_bytes: size, content_type: contentType };
 }
 
+/**
+ * A recording is listened to, not downloaded: the browser fetches it in
+ * pieces as it plays, over the length of the lecture and the pauses in it,
+ * so its URL has to outlive the sitting. Fifteen minutes stalled a long
+ * listen partway with a network error (the player now also fetches a new
+ * URL when that happens; see components/lecture/RecordingPlayer.jsx).
+ * Everything else keeps the short window.
+ */
+export const PLAYBACK_EXPIRY_SECONDS = 4 * 60 * 60;
+
+export function downloadExpiryFor(key) {
+  return /\/recordings\//.test(String(key || '')) ? PLAYBACK_EXPIRY_SECONDS : DOWNLOAD_EXPIRY_SECONDS;
+}
+
 export async function createDownloadUrl(userId, rawKey) {
   const key = assertOwnedKey(userId, rawKey);
   const { client, bucket } = r2Client();
   await client.send(new HeadObjectCommand({ Bucket: bucket, Key: key }));
+  const expiresIn = downloadExpiryFor(key);
   const url = await getSignedUrl(
     client,
     new GetObjectCommand({ Bucket: bucket, Key: key }),
-    { expiresIn: DOWNLOAD_EXPIRY_SECONDS },
+    { expiresIn },
   );
   return {
     url,
-    expires_at: new Date(Date.now() + DOWNLOAD_EXPIRY_SECONDS * 1000).toISOString(),
+    expires_at: new Date(Date.now() + expiresIn * 1000).toISOString(),
   };
 }
 

@@ -11,6 +11,7 @@ import { useUndo, UndoToast } from '@/hooks/useUndo';
 import { Plus, GraduationCap, Calendar, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import Segmented from '@/components/ui/Segmented';
 import Timeline from '@/components/Timeline';
+import UpNextCard from '@/components/UpNextCard';
 import TodayIntelligenceCard from '@/components/TodayIntelligenceCard';
 import RiskIndicatorCard from '@/components/RiskIndicatorCard';
 import AddExamOrStudyModal from '@/components/AddExamOrStudyModal';
@@ -24,7 +25,7 @@ import WeeklyCalendar from '@/components/WeeklyCalendar';
 import AddEventModal from '@/components/AddEventModal';
 import { classesOnDate } from '@/lib/classSchedule';
 import { weekDates } from '@/lib/eventSchedule';
-import { formatWeekRange } from '@/lib/time';
+import { formatWeekRange, sessionEndTime } from '@/lib/time';
 import { eventsOnDate } from '@/lib/eventSchedule';
 import { sessionTitle, sessionDescription } from '@/lib/sessionTitle';
 
@@ -32,6 +33,7 @@ function getTodayString() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
+
 
 /**
  * The day as this browser last saw it, or null when any part is missing.
@@ -208,6 +210,10 @@ export default function Home() {
       title: sessionTitle(s),
       notes: sessionDescription(s),
       time: s.scheduled_time,
+      // A booked sitting has a length, so its block has a real height and an
+      // end time, like a class. It used to stand at the 28px floor reading
+      // "5:30 PM", whatever it was booked for.
+      endTime: sessionEndTime(s),
       type: 'study',
       classId: s.class_id,
       // Study belongs to a class, so it renders in the class's color (law 02).
@@ -277,16 +283,20 @@ export default function Home() {
               <p className="text-sm text-muted-foreground">
                 {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
               </p>
-              <span className="text-muted-foreground/40">•</span>
+              <span className="text-muted-foreground/40">·</span>
               <p className="text-sm text-muted-foreground tabular-nums">
                 {currentTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
               </p>
             </div>
           </div>
 
-          <AutoPrintPrompt />
-          <AttendancePrompt />
-          <DetectedDeadlines lectures={lectures} assignments={assignments} onChanged={() => loadData({ quiet: true })} />
+          {/* The order is the day's order of importance, and it used to be
+              the reverse: three questions (attendance, a detected deadline,
+              a print prompt) and two warnings stood before the first thing
+              the page gives. Now: what is next, how the day is going, and
+              only then what needs an answer, each in the tone it deserves
+              (components/TodayIntelligenceCard, RiskIndicatorCard). */}
+          <UpNextCard todayClasses={todayClasses} events={todayEvents} firstWeek={lectures.length === 0} />
 
           <DailyProgressRing
             classes={todayClasses}
@@ -297,13 +307,13 @@ export default function Home() {
             currentTime={currentTime}
           />
 
+          <AutoPrintPrompt />
+          <AttendancePrompt />
+          <DetectedDeadlines lectures={lectures} assignments={assignments} onChanged={() => loadData({ quiet: true })} />
           <TodayIntelligenceCard
-            todayClasses={todayClasses}
-            events={todayEvents}
             assignments={assignments}
             studySessions={studySessions}
             onRecalculateComplete={loadData}
-            firstWeek={lectures.length === 0}
           />
           <RiskIndicatorCard />
 

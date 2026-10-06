@@ -66,8 +66,11 @@ test('the browser is asked for notification permission from Settings, never on a
 
 test('the first week says when to press Record, and never scolds a new account for not studying', () => {
   assert.match(UP_NEXT, /Press Record when it starts\. The notes make themselves\./);
-  assert.match(TODAY_CARD, /firstWeek = false,/);
-  assert.match(HOME, /firstWeek=\{lectures\.length === 0\}/);
+  assert.match(UP_NEXT, /firstWeek = false/);
+  // The hero is rendered by the page itself, first on it (6 Oct 2026); the
+  // signals card no longer carries it.
+  assert.match(HOME, /<UpNextCard todayClasses=\{todayClasses\} events=\{todayEvents\} firstWeek=\{lectures\.length === 0\} \/>/);
+  assert.doesNotMatch(TODAY_CARD, /UpNextCard/);
   assert.match(RISK, /const semesterAgeDays = /);
   assert.match(RISK, /totalStudyMinutes < 60 && allAssignments\.length > 0 && semesterAgeDays >= 7/);
 });

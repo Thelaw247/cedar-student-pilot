@@ -13,6 +13,7 @@ import LectureJumpNav from '@/components/lecture/LectureJumpNav';
 import TranscriptViewer, { TranscriptCleanup } from '@/components/lecture/TranscriptViewer';
 import LectureTodos from '@/components/lecture/LectureTodos';
 import LectureMaterials from '@/components/lecture/LectureMaterials';
+import RecordingPlayer from '@/components/lecture/RecordingPlayer';
 import {
   OverviewSection, OutlineSection, ConceptsSection, FormulasSection, DefinitionsSection,
   ExamplesSection, ExamRadarSection, InsightsSection,
@@ -38,8 +39,6 @@ export default function LectureDetail() {
   const { lectureId } = useParams();
   const navigate = useNavigate();
   const [lecture, setLecture] = useState(null);
-  const [recordingPlaybackUrl, setRecordingPlaybackUrl] = useState(null);
-  const [recordingPlaybackError, setRecordingPlaybackError] = useState(null);
   const [cls, setCls] = useState(null);
   const [note, setNote] = useState('');
   const [noteId, setNoteId] = useState(null);
@@ -140,27 +139,12 @@ export default function LectureDetail() {
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  useEffect(() => {
-    let cancelled = false;
-    const recordingRef = lecture?.recording_url;
-    setRecordingPlaybackError(null);
-    if (!recordingRef) {
-      setRecordingPlaybackUrl(null);
-      return () => { cancelled = true; };
-    }
-    if (!String(recordingRef).startsWith('r2://')) {
-      setRecordingPlaybackUrl(recordingRef);
-      return () => { cancelled = true; };
-    }
-    setRecordingPlaybackUrl(null);
-    base44.files.getDownloadUrl(recordingRef)
-      .then((url) => { if (!cancelled) setRecordingPlaybackUrl(url); })
-      .catch((error) => {
-        console.error(error);
-        if (!cancelled) setRecordingPlaybackError('The recording could not be loaded. Please try again.');
-      });
-    return () => { cancelled = true; };
-  }, [lecture?.recording_url]);
+  // The player resolves each recording part to a signed URL as it needs it,
+  // and again when one expires mid-listen (components/lecture/RecordingPlayer).
+  const resolvePlaybackUrl = useCallback((ref) => base44.files.getDownloadUrl(ref), []);
+  const recordingRefs = lecture?.recording_url
+    ? (Array.isArray(lecture.recording_parts) && lecture.recording_parts.length > 1 ? lecture.recording_parts : [lecture.recording_url])
+    : [];
 
   // Refetch when something this page actually reads has changed — a sync
   // after reconnection, a finished recording. Not when a to-do was ticked in
@@ -418,45 +402,21 @@ export default function LectureDetail() {
               <Lock className="w-3.5 h-3.5" /> Handbook
             </button>
           )}
-          <button onClick={() => setConfirmingDelete(true)} aria-label="Delete lecture"
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-destructive/30 text-destructive text-xs font-medium hover:bg-destructive/10 transition-colors">
-            <Trash2 className="w-3.5 h-3.5" />
-          </button>
         </div>
       </div>
-
-      {/* Delete confirmation */}
-      {confirmingDelete && (
-        <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 mb-6">
-          <div className="flex items-start gap-2 mb-3">
-            <AlertTriangle className="w-4 h-4 text-destructive mt-0.5 flex-shrink-0" />
-            <p className="text-sm text-muted-foreground">This permanently deletes this lecture, its transcript, and its AI-generated notes. This can’t be undone.</p>
-          </div>
-          <div className="flex gap-2">
-            <button onClick={() => setConfirmingDelete(false)} disabled={deleting}
-              className="flex-1 py-2 rounded-lg border border-border text-sm font-medium text-muted-foreground hover:bg-muted disabled:opacity-50">
-              Cancel
-            </button>
-            <button onClick={deleteLecture} disabled={deleting}
-              className="flex-1 py-2 rounded-lg bg-destructive text-destructive-foreground text-sm font-medium hover:bg-destructive/90 disabled:opacity-50 flex items-center justify-center gap-2">
-              {deleting ? <><Loader2 className="w-4 h-4 animate-spin" /> Deleting…</> : <><Trash2 className="w-4 h-4" /> Delete permanently</>}
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* Header */}
       <div className="flex items-start gap-3 mb-6">
         <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
           <FileText className="w-6 h-6 text-primary" />
         </div>
-        <div className="flex-1">
-          <h1 className="font-heading text-xl font-bold">{lectureTitle(lecture)}</h1>
-          <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1 text-xs text-muted-foreground">
+        <div className="flex-1 min-w-0">
+          <h1 className="font-heading text-xl font-bold text-balance">{lectureTitle(lecture)}</h1>
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1 text-xs text-muted-foreground">
             <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{formatShortDate(lecture.date, { weekday: true })}</span>
-            {lecture.duration_seconds > 0 && <span>• {Math.floor(lecture.duration_seconds / 60)} min</span>}
-            {lecture.is_ai_estimated && <span className="flex items-center gap-1 text-amber-600"><AlertCircle className="w-3 h-3" /> Estimated, not recorded</span>}
-            {lecture.status === 'processing' && <span className="text-amber-600">• Still processing</span>}
+            {lecture.duration_seconds > 0 && <span>· {Math.floor(lecture.duration_seconds / 60)} min</span>}
+            {lecture.is_ai_estimated && <span className="flex items-center gap-1 text-amber-600">· <AlertCircle className="w-3 h-3" /> Estimated, not recorded</span>}
+            {lecture.status === 'processing' && <span className="text-amber-600">· Still processing</span>}
           </div>
         </div>
       </div>
@@ -521,19 +481,17 @@ export default function LectureDetail() {
         </div>
       )}
 
-      {/* Audio player */}
-      {lecture.recording_url && !lecture.is_missed && (
-        <div className="rounded-xl border border-border bg-card p-4 mb-6">
-          {recordingPlaybackUrl ? (
-            <audio controls className="w-full" src={recordingPlaybackUrl}></audio>
-          ) : recordingPlaybackError ? (
-            <p className="text-sm text-destructive">{recordingPlaybackError}</p>
-          ) : (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="w-4 h-4 animate-spin" /> Loading recording…
-            </div>
-          )}
-        </div>
+      {/* The recording, with the app's own controls: speed, skips, the
+          position kept between visits, every part of a long lecture. */}
+      {recordingRefs.length > 0 && !lecture.is_missed && (
+        <RecordingPlayer
+          lectureId={lectureId}
+          refs={recordingRefs}
+          resolveUrl={resolvePlaybackUrl}
+          duration={lecture.duration_seconds}
+          title={lectureTitle(lecture)}
+          subtitle={cls?.name || ''}
+        />
       )}
 
       {/* Processing: show the shape of what's coming, with honest timing */}
@@ -645,6 +603,35 @@ export default function LectureDetail() {
           {!navigator.onLine && <CloudOff className="w-3.5 h-3.5 text-muted-foreground" />}
         </div>
       </Section>
+
+      {/* Deleting is the last thing on the page, not a red button beside
+          Quick quiz: the one action that cannot be undone sits away from the
+          ones used every day, and asks before it acts. */}
+      <div className="mt-2 mb-4">
+        {confirmingDelete ? (
+          <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-4">
+            <div className="flex items-start gap-2 mb-3">
+              <AlertTriangle className="w-4 h-4 text-destructive mt-0.5 flex-shrink-0" />
+              <p className="text-sm text-muted-foreground">This permanently deletes this lecture, its recording, its transcript and its notes. It cannot be undone.</p>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => setConfirmingDelete(false)} disabled={deleting}
+                className="flex-1 py-2 rounded-lg border border-border text-sm font-medium text-muted-foreground hover:bg-muted disabled:opacity-50">
+                Keep it
+              </button>
+              <button onClick={deleteLecture} disabled={deleting}
+                className="flex-1 py-2 rounded-lg bg-destructive text-destructive-foreground text-sm font-medium hover:bg-destructive/90 disabled:opacity-50 flex items-center justify-center gap-2">
+                {deleting ? <><Loader2 className="w-4 h-4 animate-spin" /> Deleting…</> : <><Trash2 className="w-4 h-4" /> Delete permanently</>}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button type="button" onClick={() => setConfirmingDelete(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-2 min-h-[40px] rounded-lg text-xs font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/5 transition-colors duration-micro">
+            <Trash2 className="w-3.5 h-3.5" /> Delete this lecture
+          </button>
+        )}
+      </div>
       {/* In-lecture focus quiz */}
       {showHandbook && lecture?.class_id && (
         <HandbookReader

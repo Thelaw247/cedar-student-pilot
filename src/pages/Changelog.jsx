@@ -15,6 +15,17 @@ import { PUBLIC_PAGES } from '@/lib/publicPages';
  */
 export const CHANGELOG = [
   {
+    date: '2026-10-06',
+    title: 'A real player, files from a link, and a calmer Today',
+    items: [
+      'Recordings play with their own controls: play and pause, 15 seconds back, 30 forward, a speed from 1× to 2× that is remembered, and a scrubber you can drag. A lecture you leave halfway picks up where you were. A lecture recorded in more than one part plays all of it. While it plays, a small bar follows you down the transcript so pause is never far, and your phone’s lock screen shows the controls too.',
+      'Course files can come from a link. Paste the address of a PDF, or a Google Drive, Dropbox or OneDrive share link, and we fetch the file, check that it really is a PDF or text and carries nothing a document should not (scripts, programs, embedded files), then read it like an upload. Same credit, same place.',
+      'Today opens on what is next and how the day is going. Before anything is done it says “4 things today” instead of 0%. Questions and nudges come after that, and a slipped session or a quiet week is an amber note, not a red alarm. Booked study blocks show their end time, and free time reads as “2h 10m free”.',
+      'The To-do page shows your progress once something is done, adds a task in one line with Today and Tomorrow a tap away, keeps the class you are looking at, and stops repeating “Task” on every row.',
+      'On a lecture page, Delete moved to the very end, away from Quick quiz, and asks before it acts.',
+    ],
+  },
+  {
     date: '2026-10-05',
     title: 'The study page starts with the reason',
     items: [

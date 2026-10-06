@@ -50,8 +50,12 @@ test('both endpoints accept a class as the target, resolved through the student\
     assert.match(handler, /if \(!target\) return res\.status\(404\)/, `${name} must 404 before any work when the target is not the student's`);
     assert.doesNotMatch(handler, /ownedLecture\(req\.user\.id, req\.body\?\.lecture_id\)/, `${name} still resolves only lectures`);
   }
-  // The row is written from the resolved target, so a class file has no lecture.
-  assert.match(confirm, /\[userId, target\.lecture_id, target\.class_id, fileName,/);
+  // The row is written from the resolved target, so a class file has no
+  // lecture. Both doors (an upload confirmed, a file fetched from a link)
+  // write it through the one save step (6 Oct 2026).
+  const save = ROUTE.slice(ROUTE.indexOf('async function saveMaterial('), ROUTE.indexOf("router.post('/confirm'"));
+  assert.match(save, /\[userId, target\.lecture_id, target\.class_id, fileName,/);
+  assert.match(confirm, /await saveMaterial\(\{ userId, target, fileName, confirmed, gate: gate\.gate, llmUsage, started \}\)/);
 });
 
 test('the gate is the same for both targets, and the class has its own cap', () => {

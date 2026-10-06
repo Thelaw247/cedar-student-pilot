@@ -151,7 +151,9 @@ test('the bottom nav sits below the sheets, and the sheets clear the home indica
 test('the small targets on Today are at least 40px tall, and the dismiss crosses have a 44px hit area', () => {
   assert.match(PROMPT, /min-h-\[44px\] items-center justify-center px-4 text-xs/, '"Ask me later" was 16px tall');
   assert.match(read('../../src/components/DetectedDeadlines.jsx'), /min-h-\[40px\] px-4 py-2 rounded-lg bg-primary/);
-  assert.match(read('../../src/components/TodayIntelligenceCard.jsx'), /inline-flex min-h-\[40px\] items-center gap-1\.5 px-4 py-2 rounded-lg bg-rose-600/);
+  // The Rebook button keeps its 40px, in amber now: a slipped session is a
+  // nudge about the week, not an error (6 Oct 2026).
+  assert.match(read('../../src/components/TodayIntelligenceCard.jsx'), /inline-flex min-h-\[40px\] items-center gap-1\.5 px-3\.5 py-2 rounded-lg border border-amber-500\/40/);
   for (const p of ['TodayIntelligenceCard', 'RiskIndicatorCard']) {
     const src = read(`../../src/components/${p}.jsx`);
     assert.doesNotMatch(src, /p-1 -m-1/, `${p}: a 22px dismiss cross`);

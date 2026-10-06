@@ -80,13 +80,21 @@ export default function DailyProgressRing({ classes, events, studySessions, atte
   }, []);
   const offset = drawn ? CIRC * (1 - percentage / 100) : CIRC;
 
+  /* Before anything is done the ring shows how much the day holds, not 0%.
+   * A zero is the least motivating number a progress ring can show, and at
+   * 8 AM it is also meaningless: nothing could have been done yet. Past the
+   * halfway mark the line says "nearly there": the closer the end, the
+   * harder people push for it, and the words should pull the same way. */
+  const notStarted = totalItems > 0 && doneItems === 0;
   const verdict = totalItems === 0
     ? 'Nothing scheduled today'
     : complete
       ? 'Day complete'
-      : percentage >= 50
-        ? `${doneItems} of ${totalItems} done, on track`
-        : `${doneItems} of ${totalItems} done, keep going`;
+      : notStarted
+        ? `${totalItems} thing${totalItems === 1 ? '' : 's'} today`
+        : percentage >= 50
+          ? `${doneItems} of ${totalItems} done, nearly there`
+          : `${doneItems} of ${totalItems} done`;
 
   const breakdown = [
     totalClasses > 0 && `${doneClasses}/${totalClasses} classes`,
@@ -96,7 +104,8 @@ export default function DailyProgressRing({ classes, events, studySessions, atte
 
   return (
     <div className="rounded-xl border border-border bg-card shadow-1 p-4 mb-4 flex items-center gap-4">
-      <div className="relative w-[72px] h-[72px] flex-shrink-0" role="img" aria-label={`${percentage} percent of today complete`}>
+      <div className="relative w-[72px] h-[72px] flex-shrink-0" role="img"
+        aria-label={notStarted ? `${totalItems} things today, none done yet` : `${percentage} percent of today complete`}>
         <svg width="72" height="72" viewBox="0 0 72 72">
           <circle cx="36" cy="36" r={R} fill="none" className="stroke-muted" strokeWidth="7" />
           <circle
@@ -113,11 +122,13 @@ export default function DailyProgressRing({ classes, events, studySessions, atte
         <div className="absolute inset-0 flex items-center justify-center">
           {complete
             ? <Check className="w-6 h-6 text-primary" strokeWidth={2.5} />
-            : <span className="font-heading text-sm font-bold tabular-nums text-foreground">{percentage}%</span>}
+            : notStarted
+              ? <span className="font-heading text-lg font-bold tabular-nums text-foreground">{totalItems}</span>
+              : <span className="font-heading text-sm font-bold tabular-nums text-foreground">{percentage}%</span>}
         </div>
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-xs font-medium text-muted-foreground">Today's progress</p>
+        <p className="text-xs font-medium text-muted-foreground">{notStarted ? "Today's plan" : "Today's progress"}</p>
         <p className="text-sm font-semibold text-foreground mt-0.5">{verdict}</p>
         {breakdown && (
           <p className="text-[11px] text-muted-foreground tabular-nums mt-0.5">{breakdown}</p>

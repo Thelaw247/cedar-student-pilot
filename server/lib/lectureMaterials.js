@@ -129,6 +129,34 @@ export async function confirmMaterialUpload(userId, rawKey, llmUsage = undefined
   };
 }
 
+/**
+ * Keep a file the server fetched itself (a link the student pasted; see
+ * routes/lectureMaterials.js /from-url and lib/safeFetch.js). The bytes
+ * have already been judged by lib/materialSafety.js; this writes them under
+ * the student's prefix with the same metadata an upload gets, so every
+ * later check (owner, purpose, size) treats the two alike, then extracts
+ * the text the way confirmMaterialUpload does.
+ */
+export async function storeFetchedMaterial(userId, buffer, contentType, llmUsage = undefined) {
+  if (!MATERIAL_TYPES.has(contentType)) throw new TypeError('Materials must be a PDF, plain text, or Markdown file');
+  if (!buffer?.length) throw new TypeError('The fetched file is empty');
+  if (buffer.length > MAX_MATERIAL_BYTES) throw new RangeError('Materials must be 20 MB or smaller');
+  const key = materialKey(userId, contentType);
+  const { client, bucket } = r2Client();
+  await client.send(new PutObjectCommand({
+    Bucket: bucket, Key: key, Body: buffer, ContentType: contentType, ContentLength: buffer.length,
+    Metadata: { owner: userId, purpose: 'material', 'max-bytes': String(buffer.length) },
+  }));
+  const extraction = await extractMaterialText(buffer, contentType, llmUsage);
+  return {
+    key,
+    storage_ref: storageRef(key),
+    size_bytes: buffer.length,
+    content_type: contentType,
+    ...extraction,
+  };
+}
+
 export async function createMaterialDownloadUrl(userId, ref) {
   const parsed = parseStorageRef(ref);
   if (!parsed) throw new TypeError('Invalid material reference');

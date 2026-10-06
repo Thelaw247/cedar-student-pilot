@@ -116,6 +116,37 @@ The pattern, so the next tool page gets it without re-deriving it:
   lectures, Sep 8 to Oct 2 · 1 reviewed", "in 15 days". A number the page
   cannot stand behind (rows still loading) is left out, not shown as 0.
 
+## The day, the list and the player (Today, To-do, Lecture; Oct 6, 2026)
+
+- **A page opens on what it gives, then on what it asks.** Today: the next
+  thing, how the day is going, then the questions (attendance, a detected
+  deadline, an exam this week, a slipped session, a quiet week), then the
+  schedule, then the review ask. The asks are never first.
+- **No zero.** A progress ring or bar that has nothing to show yet shows
+  the size of the job ("4 things today") or nothing at all; 0% is the least
+  motivating number on a screen. Past the halfway mark the words pull
+  ("nearly there").
+- **Red is for the course going wrong** (missed lectures, low scores).
+  Not having studied, not having booked, a slipped session: amber, a nudge
+  about the week. Never two red cards about studying on one screen.
+- **The browser's media controls are not ours.** `RecordingPlayer`
+  (`components/lecture/`): play, two skips (15 back, 30 forward), a
+  scrubber styled from the palette (`.recording-scrubber`), a speed button
+  whose value lives in Settings (`playbackRate`), the position kept per
+  lecture (`cedar-play-pos-<id>`), every part of a multi-part recording,
+  a fresh signed URL on a network error, Media Session metadata, and a
+  mini bar pinned above the bottom nav while it plays off screen
+  (`html.mini-player-open` gives the page room for it).
+- **Destructive actions last.** Delete sits at the end of a page as a
+  quiet text button and asks before it acts, never beside the primary
+  actions in the header.
+- **A file from a link is held to the upload's rules and two more**
+  (`server/lib/safeFetch.js`, `materialSafety.js`, `materialLinks.js`):
+  public addresses only, on every hop, on the web's two ports; the type
+  from the bytes; a PDF refused for JavaScript, Launch, embedded files,
+  rich media or XFA, inside compressed streams too. The widget says so in
+  one line under the field.
+
 ## The widget grammar (UI redesign, Aug 2026)
 
 Full rationale and the per-page fix ledger live in the Design Blueprint

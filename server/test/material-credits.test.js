@@ -57,11 +57,17 @@ test('both endpoints gate before doing any work', () => {
 });
 
 test('the credit is charged only after the row is saved, and only on a real read', () => {
-  const confirm = ROUTE.slice(ROUTE.indexOf("router.post('/confirm'"));
-  const insertAt = confirm.indexOf('insert into lecture_materials');
-  const settleAt = confirm.indexOf('settleFeature(');
+  // The save step is shared by the upload door and the link door (6 Oct
+  // 2026), so the charge rule cannot drift between them.
+  const save = ROUTE.slice(ROUTE.indexOf('async function saveMaterial('), ROUTE.indexOf("router.post('/confirm'"));
+  const insertAt = save.indexOf('insert into lecture_materials');
+  const settleAt = save.indexOf('settleFeature(');
   assert.ok(insertAt > 0 && settleAt > insertAt, 'settle must come after the material row is inserted (charge-after-success)');
   // Guarded by a successful extraction AND an actual model call — a failed or
   // empty PDF read charges nothing.
-  assert.match(confirm, /if \(gate\.gate && extracted && llmUsage\.geminiCalls > 0\)[\s\S]*settleFeature\(gate\.gate/);
+  assert.match(save, /if \(gate && extracted && llmUsage\.geminiCalls > 0\)[\s\S]*settleFeature\(gate,/);
+  for (const door of ["router.post('/confirm'", "router.post('/from-url'"]) {
+    const handler = ROUTE.slice(ROUTE.indexOf(door));
+    assert.match(handler.slice(0, handler.indexOf('\n});')), /await saveMaterial\(/, `${door} does not save through the one step`);
+  }
 });

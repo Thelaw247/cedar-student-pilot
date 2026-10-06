@@ -499,3 +499,54 @@ html.keyboard-open .sheet-overlay > [role="dialog"] {
     visibility: hidden;
   }
 }
+
+/* The recording player's scrubber (components/lecture/RecordingPlayer.jsx).
+   A range input wears the browser's own track and thumb, which belong to no
+   theme; this draws them from the palette, with the played part in the
+   brand hue (--played is set inline as a percentage). */
+.recording-scrubber {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 20px;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.recording-scrubber:disabled { cursor: default; opacity: 0.6; }
+.recording-scrubber::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 9999px;
+  background: linear-gradient(to right, hsl(var(--primary)) var(--played, 0%), hsl(var(--muted)) var(--played, 0%));
+}
+.recording-scrubber::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  margin-top: -5px;
+  border-radius: 9999px;
+  background: hsl(var(--card));
+  border: 2px solid hsl(var(--primary));
+  box-shadow: var(--shadow-1);
+  transition: transform var(--duration-micro) var(--ease-standard);
+}
+.recording-scrubber:not(:disabled):active::-webkit-slider-thumb { transform: scale(1.15); }
+.recording-scrubber::-moz-range-track { height: 6px; border-radius: 9999px; background: hsl(var(--muted)); }
+.recording-scrubber::-moz-range-progress { height: 6px; border-radius: 9999px; background: hsl(var(--primary)); }
+.recording-scrubber::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 9999px;
+  background: hsl(var(--card));
+  border: 2px solid hsl(var(--primary));
+  box-shadow: var(--shadow-1);
+}
+.recording-scrubber:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; border-radius: 9999px; }
+
+/* The player's mini bar (RecordingPlayer) is pinned above the bottom nav
+   while a recording plays and the player has scrolled away; the page gets
+   that much room at its end so the bar covers nothing. */
+html.mini-player-open #main { padding-bottom: calc(9.5rem + env(safe-area-inset-bottom)); }
+@media (min-width: 1024px) {
+  html.mini-player-open #main { padding-bottom: 4.5rem; }
+}
