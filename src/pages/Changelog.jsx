@@ -16,6 +16,13 @@ import { PUBLIC_PAGES } from '@/lib/publicPages';
 export const CHANGELOG = [
   {
     date: '2026-10-06',
+    title: 'Long lectures recorded on an iPhone or a Mac now save',
+    items: [
+      'Safari records in a different format from other browsers, at a higher quality setting, so a lecture longer than about twenty minutes could be refused when you pressed Save, with a “Try again” that never worked. Recordings are now split into parts behind the scenes by size as well as by time, and every part fits. If a recording would not save on your phone before, record the next lecture as usual: it will.',
+    ],
+  },
+  {
+    date: '2026-10-06',
     title: 'A real player, files from a link, and a calmer Today',
     items: [
       'Recordings play with their own controls: play and pause, 15 seconds back, 30 forward, a speed from 1× to 2× that is remembered, and a scrubber you can drag. A lecture you leave halfway picks up where you were. A lecture recorded in more than one part plays all of it. While it plays, a small bar follows you down the transcript so pause is never far, and your phone’s lock screen shows the controls too.',

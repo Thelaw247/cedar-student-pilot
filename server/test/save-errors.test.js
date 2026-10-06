@@ -115,6 +115,68 @@ test('the clock stops while the microphone is silent, and the saved duration is 
   assert.match(island, /rec\.micSilent/);
 });
 
+// --- a segment can never outgrow the cap ------------------------------------
+//
+// The 90-minute rotation assumed 32 kbps Opus. Safari records AAC, and when
+// the encoder does not take the bitrate hint WebKit falls back to 192 kbps:
+// the 24 MB cap in about seventeen minutes, every lecture on an iPhone refused
+// by the client before upload, and nothing on the server to show for it (one
+// student, three weeks, zero lecture rows). Segments now rotate on size too.
+
+test('segments rotate on size as well as time, under the upload cap with room for one more slice', () => {
+  const rotateBytes = Number(context.match(/const SEGMENT_ROTATE_BYTES = (\d+) \* 1024 \* 1024;/)?.[1]);
+  const maxBytes = Number(context.match(/const MAX_SEGMENT_BYTES = (\d+) \* 1024 \* 1024;/)?.[1]);
+  assert.ok(rotateBytes > 0 && maxBytes > 0, 'both caps must be named constants');
+  // 15 s of audio at even 256 kbps is under half a MiB; 4 MiB of headroom is
+  // plenty and still leaves a segment large enough that Chrome's 90-minute
+  // segments (about 21 MB) rotate at most once more than before.
+  assert.ok(maxBytes - rotateBytes >= 2, `rotation at ${rotateBytes} MiB leaves too little headroom under ${maxBytes} MiB`);
+  // Judged on the bytes captured so far, inside the slice handler, and never
+  // while a rotation is already in flight (the old recorder's last slice lands
+  // in the same handler).
+  const handler = context.slice(context.indexOf('recorder.ondataavailable = (e) =>'), context.indexOf('recorder.onstop = () =>'));
+  assert.match(handler, /blob\.size >= SEGMENT_ROTATE_BYTES && recordingRef\.current && !rotatingRef\.current/);
+  assert.match(handler, /rotateSegment\(\);/);
+  // The time boundary stays.
+  assert.match(context, /segmentSecondsRef\.current >= SEGMENT_ROTATE_SECONDS/);
+});
+
+test('every save, failed or not, leaves a short-scalar record of what the device recorded', () => {
+  assert.match(context, /recorderMimeRef\.current = recorder\.mimeType \|\| '';/, 'the real format is read off the recorder');
+  assert.match(context, /track\('recording_save_failed', \{ kind: classified\.kind, status: Number\(e\?\.response\?\.status \|\| e\?\.status \|\| 0\), \.\.\.saveFacts\(pendingBytes\) \}\)/);
+  assert.match(context, /track\('recording_saved', \{ parts: parts\.length, \.\.\.saveFacts\(\) \}\)/);
+  // The segment that failed to upload counts toward the bitrate: it is the
+  // one that tells the story.
+  assert.match(context, /failSave\(new Error\(`Could not finish uploading the last part[^`]*`\), \{ pendingBytes: lastBlob\?\.size \|\| 0 \}\)/);
+  assert.match(context, /failSave\(new Error\(`A recording segment could not be uploaded[^`]*`\), \{ pendingBytes: failedBlob\?\.size \|\| 0 \}\)/);
+  // Whitelisted server-side, so the events are kept rather than dropped.
+  const trackEvent = read('../../server/routes/trackEvent.js');
+  assert.match(trackEvent, /'recording_saved',/);
+  assert.match(trackEvent, /'recording_save_failed',/);
+  // No free text ever: the facts are a platform token, the recorder's own
+  // MIME string, and numbers.
+  const facts = context.slice(context.indexOf('const saveFacts = '), context.indexOf('const failSave = '));
+  assert.match(facts, /platform: devicePlatform\(\)/);
+  assert.match(facts, /kbps: measuredKbps\(/);
+  assert.doesNotMatch(facts, /message|userAgent/);
+});
+
+test('the device token and the measured bitrate are what the record says they are', async () => {
+  const { devicePlatform, measuredKbps } = await import('../../src/lib/recordingFacts.js');
+  assert.match(context, /from '@\/lib\/recordingFacts'/);
+  assert.equal(devicePlatform('Mozilla/5.0 (iPhone; CPU iPhone OS 18_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Mobile/15E148 Safari/604.1'), 'ios');
+  assert.equal(devicePlatform('Mozilla/5.0 (iPad; CPU OS 17_5 like Mac OS X) AppleWebKit/605.1.15'), 'ios');
+  assert.equal(devicePlatform('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 Version/18.0 Safari/605.1.15'), 'mac');
+  assert.equal(devicePlatform('Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 Chrome/128.0 Mobile Safari/537.36'), 'android');
+  assert.equal(devicePlatform('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/128.0'), 'windows');
+  assert.equal(devicePlatform(''), 'other');
+  // 50 minutes at 192 kbps AAC: 72 MB. At 32 kbps Opus: 12 MB.
+  assert.equal(measuredKbps(72 * 1000 * 1000, 50 * 60), 192);
+  assert.equal(measuredKbps(12 * 1000 * 1000, 50 * 60), 32);
+  assert.equal(measuredKbps(0, 60), null);
+  assert.equal(measuredKbps(1000, 0), null);
+});
+
 test('lectures left for later are marked in lists and retry errors are classified on the detail page', () => {
   const item = stripComments(read('../../src/components/LectureItem.jsx'));
   assert.match(item, /lecture\.status === 'pending' && lecture\.recording_url && !lecture\.ai_title/);

@@ -5,6 +5,8 @@ import { saveRecording, getRecording, clearRecording, listRecoverableRecordings 
 import { getCachedUserId } from '@/lib/currentUser';
 import { LECTURE_COMPLETE, LECTURE_PENDING } from '@/lib/lectureStatus';
 import { localDay } from '@/lib/localDay';
+import { track } from '@/lib/analytics';
+import { devicePlatform, measuredKbps } from '@/lib/recordingFacts';
 import { useUpgrade } from '@/components/monetization/UpgradeContext';
 
 /**
@@ -31,6 +33,19 @@ import { useUpgrade } from '@/components/monetization/UpgradeContext';
 const MAX_SEGMENT_BYTES = 24 * 1024 * 1024;
 const RECORDING_AUDIO_BITS_PER_SECOND = 32_000;
 const SEGMENT_ROTATE_SECONDS = 90 * 60;
+// Segments also rotate on SIZE (6 Oct 2026). The 90-minute boundary assumed
+// 32 kbps, which is what Chrome and Firefox record Opus at. Safari cannot
+// record Opus: it records AAC in an MP4, and when the encoder does not take
+// the 32 kbps hint WebKit falls back to its own default, 192 kbps at the
+// microphone's sample rate (AudioSampleBufferConverter::defaultOutputBitRate).
+// At that rate the 24 MB cap is reached in about seventeen minutes, and every
+// ordinary lecture recorded on an iPhone or a Mac was refused by
+// uploadSegmentWithRetry before a byte left the phone: no lecture row, no
+// server log, the island saying "This recording can't be processed", a Try
+// again that failed the same way each time. Rotating when the segment's bytes
+// reach this mark keeps every segment under the cap at any bitrate; 4 MiB of
+// headroom covers the chunk that lands while the rotation starts.
+const SEGMENT_ROTATE_BYTES = 20 * 1024 * 1024;
 const MAX_TOTAL_SECONDS = 6 * 60 * 60;
 const MAX_UPLOAD_ATTEMPTS = 3;
 
@@ -145,6 +160,11 @@ export function RecordingProvider({ children }) {
   // producing data, and on 1 Sep that produced a 3h14m "duration" for 44
   // minutes of audio. Bytes cannot lie about that.
   const capturedBytesRef = useRef(0);
+  // What the browser is really recording ("audio/webm;codecs=opus" in Chrome,
+  // "audio/mp4;codecs=mp4a.40.2" in Safari), read off the recorder once it
+  // starts. For the telemetry: the format decides the bitrate, and the bitrate
+  // decided whether a lecture could be saved at all (SEGMENT_ROTATE_BYTES).
+  const recorderMimeRef = useRef('');
   const rotatingRef = useRef(false); // guards timer + manual stop racing
   const pausedRef = useRef(false);
   const recordingRef = useRef(false);
@@ -259,6 +279,7 @@ export function RecordingProvider({ children }) {
     }
     chunksRef.current = [];
     segmentSecondsRef.current = 0;
+    recorderMimeRef.current = recorder.mimeType || '';
     // Every ~15s: append the slice and flush the segment-so-far to IndexedDB
     // (tagged with segments already safely uploaded), so a crash loses at
     // most ~15s and uploaded segments are never re-recorded.
@@ -271,6 +292,12 @@ export function RecordingProvider({ children }) {
           timestamp: Date.now(),
           parts: uploadedPartsRef.current,
         });
+        // The size boundary, judged on the bytes actually captured. While a
+        // rotation is under way the old recorder's last slice lands here too;
+        // rotatingRef keeps that from starting a second one.
+        if (blob.size >= SEGMENT_ROTATE_BYTES && recordingRef.current && !rotatingRef.current) {
+          rotateSegment();
+        }
       }
     };
     // A phone browser can stop the recorder out from under us: the tab is
@@ -299,17 +326,32 @@ export function RecordingProvider({ children }) {
     recorderRef.current = recorder;
   };
 
+  // What a save looked like from the device, as short scalars: the platform,
+  // the format the browser recorded, the bitrate it came out at, the length.
+  // No text, no audio. Until this existed a student whose every save failed
+  // on the phone left nothing on the server to find; see SEGMENT_ROTATE_BYTES
+  // for the three weeks that cost one of them. `pendingBytes` is the segment
+  // that did not get uploaded: capturedBytesRef only counts what reached the
+  // server, and the failure this exists to catch is the one where nothing did.
+  const saveFacts = (pendingBytes = 0) => ({
+    platform: devicePlatform(),
+    mime: (recorderMimeRef.current || 'unknown').slice(0, 64),
+    kbps: measuredKbps(capturedBytesRef.current + (pendingBytes || 0), secondsRef.current) ?? 0,
+    seconds: Math.round(secondsRef.current || 0),
+  });
+
   // Every failure the island can act on goes through here, so the message
   // and its classification never drift apart. Three failures used to set
   // only the string: the island reads the classified half, so they showed as
   // "Recording complete" with a Save & Process button, and the save then
-  // failed with no audio to send.
-  const failSave = (error) => {
+  // failed with no audio to send. Each one also leaves its telemetry row.
+  const failSave = (error, { pendingBytes = 0 } = {}) => {
     const e = error instanceof Error ? error : new Error(String(error?.message || error || 'Unknown error'));
     const classified = classifySaveError(e);
     const copy = describeSaveError(classified);
     setSaveFailure({ ...classified, ...copy });
     setSaveError(classified.message || copy.body);
+    track('recording_save_failed', { kind: classified.kind, status: Number(e?.response?.status || e?.status || 0), ...saveFacts(pendingBytes) });
     return classified;
   };
 
@@ -386,7 +428,7 @@ export function RecordingProvider({ children }) {
       setRecording(false);
       setPaused(false);
       await keepSegmentForRetry(failedBlob, { seconds: secondsRef.current, parts: uploadedPartsRef.current });
-      failSave(new Error(`A recording segment could not be uploaded (${e?.message || 'no reason given'}). It is safe on this device. Check your connection and try again.`));
+      failSave(new Error(`A recording segment could not be uploaded (${e?.message || 'no reason given'}). It is safe on this device. Check your connection and try again.`), { pendingBytes: failedBlob?.size || 0 });
       setReadyToSave(true);
     } finally {
       rotatingRef.current = false;
@@ -422,7 +464,7 @@ export function RecordingProvider({ children }) {
       setReadyToSave(true);
     } catch (e) {
       await keepSegmentForRetry(lastBlob, { seconds: secondsRef.current, parts: uploadedPartsRef.current });
-      failSave(new Error(`Could not finish uploading the last part of this recording (${e?.message || 'no reason given'}). Your audio is safe on this device. Try again.`));
+      failSave(new Error(`Could not finish uploading the last part of this recording (${e?.message || 'no reason given'}). Your audio is safe on this device. Try again.`), { pendingBytes: lastBlob?.size || 0 });
       setReadyToSave(true);
     }
     setUploadingSegment(false);
@@ -762,6 +804,7 @@ export function RecordingProvider({ children }) {
 
       await base44.functions.invoke('processLectureRecording', { lecture_id: lectureId });
       await waitForLectureProcessing(lectureId);
+      track('recording_saved', { parts: parts.length, ...saveFacts() });
 
       if (liveNotes.trim()) {
         try {
@@ -789,7 +832,7 @@ export function RecordingProvider({ children }) {
     } catch (e) {
       // Keep the durable copy, uploaded parts, and pending lecture id so a
       // retry never re-uploads or double-creates.
-      const classified = failSave(e);
+      const classified = failSave(e, { pendingBytes: recoveredBlobRef.current?.size || 0 });
       if (classified.kind === 'out_of_credits') openUpgrade({ source: 'out-of-credits' });
     }
     savingRef.current = false;

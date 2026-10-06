@@ -73,11 +73,12 @@ does not reach 100% until its external staging checks pass.
   and signed GETs.
 - Lecture processing accepts only owned `r2://` references. It does not fetch
   arbitrary HTTPS recording URLs or rely on a configurable trusted host.
-- Recording capture requests speech-efficient 32 kbps Opus, stops at 90
-  minutes, and enforces the same 24 MB ceiling in the browser, signed-upload
-  service, R2 confirmation, and transcription route. This stays below Groq's
-  25 MB free-tier attachment limit instead of accepting an unusable 200 MB
-  object.
+- Recording capture requests speech-efficient 32 kbps Opus, rotates segments
+  at 90 minutes or 20 MiB of captured audio, whichever comes first (6 Oct
+  2026: Safari records AAC and can ignore the bitrate hint), and enforces the
+  same 24 MB ceiling in the browser, signed-upload service, R2 confirmation,
+  and transcription route. This stays below Groq's 25 MB free-tier attachment
+  limit instead of accepting an unusable 200 MB object.
 - Transcript exports and study reminders now have a real Resend delivery path.
   Transcript recipients are fixed to the caller's verified auth email, dynamic
   HTML is escaped, provider calls carry idempotency keys, daily quota updates
@@ -334,6 +335,7 @@ Two real lectures on the first day of use failed to process, and the failures we
 | Background failures all read "Processing didn't finish" | The pipeline runs after a 202 and only `status` was polled; the reason never left the server log. | New `lectures.processing_error` column (migration `20260901200000`, applied live). `releaseLecture` writes a student-readable reason, `claimLecture` clears it, the island classifies on it and the lecture page shows "Last attempt: …". |
 | Discard deleted a 90-minute recording with no confirmation | — | Two-step confirmation naming the duration and what will be deleted. |
 | `flashcard generation failed: null value in column "back"` on both complete lectures | Gemini returned a card without a back; the schema did not mark the fields required and one bad card aborted the batch. | `required: ['front','back']` in both flashcard schemas; `usableFlashcards` drops incomplete cards instead of failing the batch. |
+| A paying student on an iPhone "records, but it does not process" (6 Oct 2026): three weeks, zero lecture rows, nothing in any server log | Segments rotated by time (90 min) on the assumption of 32 kbps Opus. Safari cannot record Opus; it records AAC in an MP4, and when the encoder does not take the 32 kbps hint WebKit's `AudioSampleBufferConverter` falls back to 192 kbps. The 24 MB cap is reached in about seventeen minutes, so every ordinary lecture was refused by `uploadSegmentWithRetry` before a byte left the phone: no row, no request, the island saying "This recording can't be processed" and a Try again that failed identically. Found only by the absence of rows for an account with 13 classes and a timetable import. | Segments also rotate on size (`SEGMENT_ROTATE_BYTES`, 20 MiB), so no browser's bitrate can overshoot the cap; Groq gets an MP4 segment under a `.m4a` name from its bytes (`audioFileName`); and every save now leaves a first-party `recording_saved` / `recording_save_failed` event with the platform, the recorder's MIME type, the measured kbps, the length and, for a failure, its kind, so the next report like this is a query, not a hunt. |
 | `Gemini 503 … high demand` failed a whole lecture at 16:00 UTC | No retry at all on a provider-side overload. | `invokeLLM` retries a 503/429 on the same model (2 s, 5 s) and then falls through to the next model in the chain for that call only. |
 
 Tests: `server/test/save-errors.test.js`, `llm-resilience.test.js`, `webmDuration.test.js` (gap cases). The schema snapshot (`supabase/schema_snapshot.sql`) predates `recording_parts` and `processing_error`; regenerate it before relying on it for anything but the status constraint.

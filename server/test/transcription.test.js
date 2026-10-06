@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {
-  transcribeAudioParts, transcriptionStatus, audioContentType, transcribeViaDeepgram, GROQ_MAX_BYTES,
+  transcribeAudioParts, transcriptionStatus, audioContentType, audioFileName, transcribeViaGroq, transcribeViaDeepgram, GROQ_MAX_BYTES,
 } from '../lib/transcription.js';
 
 /**
@@ -66,6 +66,30 @@ test('the container is sniffed so Safari recordings are sent as mp4, Chrome as w
   assert.equal(audioContentType(Buffer.concat([Buffer.from([0, 0, 0, 0x18]), Buffer.from('ftypM4A '), Buffer.alloc(8)])), 'audio/mp4');
   assert.equal(audioContentType(Buffer.from('OggS00000000')), 'audio/ogg');
   assert.equal(audioContentType(Buffer.from('nope')), 'application/octet-stream');
+});
+
+test('Groq receives the segment under the name its bytes earn, not the client\'s label (6 Oct 2026)', async () => {
+  const mp4 = Buffer.concat([Buffer.from([0, 0, 0, 0x18]), Buffer.from('ftypM4A '), Buffer.alloc(8)]);
+  const webm = Buffer.from([0x1a, 0x45, 0xdf, 0xa3, 0, 0, 0, 0, 0, 0, 0, 0]);
+  assert.equal(audioFileName(mp4), 'lecture.m4a');
+  assert.equal(audioFileName(webm), 'lecture.webm');
+  assert.equal(audioFileName(Buffer.from('OggS00000000')), 'lecture.ogg');
+  assert.equal(audioFileName(Buffer.from('nope')), 'lecture.webm', 'unknown bytes keep the old name');
+
+  // The form Groq actually gets: a Safari recording arrives as lecture.m4a
+  // with an audio/mp4 part, a Chrome one as lecture.webm.
+  const seen = [];
+  const original = globalThis.fetch;
+  globalThis.fetch = async (url, init) => {
+    const file = init.body.get('file');
+    seen.push({ name: file.name, type: file.type });
+    return new Response(JSON.stringify({ text: 'ok' }), { status: 200 });
+  };
+  try {
+    await transcribeViaGroq(mp4, 'g');
+    await transcribeViaGroq(webm, 'g');
+  } finally { globalThis.fetch = original; }
+  assert.deepEqual(seen, [{ name: 'lecture.m4a', type: 'audio/mp4' }, { name: 'lecture.webm', type: 'audio/webm' }]);
 });
 
 test('Deepgram is called with Nova-3 and its paragraphed transcript is preferred', async () => {

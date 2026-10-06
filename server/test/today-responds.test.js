@@ -96,7 +96,9 @@ test("a server-side reason is shown as itself, not as 'check your connection'", 
 });
 
 test('every failed save sets the classified half the island reads, and a failed segment is kept for the retry', () => {
-  assert.match(CONTEXT, /const failSave = \(error\) => \{/);
+  // The second argument carries the bytes of the segment that did not upload,
+  // for the save telemetry (6 Oct 2026); the classification is unchanged.
+  assert.match(CONTEXT, /const failSave = \(error, \{ pendingBytes = 0 \} = \{\}\) => \{/);
   // The three failures that used to set only the string.
   const rotateCatch = CONTEXT.slice(CONTEXT.indexOf('const rotateSegment'), CONTEXT.indexOf('const finalizeRecording'));
   const finalizeCatch = CONTEXT.slice(CONTEXT.indexOf('const finalizeRecording'), CONTEXT.indexOf('// The 1-second clock'));

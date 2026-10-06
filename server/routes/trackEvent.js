@@ -21,6 +21,14 @@ const EVENTS = new Set([
   'upgrade_sheet_opened',
   'checkout_started',
   'feature_lock_tapped',
+  // A recording's save, from the device's side (6 Oct 2026): the platform,
+  // the format the browser recorded, the measured bitrate, the length, and
+  // for a failure its kind and status. A save that never reaches the server
+  // (a segment refused by the client's size cap, a dead network) left no
+  // trace anywhere until this; one student's three weeks of failed saves on
+  // an iPhone were found only by the absence of lecture rows.
+  'recording_saved',
+  'recording_save_failed',
 ]);
 
 const MAX_META_KEYS = 6;

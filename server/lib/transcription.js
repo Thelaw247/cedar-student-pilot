@@ -39,12 +39,28 @@ export function audioContentType(buffer) {
   return 'application/octet-stream';
 }
 
+/**
+ * The file name a segment is handed to Groq under, from its bytes. The client
+ * labels every segment audio/webm whatever the browser recorded (Safari
+ * records AAC in an MP4), and Whisper endpoints read the format off the
+ * extension first; a ".webm" full of MP4 is a guess they should not have to
+ * make. Unknown bytes keep the old name.
+ */
+export function audioFileName(buffer) {
+  switch (audioContentType(buffer)) {
+    case 'audio/mp4': return 'lecture.m4a';
+    case 'audio/ogg': return 'lecture.ogg';
+    case 'audio/mpeg': return 'lecture.mp3';
+    default: return 'lecture.webm';
+  }
+}
+
 export async function transcribeViaGroq(buffer, apiKey) {
   if (buffer.length > GROQ_MAX_BYTES) {
     throw new Error(`Groq 413: file is ${(buffer.length / 1048576).toFixed(1)}MB, over the Groq limit`);
   }
   const form = new FormData();
-  form.append('file', new Blob([buffer]), 'lecture.webm');
+  form.append('file', new Blob([buffer], { type: audioContentType(buffer) }), audioFileName(buffer));
   form.append('model', GROQ_MODEL);
   form.append('response_format', 'json');
 

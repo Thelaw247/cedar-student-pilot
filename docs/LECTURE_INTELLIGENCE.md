@@ -5,7 +5,7 @@ _3 September 2026. Written after the first real lectures were recorded with the 
 ## 1. What the pipeline did before this work
 
 ```
-browser MediaRecorder (32 kbps Opus, 90-min segments)
+browser MediaRecorder (32 kbps Opus where the browser can; AAC in Safari; segments rotate at 90 min or 20 MiB)
   → R2 (presigned PUT, owner-stamped)
   → POST /process-lecture-recording (202, background)
       1. fetch + verify each segment, measure duration (billing)
